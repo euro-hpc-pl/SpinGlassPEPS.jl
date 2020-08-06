@@ -33,7 +33,6 @@ end
 
 VS = Vector{String}
 
-
 function contract_ts(A::Array{Float64, N1} where N1, C::Array{Float64, N2} where N2, modesA::VS, modesC::VS, scheme::VS)
     mode_a = findall(x -> x == scheme[1], modesA)[1]
     mode_c = findall(x -> x == scheme[2], modesC)[1]
@@ -60,20 +59,6 @@ function contract_ts(A::Array{Float64, N1} where N1, C::Array{Float64, N2} where
     T, vcat(modes_a, modes_c)
 end
 
-# testing
-A = ones(2,2,2,2)
-sum_over_last(A) == 2*ones(2,2,2)
-set_last(A, -1) == ones(2,2,2)
-
-A = 0.1*ones(2,2,2)
-modesA = ["u", "d", "r"]
-C = [1. 2. ; 3. 4.]
-modesC = ["u", "r"]
-scheme = ["d", "u"]
-
-T, v = contract_ts(A, C, modesA, modesC, scheme)
-T[1,:,:] ≈ [0.4 0.6; 0.4 0.6]
-v == ["u", "r1", "r2"]
 # graphical representation
 
 struct Qubo_el
@@ -128,37 +113,11 @@ function make_graph3x3()
     mg
 end
 
-function add_qubo2graph(mg::MetaGraph, q::Vector{Qubo_el})
+function add_qubo2graph(mg::MetaGraph, qubo::Vector{Qubo_el})
     for q in qubo
         add_qubo_el!(mg, q)
     end
     mg
-end
-
-function make_qubo()
-    qubo = [(1,1) 0.5; (1,2) 0.5; (1,6) 0.5; (2,2) 0.5; (2,3) 0.5; (2,5) 0.5; (3,3) 0.5; (3,4) 0.5]
-    qubo = vcat(qubo, [(4,4) 0.5; (4,5) 0.5; (4,9) 0.5; (5,5) 0.5; (5,6) 0.5; (5,8) 0.5; (6,6) 0.5; (6,7) 0.5])
-    qubo = vcat(qubo, [(7,7) 0.5; (7,8) 0.5; (8,8) 0.5; (8,9) 0.5; (9,9) 0.5])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-end
-
-
-# testing of graph formation
-
-mg = make_graph3x3()
-qubo = make_qubo()
-add_qubo2graph(mg, qubo)
-
-collect(vertices(mg))
-
-for i in 1:9
-    print(props(mg, i)[:h])
-end
-
-props(mg, Edge(1,6))[:J]
-
-for i in 1:9
-    print(props(mg, i)[:bonds]["r"])
 end
 
 
@@ -190,12 +149,6 @@ function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jir::Float64, Jid::Float64
     delta(l, s)*delta(u, s)*c(r, Jir, s)*c(d, Jid, s)*exp(-β*Jii*s)
 end
 
-# testig
-delta(0,-1) == 1
-delta(-1,1) == 0
-delta(1,1) == 1
-c(0, 1., 20) == 1
-Tgen(0,0,0,0,-1,0.,0.,1.) == exp(β)
 
 # tensors to vertices.
 
@@ -298,45 +251,6 @@ function set_physical_dim(tensor::TensorOnGraph, s::Int)
     end
 end
 
-# testing
-
-index2physical(2) == 1
-index2physical(1) == -1
-
-function make_qubo()
-    qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,4) 0.5]
-    qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.5; (4,9) 0.5; (5,5) 0.2; (5,6) 0.5; (5,8) 0.5; (6,6) 0.2; (6,7) 0.5])
-    qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) 0.2; (8,9) 0.5; (9,9) 0.2])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-end
-
-mg = make_graph3x3();
-qubo = make_qubo();
-add_qubo2graph(mg, qubo);
-
-get_modes(mg, 1)
-getJs(mg, 1)
-T,m = makeTensor(mg, 1)
-
-TensorOnGraph(T, m)
-
-T1 = [Tgen(l,r,u,d,s,0.5, 0.5, 0.2)  for s in [-1, 1] for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
-TensorOnGraph(mg, 5).A == reshape(T1, (2,2,2,2,2))
-
-T2 = [Tgen(0,r,0,d,s,0.5, 0.5, 0.2) for s in [-1, 1] for d in [-1, 1] for r in [-1, 1]]
-TensorOnGraph(mg, 1).A == reshape(T2, (2,2,2))
-
-T3 = [Tgen(l,r,u,d,1,0.5, 0.5, 0.2)  for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
-A = TensorOnGraph(mg, 5)
-set_physical_dim(A, 1).A == reshape(T3, (2,2,2,2))
-
-
-T4 = [Tgen(l,r,u,d,-1,0.5, 0.5, 0.2)  for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
-T5 = T3+T4
-A = TensorOnGraph(mg, 5)
-trace_physical_dim(A).A == reshape(T5, (2,2,2,2))
-trace_physical_dim(A)
-
 # add tensors to the graph
 
 function add_tensor2vertex(mg::MetaGraph, vertex::Int)
@@ -350,10 +264,3 @@ function add_tensor2vertex(mg::MetaGraph, vertex::Int, s::Int)
     T = set_physical_dim(T, s)
     set_prop!(mg, vertex, :tensor, T)
 end
-
-
-for i in 1:9
-    add_tensor2vertex(mg, i)
-end
-
-props(mg, 5)[:tensor]
