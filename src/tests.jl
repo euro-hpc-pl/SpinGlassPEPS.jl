@@ -106,13 +106,22 @@ end
         [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
     mg = make_graph3x3();
+    mg1 = make_graph3x3();
     qubo = make_qubo();
     add_qubo2graph(mg, qubo);
+    add_qubo2graph(mg1, qubo);
 
     for i in 1:9
         add_tensor2vertex(mg, i)
     end
 
-    @test props(mg, 5)[:tensor].bonds_dirs == ["l", "r", "u", "d"]
+    s = [1,1,1,-1,-1,-1,1,1,1]
+    for i in 1:9
+        add_tensor2vertex(mg1, i, s[i])
+    end
 
+    @test props(mg, 5)[:tensor].bonds_dirs == ["l", "r", "u", "d"]
+    @test props(mg1, 5)[:tensor].bonds_dirs == ["l", "r", "u", "d"]
+    println(props(mg, 5)[:tensor].A)
+    println(props(mg1, 5)[:tensor].A)
 end
