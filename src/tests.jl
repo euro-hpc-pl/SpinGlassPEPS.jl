@@ -35,9 +35,9 @@ end
     @test props(mg_t, 4)[:h] == 0.5
     @test props(mg_t, Edge(1,6))[:J] == 0.5
 
-    @test props(mg_t, Edge(1,2))[:type] == ["r", "l"]
-    @test props(mg_t, Edge(1,6))[:type] == ["d", "u"]
-    @test props(mg_t, Edge(6,1))[:type] == ["d", "u"]
+    @test props(mg_t, Edge(1,2))[:side] == ["r", "l"]
+    @test props(mg_t, Edge(1,6))[:side] == ["d", "u"]
+    @test props(mg_t, Edge(6,1))[:side] == ["d", "u"]
 end
 
 @testset "testing of tensor generator" begin
@@ -72,9 +72,9 @@ end
     qubo = make_qubo();
     add_qubo2graph(mg, qubo);
 
-    @test bond_dirs(mg, 1)  == ["r", "d"]
-    @test bond_dirs(mg, 5) == ["l", "r", "u", "d"]
-    @test bond_dirs(mg, 9) == ["l", "u"]
+    @test bond_directions(mg, 1)  == ["r", "d"]
+    @test bond_directions(mg, 5) == ["l", "r", "u", "d"]
+    @test bond_directions(mg, 9) == ["l", "u"]
 
     @test get_modes(mg, 1) == [2, 4]
     @test get_modes(mg, 5) == [1, 2, 3, 4]
@@ -118,9 +118,9 @@ end
 
     @test props(mg, Edge(4,5))[:modes] == [0,0]
 
-    @test props(mg, Edge(4,5))[:type] == ["l", "r"]
-    @test props(mg, Edge(5,2))[:type] == ["d", "u"]
-    @test props(mg, Edge(1,2))[:type] == ["r", "l"]
+    @test props(mg, Edge(4,5))[:side] == ["l", "r"]
+    @test props(mg, Edge(5,2))[:side] == ["d", "u"]
+    @test props(mg, Edge(1,2))[:side] == ["r", "l"]
 
     @test_throws ErrorException add_tensor2vertex(mg, 1, 3)
 

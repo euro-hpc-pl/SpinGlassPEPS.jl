@@ -75,23 +75,23 @@ end
 
 function add_locations3x3_1!(graph::MetaGraph)
     # e.g. from 1 a link egde to right and from 2 the same to lest
-    a = set_prop!(graph, Edge(1,2), :type, ["r","l"])
-    b = set_prop!(graph, Edge(2,3), :type, ["r","l"])
+    a = set_prop!(graph, Edge(1,2), :side, ["r","l"])
+    b = set_prop!(graph, Edge(2,3), :side, ["r","l"])
 
-    c = set_prop!(graph, Edge(4,5), :type, ["l","r"])
-    d = set_prop!(graph, Edge(5,6), :type, ["l","r"])
+    c = set_prop!(graph, Edge(4,5), :side, ["l","r"])
+    d = set_prop!(graph, Edge(5,6), :side, ["l","r"])
 
-    e = set_prop!(graph, Edge(7,8), :type, ["r","l"])
-    f = set_prop!(graph, Edge(8,9), :type, ["r","l"])
+    e = set_prop!(graph, Edge(7,8), :side, ["r","l"])
+    f = set_prop!(graph, Edge(8,9), :side, ["r","l"])
 
-    g = set_prop!(graph, Edge(1,6), :type, ["d","u"])
-    h = set_prop!(graph, Edge(6,7), :type, ["d","u"])
+    g = set_prop!(graph, Edge(1,6), :side, ["d","u"])
+    h = set_prop!(graph, Edge(6,7), :side, ["d","u"])
 
-    i = set_prop!(graph, Edge(2,5), :type, ["d","u"])
-    j = set_prop!(graph, Edge(5,8), :type, ["d","u"])
+    i = set_prop!(graph, Edge(2,5), :side, ["d","u"])
+    j = set_prop!(graph, Edge(5,8), :side, ["d","u"])
 
-    k = set_prop!(graph, Edge(3,4), :type, ["d","u"])
-    l = set_prop!(graph, Edge(4,9), :type, ["d","u"])
+    k = set_prop!(graph, Edge(3,4), :side, ["d","u"])
+    l = set_prop!(graph, Edge(4,9), :side, ["d","u"])
 
     for e in edges(graph)
         set_prop!(graph, e, :modes, [0,0])
@@ -167,9 +167,9 @@ function getJs(mg::MetaGraph, i::Int)
         # bonds types are given increasing order of vertices
         p = sortperm([i,v])
 
-        if props(mg, e)[:type][p[1]] == "r"
+        if props(mg, e)[:side][p[1]] == "r"
             Jir = props(mg, e)[:J]
-        elseif props(mg, e)[:type][p[1]] == "d"
+        elseif props(mg, e)[:side][p[1]] == "d"
             Jid = props(mg, e)[:J]
         end
     end
@@ -187,18 +187,18 @@ function sort2lrud(x::Vector{String})
 end
 
 
-function bond_dirs(mg::MetaGraph, i::Int)
-    bond_dirs = Vector{String}()
+function bond_directions(mg::MetaGraph, i::Int)
+    bond_directions = Vector{String}()
     for v in neighbors(mg, i)
         e = Edge(i,v)
         p = sortperm([i,v])
-        push!(bond_dirs, props(mg, e)[:type][p[1]])
+        push!(bond_directions, props(mg, e)[:side][p[1]])
     end
-    sort2lrud(bond_dirs)
+    sort2lrud(bond_directions)
 end
 
 function get_modes(mg::MetaGraph, i::Int)
-    bd = bond_dirs(mg, i)
+    bd = bond_directions(mg, i)
     modes = zeros(Int, 0)
     j = 0
     for d in ["l", "r", "u", "d"]
@@ -238,12 +238,12 @@ function add_tensor2vertex(mg::MetaGraph, vertex::Int, s::Int = 0)
         T = set_last(T, s)
     end
     set_prop!(mg, vertex, :tensor, T)
-    bd = bond_dirs(mg, vertex)
+    bd = bond_directions(mg, vertex)
     for v in neighbors(mg, vertex)
         e = Edge(vertex,v)
         p = sortperm([vertex,v])
-        dir = props(mg, e)[:type][p[1]]
-        mode = findall(x->x==dir, bd)[1]
+        direction_on_graph = props(mg, e)[:side][p[1]]
+        mode = findall(x->x==direction_on_graph, bd)[1]
         m = props(mg, e)[:modes]
         m[p[1]] = mode
         set_prop!(mg, e, :modes, m)
