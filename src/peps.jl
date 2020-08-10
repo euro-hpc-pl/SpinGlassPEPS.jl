@@ -42,6 +42,20 @@ function contract_ts1(A::Array{Float64, N1} where N1, C::Array{Float64, N2} wher
     tensorcontract(A, iA, C, iC)
 end
 
+function join_modes(A::Array{Float64, N} where N, m1::Int, m2::Int)
+    s = size(A,1)
+    N = ndims(A)
+    m1 < m2 <= N || error("we expect m1 < m2 ≤ N")
+    i = collect(1:N)
+    i[m1+1] = m2
+    i[m2] = m1+1
+
+    A = permutedims(A, i)
+    siz = fill(s, N-1)
+    siz[m1] = 2*s
+    reshape(A, (siz...))
+end
+
 
 struct Qubo_el
     ind::Tuple{Int, Int}
@@ -290,4 +304,67 @@ function contract_vertices(mg::MetaGraph, v1::Int, v2::Int)
     end
     clear_props!(mg, v2)
     0
+end
+
+
+function make_qubo()
+    qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,4) 0.5]
+    qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.5; (4,9) 0.5; (5,5) 0.2; (5,6) 0.5; (5,8) 0.5; (6,6) 0.2; (6,7) 0.5])
+    qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) 0.2; (8,9) 0.5; (9,9) 0.2])
+    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+end
+mg = make_graph3x3();
+qubo = make_qubo();
+add_qubo2graph(mg, qubo);
+
+for i in 1:9
+    add_tensor2vertex(mg, i)
+end
+
+
+cc = contract_vertices(mg, 5,8)
+cc = contract_vertices(mg, 6,7)
+cc = contract_vertices(mg, 4,9)
+T = props(mg, 5)[:tensor]
+
+props(mg, Edge(5,6))[:modes]
+props(mg, Edge(5,4))[:modes]
+props(mg, Edge(5,2))[:modes]
+
+combine_legs_naive(mg, 5,6)
+combine_legs_naive(mg, 4,5)
+
+props(mg, 5)[:tensor]
+props(mg, Edge(4,5))
+
+1+1
+
+function combine_legs_naive(mg, v1, v2)
+    p = sortperm([v1, v2])
+    e = Edge(v1, v2)
+    all_modes = props(mg, e)[:modes]
+    length(all_modes) == 4 || error("no double legs to be joint")
+    first_pair = all_modes[1:2][p]
+    second_pair = all_modes[3:4][p]
+    t = props(mg, v1)[:tensor]
+    set_prop!(mg, v1, :tensor, join_modes(t, first_pair[1], second_pair[1]))
+    set_prop!(mg, Edge(v1, v2), :modes, [first_pair[1], first_pair[2]])
+    t = props(mg, v2)[:tensor]
+    set_prop!(mg, v2, :tensor, join_modes(t, first_pair[2], second_pair[2]))
+    for v in neighbors(mg, v1)
+        p = sortperm([v,v1])
+        modes = props(mg, Edge(v, v1))[:modes][p]
+        if modes[1] > second_pair[1]
+            modes[1] = modes[1] - 1
+            set_props!(mg, v, :modes, modes[p])
+        end
+    end
+    for v in neighbors(mg, v2)
+        p = sortperm([v,v2])
+        modes = props(mg, Edge(v, v2))[:modes][p]
+        if modes[1] > second_pair[2]
+            modes[1] = modes[1] - 1
+            set_props!(mg, v, :modes, modes[p])
+        end
+    end
 end

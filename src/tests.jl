@@ -13,7 +13,14 @@ using LinearAlgebra
 
     T = contract_ts1(A, C, 2,1)
     @test T[1,:,:] ≈ [0.4 0.6; 0.4 0.6]
+
+    a = 1.0*reshape(collect(1:16), (2,2,2,2))
+    b = join_modes(a, 2,4)
+    @test vec(a[1,:,1,:]) == b[1,:,1]
 end
+
+
+
 
 @testset "adding qubo to  graph" begin
     function make_qubo_t()
@@ -172,4 +179,5 @@ end
     @test props(mg, Edge(5,4))[:modes] == [1,2,3,5]
     @test props(mg, Edge(5,2))[:modes] == [3,3]
 
+    @test length(collect(edges(mg))) == 7
 end
