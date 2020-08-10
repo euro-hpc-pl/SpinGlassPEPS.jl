@@ -3,6 +3,7 @@ using MetaGraphs
 using TikzGraphs
 using TensorOperations
 
+β = 1.
 # tensor operations
 """
     function sum_over_last(T::Array{Float64, N}) where N
@@ -31,35 +32,16 @@ function set_last(T::Array{Float64, N}, s::Int) where N
 end
 
 
-VS = Vector{String}
+function contract_ts1(A::Array{Float64, N1} where N1, C::Array{Float64, N2} where N2, mode_a::Int, mode_c::Int)
 
-function contract_ts(A::Array{Float64, N1} where N1, C::Array{Float64, N2} where N2, modesA::VS, modesC::VS, scheme::VS)
-    mode_a = findall(x -> x == scheme[1], modesA)[1]
-    mode_c = findall(x -> x == scheme[2], modesC)[1]
     iA = collect(1:ndims(A))
     iC = collect(ndims(A)+1:ndims(C)+ndims(A))
     iA[mode_a] = -1
     iC[mode_c] = -1
 
-    modes_a = copy(modesA)
-    modes_c = copy(modesC)
-
-    deleteat!(modes_a, mode_a)
-    deleteat!(modes_c, mode_c)
-
-    T = tensorcontract(A, iA, C, iC)
-
-    for d in ["l", "r", "u", "d"]
-        if (d in modes_a) & (d in modes_c)
-            modes_a = replace(modes_a, d => d*"1")
-            modes_c = replace(modes_c, d => d*"2")
-        end
-    end
-
-    T, vcat(modes_a, modes_c)
+    tensorcontract(A, iA, C, iC)
 end
 
-# graphical representation
 
 struct Qubo_el
     ind::Tuple{Int, Int}
@@ -91,25 +73,38 @@ function make_grid3x3()
     return g
 end
 
-function add_locations3x3!(graph::MetaGraph)
-    a = set_prop!(graph, 1, :bonds, Dict("l" => 0, "r" => 2, "u" => 0, "d" => 6))
-    b = set_prop!(graph, 2, :bonds, Dict("l" => 1, "r" => 3, "u" => 0, "d" => 5))
-    c = set_prop!(graph, 3, :bonds, Dict("l" => 2, "r" => 0, "u" => 0, "d" => 4))
-    d = set_prop!(graph, 4, :bonds, Dict("l" => 5, "r" => 0, "u" => 3, "d" => 9))
-    e = set_prop!(graph, 5, :bonds, Dict("l" => 6, "r" => 4, "u" => 2, "d" => 8))
-    f = set_prop!(graph, 6, :bonds, Dict("l" => 0, "r" => 5, "u" => 1, "d" => 7))
-    g = set_prop!(graph, 7, :bonds, Dict("l" => 0, "r" => 8, "u" => 6, "d" => 0))
-    h = set_prop!(graph, 8, :bonds, Dict("l" => 7, "r" => 9, "u" => 5, "d" => 0))
-    i = set_prop!(graph, 9, :bonds, Dict("l" => 8, "r" => 0, "u" => 4, "d" => 0))
-    a*b*c*d*e*f*g*h*i || error("vertex not in graph")
-end
+function add_locations3x3_1!(graph::MetaGraph)
+    # e.g. from 1 a link egde to right and from 2 the same to lest
+    a = set_prop!(graph, Edge(1,2), :type, ["r","l"])
+    b = set_prop!(graph, Edge(2,3), :type, ["r","l"])
 
+    c = set_prop!(graph, Edge(4,5), :type, ["l","r"])
+    d = set_prop!(graph, Edge(5,6), :type, ["l","r"])
+
+    e = set_prop!(graph, Edge(7,8), :type, ["r","l"])
+    f = set_prop!(graph, Edge(8,9), :type, ["r","l"])
+
+    g = set_prop!(graph, Edge(1,6), :type, ["d","u"])
+    h = set_prop!(graph, Edge(6,7), :type, ["d","u"])
+
+    i = set_prop!(graph, Edge(2,5), :type, ["d","u"])
+    j = set_prop!(graph, Edge(5,8), :type, ["d","u"])
+
+    k = set_prop!(graph, Edge(3,4), :type, ["d","u"])
+    l = set_prop!(graph, Edge(4,9), :type, ["d","u"])
+
+    for e in edges(graph)
+        set_prop!(graph, e, :modes, [0,0])
+    end
+
+    a*b*c*d*e*f*g*h*i*j*k*l || error("vertex not in graph")
+end
 
 function make_graph3x3()
     g = make_grid3x3()
     # this will be a meta graph
     mg = MetaGraph(g)
-    add_locations3x3!(mg)
+    add_locations3x3_1!(mg)
     mg
 end
 
@@ -122,7 +117,6 @@ end
 
 
 # generation of tensors
-β = 1.
 
 """
     delta(a::Int, b::Int)
@@ -160,44 +154,65 @@ end
 function getJs(mg::MetaGraph, i::Int)
     vertex_props = props(mg, i)
 
-    # tle linear trem coefficient
+    # linear trem coefficient
     h = vertex_props[:h]
 
     # quadratic
-    dirs_of_bonds = vertex_props[:bonds]
+
     Jir = 0.
     Jid = 0.
 
-    if dirs_of_bonds["r"] != 0
-        e = Edge(i, dirs_of_bonds["r"])
-        Jir = props(mg, e)[:J]
-    end
-    if dirs_of_bonds["d"] != 0
-        e = Edge(i, dirs_of_bonds["d"])
-        Jid = props(mg, e)[:J]
+    for v in neighbors(mg, i)
+        e = Edge(i,v)
+        # bonds types are given increasing order of vertices
+        p = sortperm([i,v])
+
+        if props(mg, e)[:type][p[1]] == "r"
+            Jir = props(mg, e)[:J]
+        elseif props(mg, e)[:type][p[1]] == "d"
+            Jid = props(mg, e)[:J]
+        end
     end
     Jir, Jid, h
 end
 
+function sort2lrud(x::Vector{String})
+    ret = Vector{String}()
+    for i in ["l","r","u","d"]
+        if i in x
+            push!(ret, i)
+        end
+    end
+    ret
+end
+
+
+function bond_dirs(mg::MetaGraph, i::Int)
+    bond_dirs = Vector{String}()
+    for v in neighbors(mg, i)
+        e = Edge(i,v)
+        p = sortperm([i,v])
+        push!(bond_dirs, props(mg, e)[:type][p[1]])
+    end
+    sort2lrud(bond_dirs)
+end
 
 function get_modes(mg::MetaGraph, i::Int)
-    b = props(mg, i)[:bonds]
+    bd = bond_dirs(mg, i)
     modes = zeros(Int, 0)
-    bonds_dirs =  Vector{String}()
     j = 0
     for d in ["l", "r", "u", "d"]
         j = j+1
-        if b[d] != 0
+        if d in bd
             push!(modes, j)
-            push!(bonds_dirs, d)
         end
     end
-    bonds_dirs, modes
+    modes
 end
 
 
 function makeTensor(mg::MetaGraph, i::Int)
-    bonds_dirs, modes = get_modes(mg, i)
+    modes = get_modes(mg, i)
     Js = getJs(mg, i)
     virtual_dims = length(modes)
 
@@ -209,58 +224,70 @@ function makeTensor(mg::MetaGraph, i::Int)
             lrud[modes[l]] = index2physical(i[l])
         end
         s = index2physical(i[virtual_dims+1])
-
         A[i] = Tgen(lrud..., s, Js...)
     end
-    A, vcat(bonds_dirs, "s")
+    A
 end
 
 
-struct TensorOnGraph
-    A::Array{Float64, N} where N
-    bonds_dirs::Vector{String}
-    function(::Type{TensorOnGraph})(mg::MetaGraph, i::Int)
-        A, bonds_dirs = makeTensor(mg, i)
-        new(A, bonds_dirs)
-    end
-    function(::Type{TensorOnGraph})(A::Array{Float64, N} where N, bonds_dirs::Vector{String})
-        ndims(A) == length(bonds_dirs) || error("not all modes described")
-        new(A, bonds_dirs)
-    end
-end
-
-function trace_physical_dim(tensor::TensorOnGraph)
-    A = tensor.A
-    bonds_dirs = tensor.bonds_dirs
-    if occursin("s", bonds_dirs[end])
-        A = sum_over_last(A)
-        return TensorOnGraph(A, bonds_dirs[1:end-1])
+function add_tensor2vertex(mg::MetaGraph, vertex::Int, s::Int = 0)
+    T = makeTensor(mg, vertex)
+    if s == 0
+        T = sum_over_last(T)
     else
-        error("last mode is not physical")
+        T = set_last(T, s)
+    end
+    set_prop!(mg, vertex, :tensor, T)
+    bd = bond_dirs(mg, vertex)
+    for v in neighbors(mg, vertex)
+        e = Edge(vertex,v)
+        p = sortperm([vertex,v])
+        dir = props(mg, e)[:type][p[1]]
+        mode = findall(x->x==dir, bd)[1]
+        m = props(mg, e)[:modes]
+        m[p[1]] = mode
+        set_prop!(mg, e, :modes, m)
     end
 end
 
-function set_physical_dim(tensor::TensorOnGraph, s::Int)
-    A = tensor.A
-    bonds_dirs = tensor.bonds_dirs
-    if occursin("s", bonds_dirs[end])
-        A = set_last(A, s)
-        return TensorOnGraph(A, bonds_dirs[1:end-1])
-    else
-        error("last mode is not physical")
+
+function contract_vertices(mg::MetaGraph, v1::Int, v2::Int)
+    e = Edge(v1,v2)
+
+    has_prop(mg, e, :J) || error("there is no direct link between $(v1) and $(v2)")
+    tg1 = props(mg, v1)[:tensor]
+    tg2 = props(mg, v2)[:tensor]
+
+    p = sortperm([v1, v2])
+    modes = props(mg, e)[:modes][p]
+
+    tg = contract_ts1(tg1, tg2, modes[1], modes[2])
+
+    set_prop!(mg, v1, :tensor, tg)
+
+    rem_edge!(mg, Edge(v1, v2))
+    n = collect(neighbors(mg, v2))
+    for v in n
+
+        p = sortperm([v, v2])
+        m = props(mg, Edge(v, v2))[:modes]
+        m_v = m[p[1]]
+        m_v1new = m[p[2]] + ndims(tg1) - 1
+        rem_edge!(mg, Edge(v, v2))
+
+        p1 = sortperm([v, v1])
+        m_new = [m_v, m_v1new][p1]
+
+        if has_edge(mg, Edge(v, v1))
+            m_all = props(mg, Edge(v, v1))[:modes]
+            m_new = vcat(m_all, m_new)
+            set_prop!(mg, Edge(v, v1), :modes, m_new)
+        else
+            add_edge!(mg, Edge(v, v1))
+            set_prop!(mg, Edge(v, v1), :modes, m_new)
+        end
+
     end
-end
-
-# add tensors to the graph
-
-function add_tensor2vertex(mg::MetaGraph, vertex::Int)
-    T = TensorOnGraph(mg, vertex)
-    T = trace_physical_dim(T)
-    set_prop!(mg, vertex, :tensor, T)
-end
-
-function add_tensor2vertex(mg::MetaGraph, vertex::Int, s::Int)
-    T = TensorOnGraph(mg, vertex)
-    T = set_physical_dim(T, s)
-    set_prop!(mg, vertex, :tensor, T)
+    clear_props!(mg, v2)
+    0
 end
