@@ -17,9 +17,11 @@ using LinearAlgebra
     a = 1.0*reshape(collect(1:16), (2,2,2,2))
     b = join_modes(a, 2,4)
     @test vec(a[1,:,1,:]) == b[1,:,1]
+
+    a = 1.0*reshape(collect(1:64), (4,2,2,2,2))
+    b = join_modes(a, 2,4)
+    @test vec(a[1,:,2,:,1]) == b[1,:,2,1]
 end
-
-
 
 
 @testset "adding qubo to  graph" begin
@@ -180,4 +182,186 @@ end
     @test props(mg, Edge(5,2))[:modes] == [3,3]
 
     @test length(collect(edges(mg))) == 7
+end
+
+
+@testset "test partition function" begin
+
+    function make_qubo()
+        qubo = [(1,1) 0.2; (1,2) 0.; (1,6) 0.; (2,2) 0.2; (2,3) 0.; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
+        qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.; (4,9) 0.; (5,5) 0.2; (5,6) 0.; (5,8) 0.; (6,6) 0.2; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.; (8,8) 0.2; (8,9) 0.; (9,9) 0.2])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    mg = make_graph3x3();
+    qubo = make_qubo()
+    add_qubo2graph(mg, qubo);
+
+    for i in 1:9
+        add_tensor2vertex(mg, i)
+    end
+
+    cc = contract_vertices(mg, 5,8)
+    cc = contract_vertices(mg, 6,7)
+    cc = contract_vertices(mg, 4,9)
+    T = props(mg, 5)[:tensor]
+
+    @test props(mg, Edge(5,6))[:modes] == [1,1,4,3]
+    @test props(mg, Edge(5,4))[:modes] == [1,2,3,5]
+    @test props(mg, Edge(5,2))[:modes] == [3,3]
+
+    combine_legs_exact(mg, 5,6)
+
+    T2 = props(mg, 5)[:tensor]
+    @test T[1,1,1,1,:] ≈ T2[1,1,1,:]
+
+    props(mg, Edge(5,4))[:modes]
+    combine_legs_exact(mg, 4,5)
+
+    T1 = props(mg, 5)[:tensor]
+    @test T2[1,1,:,1] ≈ T1[1,1,:]
+
+    props(mg, Edge(5,6))[:modes]
+    props(mg, Edge(5,4))[:modes]
+    props(mg, Edge(5,2))[:modes]
+
+
+    props(mg, 4)[:tensor]
+    props(mg, 5)[:tensor]
+    props(mg, 6)[:tensor]
+
+
+    cc = contract_vertices(mg, 1,6)
+    cc = contract_vertices(mg, 2,5)
+    cc = contract_vertices(mg, 3,4)
+    T = props(mg, 1)[:tensor]
+    T = props(mg, 2)[:tensor]
+    T = props(mg, 3)[:tensor]
+
+    props(mg, Edge(1,2))[:modes]
+    props(mg, Edge(2,3))[:modes]
+
+
+    combine_legs_exact(mg, 1,2)
+    combine_legs_exact(mg, 2,3)
+
+
+    props(mg, Edge(1,2))[:modes]
+    props(mg, Edge(2,3))[:modes]
+
+
+    props(mg, 1)[:tensor]
+    props(mg, 2)[:tensor]
+    props(mg, 3)[:tensor]
+
+    cc = contract_vertices(mg, 2,3)
+
+    props(mg, 2)[:tensor]
+    props(mg, Edge(1,2))[:modes]
+
+    cc = contract_vertices(mg, 1,2)
+
+    @test props(mg, 1)[:tensor][1] ≈ (exp(0.2)+exp(-0.2))^9
+
+    @testset "further testing" begin
+
+        function proceed(qubo::Vector{Qubo_el})
+
+            mg = make_graph3x3();
+            add_qubo2graph(mg, qubo);
+
+            for i in 1:9
+                add_tensor2vertex(mg, i)
+            end
+
+            contract_vertices(mg, 5,8)
+            contract_vertices(mg, 6,7)
+            contract_vertices(mg, 4,9)
+
+            combine_legs_exact(mg, 5,6)
+            combine_legs_exact(mg, 4,5)
+
+            contract_vertices(mg, 1,6)
+            contract_vertices(mg, 2,5)
+            contract_vertices(mg, 3,4)
+
+            combine_legs_exact(mg, 1,2)
+            combine_legs_exact(mg, 2,3)
+
+            contract_vertices(mg, 2,3)
+            contract_vertices(mg, 1,2)
+
+            return props(mg, 1)[:tensor][1]
+        end
+
+        function make_qubo()
+            qubo = [(1,1) 0.9; (1,2) 0.; (1,6) 0.; (2,2) 0.2; (2,3) 0.; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
+            qubo = vcat(qubo, [(4,4) 0.5; (4,5) 0.; (4,9) 0.; (5,5) 0.2; (5,6) 0.; (5,8) 0.; (6,6) 0.2; (6,7) 0.])
+            qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.; (8,8) 0.2; (8,9) 0.; (9,9) 0.2])
+            [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+        end
+
+        @test proceed(make_qubo()) ≈ (exp(0.2)+exp(-0.2))^7*(exp(0.5)+exp(-0.5))*(exp(0.9)+exp(-0.9))
+
+        function make_qubo1()
+            qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.; (2,2) 0.2; (2,3) 0.; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
+            qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.; (4,9) 0.; (5,5) 0.2; (5,6) 0.5; (5,8) 0.; (6,6) 0.2; (6,7) 0.])
+            qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.; (8,8) 0.2; (8,9) 0.; (9,9) 0.6])
+            [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+        end
+
+        val = (exp(0.2)+exp(-0.2))^4*(exp(0.6)+exp(-0.6))*(exp(-0.5)*exp(0.2)^2+2*exp(0.5)+exp(-0.5)*exp(-0.2)^2)^2
+        @test proceed(make_qubo1()) ≈ val
+    end
+end
+
+@testset "particular configuration" begin
+    function proceed(qubo::Vector{Qubo_el}, s::Int)
+
+        mg = make_graph3x3();
+        add_qubo2graph(mg, qubo);
+
+        for i in 1:9
+            add_tensor2vertex(mg, i, s)
+        end
+
+        contract_vertices(mg, 5,8)
+        contract_vertices(mg, 6,7)
+        contract_vertices(mg, 4,9)
+
+        combine_legs_exact(mg, 5,6)
+        combine_legs_exact(mg, 4,5)
+
+        contract_vertices(mg, 1,6)
+        contract_vertices(mg, 2,5)
+        contract_vertices(mg, 3,4)
+
+        combine_legs_exact(mg, 1,2)
+        combine_legs_exact(mg, 2,3)
+
+        contract_vertices(mg, 2,3)
+        contract_vertices(mg, 1,2)
+
+        return props(mg, 1)[:tensor][1]
+    end
+
+    function make_qubo()
+        qubo = [(1,1) 0.2; (1,2) 0.; (1,6) 0.; (2,2) 0.2; (2,3) 0.; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
+        qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.; (4,9) 0.; (5,5) 0.2; (5,6) 0.; (5,8) 0.; (6,6) 0.2; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.; (8,8) 0.2; (8,9) 0.; (9,9) 0.2])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+
+    @test proceed(make_qubo(), 1) ≈ exp(-0.2)^9
+
+    function make_qubo1()
+        qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.; (2,2) 0.3; (2,3) 0.; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
+        qubo = vcat(qubo, [(4,4) 0.2; (4,5) -0.7; (4,9) 0.; (5,5) 0.2; (5,6) -0.9; (5,8) 0.; (6,6) 0.2; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.; (8,8) 0.2; (8,9) 0.; (9,9) -0.2])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+
+    @test proceed(make_qubo1(), 1) ≈ exp(-0.2)^6*exp(-0.3)*exp(-0.5)*exp(0.7)*exp(0.9)
+    @test proceed(make_qubo1(), -1) ≈ exp(0.2)^6*exp(0.3)*exp(-0.5)*exp(0.7)*exp(0.9)
+
 end
