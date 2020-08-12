@@ -124,9 +124,11 @@ end
     end
     mg = make_graph3x3();
     mg1 = make_graph3x3();
+    mg2 = make_graph3x3();
     qubo = make_qubo();
     add_qubo2graph(mg, qubo);
     add_qubo2graph(mg1, qubo);
+    add_qubo2graph(mg2, qubo);
 
     @test props(mg, Edge(4,5))[:modes] == [0,0]
 
@@ -136,14 +138,10 @@ end
 
     @test_throws ErrorException add_tensor2vertex(mg, 1, 3)
 
-    for i in 1:9
-        add_tensor2vertex(mg, i)
-    end
-
+    set_spins2firs_k!(mg)
     s = [1,1,1,-1,-1,-1,1,1,1]
-    for i in 1:9
-        add_tensor2vertex(mg1, i, s[i])
-    end
+    set_spins2firs_k!(mg1, s)
+    set_spins2firs_k!(mg2, 1)
 
     @test props(mg, Edge(4,5))[:modes] == [1,2]
     @test props(mg, Edge(1,2))[:modes] == [1,1]
@@ -152,8 +150,12 @@ end
     @test props(mg, Edge(3,4))[:modes] == [2,2]
 
     @test props(mg1, Edge(4,5))[:modes] == [1,2]
+    @test props(mg2, Edge(1,2))[:modes] == [1,1]
 
     @test norm(props(mg, 5)[:tensor] - props(mg1, 5)[:tensor]) > 2.
+
+    @test props(mg1, 1)[:tensor] ≈ props(mg2, 1)[:tensor]
+    @test props(mg, 2)[:tensor] ≈ props(mg2, 2)[:tensor]
 end
 
 @testset "contract vertices" begin
@@ -167,10 +169,7 @@ end
     qubo = make_qubo();
     add_qubo2graph(mg, qubo);
 
-    for i in 1:9
-        add_tensor2vertex(mg, i)
-    end
-
+    set_spins2firs_k!(mg)
 
     cc = contract_vertices(mg, 5,8)
     cc = contract_vertices(mg, 6,7)
@@ -200,9 +199,7 @@ end
     qubo = make_qubo()
     add_qubo2graph(mg, qubo);
 
-    for i in 1:9
-        add_tensor2vertex(mg, i)
-    end
+    set_spins2firs_k!(mg)
 
     cc = contract_vertices(mg, 5,8)
     cc = contract_vertices(mg, 6,7)
@@ -273,9 +270,7 @@ end
             mg = make_graph3x3();
             add_qubo2graph(mg, qubo);
 
-            for i in 1:9
-                add_tensor2vertex(mg, i)
-            end
+            set_spins2firs_k!(mg)
 
             contract_vertices(mg, 5,8)
             contract_vertices(mg, 6,7)
@@ -324,9 +319,7 @@ end
         mg = make_graph3x3();
         add_qubo2graph(mg, qubo);
 
-        for i in 1:9
-            add_tensor2vertex(mg, i, s)
-        end
+        set_spins2firs_k!(mg, fill(s,9))
 
         contract_vertices(mg, 5,8)
         contract_vertices(mg, 6,7)
@@ -384,10 +377,8 @@ end
     qubo = make_qubo()
     add_qubo2graph(mg_exact, qubo);
 
-    for i in 1:9
-        add_tensor2vertex(mg, i)
-        add_tensor2vertex(mg_exact, i)
-    end
+    set_spins2firs_k!(mg)
+    set_spins2firs_k!(mg_exact)
 
     contract_vertices(mg, 5,8)
     contract_vertices(mg, 6,7)
@@ -451,4 +442,11 @@ end
 
     @test props(mg, 1)[:tensor][1] - props(mg_exact, 1)[:tensor][1] < 1e-10
 
+    mg = make_graph3x3();
+    add_qubo2graph(mg, qubo);
+    @test compute_marginal_prob(mg, Int[]) ≈ props(mg, 1)[:tensor][1]
+
+    mg = make_graph3x3();
+    add_qubo2graph(mg, qubo);
+    @test compute_marginal_prob(mg, Int[], false) ≈ props(mg_exact, 1)[:tensor][1]
 end

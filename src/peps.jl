@@ -275,6 +275,7 @@ function contract_vertices(mg::MetaGraph, v1::Int, v2::Int)
 
     has_prop(mg, e, :J) || error("there is no direct link between $(v1) and $(v2)")
     tg1 = props(mg, v1)[:tensor]
+    N1 = ndims(tg1)
     tg2 = props(mg, v2)[:tensor]
 
     p = sortperm([v1, v2])
@@ -289,19 +290,22 @@ function contract_vertices(mg::MetaGraph, v1::Int, v2::Int)
     for v in n
 
         p = sortperm([v, v2])
-        m = props(mg, Edge(v, v2))[:modes]
-        m_v = m[p[1]]
-        m_v1new = m[p[2]] + ndims(tg1) - 1
+        m = props(mg, Edge(v, v2))[:modes][p]
+
+        m_v = m[1]
+        m_v1new = m[2] + N1 - 1
         rem_edge!(mg, Edge(v, v2))
 
         p1 = sortperm([v, v1])
         m_new = [m_v, m_v1new][p1]
 
         if has_edge(mg, Edge(v, v1))
+
             m_all = props(mg, Edge(v, v1))[:modes]
             m_new = vcat(m_all, m_new)
             set_prop!(mg, Edge(v, v1), :modes, m_new)
         else
+
             add_edge!(mg, Edge(v, v1))
             set_prop!(mg, Edge(v, v1), :modes, m_new)
         end
@@ -332,14 +336,22 @@ function combine_legs_exact(mg::MetaGraph, v1::Int, v2::Int)
     p = sortperm([v1, v2])
     e = Edge(v1, v2)
     all_modes = props(mg, e)[:modes]
+    #println("all modes = ", all_modes)
     length(all_modes) == 4 || error("no double legs to be joint")
     first_pair = all_modes[1:2][p]
     second_pair = all_modes[3:4][p]
+
+    #println("v1, v2 = ", v1, v2)
+    #println("first pair, second pair = ", first_pair, second_pair)
     t = props(mg, v1)[:tensor]
     t1 = join_modes(t, first_pair[1], second_pair[1])
 
     set_prop!(mg, v1, :tensor, t1)
-    set_prop!(mg, Edge(v1, v2), :modes, [first_pair[1], first_pair[2]])
+    p = sortperm([v1, v2])
+    #println(p)
+    #println("set, edge = ", [first_pair[1], first_pair[2]])
+    #println("if sorted = ", [first_pair[p[1]], first_pair[p[2]]])
+    set_prop!(mg, Edge(v1, v2), :modes, [first_pair[p[1]], first_pair[p[2]]])
     t = props(mg, v2)[:tensor]
     set_prop!(mg, v2, :tensor, join_modes(t, first_pair[2], second_pair[2]))
 
@@ -385,3 +397,103 @@ function reduce_bond_size_svd(mg::MetaGraph, v1::Int, v2::Int, threshold::Float6
     b = set_prop!(mg, v2, :tensor, T2_red)
     a*b
 end
+
+function merge_lines!(mg::MetaGraph, v_line1::Vector{Int}, v_line2::Vector{Int}, approx_svd::Bool = true)
+    length(v_line1) == length(v_line2) || error("linse needs to be the same size")
+    for i in 1:length(v_line1)
+        contract_vertices(mg, v_line1[i],v_line2[i])
+    end
+    for i in 1:(length(v_line1)-1)
+        combine_legs_exact(mg, v_line1[i], v_line1[i+1])
+    end
+    if approx_svd
+        for i in 1:(length(v_line1)-1)
+            #println("reduce bond, ", v_line1[i], v_line1[i+1])
+            reduce_bond_size_svd(mg, v_line1[i], v_line1[i+1])
+        end
+        for i in (length(v_line1)-1):-1:1
+            reduce_bond_size_svd(mg, v_line1[i+1], v_line1[i])
+            #println("reduce bond, ", v_line1[i+1], v_line1[i])
+        end
+    end
+end
+
+# computation of probabilities
+
+"""
+    set_spins2firs_k!(mg::MetaGraph, s::Vector{Int})
+
+    trace over all spins but first k=length(s)
+"""
+
+function set_spins2firs_k!(mg::MetaGraph, s::Vector{Int})
+    for i in 1:length(s)
+        add_tensor2vertex(mg, i, s[i])
+    end
+    l = (length(s)+1)
+    for i in l:nv(mg)
+        add_tensor2vertex(mg, i)
+    end
+end
+
+"""
+    set_spins2firs_k!(mg::MetaGraph, s::Int)
+
+    trace over all spins but first that is s
+"""
+set_spins2firs_k!(mg::MetaGraph, s::Int) = set_spins2firs_k!(mg, [s])
+
+"""
+    set_spins2firs_k!(mg::MetaGraph)
+
+    trace over all spins
+"""
+set_spins2firs_k!(mg::MetaGraph) = set_spins2firs_k!(mg, Int[])
+
+
+function compute_marginal_prob(mg::MetaGraph, ses::Vector{Int}, svd_approx::Bool = true)
+    set_spins2firs_k!(mg, ses)
+    v2d = [1 2 3; 6 5 4; 7 8 9]
+    for i in size(v2d,1)-1:-1:1
+        merge_lines!(mg, v2d[i,:], v2d[i+1,:], svd_approx)
+    end
+    for i in size(v2d,2)-1:-1:1
+        contract_vertices(mg, v2d[1,i], v2d[1,i+1])
+    end
+    props(mg, 1)[:tensor][1]
+end
+
+function make_qubo()
+    qubo = [(1,1) 0.2; (1,2) 0.7; (1,6) 0.3; (2,2) -0.2; (2,3) 0.1; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
+    qubo = vcat(qubo, [(4,4) 0.2; (4,5) -0.8; (4,9) 1.9; (5,5) 1.2; (5,6) -0.5; (5,8) 0.99; (6,6) 0.2; (6,7) 0.])
+    qubo = vcat(qubo, [(7,7) 0.2; (7,8) -1.2; (8,8) 0.2; (8,9) 1.0; (9,9) 0.2])
+    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+end
+qubo = make_qubo()
+
+
+function naive_solve(qubo::Vector{Qubo_el})
+    ses = Int[]
+    for j in 1:9
+        println("j = ", j)
+        ret = zeros(2)
+        for i in [1,2]
+            s = [-1,1][i]
+            se = vcat(ses, s)
+            mg = make_graph3x3();
+            add_qubo2graph(mg, qubo)
+            ret[i] = compute_marginal_prob(mg, se, false)
+            println(ret[i])
+            println(s)
+        end
+        if ret[1] > ret[2]
+            push!(ses, -1)
+        else
+            push!(ses, 1)
+        end
+        println(ses)
+    end
+    ses
+end
+
+naive_solve(qubo)
