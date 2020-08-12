@@ -2,6 +2,7 @@ using LightGraphs
 using MetaGraphs
 using TikzGraphs
 using TensorOperations
+using LinearAlgebra
 
 β = 1.
 # tensor operations
@@ -42,19 +43,23 @@ function contract_ts1(A::Array{Float64, N1} where N1, C::Array{Float64, N2} wher
     tensorcontract(A, iA, C, iC)
 end
 
+function perm_moving_mode(N::Int, old_i::Int, new_i::Int)
+    p = collect(1:N)
+    filter!(e -> e != old_i, p)
+    insert!(p, new_i, old_i)
+    return p
+end
+
 function join_modes(A::Array{Float64, N} where N, m1::Int, m2::Int)
     s = size(A)
-    N = ndims(A)
-    m1 < m2 <= N || error("we expect m1 < m2 ≤ N")
-    i = collect(1:N)
-    filter!(e -> e != m2, i)
-    insert!(i,m1+1,m2)
-
-    A = permutedims(A, i)
+    m1 < m2 <= ndims(A) || error("we expect m1 < m2 ≤ N")
+    p = perm_moving_mode(ndims(A), m2, m1+1)
+    A = permutedims(A, p)
     siz = [s[1:end-1]...]
     siz[m1] = s[m1]*s[end]
     reshape(A, (siz...))
 end
+
 
 
 struct Qubo_el
@@ -342,9 +347,41 @@ function combine_legs_exact(mg::MetaGraph, v1::Int, v2::Int)
     move_modes!(mg, v2, second_pair[1])
 end
 
-function make_qubo()
-    qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,4) 0.5]
-    qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.5; (4,9) 0.5; (5,5) 0.2; (5,6) 0.5; (5,8) 0.5; (6,6) 0.2; (6,7) 0.5])
-    qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) 0.2; (8,9) 0.5; (9,9) 0.2])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+function reduce_bond_size_svd(mg::MetaGraph, v1::Int, v2::Int, threshold::Float64 = 1e-12)
+    p = sortperm([v1, v2])
+    modes = props(mg, Edge(v1, v2))[:modes][p]
+    t1 = props(mg, v1)[:tensor]
+    t2 = props(mg, v2)[:tensor]
+    s1 = size(t1)
+    N1 = length(s1)
+    s2 = size(t2)
+    N2 = length(s2)
+
+    p1 = perm_moving_mode(N1, modes[1], 1)
+    p1inv = invperm(p1)
+    t1 = permutedims(t1, p1)
+    pi = prod(s1[p1[2:end]])
+    A1 = reshape(t1, (s1[p1[1]], pi))
+
+    p2 = perm_moving_mode(N2, modes[2], 1)
+    p2inv = invperm(p2)
+    t2 = permutedims(t2, p2)
+    pi = prod(s2[p2[2:end]])
+    A2 = reshape(t2, (s2[p2[1]], pi))
+
+    U,Σ,V = svd(A1)
+    k = length(filter(e -> e > threshold, Σ))
+    proj = transpose(U)[1:k,:]
+
+    A1_red = proj*A1
+    T1_red = reshape(A1_red, (k, s1[p1[2:end]]...))
+    T1_red = permutedims(T1_red, p1inv)
+
+    A2_red = proj*A2
+    T2_red = reshape(A2_red, (k, s2[p2[2:end]]...))
+    T2_red = permutedims(T2_red, p2inv)
+
+    a = set_prop!(mg, v1, :tensor, T1_red)
+    b = set_prop!(mg, v2, :tensor, T2_red)
+    a*b
 end

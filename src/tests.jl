@@ -14,6 +14,9 @@ using LinearAlgebra
     T = contract_ts1(A, C, 2,1)
     @test T[1,:,:] ≈ [0.4 0.6; 0.4 0.6]
 
+    @test perm_moving_mode(5, 3, 1) == [3,1,2,4,5]
+    @test perm_moving_mode(6, 2, 5) == [1,3,4,5,2,6]
+
     a = 1.0*reshape(collect(1:16), (2,2,2,2))
     b = join_modes(a, 2,4)
     @test vec(a[1,:,1,:]) == b[1,:,1]
@@ -363,5 +366,89 @@ end
 
     @test proceed(make_qubo1(), 1) ≈ exp(-0.2)^6*exp(-0.3)*exp(-0.5)*exp(0.7)*exp(0.9)
     @test proceed(make_qubo1(), -1) ≈ exp(0.2)^6*exp(0.3)*exp(-0.5)*exp(0.7)*exp(0.9)
+
+end
+
+@testset "svd approximation of connections" begin
+    function make_qubo()
+        qubo = [(1,1) 0.2; (1,2) 0.7; (1,6) 0.3; (2,2) -0.2; (2,3) 0.1; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
+        qubo = vcat(qubo, [(4,4) 0.2; (4,5) -0.8; (4,9) 1.9; (5,5) 1.2; (5,6) -0.5; (5,8) 0.99; (6,6) 0.2; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) 0.2; (7,8) -1.2; (8,8) 0.2; (8,9) 1.0; (9,9) 0.2])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    mg = make_graph3x3();
+    qubo = make_qubo()
+    add_qubo2graph(mg, qubo);
+
+    mg_exact = make_graph3x3();
+    qubo = make_qubo()
+    add_qubo2graph(mg_exact, qubo);
+
+    for i in 1:9
+        add_tensor2vertex(mg, i)
+        add_tensor2vertex(mg_exact, i)
+    end
+
+    contract_vertices(mg, 5,8)
+    contract_vertices(mg, 6,7)
+    contract_vertices(mg, 4,9)
+
+    combine_legs_exact(mg, 5,6)
+    combine_legs_exact(mg, 4,5)
+
+    contract_vertices(mg_exact, 5,8)
+    contract_vertices(mg_exact, 6,7)
+    contract_vertices(mg_exact, 4,9)
+
+    combine_legs_exact(mg_exact, 5,6)
+    combine_legs_exact(mg_exact, 4,5)
+
+    reduce_bond_size_svd(mg, 4,5)
+    reduce_bond_size_svd(mg, 5,6)
+    reduce_bond_size_svd(mg, 6,5)
+    reduce_bond_size_svd(mg, 5,4)
+
+    t6 = props(mg, 6)[:tensor]
+    t5 = props(mg, 5)[:tensor]
+    t4 = props(mg, 4)[:tensor]
+
+    T6 = props(mg_exact, 6)[:tensor]
+    T5 = props(mg_exact, 5)[:tensor]
+    T4 = props(mg_exact, 4)[:tensor]
+
+    T = contract_ts1(T4, T5, 1,2)
+    a = contract_ts1(T, T6, 2,1)
+
+    t = contract_ts1(t4, t5, 1,2)
+    b = contract_ts1(t, t6, 2,1)
+
+    @test norm(abs.(a-b)) < 1e-11
+
+    contract_vertices(mg, 1,6)
+    contract_vertices(mg, 2,5)
+    contract_vertices(mg, 3,4)
+
+    combine_legs_exact(mg, 1,2)
+    combine_legs_exact(mg, 2,3)
+
+    contract_vertices(mg_exact, 1,6)
+    contract_vertices(mg_exact, 2,5)
+    contract_vertices(mg_exact, 3,4)
+
+    combine_legs_exact(mg_exact, 1,2)
+    combine_legs_exact(mg_exact, 2,3)
+
+    reduce_bond_size_svd(mg, 3,2)
+    reduce_bond_size_svd(mg, 2,1)
+    reduce_bond_size_svd(mg, 1,2)
+    reduce_bond_size_svd(mg, 2,3)
+
+    contract_vertices(mg, 2,3)
+    contract_vertices(mg, 1,2)
+
+    contract_vertices(mg_exact, 2,3)
+    contract_vertices(mg_exact, 1,2)
+
+    @test props(mg, 1)[:tensor][1] - props(mg_exact, 1)[:tensor][1] < 1e-10
 
 end
