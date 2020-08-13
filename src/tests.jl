@@ -11,7 +11,7 @@ using LinearAlgebra
     A = 0.1*ones(2,2,2)
     C = [1. 2. ; 3. 4.]
 
-    T = contract_ts1(A, C, 2,1)
+    T = contract_tensors(A, C, 2,1)
     @test T[1,:,:] ≈ [0.4 0.6; 0.4 0.6]
 
     @test perm_moving_mode(5, 3, 1) == [3,1,2,4,5]
@@ -48,7 +48,7 @@ end
 
     mg_t = make_graph3x3()
     qubo = make_qubo_t()
-    add_qubo2graph(mg_t, qubo)
+    add_qubo2graph!(mg_t, qubo)
 
     @test collect(vertices(mg_t)) == (1:9)
 
@@ -93,7 +93,7 @@ end
 
     mg = make_graph3x3();
     qubo = make_qubo();
-    add_qubo2graph(mg, qubo);
+    add_qubo2graph!(mg, qubo);
 
     @test bond_directions(mg, 1)  == ["r", "d"]
     @test bond_directions(mg, 5) == ["l", "r", "u", "d"]
@@ -103,7 +103,7 @@ end
     @test get_modes(mg, 5) == [1, 2, 3, 4]
     @test get_modes(mg, 9) == [1, 3]
 
-    @test getJs(mg, 1) == (0.5, 0.5, 0.2)
+    @test readJs(mg, 1) == (0.5, 0.5, 0.2)
     T = makeTensor(mg, 1)
 
     @test T[1] == 0.4493289641172216
@@ -137,9 +137,9 @@ end
     mg1 = make_graph3x3();
     mg2 = make_graph3x3();
     qubo = make_qubo();
-    add_qubo2graph(mg, qubo);
-    add_qubo2graph(mg1, qubo);
-    add_qubo2graph(mg2, qubo);
+    add_qubo2graph!(mg, qubo);
+    add_qubo2graph!(mg1, qubo);
+    add_qubo2graph!(mg2, qubo);
 
     @test props(mg, Edge(4,5))[:modes] == [0,0]
 
@@ -178,13 +178,13 @@ end
     end
     mg = make_graph3x3();
     qubo = make_qubo();
-    add_qubo2graph(mg, qubo);
+    add_qubo2graph!(mg, qubo);
 
     set_spins2firs_k!(mg)
 
-    cc = contract_vertices(mg, 5,8)
-    cc = contract_vertices(mg, 6,7)
-    cc = contract_vertices(mg, 4,9)
+    contract_vertices!(mg, 5,8)
+    contract_vertices!(mg, 6,7)
+    contract_vertices!(mg, 4,9)
     T = props(mg, 5)[:tensor]
     @test T[1,1,1,1,1] == 0.33287108369807955
     @test T[1,2,1,2,1] == 4.481689070338066
@@ -208,13 +208,13 @@ end
     end
     mg = make_graph3x3();
     qubo = make_qubo()
-    add_qubo2graph(mg, qubo);
+    add_qubo2graph!(mg, qubo);
 
     set_spins2firs_k!(mg)
 
-    cc = contract_vertices(mg, 5,8)
-    cc = contract_vertices(mg, 6,7)
-    cc = contract_vertices(mg, 4,9)
+    contract_vertices!(mg, 5,8)
+    contract_vertices!(mg, 6,7)
+    contract_vertices!(mg, 4,9)
     T = props(mg, 5)[:tensor]
 
     @test props(mg, Edge(5,6))[:modes] == [1,1,4,3]
@@ -242,9 +242,9 @@ end
     props(mg, 6)[:tensor]
 
 
-    cc = contract_vertices(mg, 1,6)
-    cc = contract_vertices(mg, 2,5)
-    cc = contract_vertices(mg, 3,4)
+    contract_vertices!(mg, 1,6)
+    contract_vertices!(mg, 2,5)
+    contract_vertices!(mg, 3,4)
     T = props(mg, 1)[:tensor]
     T = props(mg, 2)[:tensor]
     T = props(mg, 3)[:tensor]
@@ -265,12 +265,12 @@ end
     props(mg, 2)[:tensor]
     props(mg, 3)[:tensor]
 
-    cc = contract_vertices(mg, 2,3)
+    contract_vertices!(mg, 2,3)
 
     props(mg, 2)[:tensor]
     props(mg, Edge(1,2))[:modes]
 
-    cc = contract_vertices(mg, 1,2)
+    contract_vertices!(mg, 1,2)
 
     @test props(mg, 1)[:tensor][1] ≈ (exp(0.2)+exp(-0.2))^9
 
@@ -279,26 +279,26 @@ end
         function proceed(qubo::Vector{Qubo_el})
 
             mg = make_graph3x3();
-            add_qubo2graph(mg, qubo);
+            add_qubo2graph!(mg, qubo);
 
             set_spins2firs_k!(mg)
 
-            contract_vertices(mg, 5,8)
-            contract_vertices(mg, 6,7)
-            contract_vertices(mg, 4,9)
+            contract_vertices!(mg, 5,8)
+            contract_vertices!(mg, 6,7)
+            contract_vertices!(mg, 4,9)
 
             combine_legs_exact(mg, 5,6)
             combine_legs_exact(mg, 4,5)
 
-            contract_vertices(mg, 1,6)
-            contract_vertices(mg, 2,5)
-            contract_vertices(mg, 3,4)
+            contract_vertices!(mg, 1,6)
+            contract_vertices!(mg, 2,5)
+            contract_vertices!(mg, 3,4)
 
             combine_legs_exact(mg, 1,2)
             combine_legs_exact(mg, 2,3)
 
-            contract_vertices(mg, 2,3)
-            contract_vertices(mg, 1,2)
+            contract_vertices!(mg, 2,3)
+            contract_vertices!(mg, 1,2)
 
             return props(mg, 1)[:tensor][1]
         end
@@ -328,26 +328,26 @@ end
     function proceed(qubo::Vector{Qubo_el}, s::Int)
 
         mg = make_graph3x3();
-        add_qubo2graph(mg, qubo);
+        add_qubo2graph!(mg, qubo);
 
         set_spins2firs_k!(mg, fill(s,9))
 
-        contract_vertices(mg, 5,8)
-        contract_vertices(mg, 6,7)
-        contract_vertices(mg, 4,9)
+        contract_vertices!(mg, 5,8)
+        contract_vertices!(mg, 6,7)
+        contract_vertices!(mg, 4,9)
 
         combine_legs_exact(mg, 5,6)
         combine_legs_exact(mg, 4,5)
 
-        contract_vertices(mg, 1,6)
-        contract_vertices(mg, 2,5)
-        contract_vertices(mg, 3,4)
+        contract_vertices!(mg, 1,6)
+        contract_vertices!(mg, 2,5)
+        contract_vertices!(mg, 3,4)
 
         combine_legs_exact(mg, 1,2)
         combine_legs_exact(mg, 2,3)
 
-        contract_vertices(mg, 2,3)
-        contract_vertices(mg, 1,2)
+        contract_vertices!(mg, 2,3)
+        contract_vertices!(mg, 1,2)
 
         return props(mg, 1)[:tensor][1]
     end
@@ -382,25 +382,25 @@ end
     end
     mg = make_graph3x3();
     qubo = make_qubo()
-    add_qubo2graph(mg, qubo);
+    add_qubo2graph!(mg, qubo);
 
     mg_exact = make_graph3x3();
     qubo = make_qubo()
-    add_qubo2graph(mg_exact, qubo);
+    add_qubo2graph!(mg_exact, qubo);
 
     set_spins2firs_k!(mg)
     set_spins2firs_k!(mg_exact)
 
-    contract_vertices(mg, 5,8)
-    contract_vertices(mg, 6,7)
-    contract_vertices(mg, 4,9)
+    contract_vertices!(mg, 5,8)
+    contract_vertices!(mg, 6,7)
+    contract_vertices!(mg, 4,9)
 
     combine_legs_exact(mg, 5,6)
     combine_legs_exact(mg, 4,5)
 
-    contract_vertices(mg_exact, 5,8)
-    contract_vertices(mg_exact, 6,7)
-    contract_vertices(mg_exact, 4,9)
+    contract_vertices!(mg_exact, 5,8)
+    contract_vertices!(mg_exact, 6,7)
+    contract_vertices!(mg_exact, 4,9)
 
     combine_legs_exact(mg_exact, 5,6)
     combine_legs_exact(mg_exact, 4,5)
@@ -418,24 +418,24 @@ end
     T5 = props(mg_exact, 5)[:tensor]
     T4 = props(mg_exact, 4)[:tensor]
 
-    T = contract_ts1(T4, T5, 1,2)
-    a = contract_ts1(T, T6, 2,1)
+    T = contract_tensors(T4, T5, 1,2)
+    a = contract_tensors(T, T6, 2,1)
 
-    t = contract_ts1(t4, t5, 1,2)
-    b = contract_ts1(t, t6, 2,1)
+    t = contract_tensors(t4, t5, 1,2)
+    b = contract_tensors(t, t6, 2,1)
 
     @test norm(abs.(a-b)) < 1e-11
 
-    contract_vertices(mg, 1,6)
-    contract_vertices(mg, 2,5)
-    contract_vertices(mg, 3,4)
+    contract_vertices!(mg, 1,6)
+    contract_vertices!(mg, 2,5)
+    contract_vertices!(mg, 3,4)
 
     combine_legs_exact(mg, 1,2)
     combine_legs_exact(mg, 2,3)
 
-    contract_vertices(mg_exact, 1,6)
-    contract_vertices(mg_exact, 2,5)
-    contract_vertices(mg_exact, 3,4)
+    contract_vertices!(mg_exact, 1,6)
+    contract_vertices!(mg_exact, 2,5)
+    contract_vertices!(mg_exact, 3,4)
 
     combine_legs_exact(mg_exact, 1,2)
     combine_legs_exact(mg_exact, 2,3)
@@ -445,21 +445,28 @@ end
     reduce_bond_size_svd(mg, 1,2)
     reduce_bond_size_svd(mg, 2,3)
 
-    contract_vertices(mg, 2,3)
-    contract_vertices(mg, 1,2)
+    contract_vertices!(mg, 2,3)
+    contract_vertices!(mg, 1,2)
 
-    contract_vertices(mg_exact, 2,3)
-    contract_vertices(mg_exact, 1,2)
+    contract_vertices!(mg_exact, 2,3)
+    contract_vertices!(mg_exact, 1,2)
 
     @test props(mg, 1)[:tensor][1] - props(mg_exact, 1)[:tensor][1] < 1e-10
 
     mg = make_graph3x3();
-    add_qubo2graph(mg, qubo);
+    add_qubo2graph!(mg, qubo);
     @test compute_marginal_prob(mg, Int[]) ≈ props(mg, 1)[:tensor][1]
 
     mg = make_graph3x3();
-    add_qubo2graph(mg, qubo);
+    add_qubo2graph!(mg, qubo);
     @test compute_marginal_prob(mg, Int[], false) ≈ props(mg_exact, 1)[:tensor][1]
+end
+
+@testset "testing axiliary functions of the solver" begin
+    conf = [1 1; 1 -1; -1 1; -1 -1]
+    @test add_another_spin2configs(conf) == [1 1 -1; 1 -1 -1; -1 1 -1; -1 -1 -1; 1 1 1; 1 -1 1; -1 1 1; -1 -1 1]
+    @test get_last_m([1,2,3,4], 2) == ([3,4], 2)
+    @test get_last_m([1,2,3,4], 5) == ([1,2,3,4], 4)
 end
 
 @testset "solving simplest train problem" begin
@@ -498,6 +505,8 @@ end
     end
     train_qubo = make_qubo()
 
+    @test optimisation_step_naive(train_qubo, [1]) ≈ 4.417625562495993e7
+    @test optimisation_step_naive(train_qubo, [-1]) ≈ 1.6442466626666823e7
     conf, f = naive_solve(train_qubo, 2, true)
 
     #logical 1st [1,0,0,1]
