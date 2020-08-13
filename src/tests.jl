@@ -461,3 +461,93 @@ end
     add_qubo2graph(mg, qubo);
     @test compute_marginal_prob(mg, Int[], false) ≈ props(mg_exact, 1)[:tensor][1]
 end
+
+@testset "solving simplest train problem" begin
+    # simplest train problem, small example in the train paper
+    #two trains approaching the single segment in opposite directions
+    # 4 logical q-bits,
+
+    #grig embedding_scheme (a embede all q-bits to remove artificial degeneration)
+    # logical -> physical
+    #1 -> 2
+    # 2 -> 1,6
+    # 3 -> 3,4
+    # 4 -> 5
+
+    #Jii
+    # logical -> physical
+    # 1 -> 2 -1.75
+    # 2 -> 1 -1.25
+    # 3 -> 3 -1.75
+    # 4 -> 5 -0.75
+    # (none) -> 7,8,9 0.1 to remove degeneration
+
+    #Jij
+    # logical -> physical
+    #(1,2) -> (1,2) 1.75
+    #(1,3) -> (2,3) 1.75
+    # (2,4) -> (5,6) 1.75
+    #(3,4)  -> (4,5) 1.75
+
+    function make_qubo()
+        css = -2.
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
+        qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    train_qubo = make_qubo()
+
+    conf, f = naive_solve(train_qubo, 2, true)
+
+    #logical 1st [1,0,0,1]
+    # 2 -> +1
+    # 1,6 -> -1
+    # 3,4 -> -1
+    # 5, -> 1
+    # 7,8,9 artifially set to 1
+
+    # physical first [-1,1,-1,-1,1,-1,1,1,1]
+
+    #logical ground [0,1,1,0]
+
+    # 2 -> -1
+    # 1,6 -> +1
+    # 3,4 -> +1
+    # 5 -> -1
+    # 7,8,9 artifially set to 1
+
+    # physical ground [1,-1,1,1,-1,1,1,1,1]
+
+    @test conf[1,:] == [-1,1,-1,-1,1,-1,1,1,1]
+    @test conf[2,:] == [1,-1,1,1,-1,1,1,1,1]
+
+    # end exact calculation without svd approximation
+
+    conf, f = naive_solve(train_qubo, 2, false)
+
+    @test conf[1,:] == [-1,1,-1,-1,1,-1,1,1,1]
+    @test conf[2,:] == [1,-1,1,1,-1,1,1,1,1]
+
+    # here we give a little Jii to 7,8,9 q-bits to allow there for 8 additional
+    # combinations with low excitiation energies
+
+    function make_qubo()
+        css = -2.
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
+        qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) -0.1; (7,8) 0.; (8,8) -0.1; (8,9) 0.; (9,9) -0.1])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    permuted_train_qubo = make_qubo()
+
+    conf, f = naive_solve(permuted_train_qubo, 16, true)
+    # this correspond to the ground
+    for i in 9:16
+        @test conf[i, 1:6] == [1,-1,1,1,-1,1]
+    end
+    # and this to 1st excited
+    for i in 1:8
+        @test conf[i, 1:6] == [-1,1,-1,-1,1,-1]
+    end
+end

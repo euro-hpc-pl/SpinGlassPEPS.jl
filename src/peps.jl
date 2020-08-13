@@ -460,14 +460,6 @@ function compute_marginal_prob(mg::MetaGraph, ses::Vector{Int}, svd_approx::Bool
     props(mg, 1)[:tensor][1]
 end
 
-function make_qubo()
-    qubo = [(1,1) 0.2; (1,2) 0.7; (1,6) 0.3; (2,2) -0.2; (2,3) 0.1; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
-    qubo = vcat(qubo, [(4,4) 0.2; (4,5) -0.8; (4,9) 1.9; (5,5) 1.2; (5,6) -0.5; (5,8) 0.99; (6,6) 0.2; (6,7) 0.])
-    qubo = vcat(qubo, [(7,7) 0.2; (7,8) -1.2; (8,8) 0.2; (8,9) 1.0; (9,9) 0.2])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-end
-qubo = make_qubo()
-
 
 function double_configs(configs::Matrix{Int})
     s = size(configs)
@@ -484,9 +476,6 @@ function get_last_m(vector::Vector{Int}, M::Int)
     end
 end
 
-
-
-1+1
 
 function naive_solve(qubo::Vector{Qubo_el}, M::Int, approx::Bool = true)
     problem_size = 9
@@ -519,5 +508,3 @@ function naive_step(qubo::Vector{Qubo_el}, ses::Vector{Int}, approx::Bool = true
     add_qubo2graph(mg, qubo)
     compute_marginal_prob(mg, ses, approx)
 end
-
-naive_solve(qubo, 10)
