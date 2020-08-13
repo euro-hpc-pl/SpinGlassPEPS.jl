@@ -469,27 +469,55 @@ end
 qubo = make_qubo()
 
 
-function naive_solve(qubo::Vector{Qubo_el})
-    ses = Int[]
-    for j in 1:9
-        ret = zeros(2)
-        for i in [1,2]
-            s = [-1,1][i]
-            se = vcat(ses, s)
-            mg = make_graph3x3();
-            add_qubo2graph(mg, qubo)
-            ret[i] = compute_marginal_prob(mg, se, true)
-            println(ret[i])
-            println(s)
-        end
-        if ret[1] > ret[2]
-            push!(ses, -1)
-        else
-            push!(ses, 1)
-        end
-        println(ses)
-    end
-    ses
+function double_configs(configs::Matrix{Int})
+    s = size(configs)
+    ret = vcat(configs, configs)
+    ses = vcat(fill(-1, s[1]), fill(1, s[1]))
+    hcat(ret, ses)
 end
 
-naive_solve(qubo)
+function get_last_m(vector::Vector{Int}, M::Int)
+    if length(vector) <= M
+        return vector, length(vector)
+    else
+        return vector[end-M+1:end], M
+    end
+end
+
+
+
+1+1
+
+function naive_solve(qubo::Vector{Qubo_el}, M::Int, approx::Bool = true)
+    problem_size = 9
+    a = zeros(Int, 2,1)
+    a[1,1] = 1
+    a[2,1] = -1
+    for j in 1:problem_size
+        objective = Float64[]
+        for i in 1:size(a,1)
+            r = naive_step(qubo, a[i,:], approx)
+            push!(objective, r)
+        end
+        p = sortperm(objective)
+        p1, k = get_last_m(p, M)
+        a_temp = zeros(Int, k, j)
+        for i in 1:k
+            a_temp[i,:] = a[p1[i],:]
+        end
+        if j == problem_size
+            return a_temp, objective[p1]
+        else
+            a = double_configs(a)
+        end
+    end
+    0
+end
+
+function naive_step(qubo::Vector{Qubo_el}, ses::Vector{Int}, approx::Bool = true)
+    mg = make_graph3x3();
+    add_qubo2graph(mg, qubo)
+    compute_marginal_prob(mg, ses, approx)
+end
+
+naive_solve(qubo, 10)
