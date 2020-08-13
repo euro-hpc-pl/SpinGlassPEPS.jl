@@ -55,8 +55,10 @@ function join_modes(A::Array{Float64, N} where N, m1::Int, m2::Int)
     m1 < m2 <= ndims(A) || error("we expect m1 < m2 ≤ N")
     p = perm_moving_mode(ndims(A), m2, m1+1)
     A = permutedims(A, p)
-    siz = [s[1:end-1]...]
-    siz[m1] = s[m1]*s[end]
+
+    siz = [s...]
+    siz[m1] = s[m1]*s[m2]
+    deleteat!(siz, m2)
     reshape(A, (siz...))
 end
 
@@ -280,7 +282,6 @@ function contract_vertices(mg::MetaGraph, v1::Int, v2::Int)
 
     p = sortperm([v1, v2])
     modes = props(mg, e)[:modes][p]
-
     tg = contract_ts1(tg1, tg2, modes[1], modes[2])
 
     set_prop!(mg, v1, :tensor, tg)
@@ -336,24 +337,21 @@ function combine_legs_exact(mg::MetaGraph, v1::Int, v2::Int)
     p = sortperm([v1, v2])
     e = Edge(v1, v2)
     all_modes = props(mg, e)[:modes]
-    #println("all modes = ", all_modes)
     length(all_modes) == 4 || error("no double legs to be joint")
     first_pair = all_modes[1:2][p]
     second_pair = all_modes[3:4][p]
 
-    #println("v1, v2 = ", v1, v2)
-    #println("first pair, second pair = ", first_pair, second_pair)
     t = props(mg, v1)[:tensor]
     t1 = join_modes(t, first_pair[1], second_pair[1])
 
     set_prop!(mg, v1, :tensor, t1)
     p = sortperm([v1, v2])
-    #println(p)
-    #println("set, edge = ", [first_pair[1], first_pair[2]])
-    #println("if sorted = ", [first_pair[p[1]], first_pair[p[2]]])
+
     set_prop!(mg, Edge(v1, v2), :modes, [first_pair[p[1]], first_pair[p[2]]])
     t = props(mg, v2)[:tensor]
-    set_prop!(mg, v2, :tensor, join_modes(t, first_pair[2], second_pair[2]))
+
+    t2 = join_modes(t, first_pair[2], second_pair[2])
+    set_prop!(mg, v2, :tensor, t2)
 
     move_modes!(mg, v1, second_pair[1])
     move_modes!(mg, v2, second_pair[1])
@@ -377,6 +375,7 @@ function reduce_bond_size_svd(mg::MetaGraph, v1::Int, v2::Int, threshold::Float6
 
     p2 = perm_moving_mode(N2, modes[2], 1)
     p2inv = invperm(p2)
+
     t2 = permutedims(t2, p2)
     pi = prod(s2[p2[2:end]])
     A2 = reshape(t2, (s2[p2[1]], pi))
@@ -408,12 +407,10 @@ function merge_lines!(mg::MetaGraph, v_line1::Vector{Int}, v_line2::Vector{Int},
     end
     if approx_svd
         for i in 1:(length(v_line1)-1)
-            #println("reduce bond, ", v_line1[i], v_line1[i+1])
             reduce_bond_size_svd(mg, v_line1[i], v_line1[i+1])
         end
         for i in (length(v_line1)-1):-1:1
             reduce_bond_size_svd(mg, v_line1[i+1], v_line1[i])
-            #println("reduce bond, ", v_line1[i+1], v_line1[i])
         end
     end
 end
@@ -475,14 +472,13 @@ qubo = make_qubo()
 function naive_solve(qubo::Vector{Qubo_el})
     ses = Int[]
     for j in 1:9
-        println("j = ", j)
         ret = zeros(2)
         for i in [1,2]
             s = [-1,1][i]
             se = vcat(ses, s)
             mg = make_graph3x3();
             add_qubo2graph(mg, qubo)
-            ret[i] = compute_marginal_prob(mg, se, false)
+            ret[i] = compute_marginal_prob(mg, se, true)
             println(ret[i])
             println(s)
         end

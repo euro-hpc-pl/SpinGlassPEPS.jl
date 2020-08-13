@@ -21,6 +21,17 @@ using LinearAlgebra
     b = join_modes(a, 2,4)
     @test vec(a[1,:,1,:]) == b[1,:,1]
 
+    a = ones(5,4,3,2,1)
+    b = join_modes(a, 2,3)
+    @test size(b) == (5,12,2,1)
+    b = join_modes(a, 2,4)
+    @test size(b) == (5,8,3,1)
+    b = join_modes(a, 1,4)
+    @test size(b) == (10,4,3,1)
+    b = join_modes(a, 1,5)
+    @test size(b) == (5,4,3,2)
+
+
     a = 1.0*reshape(collect(1:64), (4,2,2,2,2))
     b = join_modes(a, 2,4)
     @test vec(a[1,:,2,:,1]) == b[1,:,2,1]
