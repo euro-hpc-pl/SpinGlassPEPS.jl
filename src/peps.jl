@@ -393,6 +393,8 @@ function move_modes!(mg::MetaGraph, v1::Int, threshold::Int)
         modes = props(mg, Edge(v, v1))[:modes]
 
         if length(modes) > 2
+        #if false
+            #is this necessary?
             i = [3,4][p[1]]
             if modes[i] > threshold
 
