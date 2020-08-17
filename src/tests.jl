@@ -63,7 +63,7 @@ end
     @test props(mg_t, Edge(6,1))[:side] == ["d", "u"]
 end
 
-@testset "testing of tensor generator" begin
+@testset "testing tensor generator" begin
     β = 1.
 
     @test delta(0,-1) == 1
@@ -83,7 +83,7 @@ end
     @test_throws ErrorException index2physical(-1)
 end
 
-@testset "tensor on graph testing" begin
+@testset "testing graphical representation" begin
     function make_qubo()
         qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,4) 0.5]
         qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.5; (4,9) 0.5; (5,5) 0.2; (5,6) 0.5; (5,8) 0.5; (6,6) 0.2; (6,7) 0.5])
@@ -98,6 +98,23 @@ end
     @test bond_directions(mg, 1)  == ["r", "d"]
     @test bond_directions(mg, 5) == ["l", "r", "u", "d"]
     @test bond_directions(mg, 9) == ["l", "u"]
+
+
+    @test read_pair_from_edge(mg, 1,2, :side) == ["r", "l"]
+    @test read_pair_from_edge(mg, 4,5, :side) == ["l", "r"]
+    @test read_pair_from_edge(mg, 5,4, :side) == ["r", "l"]
+    @test read_pair_from_edge(mg, 3,4, :side) == ["d", "u"]
+    @test read_pair_from_edge(mg, 4,3, :side) == ["u", "d"]
+    @test_throws ErrorException read_pair_from_edge(mg, 1,3, :side)
+
+    write_pair2edge!(mg, 1,2, :test, ["t1", "t2"])
+    write_pair2edge!(mg, 3,2, :test, ["t3", "t2"])
+
+    @test read_pair_from_edge(mg, 1,2, :test) == ["t1", "t2"]
+    @test read_pair_from_edge(mg, 2,3, :test) == ["t2", "t3"]
+
+    @test_throws ErrorException write_pair2edge!(mg, 1,3, :test, ["t1", "t3"])
+    @test_throws ErrorException write_pair2edge!(mg, 1,2, :test, ["t1", "t2", "t3"])
 
     @test get_modes(mg, 1) == [2, 4]
     @test get_modes(mg, 5) == [1, 2, 3, 4]

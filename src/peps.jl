@@ -213,6 +213,13 @@ function index2physical(i::Int)
     2*i-3
 end
 
+"""
+    function read_pair_from_edge(mg::MetaGraph, v1::Int, v2::Int, s::Symbol)
+
+Returns the 2 elements vector of features tied to the egde between vertices.
+As features are always attached in the increasing order of vertices, the permutation is used.
+
+"""
 function read_pair_from_edge(mg::MetaGraph, v1::Int, v2::Int, s::Symbol)
     # each pair is given in the increasing order of vertices
     e = Edge(v1, v2)
@@ -222,6 +229,13 @@ function read_pair_from_edge(mg::MetaGraph, v1::Int, v2::Int, s::Symbol)
     pair[p]
 end
 
+function write_pair2edge!(mg::MetaGraph, v1::Int, v2::Int, s::Symbol, pair::Vector)
+    # each pair is given in the increasing order of vertices
+    e = Edge(v1, v2)
+    p = sortperm([v1, v2])
+    length(pair) == 2 || error("the pair has more than 2 lements")
+    set_prop!(mg, e, s, pair[p]) || error("there is no direct link or $s between $(v1) and $(v2)")
+end
 """
     readJs(mg::MetaGraph, vertex::Int)
 
@@ -401,9 +415,11 @@ function combine_legs_exact(mg::MetaGraph, v1::Int, v2::Int)
     t1 = join_modes(t, first_pair[1], second_pair[1])
 
     set_prop!(mg, v1, :tensor, t1)
-    p = sortperm([v1, v2])
 
-    set_prop!(mg, Edge(v1, v2), :modes, [first_pair[p[1]], first_pair[p[2]]])
+    write_pair2edge!(mg, v1, v2, :modes, first_pair)
+    #p = sortperm([v1, v2])
+
+    #set_prop!(mg, Edge(v1, v2), :modes, [first_pair[p[1]], first_pair[p[2]]])
     t = props(mg, v2)[:tensor]
 
     t2 = join_modes(t, first_pair[2], second_pair[2])
