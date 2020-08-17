@@ -393,13 +393,10 @@ function move_modes!(mg::MetaGraph, v1::Int, threshold::Int)
         modes = props(mg, Edge(v, v1))[:modes]
 
         if length(modes) > 2
-        #if false
-            #is this necessary?
+            # this in the first element of the second pair
             i = [3,4][p[1]]
             if modes[i] > threshold
-
                 modes[i] = modes[i] - 1
-                set_prop!(mg, v, :modes, modes)
             end
         end
     end
@@ -419,14 +416,13 @@ function combine_legs_exact(mg::MetaGraph, v1::Int, v2::Int)
     set_prop!(mg, v1, :tensor, t1)
 
     write_pair2edge!(mg, v1, v2, :modes, first_pair)
-    #p = sortperm([v1, v2])
 
-    #set_prop!(mg, Edge(v1, v2), :modes, [first_pair[p[1]], first_pair[p[2]]])
     t = props(mg, v2)[:tensor]
 
     t2 = join_modes(t, first_pair[2], second_pair[2])
     set_prop!(mg, v2, :tensor, t2)
 
+    # changes elements in the array of modes
     move_modes!(mg, v1, second_pair[1])
     move_modes!(mg, v2, second_pair[1])
 end

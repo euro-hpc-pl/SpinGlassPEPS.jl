@@ -243,53 +243,40 @@ end
     T2 = props(mg, 5)[:tensor]
     @test T[1,1,1,1,:] ≈ T2[1,1,1,:]
 
-    props(mg, Edge(5,4))[:modes]
+
     combine_legs_exact(mg, 4,5)
 
     T1 = props(mg, 5)[:tensor]
     @test T2[1,1,:,1] ≈ T1[1,1,:]
 
-    props(mg, Edge(5,6))[:modes]
-    props(mg, Edge(5,4))[:modes]
-    props(mg, Edge(5,2))[:modes]
-
-
-    props(mg, 4)[:tensor]
-    props(mg, 5)[:tensor]
-    props(mg, 6)[:tensor]
-
 
     contract_vertices!(mg, 1,6)
     contract_vertices!(mg, 2,5)
     contract_vertices!(mg, 3,4)
-    T = props(mg, 1)[:tensor]
-    T = props(mg, 2)[:tensor]
-    T = props(mg, 3)[:tensor]
-
-    props(mg, Edge(1,2))[:modes]
-    props(mg, Edge(2,3))[:modes]
-
 
     combine_legs_exact(mg, 1,2)
     combine_legs_exact(mg, 2,3)
 
-
-    props(mg, Edge(1,2))[:modes]
-    props(mg, Edge(2,3))[:modes]
-
-
-    props(mg, 1)[:tensor]
-    props(mg, 2)[:tensor]
-    props(mg, 3)[:tensor]
-
     contract_vertices!(mg, 2,3)
-
-    props(mg, 2)[:tensor]
-    props(mg, Edge(1,2))[:modes]
 
     contract_vertices!(mg, 1,2)
 
     @test props(mg, 1)[:tensor][1] ≈ (exp(0.2)+exp(-0.2))^9
+
+    # testing move_modes!
+
+    mg1 = make_graph3x3();
+    qubo = make_qubo()
+    add_qubo2graph!(mg1, qubo);
+    set_spins2firs_k!(mg1)
+
+    contract_vertices!(mg1, 5,8)
+    contract_vertices!(mg1, 6,7)
+    contract_vertices!(mg1, 4,9)
+
+    modes = props(mg1, Edge(5,6))[:modes]
+    (#TODOadd tests)
+    print(modes)
 
     @testset "further testing" begin
 
