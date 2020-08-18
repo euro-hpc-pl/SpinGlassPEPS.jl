@@ -275,8 +275,11 @@ end
     contract_vertices!(mg1, 4,9)
 
     modes = props(mg1, Edge(5,6))[:modes]
-    (#TODOadd tests)
-    print(modes)
+    @test modes == [1,1,4,3]
+    move_modes!(mg1, 5, 3)
+    @test modes == [1,1,3,3]
+    move_modes!(mg1, 6, 2)
+    @test modes == [1,1,3,2]
 
     @testset "further testing" begin
 

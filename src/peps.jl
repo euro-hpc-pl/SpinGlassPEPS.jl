@@ -387,7 +387,7 @@ function contract_vertices!(mg::MetaGraph, v1::Int, v2::Int)
     clear_props!(mg, v2)
 end
 
-function move_modes!(mg::MetaGraph, v1::Int, threshold::Int)
+function move_modes!(mg::MetaGraph, v1::Int, mode_deleted::Int)
     for v in neighbors(mg, v1)
         p = sortperm([v1, v])
         modes = props(mg, Edge(v, v1))[:modes]
@@ -395,7 +395,7 @@ function move_modes!(mg::MetaGraph, v1::Int, threshold::Int)
         if length(modes) > 2
             # this in the first element of the second pair
             i = [3,4][p[1]]
-            if modes[i] > threshold
+            if modes[i] > mode_deleted
                 modes[i] = modes[i] - 1
             end
         end
