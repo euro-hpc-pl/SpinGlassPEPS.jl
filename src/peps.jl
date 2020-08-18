@@ -402,7 +402,7 @@ function move_modes!(mg::MetaGraph, v1::Int, mode_deleted::Int)
     end
 end
 
-function combine_legs_exact(mg::MetaGraph, v1::Int, v2::Int)
+function combine_legs_exact!(mg::MetaGraph, v1::Int, v2::Int)
     p = sortperm([v1, v2])
     e = Edge(v1, v2)
     all_modes = props(mg, e)[:modes]
@@ -427,7 +427,7 @@ function combine_legs_exact(mg::MetaGraph, v1::Int, v2::Int)
     move_modes!(mg, v2, second_pair[1])
 end
 
-function reduce_bond_size_svd(mg::MetaGraph, v1::Int, v2::Int, threshold::Float64 = 1e-12)
+function reduce_bond_size_svd!(mg::MetaGraph, v1::Int, v2::Int, threshold::Float64 = 1e-12)
 
     modes = read_pair_from_edge(mg, v1, v2, :modes)
     t1 = props(mg, v1)[:tensor]
@@ -462,9 +462,9 @@ function reduce_bond_size_svd(mg::MetaGraph, v1::Int, v2::Int, threshold::Float6
     T2_red = reshape(A2_red, (k, s2[p2[2:end]]...))
     T2_red = permutedims(T2_red, p2inv)
 
-    a = set_prop!(mg, v1, :tensor, T1_red)
-    b = set_prop!(mg, v2, :tensor, T2_red)
-    a*b
+    set_correctly1 = set_prop!(mg, v1, :tensor, T1_red)
+    set_correctly2 = set_prop!(mg, v2, :tensor, T2_red)
+    set_correctly1*set_correctly2 || error("features of nodes not set properly")
 end
 
 function merge_lines!(mg::MetaGraph, v_line1::Vector{Int}, v_line2::Vector{Int}, approx_svd::Bool = true)
@@ -473,14 +473,14 @@ function merge_lines!(mg::MetaGraph, v_line1::Vector{Int}, v_line2::Vector{Int},
         contract_vertices!(mg, v_line1[i],v_line2[i])
     end
     for i in 1:(length(v_line1)-1)
-        combine_legs_exact(mg, v_line1[i], v_line1[i+1])
+        combine_legs_exact!(mg, v_line1[i], v_line1[i+1])
     end
     if approx_svd
         for i in 1:(length(v_line1)-1)
-            reduce_bond_size_svd(mg, v_line1[i], v_line1[i+1])
+            reduce_bond_size_svd!(mg, v_line1[i], v_line1[i+1])
         end
         for i in (length(v_line1)-1):-1:1
-            reduce_bond_size_svd(mg, v_line1[i+1], v_line1[i])
+            reduce_bond_size_svd!(mg, v_line1[i+1], v_line1[i])
         end
     end
 end

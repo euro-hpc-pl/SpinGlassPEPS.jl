@@ -238,24 +238,22 @@ end
     @test props(mg, Edge(5,4))[:modes] == [1,2,3,5]
     @test props(mg, Edge(5,2))[:modes] == [3,3]
 
-    combine_legs_exact(mg, 5,6)
+    combine_legs_exact!(mg, 5,6)
 
     T2 = props(mg, 5)[:tensor]
     @test T[1,1,1,1,:] ≈ T2[1,1,1,:]
 
-
-    combine_legs_exact(mg, 4,5)
+    combine_legs_exact!(mg, 4,5)
 
     T1 = props(mg, 5)[:tensor]
     @test T2[1,1,:,1] ≈ T1[1,1,:]
-
 
     contract_vertices!(mg, 1,6)
     contract_vertices!(mg, 2,5)
     contract_vertices!(mg, 3,4)
 
-    combine_legs_exact(mg, 1,2)
-    combine_legs_exact(mg, 2,3)
+    combine_legs_exact!(mg, 1,2)
+    combine_legs_exact!(mg, 2,3)
 
     contract_vertices!(mg, 2,3)
 
@@ -294,15 +292,15 @@ end
             contract_vertices!(mg, 6,7)
             contract_vertices!(mg, 4,9)
 
-            combine_legs_exact(mg, 5,6)
-            combine_legs_exact(mg, 4,5)
+            combine_legs_exact!(mg, 5,6)
+            combine_legs_exact!(mg, 4,5)
 
             contract_vertices!(mg, 1,6)
             contract_vertices!(mg, 2,5)
             contract_vertices!(mg, 3,4)
 
-            combine_legs_exact(mg, 1,2)
-            combine_legs_exact(mg, 2,3)
+            combine_legs_exact!(mg, 1,2)
+            combine_legs_exact!(mg, 2,3)
 
             contract_vertices!(mg, 2,3)
             contract_vertices!(mg, 1,2)
@@ -343,15 +341,15 @@ end
         contract_vertices!(mg, 6,7)
         contract_vertices!(mg, 4,9)
 
-        combine_legs_exact(mg, 5,6)
-        combine_legs_exact(mg, 4,5)
+        combine_legs_exact!(mg, 5,6)
+        combine_legs_exact!(mg, 4,5)
 
         contract_vertices!(mg, 1,6)
         contract_vertices!(mg, 2,5)
         contract_vertices!(mg, 3,4)
 
-        combine_legs_exact(mg, 1,2)
-        combine_legs_exact(mg, 2,3)
+        combine_legs_exact!(mg, 1,2)
+        combine_legs_exact!(mg, 2,3)
 
         contract_vertices!(mg, 2,3)
         contract_vertices!(mg, 1,2)
@@ -402,20 +400,20 @@ end
     contract_vertices!(mg, 6,7)
     contract_vertices!(mg, 4,9)
 
-    combine_legs_exact(mg, 5,6)
-    combine_legs_exact(mg, 4,5)
-
+    combine_legs_exact!(mg, 5,6)
+    combine_legs_exact!(mg, 4,5)
+    
     contract_vertices!(mg_exact, 5,8)
     contract_vertices!(mg_exact, 6,7)
     contract_vertices!(mg_exact, 4,9)
 
-    combine_legs_exact(mg_exact, 5,6)
-    combine_legs_exact(mg_exact, 4,5)
+    combine_legs_exact!(mg_exact, 5,6)
+    combine_legs_exact!(mg_exact, 4,5)
 
-    reduce_bond_size_svd(mg, 4,5)
-    reduce_bond_size_svd(mg, 5,6)
-    reduce_bond_size_svd(mg, 6,5)
-    reduce_bond_size_svd(mg, 5,4)
+    reduce_bond_size_svd!(mg, 4,5)
+    reduce_bond_size_svd!(mg, 5,6)
+    reduce_bond_size_svd!(mg, 6,5)
+    reduce_bond_size_svd!(mg, 5,4)
 
     t6 = props(mg, 6)[:tensor]
     t5 = props(mg, 5)[:tensor]
@@ -437,20 +435,20 @@ end
     contract_vertices!(mg, 2,5)
     contract_vertices!(mg, 3,4)
 
-    combine_legs_exact(mg, 1,2)
-    combine_legs_exact(mg, 2,3)
+    combine_legs_exact!(mg, 1,2)
+    combine_legs_exact!(mg, 2,3)
 
     contract_vertices!(mg_exact, 1,6)
     contract_vertices!(mg_exact, 2,5)
     contract_vertices!(mg_exact, 3,4)
 
-    combine_legs_exact(mg_exact, 1,2)
-    combine_legs_exact(mg_exact, 2,3)
+    combine_legs_exact!(mg_exact, 1,2)
+    combine_legs_exact!(mg_exact, 2,3)
 
-    reduce_bond_size_svd(mg, 3,2)
-    reduce_bond_size_svd(mg, 2,1)
-    reduce_bond_size_svd(mg, 1,2)
-    reduce_bond_size_svd(mg, 2,3)
+    reduce_bond_size_svd!(mg, 3,2)
+    reduce_bond_size_svd!(mg, 2,1)
+    reduce_bond_size_svd!(mg, 1,2)
+    reduce_bond_size_svd!(mg, 2,3)
 
     contract_vertices!(mg, 2,3)
     contract_vertices!(mg, 1,2)
@@ -479,7 +477,7 @@ end
 @testset "solving simplest train problem" begin
     # simplest train problem, small example in the train paper
     #two trains approaching the single segment in opposite directions
-    # 4 logical q-bits,
+    # 4 logireduce_bond_size_svd!
 
     #grig embedding_scheme (a embede all q-bits to remove artificial degeneration)
     # logical -> physical
