@@ -1,4 +1,5 @@
-include("peps.jl")
+include("notation.jl")
+include("alternative_approach.jl")
 
 using Test
 using LinearAlgebra
@@ -402,7 +403,7 @@ end
 
     combine_legs_exact!(mg, 5,6)
     combine_legs_exact!(mg, 4,5)
-    
+
     contract_vertices!(mg_exact, 5,8)
     contract_vertices!(mg_exact, 6,7)
     contract_vertices!(mg_exact, 4,9)
