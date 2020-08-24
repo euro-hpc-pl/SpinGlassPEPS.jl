@@ -6,31 +6,6 @@ using LinearAlgebra
 
 # tensor operations
 
-"""
-    function sum_over_last(T::Array{Float64, N}) where N
-
-    used to trace over the phisical index, treated as the last index
-
-"""
-function sum_over_last(T::Array{Float64, N}) where N
-    tensorcontract(T, collect(1:N), ones(size(T,N)), [N])
-end
-
-"""
-    set_last(T::Array{Float64, N}, s::Int) where N
-
-set value of the physical index, s ∈ {-1,1} are supported
-"""
-function set_last(T::Array{Float64, N}, s::Int) where N
-    if s == -1
-        B = [1.,0.]
-    elseif s == 1
-        B = [0.,1.]
-    else
-        error("spin value $s ∉ {-1, 1}")
-    end
-    tensorcontract(T, collect(1:N), B, [N])
-end
 
 """
     contract_tensors(A::Array{Float64, N1} where N1, C::Array{Float64, N2} where N2, mode_a::Int, mode_c::Int)

@@ -5,7 +5,7 @@ include("peps.jl")
 using Test
 using LinearAlgebra
 
-if false
+if true
 @testset "tensor operations tests" begin
     A = ones(2,2,2,2)
     @test sum_over_last(A) == 2*ones(2,2,2)
@@ -579,6 +579,25 @@ end
         [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
 
+    function contract_on_graph!(mg)
+        contract_vertices!(mg, 5,8)
+        contract_vertices!(mg, 6,7)
+        contract_vertices!(mg, 4,9)
+
+        combine_legs_exact!(mg, 5,6)
+        combine_legs_exact!(mg, 4,5)
+
+        contract_vertices!(mg, 1,6)
+        contract_vertices!(mg, 2,5)
+        contract_vertices!(mg, 3,4)
+
+        combine_legs_exact!(mg, 1,2)
+        combine_legs_exact!(mg, 2,3)
+
+        contract_vertices!(mg, 2,3)
+        contract_vertices!(mg, 1,2)
+    end
+
     qubo = make_qubo()
 
     struct_M = [1 2 3; 6 5 4; 7 8 9]
@@ -612,4 +631,50 @@ end
     @test M[3,2] == T8
     @test M[2,2] == T5
     @test M[1,1] == T1
+
+    @testset "contracting peps" begin
+        set_spins2firs_k!(mg)
+        MM = trace_spins(M, struct_M, Int[])
+
+        @test MM[1,1] == reshape(props(mg, 1)[:tensor], (1,2,1,2))
+        @test MM[1,3] == reshape(props(mg, 3)[:tensor], (2,1,1,2))
+        @test MM[2,2] == props(mg, 5)[:tensor]
+        @test MM[3,2] == reshape(props(mg, 8)[:tensor], (2,2,2,1))
+
+        mps = Vector{Array{Float64, 4}}(MM[3,:])
+        mpo = Vector{Array{Float64, 4}}(MM[2,:])
+
+        mps = MPSxMPO(mps, mpo)
+        mpo = Vector{Array{Float64, 4}}(MM[1,:])
+        res = MPSxMPO(mps, mpo)
+
+        A = res[1]
+        B = res[2]
+        C = res[3]
+        @tensor begin
+            D[a,c,d,e,f,g,h,i] := A[a,x,c,d]*B[x,y,e,f]*C[y,g,h,i]
+        end
+
+        contract_on_graph!(mg)
+        @test D[1] == props(mg, 1)[:tensor][1]
+
+        mg = make_graph3x3()
+        add_qubo2graph!(mg, qubo)
+        set_spins2firs_k!(mg, [1])
+        contract_on_graph!(mg)
+
+        MM1 = trace_spins(M, struct_M, [1])
+        mpo1 = Vector{Array{Float64, 4}}(MM1[1,:])
+        # some sort of cashing of the previous mps
+        res1 = MPSxMPO(mps, mpo1)
+
+        A = res1[1]
+        B = res1[2]
+        C = res1[3]
+        @tensor begin
+            D1[a,c,d,e,f,g,h,i] := A[a,x,c,d]*B[x,y,e,f]*C[y,g,h,i]
+        end
+
+        @test D1[1] == props(mg, 1)[:tensor][1]
+    end
 end

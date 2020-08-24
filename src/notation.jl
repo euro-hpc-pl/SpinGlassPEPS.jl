@@ -38,3 +38,31 @@ If some of these are zero there is no link and the corresponding boulding block 
 function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jir::Float64, Jid::Float64, Jii::Float64)
     delta(l, s)*delta(u, s)*c(r, Jir, s)*c(d, Jid, s)*exp(-β*Jii*s)
 end
+
+
+
+"""
+    function sum_over_last(T::Array{Float64, N}) where N
+
+    used to trace over the phisical index, treated as the last index
+
+"""
+function sum_over_last(T::Array{Float64, N}) where N
+    tensorcontract(T, collect(1:N), ones(size(T,N)), [N])
+end
+
+"""
+    set_last(T::Array{Float64, N}, s::Int) where N
+
+set value of the physical index, s ∈ {-1,1} are supported
+"""
+function set_last(T::Array{Float64, N}, s::Int) where N
+    if s == -1
+        B = [1.,0.]
+    elseif s == 1
+        B = [0.,1.]
+    else
+        error("spin value $s ∉ {-1, 1}")
+    end
+    tensorcontract(T, collect(1:N), B, [N])
+end
