@@ -121,13 +121,13 @@ function make_qubo()
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
 
-if false
 
-    qubo = make_qubo()
+qubo = make_qubo()
 
-    struct_M = [1 2 3; 6 5 4; 7 8 9]
+struct_M = [1 2 3; 6 5 4; 7 8 9]
 
-    M = make_pepsTN(struct_M, qubo)
+M = make_pepsTN(struct_M, qubo)
 
-    MM = trace_spins(M, struct_M, Int[])
-end
+MM = trace_spins(M, struct_M, Int[])
+
+M[2,2][2,:,2,:,2]
