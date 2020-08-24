@@ -1,9 +1,11 @@
 include("notation.jl")
 include("alternative_approach.jl")
+include("peps.jl")
 
 using Test
 using LinearAlgebra
 
+if false
 @testset "tensor operations tests" begin
     A = ones(2,2,2,2)
     @test sum_over_last(A) == 2*ones(2,2,2)
@@ -565,4 +567,49 @@ end
     for i in 1:8
         @test conf[i, 1:6] == [-1,1,-1,-1,1,-1]
     end
+end
+
+end
+
+@testset "construction of PEPS" begin
+    function make_qubo()
+        qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 1.5; (2,2) 0.6; (2,3) 1.5; (2,5) 0.5; (3,3) 0.2; (3,4) -1.5]
+        qubo = vcat(qubo, [(4,4) 2.2; (4,5) 0.25; (4,9) 0.52; (5,5) -0.2; (5,6) -0.5; (5,8) -0.5; (6,6) 2.2; (6,7) 0.01])
+        qubo = vcat(qubo, [(7,7) -0.2; (7,8) -0.5; (8,8) 0.2; (8,9) 0.05; (9,9) 0.8])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+
+    qubo = make_qubo()
+
+    struct_M = [1 2 3; 6 5 4; 7 8 9]
+
+    @test JfromQubo_el(qubo, 1,2) == 0.5
+    @test JfromQubo_el(qubo, 2,1) == 0.5
+    @test_throws BoundsError JfromQubo_el(qubo, 1,3)
+
+    @test make_tensor_sizes(false, false, true, true , 2,2) == (1,1,2,2,2)
+    @test make_tensor_sizes(true, false, true, true , 2,2) == (2,1,2,2,2)
+    @test make_tensor_sizes(false, false, true, false , 2,2) == (1,1,2,1,2)
+
+    mg = make_graph3x3()
+    add_qubo2graph!(mg, qubo)
+
+    T = make_peps_node(struct_M, qubo, 1)
+    Tp = makeTensor(mg, 1)
+    T1 = reshape(Tp, (1,2,1,2,2))
+    @test T1 == T
+
+    T = make_peps_node(struct_M, qubo, 5)
+    T5 = makeTensor(mg, 5)
+    @test T5 == T
+
+    T = make_peps_node(struct_M, qubo, 8)
+    Tp = makeTensor(mg, 8)
+    T8 = reshape(Tp, (2,2,2,1,2))
+    @test T8 == T
+
+    M = make_pepsTN(struct_M, qubo)
+    @test M[3,2] == T8
+    @test M[2,2] == T5
+    @test M[1,1] == T1
 end
