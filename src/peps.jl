@@ -201,6 +201,8 @@ function solve(qubo::Vector{Qubo_el}, struct_M::Matrix{Int}, no_states::Int = 2)
         ind = findall(x->x==j, struct_M)[1]
         row = ind[1]
         s = size(struct_M, 1)
+        
+
         objective = Float64[]
         for i in 1:size(part_sol,1)
             r = 1
