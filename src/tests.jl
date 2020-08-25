@@ -641,7 +641,7 @@ end
         a = ones(2,1,1,3)
         b = ones(2,1,3,1)
         e = ones(1,1)
-        @test scalar_prod_step(a,b,e) == [3. 3. ; 3. 3.]
+        @test scalar_prod_step(b,a,e) == [3. 3. ; 3. 3.]
 
         mps = trace_all_spins(M[3,:])
         mpo = trace_all_spins(M[2,:])
@@ -657,35 +657,67 @@ end
         contract_on_graph!(mg)
 
         mps_r = MPSxMPO(mps, mpo)
-        sp = compute_scalar_prod(mps1, mps_r)
+        sp = compute_scalar_prod(mps_r, mps1)
+
+        spp = comp_marg_p_first(mps_r, M[1,:], [0,0,0])
         @test sp == props(mg, 1)[:tensor][1]
+        @test spp == props(mg, 1)[:tensor][1]
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
         set_spins2firs_k!(mg, [-1,1])
         contract_on_graph!(mg)
 
-        mps11 = set_spins_on_mps(M[1,:], [-1, 1, 0])
-        sp = compute_scalar_prod(mps11, mps_r)
+        mps11, _ = set_spins_on_mps(M[1,:], [-1, 1, 0])
+        sp = compute_scalar_prod(mps_r, mps11)
+        spp = comp_marg_p_first(mps_r, M[1,:], [-1,1,0])
         @test sp == props(mg, 1)[:tensor][1]
+        @test spp == props(mg, 1)[:tensor][1]
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
         set_spins2firs_k!(mg, [-1,1,1])
         contract_on_graph!(mg)
 
-        mps12 = set_spins_on_mps(M[1,:], [-1, 1, 1])
-        sp1 = compute_scalar_prod(mps12, mps_r)
+        mps12, _ = set_spins_on_mps(M[1,:], [-1, 1, 1])
+        sp1 = compute_scalar_prod(mps_r, mps12)
         @test sp1 == props(mg, 1)[:tensor][1]
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1,-1])
+        set_spins2firs_k!(mg, [-1,1,1,-1, 1])
         contract_on_graph!(mg)
 
-        mpo3 = set_spins_on_mps(M[2,:], [0,0,-1])
-        mps_r1 = MPSxMPO(mps, mpo3)
-        sp3 = compute_scalar_prod(mps12, mps_r1)
-        @test sp3 == props(mg, 1)[:tensor][1]
+        mpo3, ses = set_spins_on_mps(M[2,:], [0,1,-1])
+
+        mps_r2 = MPSxMPO(mps, mpo3)
+
+        reduce_bonds_horizontally!(mps12, ses)
+
+        sp3 = compute_scalar_prod(mps_r2, mps12)
+        sp4 = comp_marg_p(mps12, mps, M[2,:], [0,1,-1])
+        @test sp3 ≈ props(mg, 1)[:tensor][1]
+        @test sp3 ≈ sp4
+
+        mg = make_graph3x3()
+        add_qubo2graph!(mg, qubo)
+        set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1])
+        contract_on_graph!(mg)
+
+        mps, _ = set_spins_on_mps(M[1,:], [-1,1,1])
+        mpo, s = set_spins_on_mps(M[2,:], [1,1,-1])
+        reduce_bonds_horizontally!(mps, s)
+        mps1 = MPSxMPO(mpo, mps)
+        pss = comp_marg_p_last(mps1, M[3,:], [-1,0,0])
+        psss = comp_marg_p_last(mps1, M[3,:], [-1,1,0])
+        pssss = comp_marg_p_last(mps1, M[3,:], [-1,1,1])
+        @test pss ≈ props(mg, 1)[:tensor][1]
+
+        mg = make_graph3x3()
+        add_qubo2graph!(mg, qubo)
+        set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1,1,1])
+        contract_on_graph!(mg)
+
+        @test pssss ≈ props(mg, 1)[:tensor][1]
     end
 end
