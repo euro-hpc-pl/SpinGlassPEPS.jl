@@ -83,37 +83,72 @@ function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el}, i::Int, T:
     tensor
 end
 
-function trace_spins(M::Matrix{Array{T, 5}}, struct_M::Matrix{Int}, ses::Vector{Int}) where T <: AbstractFloat
-     s = size(struct_M)
-    M_tr = Array{Union{Nothing, Array{T}}}(nothing, s)
-    for ind in CartesianIndices(s)
-        k = struct_M[ind]
-        if k > length(ses)
-            M_tr[ind] = sum_over_last(M[ind])
-        else
-            M_tr[ind] = set_last(M[ind], ses[k])
-        end
+function trace_all_spins(mps::Vector{Array{T, 5}}) where T <: AbstractFloat
+    l = length(mps)
+    traced_mps = Array{Union{Nothing, Array{T, 4}}}(nothing, l)
+    for i in 1:l
+        traced_mps[i] = sum_over_last(mps[i])
     end
-    M_tr
+    Vector{Array{T, 4}}(traced_mps)
 end
-
 
 function MPSxMPO(mps::Vector{Array{T, 4}}, mpo::Vector{Array{T, 4}}) where T <: AbstractFloat
         mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps))
         for i in 1:length(mps)
         A = mps[i]
         B = mpo[i]
-        @tensor begin
-            C[a,d,b,e,f,c] := A[a,b,x,c]*B[d,e,f,x]
-        end
         sa = size(A)
         sb = size(B)
-        C = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3], sa[4]))
-        mps_res[i] = C
+
+        C = zeros(T, sa[1] , sb[1], sa[2], sb[2], sb[3], sa[4])
+        @tensor begin
+            C[a,d,b,e,f,c] = A[a,b,x,c]*B[d,e,f,x]
+        end
+        mps_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3], sa[4]))
     end
     Array{Array{T, 4}}(mps_res)
 end
 
+
+function compute_scalar_prod(mps_up::Vector{Array{T, 4}}, mps_down::Vector{Array{T, 4}}) where T <: AbstractFloat
+    env = ones(T, 1,1)
+    for i in length(mps_up):-1:1
+        env = scalar_prod_step(mps_up[i], mps_down[i], env)
+    end
+    size(env) == (1,1) || error("output size $(size(env)) ≠ (1,1) not fully contracted")
+    env[1,1]
+end
+
+function scalar_prod_step(mps_up::Array{T, 4}, mps_down::Array{T, 4}, env::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps_up, 1), size(mps_down, 1))
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b] = mps_up[a,x,v,z]*mps_down[b,y,z,v]*env[x,y]
+    end
+    C
+end
+
+function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: AbstractFloat
+    l = length(mps)
+    output_mps = Array{Union{Nothing, Array{T, 4}}}(nothing, l)
+    for i in 1:l
+        if s[i] == 0
+            output_mps[i] = sum_over_last(mps[i])
+        elseif i > 1
+            # breaks bonds between subsequent tensors in row
+            # if s is set, excludes first element of the row
+            A = set_last(mps[i], s[i])
+            ind = spins2index(s[i])
+            output_mps[i] = A[ind:ind,:,:,:]
+            output_mps[i-1] = output_mps[i-1][:,ind:ind,:,:]
+        else
+            output_mps[i] = set_last(mps[i], s[i])
+        end
+    end
+    Vector{Array{T, 4}}(output_mps)
+end
+
+if false
 function make_qubo()
     qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,4) 0.5]
     qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.5; (4,9) 0.5; (5,5) 0.2; (5,6) 0.5; (5,8) 0.5; (6,6) 0.2; (6,7) 0.5])
@@ -121,13 +156,24 @@ function make_qubo()
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
 
-
 qubo = make_qubo()
 
 struct_M = [1 2 3; 6 5 4; 7 8 9]
 
 M = make_pepsTN(struct_M, qubo)
 
-MM = trace_spins(M, struct_M, Int[])
+mps = trace_all_spins(M[3,:])
+mpo = trace_all_spins(M[2,:])
+mps_r = MPSxMPO(mps, mpo)
 
-M[2,2][2,:,2,:,2]
+
+m1 = set_last(M[1,1], -1)
+m2 = set_last(M[1,2], 1)
+m3 = sum_over_last(M[1,3])
+
+
+mps11 = Vector{Array{Float64, 4}}([m1, m2, m3])
+sp = compute_scalar_prod(mps11, mps_r)
+
+
+end

@@ -84,6 +84,10 @@ end
     @test index2physical(2) == 1
     @test index2physical(1) == -1
     @test_throws ErrorException index2physical(-1)
+
+    @test spins2index(-1) == 1
+    @test spins2index(1) == 2
+    @test_throws ErrorException spins2index(2)
 end
 
 @testset "testing graphical representation" begin
@@ -633,48 +637,55 @@ end
     @test M[1,1] == T1
 
     @testset "contracting peps" begin
+
+        a = ones(2,1,1,3)
+        b = ones(2,1,3,1)
+        e = ones(1,1)
+        @test scalar_prod_step(a,b,e) == [3. 3. ; 3. 3.]
+
+        mps = trace_all_spins(M[3,:])
+        mpo = trace_all_spins(M[2,:])
+        mps1 = trace_all_spins(M[1,:])
+
+        #graphical trace
         set_spins2firs_k!(mg)
-        MM = trace_spins(M, struct_M, Int[])
 
-        @test MM[1,1] == reshape(props(mg, 1)[:tensor], (1,2,1,2))
-        @test MM[1,3] == reshape(props(mg, 3)[:tensor], (2,1,1,2))
-        @test MM[2,2] == props(mg, 5)[:tensor]
-        @test MM[3,2] == reshape(props(mg, 8)[:tensor], (2,2,2,1))
-
-        mps = Vector{Array{Float64, 4}}(MM[3,:])
-        mpo = Vector{Array{Float64, 4}}(MM[2,:])
-
-        mps = MPSxMPO(mps, mpo)
-        mpo = Vector{Array{Float64, 4}}(MM[1,:])
-        res = MPSxMPO(mps, mpo)
-
-        A = res[1]
-        B = res[2]
-        C = res[3]
-        @tensor begin
-            D[a,c,d,e,f,g,h,i] := A[a,x,c,d]*B[x,y,e,f]*C[y,g,h,i]
-        end
-
+        @test mps1[3] == reshape(props(mg, 3)[:tensor], (2,1,1,2))
+        @test mpo[1] == reshape(props(mg, 6)[:tensor], (1,2,2,2))
+        @test mpo[2] == props(mg, 5)[:tensor]
+        @test mps[2] == reshape(props(mg, 8)[:tensor], (2,2,2,1))
         contract_on_graph!(mg)
-        @test D[1] == props(mg, 1)[:tensor][1]
+
+        mps_r = MPSxMPO(mps, mpo)
+        sp = compute_scalar_prod(mps1, mps_r)
+        @test sp == props(mg, 1)[:tensor][1]
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [1])
+        set_spins2firs_k!(mg, [-1,1])
         contract_on_graph!(mg)
 
-        MM1 = trace_spins(M, struct_M, [1])
-        mpo1 = Vector{Array{Float64, 4}}(MM1[1,:])
-        # some sort of cashing of the previous mps
-        res1 = MPSxMPO(mps, mpo1)
+        mps11 = set_spins_on_mps(M[1,:], [-1, 1, 0])
+        sp = compute_scalar_prod(mps11, mps_r)
+        @test sp == props(mg, 1)[:tensor][1]
 
-        A = res1[1]
-        B = res1[2]
-        C = res1[3]
-        @tensor begin
-            D1[a,c,d,e,f,g,h,i] := A[a,x,c,d]*B[x,y,e,f]*C[y,g,h,i]
-        end
+        mg = make_graph3x3()
+        add_qubo2graph!(mg, qubo)
+        set_spins2firs_k!(mg, [-1,1,1])
+        contract_on_graph!(mg)
 
-        @test D1[1] == props(mg, 1)[:tensor][1]
+        mps12 = set_spins_on_mps(M[1,:], [-1, 1, 1])
+        sp1 = compute_scalar_prod(mps12, mps_r)
+        @test sp1 == props(mg, 1)[:tensor][1]
+
+        mg = make_graph3x3()
+        add_qubo2graph!(mg, qubo)
+        set_spins2firs_k!(mg, [-1,1,1,-1])
+        contract_on_graph!(mg)
+
+        mpo3 = set_spins_on_mps(M[2,:], [0,0,-1])
+        mps_r1 = MPSxMPO(mps, mpo3)
+        sp3 = compute_scalar_prod(mps12, mps_r1)
+        @test sp3 == props(mg, 1)[:tensor][1]
     end
 end

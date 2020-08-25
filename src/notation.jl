@@ -66,3 +66,9 @@ function set_last(T::Array{Float64, N}, s::Int) where N
     end
     tensorcontract(T, collect(1:N), B, [N])
 end
+
+
+function spins2index(s::Int)
+    s in [-1, 1] || error("spin must equal to -1 or 1 we get $s")
+    div((s+1), 2)+1
+end
