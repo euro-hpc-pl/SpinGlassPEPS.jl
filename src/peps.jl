@@ -186,41 +186,43 @@ function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, se
     compute_scalar_prod(mpo, mps_u)
 end
 
-if false
+function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int) where T <: AbstractFloat
+    s = size(M,1)
+    mps = trace_all_spins(M[s,:])
+    for i in s-1:-1:k
+        mpo = trace_all_spins(M[i,:])
+        mps = MPSxMPO(mps, mpo)
+    end
+    mps
+end
 
 # it has to be finished
-function solve(qubo::Vector{Qubo_el}, struct_M::Matrix{Int}, no_states::Int = 2)
+function solve(qubo::Vector{Qubo_el}, struct_M::Matrix{Int}, no_sols::Int = 2)
+    T = Float64
     problem_size = maximum(struct_M)
     M = make_pepsTN(struct_M, qubo)
 
+    part_sol = Array(transpose([1 -1]))
 
-    part_sol = zeros(Int, 2,1)
-    part_sol[1,1] = 1
-    part_sol[2,1] = -1
-    for j in 1:problem_size
-        ind = findall(x->x==j, struct_M)[1]
-        row = ind[1]
-        s = size(struct_M, 1)
-        
+    s = size(struct_M, 1)
+    for row in 1:s
+        for j in struct_M[row,:]
 
-        objective = Float64[]
-        for i in 1:size(part_sol,1)
-            r = 1
-            push!(objective, r)
-        end
-        p = sortperm(objective)
-        p1, k = get_last_m(p, no_states)
-        a_temp = zeros(Int, k, j)
-        for i in 1:k
-            a_temp[i,:] = part_sol[p1[i],:]
-        end
-        if j == problem_size
-            return a_temp, objective[p1]
-        else
-            part_sol = add_another_spin2configs(part_sol)
+            objective = T[]
+            for i in 1:size(part_sol,1)
+                prob = 1
+                push!(objective, prob)
+            end
+            p1 = last_m_els(sortperm(objective), no_sols)
+            part_sol = part_sol[p1,:]
+
+            if j == problem_size
+                return part_sol, objective[p1]
+            else
+                part_sol = add_another_spin2configs(part_sol)
+            end
         end
     end
-    0
 end
 
 
@@ -234,15 +236,7 @@ end
 qubo = make_qubo()
 
 struct_M = [1 2 3; 6 5 4; 7 8 9]
-s = size(struct_M)
-ses = [1,-1,1]
-l = length(ses)
-ind = findall(x->x==l, struct_M)[1]
-collect(1:ind[1]-1)
-collect(ind[1]+1:s[2])
 
+sort(struct_M[3,:])
 
-
-
-
-end
+solve(qubo, struct_M)

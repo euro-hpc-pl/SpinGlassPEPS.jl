@@ -76,16 +76,16 @@ end
 
 
 """
-    get_last_m(vector::Vector{Int}, m::Int)
+    last_m_els(vector::Vector{Int}, m::Int)
 
 returns last m element of the vector{Int} or the whole vector if it has less than m elements
-returns as well the size of the returned vector
+
 """
-function get_last_m(vector::Vector{Int}, m::Int)
+function last_m_els(vector::Vector{Int}, m::Int)
     if length(vector) <= m
-        return vector, length(vector)
+        return vector
     else
-        return vector[end-m+1:end], m
+        return vector[end-m+1:end]
     end
 end
 
@@ -99,9 +99,11 @@ add another spin to the end in all configurations.
 
 Return matrix of size  2*size(configs,1), size(configs,2)+1
 """
+
 function add_another_spin2configs(configs::Matrix{Int})
     s = size(configs)
-    ret = vcat(configs, configs)
+    configs = vcat(configs, configs)
     ses = vcat(fill(-1, s[1]), fill(1, s[1]))
-    hcat(ret, ses)
+    configs = hcat(configs, ses)
+    configs
 end

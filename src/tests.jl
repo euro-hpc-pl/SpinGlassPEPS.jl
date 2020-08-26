@@ -477,8 +477,8 @@ end
 @testset "testing axiliary functions of the solver" begin
     conf = [1 1; 1 -1; -1 1; -1 -1]
     @test add_another_spin2configs(conf) == [1 1 -1; 1 -1 -1; -1 1 -1; -1 -1 -1; 1 1 1; 1 -1 1; -1 1 1; -1 -1 1]
-    @test get_last_m([1,2,3,4], 2) == ([3,4], 2)
-    @test get_last_m([1,2,3,4], 5) == ([1,2,3,4], 4)
+    @test last_m_els([1,2,3,4], 2) == [3,4]
+    @test last_m_els([1,2,3,4], 5) == [1,2,3,4]
 end
 
 @testset "solving simplest train problem" begin
@@ -656,7 +656,11 @@ end
         @test mps[2] == reshape(props(mg, 8)[:tensor], (2,2,2,1))
         contract_on_graph!(mg)
 
-        mps_r = MPSxMPO(mps, mpo)
+        #this need to be tested
+        mps_t = make_lower_mps(M, 1)
+        println(mps_t)
+
+        mps_r = make_lower_mps(M, 2)
         sp = compute_scalar_prod(mps_r, mps1)
 
         spp = comp_marg_p_first(mps_r, M[1,:], [0,0,0])

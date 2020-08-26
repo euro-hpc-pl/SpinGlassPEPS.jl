@@ -475,27 +475,23 @@ end
 
 # it is aimed for testing the final solver
 
-function naive_solve(qubo::Vector{Qubo_el}, M::Int, approx::Bool = true)
+function naive_solve(qubo::Vector{Qubo_el}, no_sols::Int, approx::Bool = true)
     problem_size = 9
-    a = zeros(Int, 2,1)
-    a[1,1] = 1
-    a[2,1] = -1
+    partial_sol = Array(transpose([1 -1]))
+
     for j in 1:problem_size
         objective = Float64[]
-        for i in 1:size(a,1)
-            r = optimisation_step_naive(qubo, a[i,:], approx)
+        for i in 1:size(partial_sol,1)
+            r = optimisation_step_naive(qubo, partial_sol[i,:], approx)
             push!(objective, r)
         end
-        p = sortperm(objective)
-        p1, k = get_last_m(p, M)
-        a_temp = zeros(Int, k, j)
-        for i in 1:k
-            a_temp[i,:] = a[p1[i],:]
-        end
+        p1 = last_m_els(sortperm(objective), no_sols)
+        partial_sol = partial_sol[p1,:]
+
         if j == problem_size
-            return a_temp, objective[p1]
+            return partial_sol, objective[p1]
         else
-            a = add_another_spin2configs(a)
+            partial_sol = add_another_spin2configs(partial_sol)
         end
     end
     0
