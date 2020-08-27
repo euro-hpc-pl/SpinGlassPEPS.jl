@@ -656,14 +656,24 @@ end
         @test mps[2] == reshape(props(mg, 8)[:tensor], (2,2,2,1))
         contract_on_graph!(mg)
 
-        #this need to be tested
-        mps_t = make_lower_mps(M, 1)
-        println(mps_t)
+        if true
+            mps_t = make_lower_mps(M, 1)
+            A = mps_t[1]
+            B = mps_t[2]
+            C = mps_t[3]
+            E = ones(1,1)
+
+            @tensor begin
+                D[] := A[a,x,z,v]*B[x,y,z,v]*C[y,a,z1,v1]*E[z1,v1]
+            end
+            @test D[1] == props(mg, 1)[:tensor][1]
+        end
 
         mps_r = make_lower_mps(M, 2)
         sp = compute_scalar_prod(mps_r, mps1)
 
-        spp = comp_marg_p_first(mps_r, M[1,:], [0,0,0])
+
+        spp, _ = comp_marg_p_first(mps_r, M[1,:], [0,0,0])
         @test sp == props(mg, 1)[:tensor][1]
         @test spp == props(mg, 1)[:tensor][1]
 
@@ -674,7 +684,8 @@ end
 
         mps11, _ = set_spins_on_mps(M[1,:], [-1, 1, 0])
         sp = compute_scalar_prod(mps_r, mps11)
-        spp = comp_marg_p_first(mps_r, M[1,:], [-1,1,0])
+        # marginal probability
+        spp, _ = comp_marg_p_first(mps_r, M[1,:], [-1,1,0])
         @test sp == props(mg, 1)[:tensor][1]
         @test spp == props(mg, 1)[:tensor][1]
 
@@ -695,11 +706,10 @@ end
         mpo3, ses = set_spins_on_mps(M[2,:], [0,1,-1])
 
         mps_r2 = MPSxMPO(mps, mpo3)
-
         reduce_bonds_horizontally!(mps12, ses)
 
         sp3 = compute_scalar_prod(mps_r2, mps12)
-        sp4 = comp_marg_p(mps12, mps, M[2,:], [0,1,-1])
+        sp4, _ = comp_marg_p(mps12, mps, M[2,:], [0,1,-1])
         @test sp3 ≈ props(mg, 1)[:tensor][1]
         @test sp3 ≈ sp4
 
@@ -723,5 +733,61 @@ end
         contract_on_graph!(mg)
 
         @test pssss ≈ props(mg, 1)[:tensor][1]
+    end
+end
+
+
+@testset "PEPS solving simplest train problem" begin
+    # simplest train problem, small example in the train paper
+    #two trains approaching the single segment in opposite directions
+
+
+    function make_qubo()
+        css = -2.
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
+        qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    train_qubo = make_qubo()
+
+    conf, f = naive_solve(train_qubo, 4, false)
+
+    struct_M = [1 2 3; 6 5 4; 7 8 9]
+
+    ses = solve(train_qubo, struct_M, 4)
+
+    @test [ses[i].objective for i in 1:4] ≈ f
+    #first
+    @test ses[3].spins == [-1,1,-1,-1,1,-1,1,1,1]
+    #ground
+    @test ses[4].spins == [1,-1,1,1,-1,1,1,1,1]
+
+
+    # here we give a little Jii to 7,8,9 q-bits to allow there for 8 additional
+    # combinations with low excitiation energies
+
+    function make_qubo()
+        css = -2.
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
+        qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) -0.1; (7,8) 0.; (8,8) -0.1; (8,9) 0.; (9,9) -0.1])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    permuted_train_qubo = make_qubo()
+
+    struct_M = [1 2 3; 6 5 4; 7 8 9]
+
+    ses = solve(permuted_train_qubo, struct_M, 16)
+
+    # this correspond to the ground
+    for i in 9:16
+        @test ses[i].spins[1:6] == [1,-1,1,1,-1,1]
+    end
+
+
+    # and this to 1st excited
+    for i in 1:8
+        @test ses[i].spins[1:6] == [-1,1,-1,-1,1,-1]
     end
 end

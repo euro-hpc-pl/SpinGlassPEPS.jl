@@ -172,12 +172,12 @@ function comp_marg_p(mps_u::Vector{Array{T, 4}}, mps_d::Vector{Array{T, 4}}, M::
     mpo, s = set_spins_on_mps(M, ses)
     reduce_bonds_horizontally!(mps_u, s)
     mps_n = MPSxMPO(mpo, mps_u)
-    compute_scalar_prod(mps_d, mps_n)
+    compute_scalar_prod(mps_d, mps_n), mps_n
 end
 
 function comp_marg_p_first(mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mpo, _ = set_spins_on_mps(M, ses)
-    compute_scalar_prod(mps_d, mpo)
+    mps_u, _ = set_spins_on_mps(M, ses)
+    compute_scalar_prod(mps_d, mps_u), mps_u
 end
 
 function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
@@ -188,55 +188,110 @@ end
 
 function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int) where T <: AbstractFloat
     s = size(M,1)
-    mps = trace_all_spins(M[s,:])
-    for i in s-1:-1:k
-        mpo = trace_all_spins(M[i,:])
-        mps = MPSxMPO(mps, mpo)
+    if k <= s
+        mps = trace_all_spins(M[s,:])
+        for i in s-1:-1:k
+            mpo = trace_all_spins(M[i,:])
+            mps = MPSxMPO(mps, mpo)
+        end
+        return mps
     end
-    mps
+    0
 end
+
+
+mutable struct Partial_sol
+    spins::Vector{Int}
+    objective::Float64
+    upper_mps::Vector{Array{Float64, 4}}
+    function(::Type{Partial_sol})(spins::Vector{Int}, objective::Float64, upper_mps::Vector{Array{Float64, 4}})
+        new(spins, objective, upper_mps)
+    end
+    function(::Type{Partial_sol})(ps::Partial_sol, spins::Vector{Int}, objective::Float64)
+        new(spins, objective, ps.upper_mps)
+    end
+    function(::Type{Partial_sol})()
+        new(Int[], 0., [zeros(0,0,0,0)])
+    end
+end
+
+
+function add_spin(ps::Partial_sol, s::Int)
+    s in [-1,1] || error("spin should be 1 or -1 we got $s")
+    Partial_sol(vcat(ps.spins, [s]), 0., ps.upper_mps)
+end
+
 
 # it has to be finished
 function solve(qubo::Vector{Qubo_el}, struct_M::Matrix{Int}, no_sols::Int = 2)
     T = Float64
     problem_size = maximum(struct_M)
+    s = size(struct_M)
     M = make_pepsTN(struct_M, qubo)
 
-    part_sol = Array(transpose([1 -1]))
+    partial_solutions = Partial_sol[Partial_sol()]
 
-    s = size(struct_M, 1)
-    for row in 1:s
-        for j in struct_M[row,:]
+    for row in 1:s[1]
 
-            objective = T[]
-            for i in 1:size(part_sol,1)
-                prob = 1
-                push!(objective, prob)
+        #this may need to ge cashed
+        lower_mps = make_lower_mps(M, row + 1)
+
+        p = sortperm(struct_M[row,:])
+        for j in struct_M[row,p]
+
+             a = [add_spin(ps, 1) for ps in partial_solutions]
+             b = [add_spin(ps, -1) for ps in partial_solutions]
+             partial_solutions = vcat(a,b)
+
+
+             for ps in partial_solutions
+
+                part_sol = ps.spins
+                sol = part_sol[1+(row-1)*s[2]:end]
+                l = s[2] - length(sol)
+                sol = vcat(sol, fill(0, l))
+                sol = sol[p]
+
+                u = []
+                prob = 0.
+                if row == 1
+                    prob, u = comp_marg_p_first(lower_mps, M[row,:], sol)
+                elseif row == s[1]
+                    # next function is changing value
+                    uu = copy(ps.upper_mps)
+                    prob = comp_marg_p_last(uu, M[row,:], sol)
+                else
+                    uu = copy(ps.upper_mps)
+                    prob, u = comp_marg_p(uu, lower_mps, M[row,:], sol)
+                end
+
+                ps.objective = prob
+                # make it automatic
+                if j in [3, 6]
+                    ps.upper_mps = u
+                end
             end
-            p1 = last_m_els(sortperm(objective), no_sols)
-            part_sol = part_sol[p1,:]
+
+            objectives = [ps.objective for ps in partial_solutions]
+
+            perm = sortperm(objectives)
+
+            p1 = last_m_els(perm, no_sols)
+
+            partial_solutions = partial_solutions[p1]
 
             if j == problem_size
-                return part_sol, objective[p1]
-            else
-                part_sol = add_another_spin2configs(part_sol)
+
+                return partial_solutions
             end
         end
     end
 end
 
 
-function make_qubo()
+function make_qubo123()
     qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,4) 0.5]
     qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.5; (4,9) 0.5; (5,5) 0.2; (5,6) 0.5; (5,8) 0.5; (6,6) 0.2; (6,7) 0.5])
     qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) 0.2; (8,9) 0.5; (9,9) 0.2])
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
-
-qubo = make_qubo()
-
-struct_M = [1 2 3; 6 5 4; 7 8 9]
-
-sort(struct_M[3,:])
-
-solve(qubo, struct_M)
