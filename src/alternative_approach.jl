@@ -8,11 +8,11 @@ using LinearAlgebra
 
 
 """
-    contract_tensors(A::Array{Float64, N1} where N1, C::Array{Float64, N2} where N2, mode_a::Int, mode_c::Int)
+    contract_tensors(A::Array{T, N1} where N1, C::Array{T, N2} where N2, mode_a::Int, mode_c::Int)
 
 contracts tensor A with C in the given modes
 """
-function contract_tensors(A::Array{Float64, N1} where N1, C::Array{Float64, N2} where N2, mode_a::Int, mode_c::Int)
+function contract_tensors(A::Array{T, N1} where N1, C::Array{T, N2} where N2, mode_a::Int, mode_c::Int) where T <: AbstractFloat
 
     iA = collect(1:ndims(A))
     iC = collect(ndims(A)+1:ndims(C)+ndims(A))
@@ -36,12 +36,12 @@ function perm_moving_mode(N::Int, old_i::Int, new_i::Int)
 end
 
 """
-    function join_modes(A::Array{Float64, N} where N, m1::Int, m2::Int)
+    function join_modes(A::Array{T, N} where N, m1::Int, m2::Int)
 
 Changes N mode array to N-1 one by joining two modes (not necessarly lying one by one).
 The new mode in on the position m1.
 """
-function join_modes(A::Array{Float64, N} where N, m1::Int, m2::Int)
+function join_modes(A::Array{T, N} where N, m1::Int, m2::Int) where T <: AbstractFloat
     s = size(A)
     m1 < m2 <= ndims(A) || error("we expect m1 < m2 ≤ N")
     p = perm_moving_mode(ndims(A), m2, m1+1)
@@ -51,6 +51,23 @@ function join_modes(A::Array{Float64, N} where N, m1::Int, m2::Int)
     siz[m1] = s[m1]*s[m2]
     deleteat!(siz, m2)
     reshape(A, (siz...))
+end
+
+
+"""
+    add_another_spin2configs(configs::Matrix{Int})
+
+given the size(configs,1) configurations of size(configs,2) spins
+add another spin to the end in all configurations.
+
+Return matrix of size  2*size(configs,1), size(configs,2)+1
+"""
+
+function add_another_spin2configs(configs::Matrix{Int})
+    s = size(configs)
+    configs = vcat(configs, configs)
+    ses = vcat(fill(-1, s[1]), fill(1, s[1]))
+    hcat(configs, ses)
 end
 
 # from here the qubo is introduced
@@ -132,7 +149,7 @@ function make_graph3x3()
     mg
 end
 
-function add_qubo2graph!(mg::MetaGraph, qubo::Vector{Qubo_el})
+function add_qubo2graph!(mg::MetaGraph, qubo::Vector{Qubo_el{T}}) where T <: AbstractFloat
     for q in qubo
         add_qubo_el!(mg, q)
     end
@@ -182,10 +199,10 @@ read couplings from give vertex, if there is no returns 0.
 function readJs(mg::MetaGraph, vertex::Int)
     # linear trem coefficient
     h = props(mg, vertex)[:h]
-
+    T = typeof(h)
     # quadratic
-    Jir = 0.
-    Jid = 0.
+    Jir = T(0.)
+    Jid = T(0.)
 
     for v in neighbors(mg, vertex)
         directions = read_pair_from_edge(mg, vertex, v, :side)
@@ -249,12 +266,12 @@ function get_modes(mg::MetaGraph, vertex::Int)
 end
 
 """
-    function makeTensor(mg::MetaGraph, vertex::Int)
+    function makeTensor(mg::MetaGraph, vertex::Int, β)
 
 given the vertex of the MetaGraph generates the full
 tensor with both virtual dimentions and physical  dimention
 """
-function makeTensor(mg::MetaGraph, vertex::Int)
+function makeTensor(mg::MetaGraph, vertex::Int, β::T) where T <: AbstractFloat
     modes = get_modes(mg, vertex)
     Js = readJs(mg, vertex)
     virtual_dims = length(modes)
@@ -267,19 +284,19 @@ function makeTensor(mg::MetaGraph, vertex::Int)
             lrud[modes[l]] = index2physical(i[l])
         end
         s = index2physical(i[virtual_dims+1])
-        A[i] = Tgen(lrud..., s, Js...)
+        A[i] = Tgen(lrud..., s, Js..., β)
     end
     A
 end
 
-function add_tensor2vertex(mg::MetaGraph, vertex::Int, s::Int = 0)
-    T = makeTensor(mg, vertex)
+function add_tensor2vertex(mg::MetaGraph, vertex::Int, β::T, s::Int = 0) where T <: AbstractFloat
+    tensor = makeTensor(mg, vertex, β)
     if s == 0
-        T = sum_over_last(T)
+        tensor = sum_over_last(tensor)
     else
-        T = set_last(T, s)
+        tensor = set_last(tensor, s)
     end
-    set_prop!(mg, vertex, :tensor, T)
+    set_prop!(mg, vertex, :tensor, tensor)
     bd = bond_directions(mg, vertex)
     for v in neighbors(mg, vertex)
         e = Edge(vertex,v)
@@ -365,7 +382,7 @@ function combine_legs_exact!(mg::MetaGraph, v1::Int, v2::Int)
     move_modes!(mg, v2, second_pair[1])
 end
 
-function reduce_bond_size_svd!(mg::MetaGraph, v1::Int, v2::Int, threshold::Float64 = 1e-12)
+function reduce_bond_size_svd!(mg::MetaGraph, v1::Int, v2::Int, threshold::T = 1e-12) where T <: AbstractFloat
 
     modes = read_pair_from_edge(mg, v1, v2, :modes)
     t1 = props(mg, v1)[:tensor]
@@ -426,37 +443,23 @@ end
 # computation of probabilities
 
 """
-    set_spins2firs_k!(mg::MetaGraph, s::Vector{Int})
+    set_spins2firs_k!(mg::MetaGraph, s::Vector{Int} , β::T)
 
     trace over all spins but first k=length(s)
 """
-function set_spins2firs_k!(mg::MetaGraph, s::Vector{Int})
+function set_spins2firs_k!(mg::MetaGraph, s::Vector{Int}, β::T) where T <: AbstractFloat
     for i in 1:length(s)
-        add_tensor2vertex(mg, i, s[i])
+        add_tensor2vertex(mg, i, β, s[i])
     end
     l = (length(s)+1)
     for i in l:nv(mg)
-        add_tensor2vertex(mg, i)
+        add_tensor2vertex(mg, i, β)
     end
 end
 
-"""
-    set_spins2firs_k!(mg::MetaGraph, s::Int)
 
-    trace over all spins but first that is s
-"""
-set_spins2firs_k!(mg::MetaGraph, s::Int) = set_spins2firs_k!(mg, [s])
-
-"""
-    set_spins2firs_k!(mg::MetaGraph)
-
-    trace over all spins
-"""
-set_spins2firs_k!(mg::MetaGraph) = set_spins2firs_k!(mg, Int[])
-
-
-function compute_marginal_prob(mg::MetaGraph, ses::Vector{Int}, svd_approx::Bool = true)
-    set_spins2firs_k!(mg, ses)
+function compute_marginal_prob(mg::MetaGraph, ses::Vector{Int}, β::T, svd_approx::Bool = true) where T <: AbstractFloat
+    set_spins2firs_k!(mg, ses, β)
     # v2d is the configuration of the grid
     v2d = [1 2 3; 6 5 4; 7 8 9]
     for i in size(v2d,1)-1:-1:1
@@ -475,14 +478,14 @@ end
 
 # it is aimed for testing the final solver
 
-function naive_solve(qubo::Vector{Qubo_el}, no_sols::Int, approx::Bool = true)
+function naive_solve(qubo::Vector{Qubo_el{T}}, no_sols::Int, β::T, approx::Bool = true) where T <: AbstractFloat
     problem_size = 9
     partial_sol = Array(transpose([1 -1]))
 
     for j in 1:problem_size
-        objective = Float64[]
+        objective = T[]
         for i in 1:size(partial_sol,1)
-            r = optimisation_step_naive(qubo, partial_sol[i,:], approx)
+            r = optimisation_step_naive(qubo, partial_sol[i,:], β, approx)
             push!(objective, r)
         end
         p1 = last_m_els(sortperm(objective), no_sols)
@@ -498,23 +501,15 @@ function naive_solve(qubo::Vector{Qubo_el}, no_sols::Int, approx::Bool = true)
 end
 
 """
-    function optimisation_step_naive(qubo::Vector{Qubo_el}, ses::Vector{Int}, approx::Bool = true)
+    function optimisation_step_naive(qubo::Vector{Qubo_el}, ses::Vector{Int}, β, approx::Bool = true)
 
 returns the non-normalised marginal probability of the given partial configuration
 in ses::Vector{Int}
 
 Naive since each step contracts the whole grid to the single value.
 """
-function optimisation_step_naive(qubo::Vector{Qubo_el}, ses::Vector{Int}, use_svd_approx::Bool = true)
+function optimisation_step_naive(qubo::Vector{Qubo_el{T}}, ses::Vector{Int}, β::T, use_svd_approx::Bool = true) where T <: AbstractFloat
     mg = make_graph3x3();
     add_qubo2graph!(mg, qubo)
-    compute_marginal_prob(mg, ses, use_svd_approx)
+    compute_marginal_prob(mg, ses, β, use_svd_approx)
 end
-
-# BG algorithm.
-# 1. compute(P(s1)) by contractiong whole network
-
-#2. P_{cond}(s_k | s_1 , ...., s_{k-1})
-
-# for conditional probability only e^(-J_{i1,i2)
-# from the boundary

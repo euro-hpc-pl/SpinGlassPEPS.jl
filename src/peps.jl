@@ -2,18 +2,18 @@ using TensorOperations
 
 include("notation.jl")
 
-function make_pepsTN(struct_M::Matrix{Int}, qubo::Vector{Qubo_el}, T::Type = Float64)
+function make_pepsTN(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T <: AbstractFloat
     s = size(struct_M)
     M_of_tens = Array{Union{Nothing, Array{T}}}(nothing, s)
     for i in 1:prod(s)
         ind = findall(x->x==i, struct_M)[1]
-        M_of_tens[ind] = make_peps_node(struct_M, qubo, i, T)
+        M_of_tens[ind] = make_peps_node(struct_M, qubo, i, β)
     end
     Array{Array{T, 5}}(M_of_tens)
 end
 
 
-function JfromQubo_el(qubo::Vector{Qubo_el}, i::Int, j::Int)
+function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
     try
         return filter(x->x.ind==(i,j), qubo)[1].coupling
     catch
@@ -39,7 +39,7 @@ function make_tensor_sizes(l::Bool, r::Bool, u::Bool, d::Bool, s_virt::Int = 2, 
     (tensor_size..., )
 end
 
-function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el}, i::Int, T::Type = Float64)
+function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int, β::T) where T <: AbstractFloat
 
     ind = findall(x->x==i, struct_M)[1]
     h = filter(x->x.ind==(i,i), qubo)[1].coupling
@@ -55,7 +55,7 @@ function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el}, i::Int, T:
         bonds[1] = [-1,1]
     end
 
-    Jir = 0.
+    Jir = T(0.)
     if r
         j = struct_M[ind[1], ind[2]+1]
         Jir = JfromQubo_el(qubo, i,j)
@@ -66,7 +66,7 @@ function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el}, i::Int, T:
         bonds[3] = [-1,1]
     end
 
-    Jid = 0.
+    Jid = T(0.)
     if d
         j = struct_M[ind[1]+1, ind[2]]
         Jid = JfromQubo_el(qubo, i,j)
@@ -78,7 +78,7 @@ function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el}, i::Int, T:
 
     for i in CartesianIndices(tensor_size)
         b = [bonds[j][i[j]] for j in 1:5]
-        tensor[i] = Tgen(b..., Jir, Jid, h)
+        tensor[i] = Tgen(b..., Jir, Jid, h, β)
     end
     tensor
 end
@@ -170,6 +170,7 @@ end
 
 function comp_marg_p(mps_u::Vector{Array{T, 4}}, mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
     mpo, s = set_spins_on_mps(M, ses)
+    mps_u = copy(mps_u)
     reduce_bonds_horizontally!(mps_u, s)
     mps_n = MPSxMPO(mpo, mps_u)
     compute_scalar_prod(mps_d, mps_n), mps_n
@@ -182,6 +183,7 @@ end
 
 function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
     mpo, s = set_spins_on_mps(M, ses)
+    mps_u = copy(mps_u)
     reduce_bonds_horizontally!(mps_u, s)
     compute_scalar_prod(mpo, mps_u)
 end
@@ -200,36 +202,32 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int) where T <: AbstractFloat
 end
 
 
-mutable struct Partial_sol
+mutable struct Partial_sol{T <: AbstractFloat}
     spins::Vector{Int}
-    objective::Float64
-    upper_mps::Vector{Array{Float64, 4}}
-    function(::Type{Partial_sol})(spins::Vector{Int}, objective::Float64, upper_mps::Vector{Array{Float64, 4}})
-        new(spins, objective, upper_mps)
+    objective::T
+    upper_mps::Vector{Array{T, 4}}
+    function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T, upper_mps::Vector{Array{T, 4}}) where T <:AbstractFloat
+        new{T}(spins, objective, upper_mps)
     end
-    function(::Type{Partial_sol})(ps::Partial_sol, spins::Vector{Int}, objective::Float64)
-        new(spins, objective, ps.upper_mps)
-    end
-    function(::Type{Partial_sol})()
-        new(Int[], 0., [zeros(0,0,0,0)])
+    function(::Type{Partial_sol{T}})() where T <:AbstractFloat
+        new{T}(Int[], 0., [zeros(0,0,0,0)])
     end
 end
 
 
-function add_spin(ps::Partial_sol, s::Int)
+function add_spin(ps::Partial_sol{T}, s::Int) where T <: AbstractFloat
     s in [-1,1] || error("spin should be 1 or -1 we got $s")
-    Partial_sol(vcat(ps.spins, [s]), 0., ps.upper_mps)
+    Partial_sol{T}(vcat(ps.spins, [s]), T(0.), ps.upper_mps)
 end
 
 
-# it has to be finished
-function solve(qubo::Vector{Qubo_el}, struct_M::Matrix{Int}, no_sols::Int = 2)
-    T = Float64
+
+function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2; β::T) where T <: AbstractFloat
     problem_size = maximum(struct_M)
     s = size(struct_M)
-    M = make_pepsTN(struct_M, qubo)
+    M = make_pepsTN(struct_M, qubo, β)
 
-    partial_solutions = Partial_sol[Partial_sol()]
+    partial_solutions = Partial_sol{T}[Partial_sol{T}()]
 
     for row in 1:s[1]
 
@@ -257,17 +255,14 @@ function solve(qubo::Vector{Qubo_el}, struct_M::Matrix{Int}, no_sols::Int = 2)
                 if row == 1
                     prob, u = comp_marg_p_first(lower_mps, M[row,:], sol)
                 elseif row == s[1]
-                    # next function is changing value
-                    uu = copy(ps.upper_mps)
-                    prob = comp_marg_p_last(uu, M[row,:], sol)
+                    prob = comp_marg_p_last(ps.upper_mps, M[row,:], sol)
                 else
-                    uu = copy(ps.upper_mps)
-                    prob, u = comp_marg_p(uu, lower_mps, M[row,:], sol)
+                    prob, u = comp_marg_p(ps.upper_mps, lower_mps, M[row,:], sol)
                 end
 
                 ps.objective = prob
-                # make it automatic
-                if j in [3, 6]
+
+                if (j % s[2] == 0) & (j < problem_size)
                     ps.upper_mps = u
                 end
             end

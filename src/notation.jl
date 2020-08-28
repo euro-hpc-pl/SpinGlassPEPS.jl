@@ -1,9 +1,16 @@
-# we set β as a global variable, at lest now
-β = 1.
 
-struct Qubo_el
+struct Qubo_el{T<:AbstractFloat}
     ind::Tuple{Int, Int}
-    coupling::Float64
+    coupling::T
+    function(::Type{Qubo_el{T}})(ind::Tuple{Int, Int}, coupling::T1) where {T <: AbstractFloat, T1 <: AbstractFloat}
+        new{T}(ind, T(coupling))
+    end
+    function(::Type{Qubo_el{T}})(ind::Tuple{Int, Int}, coupling::T) where T <: AbstractFloat
+        new{T}(ind, coupling)
+    end
+    function(::Type{Qubo_el})(ind::Tuple{Int, Int}, coupling::Float64)
+        new{Float64}(ind, coupling)
+    end
 end
 
 
@@ -23,40 +30,39 @@ function delta(γ::Int, s::Int)
 end
 
 """
-    c(γ::Int, J::Float64, s::Int)
+    c(γ::Int, J::T, s::Int, β::T) where T <: AbstractFloat
 
 c building block
 """
-c(γ::Int, J::Float64, s::Int) =  exp(-β*J*γ*s)
+c(γ::Int, J::T, s::Int, β::T) where T <: AbstractFloat =  exp(-β*J*γ*s)
 
 """
-    function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jir::Float64, Jid::Float64, Jii::Float64)
+    function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jir::T, Jid::T, Jii::T , β::T) where T <: AbstractFloat
 
 returns the element of the tensor, l, r, u, d represents the link with another tensor in the grid.
 If some of these are zero there is no link and the corresponding boulding block returns 1.
 """
-function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jir::Float64, Jid::Float64, Jii::Float64)
-    delta(l, s)*delta(u, s)*c(r, Jir, s)*c(d, Jid, s)*exp(-β*Jii*s)
+function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jir::T, Jid::T, Jii::T, β::T) where T <: AbstractFloat
+    delta(l, s)*delta(u, s)*c(r, Jir, s, β)*c(d, Jid, s, β)*exp(-β*Jii*s)
 end
 
 
-
 """
-    function sum_over_last(T::Array{Float64, N}) where N
+    function sum_over_last(T::Array{T, N}) where N
 
     used to trace over the phisical index, treated as the last index
 
 """
-function sum_over_last(T::Array{Float64, N}) where N
-    tensorcontract(T, collect(1:N), ones(size(T,N)), [N])
+function sum_over_last(tensor::Array{T, N}) where {T <: AbstractFloat, N}
+    tensorcontract(tensor, collect(1:N), ones(size(tensor,N)), [N])
 end
 
 """
-    set_last(T::Array{Float64, N}, s::Int) where N
+    set_last(T::Array{T, N}, s::Int) where N
 
 set value of the physical index, s ∈ {-1,1} are supported
 """
-function set_last(T::Array{Float64, N}, s::Int) where N
+function set_last(tensor::Array{T, N}, s::Int) where {T <: AbstractFloat, N}
     if s == -1
         B = [1.,0.]
     elseif s == 1
@@ -64,7 +70,7 @@ function set_last(T::Array{Float64, N}, s::Int) where N
     else
         error("spin value $s ∉ {-1, 1}")
     end
-    tensorcontract(T, collect(1:N), B, [N])
+    tensorcontract(tensor, collect(1:N), B, [N])
 end
 
 
@@ -87,23 +93,4 @@ function last_m_els(vector::Vector{Int}, m::Int)
     else
         return vector[end-m+1:end]
     end
-end
-
-
-
-"""
-    add_another_spin2configs(configs::Matrix{Int})
-
-given the size(configs,1) configurations of size(configs,2) spins
-add another spin to the end in all configurations.
-
-Return matrix of size  2*size(configs,1), size(configs,2)+1
-"""
-
-function add_another_spin2configs(configs::Matrix{Int})
-    s = size(configs)
-    configs = vcat(configs, configs)
-    ses = vcat(fill(-1, s[1]), fill(1, s[1]))
-    configs = hcat(configs, ses)
-    configs
 end

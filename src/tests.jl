@@ -67,13 +67,13 @@ end
 end
 
 @testset "testing tensor generator" begin
-    β = 1.
+
 
     @test delta(0,-1) == 1
     @test delta(-1,1) == 0
     @test delta(1,1) == 1
-    @test c(0, 1., 20) == 1
-    @test Tgen(0,0,0,0,-1,0.,0.,1.) == exp(β)
+    @test c(0, 1., 20, 1.) == 1
+    @test Tgen(0,0,0,0,-1,0.,0.,1., 1.) == exp(1.)
 end
 
 
@@ -128,23 +128,23 @@ end
     @test get_modes(mg, 9) == [1, 3]
 
     @test readJs(mg, 1) == (0.5, 0.5, 0.2)
-    T = makeTensor(mg, 1)
+    T = makeTensor(mg, 1, 1.)
 
     @test T[1] == 0.4493289641172216
 
-    T1 = [Tgen(l,r,u,d,s,0.5, 0.5, 0.2)  for s in [-1, 1] for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
-    makeTensor(mg, 5) == reshape(T1, (2,2,2,2,2))
+    T1 = [Tgen(l,r,u,d,s,0.5, 0.5, 0.2, 1.)  for s in [-1, 1] for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
+    makeTensor(mg, 5, 1.) == reshape(T1, (2,2,2,2,2))
 
-    T2 = [Tgen(0,r,0,d,s,0.5, 0.5, 0.2) for s in [-1, 1] for d in [-1, 1] for r in [-1, 1]]
-    makeTensor(mg, 1) == reshape(T2, (2,2,2))
+    T2 = [Tgen(0,r,0,d,s,0.5, 0.5, 0.2, 1.) for s in [-1, 1] for d in [-1, 1] for r in [-1, 1]]
+    makeTensor(mg, 1, 1.) == reshape(T2, (2,2,2))
 
-    T3 = [Tgen(l,r,u,d,1,0.5, 0.5, 0.2)  for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
-    add_tensor2vertex(mg, 5, 1)
+    T3 = [Tgen(l,r,u,d,1,0.5, 0.5, 0.2, 1.)  for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
+    add_tensor2vertex(mg, 5, 1., 1)
     @test props(mg, 5)[:tensor] == reshape(T3, (2,2,2,2))
 
-    T4 = [Tgen(l,r,u,d,-1,0.5, 0.5, 0.2)  for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
+    T4 = [Tgen(l,r,u,d,-1,0.5, 0.5, 0.2, 1.)  for d in [-1, 1] for u in [-1, 1] for r in [-1, 1] for l in [-1, 1]]
     T5 = T3+T4
-    add_tensor2vertex(mg, 5)
+    add_tensor2vertex(mg, 5, 1.)
     @test props(mg, 5)[:tensor] == reshape(T5, (2,2,2,2))
 end
 
@@ -171,12 +171,12 @@ end
     @test props(mg, Edge(5,2))[:side] == ["d", "u"]
     @test props(mg, Edge(1,2))[:side] == ["r", "l"]
 
-    @test_throws ErrorException add_tensor2vertex(mg, 1, 3)
+    @test_throws ErrorException add_tensor2vertex(mg, 1, 1., 3)
 
-    set_spins2firs_k!(mg)
+    set_spins2firs_k!(mg, Int[], 1.)
     s = [1,1,1,-1,-1,-1,1,1,1]
-    set_spins2firs_k!(mg1, s)
-    set_spins2firs_k!(mg2, 1)
+    set_spins2firs_k!(mg1, s, 1.)
+    set_spins2firs_k!(mg2, [1], 1.)
 
     @test props(mg, Edge(4,5))[:modes] == [1,2]
     @test props(mg, Edge(1,2))[:modes] == [1,1]
@@ -204,7 +204,7 @@ end
     qubo = make_qubo();
     add_qubo2graph!(mg, qubo);
 
-    set_spins2firs_k!(mg)
+    set_spins2firs_k!(mg, Int[], 1.)
 
     contract_vertices!(mg, 5,8)
     contract_vertices!(mg, 6,7)
@@ -234,7 +234,7 @@ end
     qubo = make_qubo()
     add_qubo2graph!(mg, qubo);
 
-    set_spins2firs_k!(mg)
+    set_spins2firs_k!(mg, Int[], 1.)
 
     contract_vertices!(mg, 5,8)
     contract_vertices!(mg, 6,7)
@@ -273,7 +273,7 @@ end
     mg1 = make_graph3x3();
     qubo = make_qubo()
     add_qubo2graph!(mg1, qubo);
-    set_spins2firs_k!(mg1)
+    set_spins2firs_k!(mg1, Int[], 1.)
 
     contract_vertices!(mg1, 5,8)
     contract_vertices!(mg1, 6,7)
@@ -288,12 +288,12 @@ end
 
     @testset "further testing" begin
 
-        function proceed(qubo::Vector{Qubo_el})
+        function proceed(qubo::Vector{Qubo_el{Float64}})
 
             mg = make_graph3x3();
             add_qubo2graph!(mg, qubo);
 
-            set_spins2firs_k!(mg)
+            set_spins2firs_k!(mg, Int[], 1.)
 
             contract_vertices!(mg, 5,8)
             contract_vertices!(mg, 6,7)
@@ -337,12 +337,12 @@ end
 end
 
 @testset "particular configuration" begin
-    function proceed(qubo::Vector{Qubo_el}, s::Int)
+    function proceed(qubo::Vector{Qubo_el{Float64}}, s::Int)
 
         mg = make_graph3x3();
         add_qubo2graph!(mg, qubo);
 
-        set_spins2firs_k!(mg, fill(s,9))
+        set_spins2firs_k!(mg, fill(s,9), 1.)
 
         contract_vertices!(mg, 5,8)
         contract_vertices!(mg, 6,7)
@@ -400,8 +400,8 @@ end
     qubo = make_qubo()
     add_qubo2graph!(mg_exact, qubo);
 
-    set_spins2firs_k!(mg)
-    set_spins2firs_k!(mg_exact)
+    set_spins2firs_k!(mg, Int[], 1.)
+    set_spins2firs_k!(mg_exact, Int[], 1.)
 
     contract_vertices!(mg, 5,8)
     contract_vertices!(mg, 6,7)
@@ -467,11 +467,11 @@ end
 
     mg = make_graph3x3();
     add_qubo2graph!(mg, qubo);
-    @test compute_marginal_prob(mg, Int[]) ≈ props(mg, 1)[:tensor][1]
+    @test compute_marginal_prob(mg, Int[], 1.) ≈ props(mg, 1)[:tensor][1]
 
     mg = make_graph3x3();
     add_qubo2graph!(mg, qubo);
-    @test compute_marginal_prob(mg, Int[], false) ≈ props(mg_exact, 1)[:tensor][1]
+    @test compute_marginal_prob(mg, Int[], 1., false) ≈ props(mg_exact, 1)[:tensor][1]
 end
 
 @testset "testing axiliary functions of the solver" begin
@@ -517,9 +517,9 @@ end
     end
     train_qubo = make_qubo()
 
-    @test optimisation_step_naive(train_qubo, [1]) ≈ 4.417625562495993e7
-    @test optimisation_step_naive(train_qubo, [-1]) ≈ 1.6442466626666823e7
-    conf, f = naive_solve(train_qubo, 2, true)
+    @test optimisation_step_naive(train_qubo, [1], 1.) ≈ 4.417625562495993e7
+    @test optimisation_step_naive(train_qubo, [-1], 1.) ≈ 1.6442466626666823e7
+    conf, f = naive_solve(train_qubo, 2, 1., true)
 
     #logical 1st [1,0,0,1]
     # 2 -> +1
@@ -545,7 +545,7 @@ end
 
     # end exact calculation without svd approximation
 
-    conf, f = naive_solve(train_qubo, 2, false)
+    conf, f = naive_solve(train_qubo, 2, 1., false)
 
     @test conf[1,:] == [-1,1,-1,-1,1,-1,1,1,1]
     @test conf[2,:] == [1,-1,1,1,-1,1,1,1,1]
@@ -562,7 +562,7 @@ end
     end
     permuted_train_qubo = make_qubo()
 
-    conf, f = naive_solve(permuted_train_qubo, 16, true)
+    conf, f = naive_solve(permuted_train_qubo, 16, 1., true)
     # this correspond to the ground
     for i in 9:16
         @test conf[i, 1:6] == [1,-1,1,1,-1,1]
@@ -617,21 +617,21 @@ end
     mg = make_graph3x3()
     add_qubo2graph!(mg, qubo)
 
-    T = make_peps_node(struct_M, qubo, 1)
-    Tp = makeTensor(mg, 1)
+    T = make_peps_node(struct_M, qubo, 1, 1.)
+    Tp = makeTensor(mg, 1, 1.)
     T1 = reshape(Tp, (1,2,1,2,2))
     @test T1 == T
 
-    T = make_peps_node(struct_M, qubo, 5)
-    T5 = makeTensor(mg, 5)
+    T = make_peps_node(struct_M, qubo, 5, 1.)
+    T5 = makeTensor(mg, 5, 1.)
     @test T5 == T
 
-    T = make_peps_node(struct_M, qubo, 8)
-    Tp = makeTensor(mg, 8)
+    T = make_peps_node(struct_M, qubo, 8, 1.)
+    Tp = makeTensor(mg, 8, 1.)
     T8 = reshape(Tp, (2,2,2,1,2))
     @test T8 == T
 
-    M = make_pepsTN(struct_M, qubo)
+    M = make_pepsTN(struct_M, qubo, 1.)
     @test M[3,2] == T8
     @test M[2,2] == T5
     @test M[1,1] == T1
@@ -648,7 +648,7 @@ end
         mps1 = trace_all_spins(M[1,:])
 
         #graphical trace
-        set_spins2firs_k!(mg)
+        set_spins2firs_k!(mg, Int[], 1.)
 
         @test mps1[3] == reshape(props(mg, 3)[:tensor], (2,1,1,2))
         @test mpo[1] == reshape(props(mg, 6)[:tensor], (1,2,2,2))
@@ -679,7 +679,7 @@ end
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1])
+        set_spins2firs_k!(mg, [-1,1], 1.)
         contract_on_graph!(mg)
 
         mps11, _ = set_spins_on_mps(M[1,:], [-1, 1, 0])
@@ -691,7 +691,7 @@ end
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1])
+        set_spins2firs_k!(mg, [-1,1,1], 1.)
         contract_on_graph!(mg)
 
         mps12, _ = set_spins_on_mps(M[1,:], [-1, 1, 1])
@@ -700,7 +700,7 @@ end
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1,-1, 1])
+        set_spins2firs_k!(mg, [-1,1,1,-1, 1], 1.)
         contract_on_graph!(mg)
 
         mpo3, ses = set_spins_on_mps(M[2,:], [0,1,-1])
@@ -715,7 +715,7 @@ end
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1])
+        set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1], 1.)
         contract_on_graph!(mg)
 
         mps, _ = set_spins_on_mps(M[1,:], [-1,1,1])
@@ -729,7 +729,7 @@ end
 
         mg = make_graph3x3()
         add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1,1,1])
+        set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1,1,1], 1.)
         contract_on_graph!(mg)
 
         @test pssss ≈ props(mg, 1)[:tensor][1]
@@ -751,11 +751,11 @@ end
     end
     train_qubo = make_qubo()
 
-    conf, f = naive_solve(train_qubo, 4, false)
+    conf, f = naive_solve(train_qubo, 4, 1., false)
 
     struct_M = [1 2 3; 6 5 4; 7 8 9]
 
-    ses = solve(train_qubo, struct_M, 4)
+    ses = solve(train_qubo, struct_M, 4; β = 1.)
 
     @test [ses[i].objective for i in 1:4] ≈ f
     #first
@@ -778,7 +778,7 @@ end
 
     struct_M = [1 2 3; 6 5 4; 7 8 9]
 
-    ses = solve(permuted_train_qubo, struct_M, 16)
+    ses = solve(permuted_train_qubo, struct_M, 16; β = 1.)
 
     # this correspond to the ground
     for i in 9:16
@@ -790,4 +790,33 @@ end
     for i in 1:8
         @test ses[i].spins[1:6] == [-1,1,-1,-1,1,-1]
     end
+end
+
+
+@testset "PEPS on BigFloat" begin
+    T = BigFloat
+    function make_qubo()
+        css = -2.
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
+        qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+        qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
+        [Qubo_el{T}(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    train_qubo = make_qubo()
+
+
+    struct_M = [1 2 3; 6 5 4; 7 8 9]
+
+    ses = solve(train_qubo, struct_M, 4; β = T(2.))
+
+    #first
+    @test ses[3].spins == [-1,1,-1,-1,1,-1,1,1,1]
+    #ground
+    @test ses[4].spins == [1,-1,1,1,-1,1,1,1,1]
+
+    conf, f = naive_solve(train_qubo, 4, T(2.), false)
+
+    # we should think about this atol
+
+    @test [ses[i].objective for i in 1:4] ≈ f atol=1.0
 end
