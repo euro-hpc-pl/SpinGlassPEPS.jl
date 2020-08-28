@@ -1,12 +1,10 @@
+using TensorOperations
 
 struct Qubo_el{T<:AbstractFloat}
     ind::Tuple{Int, Int}
     coupling::T
     function(::Type{Qubo_el{T}})(ind::Tuple{Int, Int}, coupling::T1) where {T <: AbstractFloat, T1 <: AbstractFloat}
         new{T}(ind, T(coupling))
-    end
-    function(::Type{Qubo_el{T}})(ind::Tuple{Int, Int}, coupling::T) where T <: AbstractFloat
-        new{T}(ind, coupling)
     end
     function(::Type{Qubo_el})(ind::Tuple{Int, Int}, coupling::Float64)
         new{Float64}(ind, coupling)
@@ -78,7 +76,6 @@ function spins2index(s::Int)
     s in [-1, 1] || error("spin must equal to -1 or 1 we get $s")
     div((s+1), 2)+1
 end
-
 
 
 """

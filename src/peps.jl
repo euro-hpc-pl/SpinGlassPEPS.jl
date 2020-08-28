@@ -2,16 +2,7 @@ using TensorOperations
 
 include("notation.jl")
 
-function make_pepsTN(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T <: AbstractFloat
-    s = size(struct_M)
-    M_of_tens = Array{Union{Nothing, Array{T}}}(nothing, s)
-    for i in 1:prod(s)
-        ind = findall(x->x==i, struct_M)[1]
-        M_of_tens[ind] = make_peps_node(struct_M, qubo, i, β)
-    end
-    Array{Array{T, 5}}(M_of_tens)
-end
-
+# axiliary
 
 function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
     try
@@ -82,6 +73,19 @@ function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int,
     end
     tensor
 end
+
+# tensor network
+
+function make_pepsTN(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T <: AbstractFloat
+    s = size(struct_M)
+    M_of_tens = Array{Union{Nothing, Array{T}}}(nothing, s)
+    for i in 1:prod(s)
+        ind = findall(x->x==i, struct_M)[1]
+        M_of_tens[ind] = make_peps_node(struct_M, qubo, i, β)
+    end
+    Array{Array{T, 5}}(M_of_tens)
+end
+
 
 function trace_all_spins(mps::Vector{Array{T, 5}}) where T <: AbstractFloat
     l = length(mps)
@@ -221,7 +225,6 @@ function add_spin(ps::Partial_sol{T}, s::Int) where T <: AbstractFloat
 end
 
 
-
 function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2; β::T) where T <: AbstractFloat
     problem_size = maximum(struct_M)
     s = size(struct_M)
@@ -240,7 +243,6 @@ function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2
              a = [add_spin(ps, 1) for ps in partial_solutions]
              b = [add_spin(ps, -1) for ps in partial_solutions]
              partial_solutions = vcat(a,b)
-
 
              for ps in partial_solutions
 
@@ -281,12 +283,4 @@ function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2
             end
         end
     end
-end
-
-
-function make_qubo123()
-    qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,4) 0.5]
-    qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.5; (4,9) 0.5; (5,5) 0.2; (5,6) 0.5; (5,8) 0.5; (6,6) 0.2; (6,7) 0.5])
-    qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) 0.2; (8,9) 0.5; (9,9) 0.2])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
