@@ -227,9 +227,9 @@ end
         end
         train_qubo = make_qubo()
 
-        @test optimisation_step_naive(train_qubo, [1], 1.) ≈ 4.417625562495993e7
-        @test optimisation_step_naive(train_qubo, [-1], 1.) ≈ 1.6442466626666823e7
-        conf, f = naive_solve(train_qubo, 2, 1., true)
+        @test optimisation_step_naive(train_qubo, [1], 1., 0.) ≈ 4.417625562495993e7
+        @test optimisation_step_naive(train_qubo, [-1], 1., 0.) ≈ 1.6442466626666823e7
+        conf, f = naive_solve(train_qubo, 2, 1., 1e-12)
 
         #logical 1st [1,0,0,1]
         # 2 -> +1
@@ -255,7 +255,7 @@ end
 
         # end exact calculation without svd approximation
 
-        conf, f = naive_solve(train_qubo, 2, 1., false)
+        conf, f = naive_solve(train_qubo, 2, 1., 0.)
 
         @test conf[1,:] == [-1,1,-1,-1,1,-1,1,1,1]
         @test conf[2,:] == [1,-1,1,1,-1,1,1,1,1]
@@ -368,10 +368,11 @@ end
         @test mps[2] == reshape(props(mg, 8)[:tensor], (2,2,2,1))
         contract_on_graph!(mg)
 
-        mps_t = make_lower_mps(M, 1)
+        mps_t = make_lower_mps(M, 1, 0.)
         A = mps_t[1]
         B = mps_t[2]
         C = mps_t[3]
+
         E = ones(1,1)
 
         @tensor begin
@@ -379,69 +380,119 @@ end
         end
         @test D[1] == props(mg, 1)[:tensor][1]
 
-        mps_r = make_lower_mps(M, 2)
-        sp = compute_scalar_prod(mps_r, mps1)
+        @testset "testing svd approximation" begin
 
-        spp, _ = comp_marg_p_first(mps_r, M[1,:], [0,0,0])
-        @test sp == props(mg, 1)[:tensor][1]
-        @test spp == props(mg, 1)[:tensor][1]
+            A1 = copy(A)
+            B1 = copy(B)
+            C1 = copy(C)
 
-        mg = make_graph3x3()
-        add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1], 1.)
-        contract_on_graph!(mg)
+            A2 = copy(A)
+            B2 = copy(B)
+            C2 = copy(C)
 
-        mps11, _ = set_spins_on_mps(M[1,:], [-1, 1, 0])
-        sp = compute_scalar_prod(mps_r, mps11)
-        # marginal probability
-        spp, _ = comp_marg_p_first(mps_r, M[1,:], [-1,1,0])
-        @test sp == props(mg, 1)[:tensor][1]
-        @test spp == props(mg, 1)[:tensor][1]
 
-        mg = make_graph3x3()
-        add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1], 1.)
-        contract_on_graph!(mg)
+            A,B = reduce_bond_size_svd_right2left(A,B, 1e-12)
+            B,C = reduce_bond_size_svd_right2left(B,C, 1e-12)
 
-        mps12, _ = set_spins_on_mps(M[1,:], [-1, 1, 1])
-        sp1 = compute_scalar_prod(mps_r, mps12)
-        @test sp1 == props(mg, 1)[:tensor][1]
+            B1,C1 = reduce_bond_size_svd_left2right(B1,C1, 1e-12)
+            A1,B1 = reduce_bond_size_svd_left2right(A1,B1, 1e-12)
 
-        mg = make_graph3x3()
-        add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1,-1, 1], 1.)
-        contract_on_graph!(mg)
 
-        mpo3, ses = set_spins_on_mps(M[2,:], [0,1,-1])
+            @tensor begin
+                D[] := A[a,x,z,v]*B[x,y,z,v]*C[y,a,z1,v1]*E[z1,v1]
+            end
 
-        mps_r2 = MPSxMPO(mps, mpo3)
-        reduce_bonds_horizontally!(mps12, ses)
+            @test D[1] ≈ props(mg, 1)[:tensor][1]
 
-        sp3 = compute_scalar_prod(mps_r2, mps12)
-        sp4, _ = comp_marg_p(mps12, mps, M[2,:], [0,1,-1])
-        @test sp3 ≈ props(mg, 1)[:tensor][1]
-        @test sp3 ≈ sp4
+            @tensor begin
+                D1[] := A1[a,x,z,v]*B1[x,y,z,v]*C1[y,a,z1,v1]*E[z1,v1]
+            end
 
-        mg = make_graph3x3()
-        add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1], 1.)
-        contract_on_graph!(mg)
+            @test D1[1] ≈ props(mg, 1)[:tensor][1]
 
-        mps, _ = set_spins_on_mps(M[1,:], [-1,1,1])
-        mpo, s = set_spins_on_mps(M[2,:], [1,1,-1])
-        reduce_bonds_horizontally!(mps, s)
-        mps1 = MPSxMPO(mpo, mps)
-        pss = comp_marg_p_last(mps1, M[3,:], [-1,0,0])
-        psss = comp_marg_p_last(mps1, M[3,:], [-1,1,0])
-        pssss = comp_marg_p_last(mps1, M[3,:], [-1,1,1])
-        @test pss ≈ props(mg, 1)[:tensor][1]
+            mps_svd = svd_approx([A2, B2, C2], 1e-12)
+            A2 = mps_svd[1]
+            B2 = mps_svd[2]
+            C2 = mps_svd[3]
 
-        mg = make_graph3x3()
-        add_qubo2graph!(mg, qubo)
-        set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1,1,1], 1.)
-        contract_on_graph!(mg)
+            @test size(A2) == (1,1,1,1)
+            @test size(B2) == (1,1,1,1)
+            @test size(C2) == (1,1,1,1)
 
-        @test pssss ≈ props(mg, 1)[:tensor][1]
+            @tensor begin
+                D2[] := A2[a,x,z,v]*B2[x,y,z,v]*C2[y,a,z1,v1]*E[z1,v1]
+            end
+
+            @test D2[1] ≈ props(mg, 1)[:tensor][1]
+
+        end
+
+        @testset "testing marginal probabilities for various configurations" begin
+
+            mps_r = make_lower_mps(M, 2, 0.)
+            sp = compute_scalar_prod(mps_r, mps1)
+
+            spp, _ = comp_marg_p_first(mps_r, M[1,:], [0,0,0])
+            @test sp == props(mg, 1)[:tensor][1]
+            @test spp == props(mg, 1)[:tensor][1]
+
+            mg = make_graph3x3()
+            add_qubo2graph!(mg, qubo)
+            set_spins2firs_k!(mg, [-1,1], 1.)
+            contract_on_graph!(mg)
+
+            mps11, _ = set_spins_on_mps(M[1,:], [-1, 1, 0])
+            sp = compute_scalar_prod(mps_r, mps11)
+            # marginal probability
+            spp, _ = comp_marg_p_first(mps_r, M[1,:], [-1,1,0])
+            @test sp == props(mg, 1)[:tensor][1]
+            @test spp == props(mg, 1)[:tensor][1]
+
+            mg = make_graph3x3()
+            add_qubo2graph!(mg, qubo)
+            set_spins2firs_k!(mg, [-1,1,1], 1.)
+            contract_on_graph!(mg)
+
+            mps12, _ = set_spins_on_mps(M[1,:], [-1, 1, 1])
+            sp1 = compute_scalar_prod(mps_r, mps12)
+            @test sp1 == props(mg, 1)[:tensor][1]
+
+            mg = make_graph3x3()
+            add_qubo2graph!(mg, qubo)
+            set_spins2firs_k!(mg, [-1,1,1,-1, 1], 1.)
+            contract_on_graph!(mg)
+
+            mpo3, ses = set_spins_on_mps(M[2,:], [0,1,-1])
+
+            mps_r2 = MPSxMPO(mps, mpo3)
+            reduce_bonds_horizontally!(mps12, ses)
+
+            sp3 = compute_scalar_prod(mps_r2, mps12)
+            sp4, _ = comp_marg_p(mps12, mps, M[2,:], [0,1,-1])
+            @test sp3 ≈ props(mg, 1)[:tensor][1]
+            @test sp3 ≈ sp4
+
+            mg = make_graph3x3()
+            add_qubo2graph!(mg, qubo)
+            set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1], 1.)
+            contract_on_graph!(mg)
+
+            mps, _ = set_spins_on_mps(M[1,:], [-1,1,1])
+            mpo, s = set_spins_on_mps(M[2,:], [1,1,-1])
+            reduce_bonds_horizontally!(mps, s)
+            mps1 = MPSxMPO(mpo, mps)
+            pss = comp_marg_p_last(mps1, M[3,:], [-1,0,0])
+            psss = comp_marg_p_last(mps1, M[3,:], [-1,1,0])
+            pssss = comp_marg_p_last(mps1, M[3,:], [-1,1,1])
+            @test pss ≈ props(mg, 1)[:tensor][1]
+
+            mg = make_graph3x3()
+            add_qubo2graph!(mg, qubo)
+            set_spins2firs_k!(mg, [-1,1,1,-1, 1,1,-1,1,1], 1.)
+            contract_on_graph!(mg)
+
+            @test pssss ≈ props(mg, 1)[:tensor][1]
+        end
     end
 end
 
@@ -460,7 +511,7 @@ end
     end
     train_qubo = make_qubo()
 
-    conf, f = naive_solve(train_qubo, 4, 1., false)
+    conf, f = naive_solve(train_qubo, 4, 1., 0.)
 
     struct_M = [1 2 3; 6 5 4; 7 8 9]
 
@@ -494,10 +545,23 @@ end
         @test ses[i].spins[1:6] == [1,-1,1,1,-1,1]
     end
 
-
     # and this to 1st excited
     for i in 1:8
         @test ses[i].spins[1:6] == [-1,1,-1,-1,1,-1]
+    end
+
+    @testset "svd approximatimation in solution" begin
+
+        ses_a = solve(permuted_train_qubo, struct_M, 16; β = 1., threshold = 1e-12)
+
+        for i in 9:16
+            @test ses_a[i].spins[1:6] == [1,-1,1,1,-1,1]
+        end
+
+        # and this to 1st excited
+        for i in 1:8
+            @test ses_a[i].spins[1:6] == [-1,1,-1,-1,1,-1]
+        end
     end
 end
 
@@ -523,7 +587,7 @@ end
     #ground
     @test ses[4].spins == [1,-1,1,1,-1,1,1,1,1]
 
-    conf, f = naive_solve(train_qubo, 4, T(2.), false)
+    conf, f = naive_solve(train_qubo, 4, T(2.), T(0.))
 
     # we should think about this atol
 

@@ -192,13 +192,16 @@ function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, se
     compute_scalar_prod(mpo, mps_u)
 end
 
-function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int) where T <: AbstractFloat
+function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, threshold::T) where T <: AbstractFloat
     s = size(M,1)
     if k <= s
         mps = trace_all_spins(M[s,:])
         for i in s-1:-1:k
             mpo = trace_all_spins(M[i,:])
             mps = MPSxMPO(mps, mpo)
+        end
+        if threshold != 0.
+            mps = svd_approx(mps, threshold)
         end
         return mps
     end
@@ -225,7 +228,7 @@ function add_spin(ps::Partial_sol{T}, s::Int) where T <: AbstractFloat
 end
 
 
-function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2; β::T) where T <: AbstractFloat
+function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2; β::T, threshold::T = T(0.)) where T <: AbstractFloat
     problem_size = maximum(struct_M)
     s = size(struct_M)
     M = make_pepsTN(struct_M, qubo, β)
@@ -235,7 +238,7 @@ function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2
     for row in 1:s[1]
 
         #this may need to ge cashed
-        lower_mps = make_lower_mps(M, row + 1)
+        lower_mps = make_lower_mps(M, row + 1, threshold)
 
         p = sortperm(struct_M[row,:])
         for j in struct_M[row,p]
@@ -283,4 +286,58 @@ function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2
             end
         end
     end
+end
+
+
+function reduce_bond_size_svd_right2left(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
+
+    s = size(t1)
+
+    p1 = [2,1,3,4]
+    A1 = permutedims(t1, p1)
+    A1 = reshape(A1, (s[2], s[1]*s[3]*s[4]))
+
+    U,Σ,V = svd(A1)
+    k = length(filter(e -> e > threshold, Σ))
+    proj = transpose(U)[1:k,:]
+
+    @tensor begin
+        t1[a,e,c,d] := t1[a,b,c,d]*proj[e,b]
+    end
+
+    @tensor begin
+        t2[e,a,c,d] := t2[b,a,c,d]*proj[e,b]
+    end
+    t1, t2
+end
+
+
+function reduce_bond_size_svd_left2right(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
+
+    s = size(t2)
+    A2 = reshape(t2, (s[1], s[2]*s[3]*s[4]))
+
+    U,Σ,V = svd(A2)
+    k = length(filter(e -> e > threshold, Σ))
+    proj = transpose(U)[1:k,:]
+
+    @tensor begin
+        t1[a,e,c,d] := t1[a,b,c,d]*proj[e,b]
+    end
+
+    @tensor begin
+        t2[e,a,c,d] := t2[b,a,c,d]*proj[e,b]
+    end
+    t1, t2
+end
+
+
+function svd_approx(mps::Vector{Array{T, 4}}, threshold::T) where T <: AbstractFloat
+    for i in 1:(length(mps)-1)
+        mps[i], mps[i+1] = reduce_bond_size_svd_right2left(mps[i], mps[i+1], threshold)
+    end
+    for i in length(mps):-1:2
+        mps[i-1], mps[i] = reduce_bond_size_svd_left2right(mps[i-1], mps[i], threshold)
+    end
+    mps
 end

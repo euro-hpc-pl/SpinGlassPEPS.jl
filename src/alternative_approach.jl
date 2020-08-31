@@ -382,7 +382,7 @@ function combine_legs_exact!(mg::MetaGraph, v1::Int, v2::Int)
     move_modes!(mg, v2, second_pair[1])
 end
 
-function reduce_bond_size_svd!(mg::MetaGraph, v1::Int, v2::Int, threshold::T = 1e-12) where T <: AbstractFloat
+function reduce_bond_size_svd!(mg::MetaGraph, v1::Int, v2::Int, threshold::T) where T <: AbstractFloat
 
     modes = read_pair_from_edge(mg, v1, v2, :modes)
     t1 = props(mg, v1)[:tensor]
@@ -422,7 +422,7 @@ function reduce_bond_size_svd!(mg::MetaGraph, v1::Int, v2::Int, threshold::T = 1
     set_correctly1*set_correctly2 || error("features of nodes not set properly")
 end
 
-function merge_lines!(mg::MetaGraph, v_line1::Vector{Int}, v_line2::Vector{Int}, approx_svd::Bool = true)
+function merge_lines!(mg::MetaGraph, v_line1::Vector{Int}, v_line2::Vector{Int}, threshold::T) where T <: AbstractFloat
     length(v_line1) == length(v_line2) || error("linse needs to be the same size")
     for i in 1:length(v_line1)
         contract_vertices!(mg, v_line1[i],v_line2[i])
@@ -430,12 +430,12 @@ function merge_lines!(mg::MetaGraph, v_line1::Vector{Int}, v_line2::Vector{Int},
     for i in 1:(length(v_line1)-1)
         combine_legs_exact!(mg, v_line1[i], v_line1[i+1])
     end
-    if approx_svd
+    if threshold != 0
         for i in 1:(length(v_line1)-1)
-            reduce_bond_size_svd!(mg, v_line1[i], v_line1[i+1])
+            reduce_bond_size_svd!(mg, v_line1[i], v_line1[i+1], threshold)
         end
         for i in (length(v_line1)-1):-1:1
-            reduce_bond_size_svd!(mg, v_line1[i+1], v_line1[i])
+            reduce_bond_size_svd!(mg, v_line1[i+1], v_line1[i], threshold)
         end
     end
 end
@@ -458,12 +458,12 @@ function set_spins2firs_k!(mg::MetaGraph, s::Vector{Int}, β::T) where T <: Abst
 end
 
 
-function compute_marginal_prob(mg::MetaGraph, ses::Vector{Int}, β::T, svd_approx::Bool = true) where T <: AbstractFloat
+function compute_marginal_prob(mg::MetaGraph, ses::Vector{Int}, β::T, threshold::T) where T <: AbstractFloat
     set_spins2firs_k!(mg, ses, β)
     # v2d is the configuration of the grid
     v2d = [1 2 3; 6 5 4; 7 8 9]
     for i in size(v2d,1)-1:-1:1
-        merge_lines!(mg, v2d[i,:], v2d[i+1,:], svd_approx)
+        merge_lines!(mg, v2d[i,:], v2d[i+1,:], threshold)
     end
     for i in size(v2d,2)-1:-1:1
         contract_vertices!(mg, v2d[1,i], v2d[1,i+1])
@@ -478,14 +478,14 @@ end
 
 # it is aimed for testing the final solver
 
-function naive_solve(qubo::Vector{Qubo_el{T}}, no_sols::Int, β::T, approx::Bool = true) where T <: AbstractFloat
+function naive_solve(qubo::Vector{Qubo_el{T}}, no_sols::Int, β::T, threshold::T) where T <: AbstractFloat
     problem_size = 9
     partial_sol = Array(transpose([1 -1]))
 
     for j in 1:problem_size
         objective = T[]
         for i in 1:size(partial_sol,1)
-            r = optimisation_step_naive(qubo, partial_sol[i,:], β, approx)
+            r = optimisation_step_naive(qubo, partial_sol[i,:], β, threshold)
             push!(objective, r)
         end
         p1 = last_m_els(sortperm(objective), no_sols)
@@ -501,15 +501,15 @@ function naive_solve(qubo::Vector{Qubo_el{T}}, no_sols::Int, β::T, approx::Bool
 end
 
 """
-    function optimisation_step_naive(qubo::Vector{Qubo_el}, ses::Vector{Int}, β, approx::Bool = true)
+    function optimisation_step_naive(qubo::Vector{Qubo_el{T}}, ses::Vector{Int}, β, threshold::T) where T <: AbstractFloat
 
 returns the non-normalised marginal probability of the given partial configuration
 in ses::Vector{Int}
 
 Naive since each step contracts the whole grid to the single value.
 """
-function optimisation_step_naive(qubo::Vector{Qubo_el{T}}, ses::Vector{Int}, β::T, use_svd_approx::Bool = true) where T <: AbstractFloat
+function optimisation_step_naive(qubo::Vector{Qubo_el{T}}, ses::Vector{Int}, β::T, threshold::T) where T <: AbstractFloat
     mg = make_graph3x3();
     add_qubo2graph!(mg, qubo)
-    compute_marginal_prob(mg, ses, β, use_svd_approx)
+    compute_marginal_prob(mg, ses, β, threshold)
 end
