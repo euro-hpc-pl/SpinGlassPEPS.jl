@@ -45,8 +45,8 @@ include("alternative_approach.jl")
 
 @testset "graphical implementation" begin
     function make_qubo()
-        qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,4) 0.5]
-        qubo = vcat(qubo, [(4,4) 0.2; (4,5) 0.5; (4,9) 0.5; (5,5) 0.2; (5,6) 0.5; (5,8) 0.5; (6,6) 0.2; (6,7) 0.5])
+        qubo = [(1,1) 0.2; (1,2) 0.5; (1,4) 0.5; (2,2) 0.2; (2,3) 0.5; (2,5) 0.5; (3,3) 0.2; (3,6) 0.5]
+        qubo = vcat(qubo, [(6,6) 0.2; (6,5) 0.5; (6,9) 0.5; (5,5) 0.2; (4,5) 0.5; (5,8) 0.5; (4,4) 0.2; (4,7) 0.5])
         qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) 0.2; (8,9) 0.5; (9,9) 0.2])
         [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
@@ -88,18 +88,19 @@ include("alternative_approach.jl")
 
     @testset "adding qubo to graph" begin
         mg = make_graph3x3()
+
         qubo = make_qubo()
         add_qubo2graph!(mg, qubo)
 
         @test collect(vertices(mg)) == (1:9)
         @test props(mg, 1)[:h] == 0.2
-        @test props(mg, Edge(1,6))[:J] == 0.5
+        @test props(mg, Edge(1,4))[:J] == 0.5
         @test props(mg, Edge(1,2))[:side] == ["r", "l"]
 
         @test bond_directions(mg, 1)  == ["r", "d"]
         @test bond_directions(mg, 5) == ["l", "r", "u", "d"]
 
-        @test read_pair_from_edge(mg, 5,4, :side) == ["r", "l"]
+        @test read_pair_from_edge(mg, 5,4, :side) == ["l", "r"]
 
         write_pair2edge!(mg, 3,2, :test, ["t3", "t2"])
         @test read_pair_from_edge(mg, 2,3, :test) == ["t2", "t3"]
@@ -126,23 +127,24 @@ include("alternative_approach.jl")
 
         @test norm(props(mg, 5)[:tensor] - props(mg1, 5)[:tensor]) > 2.
 
+        contract_vertices!(mg, 4,7)
         contract_vertices!(mg, 5,8)
-        contract_vertices!(mg, 6,7)
-        contract_vertices!(mg, 4,9)
+        contract_vertices!(mg, 6,9)
+
         T = props(mg, 5)[:tensor]
         @test T[1,1,1,1,1] == 0.33287108369807955
         @test T[1,2,1,2,1] == 4.481689070338066
 
         @test ndims(props(mg, 4)[:tensor]) == 3
-        @test props(mg, Edge(5,6))[:modes] == [1,1,4,3]
+
         @test length(collect(edges(mg))) == 7
 
-        combine_legs_exact!(mg, 5,6)
+        combine_legs_exact!(mg, 4,5)
 
         T2 = props(mg, 5)[:tensor]
         @test T[1,1,1,1,:] ≈ T2[1,1,1,:]
 
-        combine_legs_exact!(mg, 4,5)
+        combine_legs_exact!(mg, 5,6)
 
         T1 = props(mg, 5)[:tensor]
         @test T2[1,1,:,1] ≈ T1[1,1,:]
@@ -160,16 +162,16 @@ end
 
             set_spins2firs_k!(mg, fill(s,9), 1.)
 
+            contract_vertices!(mg, 4,7)
             contract_vertices!(mg, 5,8)
-            contract_vertices!(mg, 6,7)
-            contract_vertices!(mg, 4,9)
+            contract_vertices!(mg, 6,9)
 
             combine_legs_exact!(mg, 5,6)
             combine_legs_exact!(mg, 4,5)
 
-            contract_vertices!(mg, 1,6)
+            contract_vertices!(mg, 1,4)
             contract_vertices!(mg, 2,5)
-            contract_vertices!(mg, 3,4)
+            contract_vertices!(mg, 3,6)
 
             combine_legs_exact!(mg, 1,2)
             combine_legs_exact!(mg, 2,3)
@@ -181,8 +183,8 @@ end
         end
 
         function make_qubo1()
-            qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 0.; (2,2) 0.3; (2,3) 0.; (2,5) 0.; (3,3) 0.2; (3,4) 0.]
-            qubo = vcat(qubo, [(4,4) 0.2; (4,5) -0.7; (4,9) 0.; (5,5) 0.2; (5,6) -0.9; (5,8) 0.; (6,6) 0.2; (6,7) 0.])
+            qubo = [(1,1) 0.2; (1,2) 0.5; (1,4) 0.; (2,2) 0.3; (2,3) 0.; (2,5) 0.; (3,3) 0.2; (3,6) 0.]
+            qubo = vcat(qubo, [(6,6) 0.2; (5,6) -0.7; (6,9) 0.; (5,5) 0.2; (4,5) -0.9; (5,8) 0.; (4,4) 0.2; (4,7) 0.])
             qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.; (8,8) 0.2; (8,9) 0.; (9,9) -0.2])
             [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
         end
@@ -220,8 +222,8 @@ end
 
         function make_qubo()
             css = -2.
-            qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
-            qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+            qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
+            qubo = vcat(qubo, [(6,6) 0.; (6,5) 1.75; (6,9) 0.; (5,5) -0.75; (5,4) 1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
             qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
             [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
         end
@@ -233,8 +235,8 @@ end
 
         #logical 1st [1,0,0,1]
         # 2 -> +1
-        # 1,6 -> -1
-        # 3,4 -> -1
+        # 1,4 -> -1
+        # 3,6 -> -1
         # 5, -> 1
         # 7,8,9 artifially set to 1
 
@@ -243,8 +245,8 @@ end
         #logical ground [0,1,1,0]
 
         # 2 -> -1
-        # 1,6 -> +1
-        # 3,4 -> +1
+        # 1,4 -> +1
+        # 3,6 -> +1
         # 5 -> -1
         # 7,8,9 artifially set to 1
 
@@ -265,8 +267,8 @@ end
 include("peps.jl")
 
 function make_qubo()
-    qubo = [(1,1) 0.2; (1,2) 0.5; (1,6) 1.5; (2,2) 0.6; (2,3) 1.5; (2,5) 0.5; (3,3) 0.2; (3,4) -1.5]
-    qubo = vcat(qubo, [(4,4) 2.2; (4,5) 0.25; (4,9) 0.52; (5,5) -0.2; (5,6) -0.5; (5,8) -0.5; (6,6) 2.2; (6,7) 0.01])
+    qubo = [(1,1) 0.2; (1,2) 0.5; (1,4) 1.5; (2,2) 0.6; (2,3) 1.5; (2,5) 0.5; (3,3) 0.2; (3,6) -1.5]
+    qubo = vcat(qubo, [(6,6) 2.2; (5,6) 0.25; (6,9) 0.52; (5,5) -0.2; (4,5) -0.5; (5,8) -0.5; (4,4) 2.2; (4,7) 0.01])
     qubo = vcat(qubo, [(7,7) -0.2; (7,8) -0.5; (8,8) 0.2; (8,9) 0.05; (9,9) 0.8])
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
@@ -302,16 +304,17 @@ end
 @testset "PEPS network creation" begin
 
     function contract_on_graph!(mg)
+        contract_vertices!(mg, 4,7)
         contract_vertices!(mg, 5,8)
-        contract_vertices!(mg, 6,7)
-        contract_vertices!(mg, 4,9)
+        contract_vertices!(mg, 6,9)
+
 
         combine_legs_exact!(mg, 5,6)
         combine_legs_exact!(mg, 4,5)
 
-        contract_vertices!(mg, 1,6)
+        contract_vertices!(mg, 1,4)
         contract_vertices!(mg, 2,5)
-        contract_vertices!(mg, 3,4)
+        contract_vertices!(mg, 3,6)
 
         combine_legs_exact!(mg, 1,2)
         combine_legs_exact!(mg, 2,3)
@@ -321,7 +324,8 @@ end
     end
 
     qubo = make_qubo()
-    struct_M = [1 2 3; 6 5 4; 7 8 9]
+
+    struct_M = [1 2 3; 4 5 6; 7 8 9]
     M = make_pepsTN(struct_M, qubo, 1.)
     # uses graph notation output for testing
     mg = make_graph3x3()
@@ -363,7 +367,7 @@ end
         set_spins2firs_k!(mg, Int[], 1.)
 
         @test mps1[3] == reshape(props(mg, 3)[:tensor], (2,1,1,2))
-        @test mpo[1] == reshape(props(mg, 6)[:tensor], (1,2,2,2))
+        @test mpo[1] == reshape(props(mg, 4)[:tensor], (1,2,2,2))
         @test mpo[2] == props(mg, 5)[:tensor]
         @test mps[2] == reshape(props(mg, 8)[:tensor], (2,2,2,1))
         contract_on_graph!(mg)
@@ -462,13 +466,13 @@ end
             set_spins2firs_k!(mg, [-1,1,1,-1, 1], 1.)
             contract_on_graph!(mg)
 
-            mpo3, ses = set_spins_on_mps(M[2,:], [0,1,-1])
+            mpo3, ses = set_spins_on_mps(M[2,:], [-1,1,0])
 
             mps_r2 = MPSxMPO(mps, mpo3)
             reduce_bonds_horizontally!(mps12, ses)
 
             sp3 = compute_scalar_prod(mps_r2, mps12)
-            sp4, _ = comp_marg_p(mps12, mps, M[2,:], [0,1,-1])
+            sp4, _ = comp_marg_p(mps12, mps, M[2,:], [-1,1,0])
             @test sp3 ≈ props(mg, 1)[:tensor][1]
             @test sp3 ≈ sp4
 
@@ -478,7 +482,7 @@ end
             contract_on_graph!(mg)
 
             mps, _ = set_spins_on_mps(M[1,:], [-1,1,1])
-            mpo, s = set_spins_on_mps(M[2,:], [1,1,-1])
+            mpo, s = set_spins_on_mps(M[2,:], [-1,1,1])
             reduce_bonds_horizontally!(mps, s)
             mps1 = MPSxMPO(mpo, mps)
             pss = comp_marg_p_last(mps1, M[3,:], [-1,0,0])
@@ -504,8 +508,8 @@ end
 
     function make_qubo()
         css = -2.
-        qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
-        qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
+        qubo = vcat(qubo, [(6,6) 0.; (6,5) 1.75; (6,9) 0.; (5,5) -0.75; (5,4) 1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
         qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
         [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
@@ -513,7 +517,7 @@ end
 
     conf, f = naive_solve(train_qubo, 4, 1., 0.)
 
-    struct_M = [1 2 3; 6 5 4; 7 8 9]
+    struct_M = [1 2 3; 4 5 6; 7 8 9]
 
     ses = solve(train_qubo, struct_M, 4; β = 1.)
 
@@ -529,14 +533,14 @@ end
 
     function make_qubo()
         css = -2.
-        qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
-        qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
+        qubo = vcat(qubo, [(6,6) 0.; (5,6) 1.75; (6,9) 0.; (5,5) -0.75; (4,5) 1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
         qubo = vcat(qubo, [(7,7) -0.1; (7,8) 0.; (8,8) -0.1; (8,9) 0.; (9,9) -0.1])
         [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
     permuted_train_qubo = make_qubo()
 
-    struct_M = [1 2 3; 6 5 4; 7 8 9]
+    struct_M = [1 2 3; 4 5 6; 7 8 9]
 
     ses = solve(permuted_train_qubo, struct_M, 16; β = 1.)
 
@@ -570,15 +574,15 @@ end
     T = BigFloat
     function make_qubo()
         css = -2.
-        qubo = [(1,1) -1.25; (1,2) 1.75; (1,6) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,4) css]
-        qubo = vcat(qubo, [(4,4) 0.; (4,5) 1.75; (4,9) 0.; (5,5) -0.75; (5,6) 1.75; (5,8) 0.; (6,6) 0.; (6,7) 0.])
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
+        qubo = vcat(qubo, [(6,6) 0.; (5,6) 1.75; (6,9) 0.; (5,5) -0.75; (4,5) 1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
         qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
         [Qubo_el{T}(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
     train_qubo = make_qubo()
 
 
-    struct_M = [1 2 3; 6 5 4; 7 8 9]
+    struct_M = [1 2 3; 4 5 6; 7 8 9]
 
     ses = solve(train_qubo, struct_M, 4; β = T(2.))
 

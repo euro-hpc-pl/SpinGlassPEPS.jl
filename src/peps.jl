@@ -335,9 +335,33 @@ end
 function svd_approx(mps::Vector{Array{T, 4}}, threshold::T) where T <: AbstractFloat
     for i in 1:(length(mps)-1)
         mps[i], mps[i+1] = reduce_bond_size_svd_right2left(mps[i], mps[i+1], threshold)
+
+        #println("left 2 right")
+        #println(" i = ", i, "i+1 = ", i+1)
+        #print_tensors_squared(mps[i], mps[i+1])
     end
+
     for i in length(mps):-1:2
         mps[i-1], mps[i] = reduce_bond_size_svd_left2right(mps[i-1], mps[i], threshold)
+
+        #println("right 2 left")
+        #println(" i = ", i-1, "i+1 = ", i)
+        #print_tensors_squared(mps[i-1], mps[i])
     end
     mps
+end
+
+
+function print_tensors_squared(t1, t2)
+    A = permutedims(t1, [2,1,3,4])
+    s = size(A)
+    A = reshape(A, (s[1], s[2]*s[3]*s[4]))
+
+    println("left =", A*A')
+
+    A = t2
+    s = size(A)
+    A = reshape(A, (s[1], s[2]*s[3]*s[4]))
+
+    println("right = ", A*A')
 end

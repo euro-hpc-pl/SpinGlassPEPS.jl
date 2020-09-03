@@ -92,14 +92,18 @@ returns the 3x3 grid the light graph
 function make_grid3x3()
     g = path_graph(9)
 
-    add_edge!(g, 1, 6)
+    rem_edge!(g, 3, 4)
+    rem_edge!(g, 6, 7)
+
+    add_edge!(g, 1, 4)
+    add_edge!(g, 4, 7)
+
     add_edge!(g, 2, 5)
     add_edge!(g, 5, 8)
-    add_edge!(g, 4, 9)
 
-    for i in 1:9
-        add_edge!(g, i, i+1)
-    end
+    add_edge!(g, 3, 6)
+    add_edge!(g, 6, 9)
+
     return g
 end
 
@@ -118,20 +122,20 @@ function add_locations3x3!(graph::MetaGraph)
     a = set_prop!(graph, Edge(1,2), :side, ["r","l"])
     b = set_prop!(graph, Edge(2,3), :side, ["r","l"])
 
-    c = set_prop!(graph, Edge(4,5), :side, ["l","r"])
-    d = set_prop!(graph, Edge(5,6), :side, ["l","r"])
+    c = set_prop!(graph, Edge(4,5), :side, ["r","l"])
+    d = set_prop!(graph, Edge(5,6), :side, ["r","l"])
 
     e = set_prop!(graph, Edge(7,8), :side, ["r","l"])
     f = set_prop!(graph, Edge(8,9), :side, ["r","l"])
 
-    g = set_prop!(graph, Edge(1,6), :side, ["d","u"])
-    h = set_prop!(graph, Edge(6,7), :side, ["d","u"])
+    g = set_prop!(graph, Edge(1,4), :side, ["d","u"])
+    h = set_prop!(graph, Edge(4,7), :side, ["d","u"])
 
     i = set_prop!(graph, Edge(2,5), :side, ["d","u"])
     j = set_prop!(graph, Edge(5,8), :side, ["d","u"])
 
-    k = set_prop!(graph, Edge(3,4), :side, ["d","u"])
-    l = set_prop!(graph, Edge(4,9), :side, ["d","u"])
+    k = set_prop!(graph, Edge(3,6), :side, ["d","u"])
+    l = set_prop!(graph, Edge(6,9), :side, ["d","u"])
 
     # also the "empty" modes is initialised
     for e in edges(graph)
@@ -240,6 +244,7 @@ returns the vector of string of the directions of bonds for the given vertex (in
 function bond_directions(mg::MetaGraph, vertex::Int)
     bond_directions = Vector{String}()
     for v in neighbors(mg, vertex)
+
         directions = read_pair_from_edge(mg, vertex, v, :side)
         push!(bond_directions, directions[1])
     end
@@ -272,6 +277,7 @@ given the vertex of the MetaGraph generates the full
 tensor with both virtual dimentions and physical  dimention
 """
 function makeTensor(mg::MetaGraph, vertex::Int, β::T) where T <: AbstractFloat
+
     modes = get_modes(mg, vertex)
     Js = readJs(mg, vertex)
     virtual_dims = length(modes)
@@ -461,7 +467,7 @@ end
 function compute_marginal_prob(mg::MetaGraph, ses::Vector{Int}, β::T, threshold::T) where T <: AbstractFloat
     set_spins2firs_k!(mg, ses, β)
     # v2d is the configuration of the grid
-    v2d = [1 2 3; 6 5 4; 7 8 9]
+    v2d = [1 2 3; 4 5 6; 7 8 9]
     for i in size(v2d,1)-1:-1:1
         merge_lines!(mg, v2d[i,:], v2d[i+1,:], threshold)
     end
@@ -479,6 +485,7 @@ end
 # it is aimed for testing the final solver
 
 function naive_solve(qubo::Vector{Qubo_el{T}}, no_sols::Int, β::T, threshold::T) where T <: AbstractFloat
+
     problem_size = 9
     partial_sol = Array(transpose([1 -1]))
 
@@ -509,7 +516,7 @@ in ses::Vector{Int}
 Naive since each step contracts the whole grid to the single value.
 """
 function optimisation_step_naive(qubo::Vector{Qubo_el{T}}, ses::Vector{Int}, β::T, threshold::T) where T <: AbstractFloat
-    mg = make_graph3x3();
+    mg = make_graph3x3()
     add_qubo2graph!(mg, qubo)
     compute_marginal_prob(mg, ses, β, threshold)
 end
