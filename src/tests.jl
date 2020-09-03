@@ -325,23 +325,23 @@ end
 
     qubo = make_qubo()
 
-    struct_M = [1 2 3; 4 5 6; 7 8 9]
-    M = make_pepsTN(struct_M, qubo, 1.)
+    grid = [1 2 3; 4 5 6; 7 8 9]
+    M = make_pepsTN(grid, qubo, 1.)
     # uses graph notation output for testing
     mg = make_graph3x3()
     add_qubo2graph!(mg, qubo)
 
     @testset "building" begin
-        T = make_peps_node(struct_M, qubo, 1, 1.)
+        T = make_peps_node(grid, qubo, 1, 1.)
         Tp = makeTensor(mg, 1, 1.)
         T1 = reshape(Tp, (1,2,1,2,2))
         @test T1 == T
 
-        T = make_peps_node(struct_M, qubo, 5, 1.)
+        T = make_peps_node(grid, qubo, 5, 1.)
         T5 = makeTensor(mg, 5, 1.)
         @test T5 == T
 
-        T = make_peps_node(struct_M, qubo, 8, 1.)
+        T = make_peps_node(grid, qubo, 8, 1.)
         Tp = makeTensor(mg, 8, 1.)
         T8 = reshape(Tp, (2,2,2,1,2))
         @test T8 == T
@@ -517,9 +517,9 @@ end
 
     conf, f = naive_solve(train_qubo, 4, 1., 0.)
 
-    struct_M = [1 2 3; 4 5 6; 7 8 9]
+    grid = [1 2 3; 4 5 6; 7 8 9]
 
-    ses = solve(train_qubo, struct_M, 4; β = 1.)
+    ses = solve(train_qubo, grid, 4; β = 1.)
 
     @test [ses[i].objective for i in 1:4] ≈ f
     #first
@@ -540,9 +540,9 @@ end
     end
     permuted_train_qubo = make_qubo()
 
-    struct_M = [1 2 3; 4 5 6; 7 8 9]
+    grid = [1 2 3; 4 5 6; 7 8 9]
 
-    ses = solve(permuted_train_qubo, struct_M, 16; β = 1.)
+    ses = solve(permuted_train_qubo, grid, 16; β = 1.)
 
     # this correspond to the ground
     for i in 9:16
@@ -556,7 +556,7 @@ end
 
     @testset "svd approximatimation in solution" begin
 
-        ses_a = solve(permuted_train_qubo, struct_M, 16; β = 1., threshold = 1e-12)
+        ses_a = solve(permuted_train_qubo, grid, 16; β = 1., threshold = 1e-12)
 
         for i in 9:16
             @test ses_a[i].spins[1:6] == [1,-1,1,1,-1,1]
@@ -582,9 +582,9 @@ end
     train_qubo = make_qubo()
 
 
-    struct_M = [1 2 3; 4 5 6; 7 8 9]
+    grid = [1 2 3; 4 5 6; 7 8 9]
 
-    ses = solve(train_qubo, struct_M, 4; β = T(2.))
+    ses = solve(train_qubo, grid, 4; β = T(2.))
 
     #first
     @test ses[3].spins == [-1,1,-1,-1,1,-1,1,1,1]

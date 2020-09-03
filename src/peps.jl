@@ -30,17 +30,17 @@ function make_tensor_sizes(l::Bool, r::Bool, u::Bool, d::Bool, s_virt::Int = 2, 
     (tensor_size..., )
 end
 
-function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int, β::T) where T <: AbstractFloat
+function make_peps_node(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int, β::T) where T <: AbstractFloat
 
-    ind = findall(x->x==i, struct_M)[1]
+    ind = findall(x->x==i, grid)[1]
     h = filter(x->x.ind==(i,i), qubo)[1].coupling
     bonds = [[0], [0], [0], [0], [-1,1]]
 
-    # determine bonds directions from struct_M
+    # determine bonds directions from grid
     l = 0 < ind[2]-1
-    r = ind[2]+1 <= size(struct_M, 2)
+    r = ind[2]+1 <= size(grid, 2)
     u = 0 < ind[1]-1
-    d = ind[1]+1 <= size(struct_M, 1)
+    d = ind[1]+1 <= size(grid, 1)
 
     if l
         bonds[1] = [-1,1]
@@ -48,7 +48,7 @@ function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int,
 
     Jir = T(0.)
     if r
-        j = struct_M[ind[1], ind[2]+1]
+        j = grid[ind[1], ind[2]+1]
         Jir = JfromQubo_el(qubo, i,j)
         bonds[2] = [-1,1]
     end
@@ -59,7 +59,7 @@ function make_peps_node(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int,
 
     Jid = T(0.)
     if d
-        j = struct_M[ind[1]+1, ind[2]]
+        j = grid[ind[1]+1, ind[2]]
         Jid = JfromQubo_el(qubo, i,j)
         bonds[4] = [-1,1]
     end
@@ -76,12 +76,12 @@ end
 
 # tensor network
 
-function make_pepsTN(struct_M::Matrix{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T <: AbstractFloat
-    s = size(struct_M)
+function make_pepsTN(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T <: AbstractFloat
+    s = size(grid)
     M_of_tens = Array{Union{Nothing, Array{T}}}(nothing, s)
     for i in 1:prod(s)
-        ind = findall(x->x==i, struct_M)[1]
-        M_of_tens[ind] = make_peps_node(struct_M, qubo, i, β)
+        ind = findall(x->x==i, grid)[1]
+        M_of_tens[ind] = make_peps_node(grid, qubo, i, β)
     end
     Array{Array{T, 5}}(M_of_tens)
 end
@@ -131,6 +131,18 @@ function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 4}, env::Array
     end
     C
 end
+
+
+function scalar_prod_step1(mps_down::Array{T, 4}, mps_up::Array{T, 5}, env::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 5))
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b, u] = mps_up[a,x,v,z, u]*mps_down[b,y,z,v]*env[x,y]
+    end
+    C
+end
+
+
 
 function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: AbstractFloat
     l = length(mps)
@@ -228,10 +240,10 @@ function add_spin(ps::Partial_sol{T}, s::Int) where T <: AbstractFloat
 end
 
 
-function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2; β::T, threshold::T = T(0.)) where T <: AbstractFloat
-    problem_size = maximum(struct_M)
-    s = size(struct_M)
-    M = make_pepsTN(struct_M, qubo, β)
+function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, threshold::T = T(0.)) where T <: AbstractFloat
+    problem_size = maximum(grid)
+    s = size(grid)
+    M = make_pepsTN(grid, qubo, β)
 
     partial_solutions = Partial_sol{T}[Partial_sol{T}()]
 
@@ -240,8 +252,7 @@ function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2
         #this may need to ge cashed
         lower_mps = make_lower_mps(M, row + 1, threshold)
 
-        p = sortperm(struct_M[row,:])
-        for j in struct_M[row,p]
+        for j in grid[row,:]
 
              a = [add_spin(ps, 1) for ps in partial_solutions]
              b = [add_spin(ps, -1) for ps in partial_solutions]
@@ -253,7 +264,6 @@ function solve(qubo::Vector{Qubo_el{T}}, struct_M::Matrix{Int}, no_sols::Int = 2
                 sol = part_sol[1+(row-1)*s[2]:end]
                 l = s[2] - length(sol)
                 sol = vcat(sol, fill(0, l))
-                sol = sol[p]
 
                 u = []
                 prob = 0.
@@ -365,3 +375,68 @@ function print_tensors_squared(t1, t2)
 
     println("right = ", A*A')
 end
+
+grid = [1 2 3; 4 5 6; 7 8 9]
+
+function make_qubo()
+    css = -2.
+    qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
+    qubo = vcat(qubo, [(6,6) 0.; (6,5) 1.75; (6,9) 0.; (5,5) -0.75; (5,4) 1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
+    qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
+    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+end
+
+# it is just a concept it will be changed
+
+
+function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 5}, env::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 5))
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b, u] = mps_up[a,x,v,z, u]*mps_down[b,y,z,v]*env[x,y]
+    end
+    C
+end
+
+function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 4}, env::Array{T, 3}) where T <: AbstractFloat
+    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(env, 3))
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b, u] = mps_up[a,x,v,z]*mps_down[b,y,z,v]*env[x,y,u]
+    end
+    C
+end
+
+
+
+function compute_scalar_prod1(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
+    env = ones(T, 1,1)
+    for i in length(mps_up):-1:1
+        env = scalar_prod_step(mps_down[i], mps_up[i], env)
+    end
+    #size(env) == (1,1) || error("output size $(size(env)) ≠ (1,1) not fully contracted")
+    env
+end
+
+qubo = make_qubo()
+
+M = make_pepsTN(grid, qubo, 1.)
+
+lower_mps = make_lower_mps(M, 2, 0.)
+
+upper = [M[1,1], sum_over_last(M[1,2]), sum_over_last(M[1,3])]
+
+upper_p = [ones(1,2,1,2), M[1,2], sum_over_last(M[1,3])]
+
+
+a = compute_scalar_prod1(lower_mps, upper)[1,1,:]
+a = a./sum(a)
+
+b = compute_scalar_prod1(lower_mps, upper_p)[1,1,:]
+
+b[1]*a[1]
+b[2]*a[1]
+b[1]*a[2]
+b[2]*a[2]
+
+solve(qubo, grid, 2; β = 1.)
