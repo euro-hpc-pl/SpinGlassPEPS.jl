@@ -207,17 +207,64 @@ function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: A
     Vector{Array{T, 4}}(output_mps)
 end
 
-function reduce_bonds_horizontally!(mps::Vector{Array{T, 4}}, ses::Vector{Int}) where T <: AbstractFloat
-    for i in 1:length(ses)
-        j = ses[i]
-        # if j is zero or dim has already been reduced
-        # it will be skipped
-        try
-            mps[i] = mps[i][:,:,:,j:j]
-        catch
-            0
+function set_part(M::Vector{Array{T,5}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
+    l = length(s)
+    siz = size(M,1)
+    chain = [M[l+1]]
+    chain = vcat(chain, [sum_over_last(M[i]) for i in (l+2):siz])
+
+    if l > 0
+        v = [T(s[l] == -1), T(s[l] == 1)]
+        K1 = reshape(v, (1,1,1,2))
+        chain = vcat([K1], chain)
+    end
+
+    Vector{Array{T, N} where N}(chain)
+end
+
+function conditional_probabs(M::Vector{Array{T,5}}, lower_mps::Vector{Array{T,4}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
+
+    l = length(s)
+    siz = size(M,1)
+
+    upper = [M[l+1]]
+    if l < siz-1
+        # this can be cashed
+        upper = vcat(upper, [sum_over_last(M[i]) for i in (l+2):siz])
+
+    end
+    if l > 0
+        v = [T(s[l] == -1), T(s[l] == 1)]
+        K = reshape(kron(v, v), (1,2,1,2))
+        upper = vcat([K], upper)
+
+        for j in l-1:-1:1
+            v = [T(s[j] == -1), T(s[j] == 1)]
+            K1 = reshape(v, (1,1,1,2))
+            upper = vcat([K1], upper)
         end
     end
+
+    unnorm_prob = compute_scalar_prod(lower_mps, upper)
+    unnorm_prob./sum(unnorm_prob)
+end
+
+
+function set_row(mps::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
+    l = length(ses)
+    upper = [ones(T, 1,1,1,1) for _ in 1:l]
+    for i in 1:l
+        v = [T(ses[i] == -1), T(ses[i] == 1)]
+        upper[i] = reshape(v, (1,1,1,2))
+    end
+
+        MPSxMPO(mps, Vector{Array{T, 4}}(upper))
+end
+
+function chain2point(chain::Vector{Array{T, N} where N}) where T <: AbstractFloat
+    println(length(chain))
+    println([size(e) for e in chain])
+    1
 end
 
 function comp_marg_p(mps_u::Vector{Array{T, 4}}, mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
@@ -264,6 +311,9 @@ mutable struct Partial_sol{T <: AbstractFloat}
     function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T, upper_mps::Vector{Array{T, 4}}) where T <:AbstractFloat
         new{T}(spins, objective, upper_mps)
     end
+    function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T) where T <:AbstractFloat
+        new{T}(spins, objective, [zeros(0,0,0,0)])
+    end
     function(::Type{Partial_sol{T}})() where T <:AbstractFloat
         new{T}(Int[], 0., [zeros(0,0,0,0)])
     end
@@ -289,6 +339,36 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
         lower_mps = make_lower_mps(M, row + 1, threshold)
 
         for j in grid[row,:]
+
+            if j == 1
+                objectives = conditional_probabs(M[row,:], lower_mps, Int[])
+                println("..... objectives .....")
+                println(objectives)
+            end
+
+            for ps in partial_solutions
+                part_sol = ps.spins
+                sol = part_sol[1+(row-1)*s[2]:end]
+
+                objectives = 0.
+
+                if row == 1
+                    objectives = conditional_probabs(M[row,:], lower_mps, sol)
+
+                elseif row < s[1]
+                    sol_row = part_sol[1+(row-2)*s[2]:(row-1)*s[2]]
+                    Mtemp = set_row(M[row,:], sol_row)
+
+                    objectives = conditional_probabs(Mtemp, lower_mps, sol)
+                else
+                    sol_row = part_sol[1+(row-2)*s[2]:(row-1)*s[2]]
+                    Mtemp = set_row(M[row,:], sol_row)
+                    chain = set_part(Mtemp, sol)
+                    objectives = chain2point(chain)
+                end
+                println("..... objectives .....")
+                println(objectives)
+            end
 
              a = [add_spin(ps, 1) for ps in partial_solutions]
              b = [add_spin(ps, -1) for ps in partial_solutions]
@@ -430,25 +510,28 @@ M = make_pepsTN(grid, qubo, 1.)
 
 lower_mps = make_lower_mps(M, 2, 0.)
 
-upper = [M[1,1], sum_over_last(M[1,2]), sum_over_last(M[1,3])]
+a = conditional_probabs(M[1,:], lower_mps)
 
-a = compute_scalar_prod(lower_mps, upper)
+b1 = conditional_probabs(M[1,:], lower_mps, [-1])
+b2 = conditional_probabs(M[1,:], lower_mps, [1])
 
-a = a./sum(a)
+println("conditional")
 
-m1 = reshape(kron([1.,0], [1.,0]), (1,2,1,2))
-upper_p1 = [m1, M[1,2], sum_over_last(M[1,3])]
+println(b2)
+println(b1)
 
-b1 = compute_scalar_prod(lower_mps, upper_p1)
 
-m2 = reshape(kron([0,1.], [0,1.]), (1,2,1,2))
-upper_p2 = [m2, M[1,2], sum_over_last(M[1,3])]
+println(sum(b2))
+println(sum(b1))
 
-lower_mps
+println("marginal")
 
-b2 = compute_scalar_prod(lower_mps, upper_p2)
-b2 = b2./sum(b2)
-b1 = b1./sum(b1)
+println(b2[1]*a[2])
+println(b1[2]*a[1])
+println(b2[2]*a[2])
+println(b1[1]*a[1])
+
+println(b2[1]*a[2] + b1[2]*a[1] + b2[2]*a[2] + b1[1]*a[1])
 
 bb1 = b2[1]*a[2]
 b2[2]*a[2]
@@ -456,43 +539,14 @@ b2[2]*a[2]
 b1[1]*a[1]
 bb2 = b1[2]*a[1]
 
-[1,-1]
-[-1,1]
+ccc1 = conditional_probabs(M[1,:], lower_mps, [-1, 1])
+ccc2 = conditional_probabs(M[1,:], lower_mps, [1, -1])
 
-K11 = reshape([0, 1.], (1,1,1,2))
-K22 = reshape([1.,0.], (1,1,1,2))
-K1 = reshape(kron([0,1.], [0,1.]), (1,2,1,2))
-K2 = reshape(kron([1.,0], [1.,0]), (1,2,1,2))
-upper_p1 = [K11, K2, M[1,3]]
-upper_p2 = [K22, K1, M[1,3]]
+println(ccc1)
+println(ccc2)
 
-c1 = compute_scalar_prod(lower_mps, upper_p1)
+println(ccc1.*bb1)
+println(ccc2.*bb2)
 
-c1 = c1./sum(c1)
-
-c2 = compute_scalar_prod(lower_mps, upper_p2)
-
-c2 = c2./sum(c2)
-
-cc1 = (c1*bb1)[2]
-cc2 = (c2*bb2)[1]
-
-
-[1,-1,1]
-
-up1 = [K11, K22, K11]
-
-up2 = [K22, K11, K22]
-
-mps1 = MPSxMPO(M[2,:], up1)
-
-mps2 = MPSxMPO(M[2,:], up2)
-
-M[2,:]
-
-
-
-
-[-1,1,-1]
 
 solve(qubo, grid, 2; β = 1.)
