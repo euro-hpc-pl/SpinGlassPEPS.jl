@@ -42,26 +42,26 @@ function make_peps_node(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int, β:
     u = 0 < ind[1]-1
     d = ind[1]+1 <= size(grid, 1)
 
-    if l
-        bonds[1] = [-1,1]
-    end
-
-    Jir = T(0.)
     if r
-        j = grid[ind[1], ind[2]+1]
-        Jir = JfromQubo_el(qubo, i,j)
         bonds[2] = [-1,1]
     end
 
-    if u
-        bonds[3] = [-1,1]
+    Jil = T(0.)
+    if l
+        j = grid[ind[1], ind[2]-1]
+        Jil = JfromQubo_el(qubo, i,j)
+        bonds[1] = [-1,1]
     end
 
-    Jid = T(0.)
     if d
-        j = grid[ind[1]+1, ind[2]]
-        Jid = JfromQubo_el(qubo, i,j)
         bonds[4] = [-1,1]
+    end
+
+    Jiu = T(0.)
+    if u
+        j = grid[ind[1]-1, ind[2]]
+        Jiu = JfromQubo_el(qubo, i,j)
+        bonds[3] = [-1,1]
     end
 
     tensor_size = make_tensor_sizes(l,r,u,d,2,2)
@@ -69,7 +69,7 @@ function make_peps_node(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int, β:
 
     for i in CartesianIndices(tensor_size)
         b = [bonds[j][i[j]] for j in 1:5]
-        tensor[i] = Tgen(b..., Jir, Jid, h, β)
+        tensor[i] = Tgen(b..., Jil, Jiu, h, β)
     end
     tensor
 end
@@ -154,7 +154,8 @@ function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: A
         else
             A = set_last(mps[i], s[i])
             ind = spins2index(s[i])
-            if i > 1
+            #if i > 1
+            if false
                 # breaks bonds between subsequent tensors in row
                 # if s is set, excludes first element of the row
                 output_mps[i] = A[ind:ind,:,:,:]
@@ -162,13 +163,14 @@ function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: A
             else
                 output_mps[i] = A
             end
-            if size(A, 3) > 1
+            if false
+                size(A, 3) > 1
                 up_bonds[i] = ind
                 output_mps[i] = output_mps[i][:,:,ind:ind,:]
             end
         end
     end
-    Vector{Array{T, 4}}(output_mps), up_bonds
+    Vector{Array{T, 4}}(output_mps)
 end
 
 function reduce_bonds_horizontally!(mps::Vector{Array{T, 4}}, ses::Vector{Int}) where T <: AbstractFloat
@@ -185,22 +187,22 @@ function reduce_bonds_horizontally!(mps::Vector{Array{T, 4}}, ses::Vector{Int}) 
 end
 
 function comp_marg_p(mps_u::Vector{Array{T, 4}}, mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mpo, s = set_spins_on_mps(M, ses)
+    mpo = set_spins_on_mps(M, ses)
     mps_u = copy(mps_u)
-    reduce_bonds_horizontally!(mps_u, s)
+    #reduce_bonds_horizontally!(mps_u, s)
     mps_n = MPSxMPO(mpo, mps_u)
     compute_scalar_prod(mps_d, mps_n), mps_n
 end
 
 function comp_marg_p_first(mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mps_u, _ = set_spins_on_mps(M, ses)
+    mps_u = set_spins_on_mps(M, ses)
     compute_scalar_prod(mps_d, mps_u), mps_u
 end
 
 function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mpo, s = set_spins_on_mps(M, ses)
+    mpo = set_spins_on_mps(M, ses)
     mps_u = copy(mps_u)
-    reduce_bonds_horizontally!(mps_u, s)
+    #reduce_bonds_horizontally!(mps_u, s)
     compute_scalar_prod(mpo, mps_u)
 end
 
@@ -418,9 +420,13 @@ function compute_scalar_prod1(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Arra
     env
 end
 
+if false
+
 qubo = make_qubo()
 
 M = make_pepsTN(grid, qubo, 1.)
+
+M[1,2][:,:,:,:,2]
 
 lower_mps = make_lower_mps(M, 2, 0.)
 
@@ -440,3 +446,4 @@ b[1]*a[2]
 b[2]*a[2]
 
 solve(qubo, grid, 2; β = 1.)
+end

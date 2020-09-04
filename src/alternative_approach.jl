@@ -205,19 +205,20 @@ function readJs(mg::MetaGraph, vertex::Int)
     h = props(mg, vertex)[:h]
     T = typeof(h)
     # quadratic
-    Jir = T(0.)
-    Jid = T(0.)
+    Jil = T(0.)
+    Jiu = T(0.)
 
     for v in neighbors(mg, vertex)
         directions = read_pair_from_edge(mg, vertex, v, :side)
 
-        if directions[1] == "r"
-            Jir = props(mg, Edge(vertex,v))[:J]
-        elseif directions[1] == "d"
-            Jid = props(mg, Edge(vertex,v))[:J]
+        if directions[1] == "l"
+            Jil = props(mg, Edge(vertex,v))[:J]
+
+        elseif directions[1] == "u"
+            Jiu = props(mg, Edge(vertex,v))[:J]
         end
     end
-    Jir, Jid, h
+    Jil, Jiu, h
 end
 
 """
