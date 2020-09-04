@@ -113,6 +113,23 @@ function MPSxMPO(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, 4}}) whe
     Array{Array{T, 4}}(mps_res)
 end
 
+function MPSxMPO(mps_down::Vector{Array{T, 5}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
+        mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
+        for i in 1:length(mps_down)
+        A = mps_down[i]
+        B = mps_up[i]
+        sa = size(A)
+        sb = size(B)
+
+        C = zeros(T, sa[1] , sb[1], sa[2], sb[2], sb[3], sa[4], sa[5])
+        @tensor begin
+            C[a,d,b,e,f,c, g] = A[a,b,x,c,g]*B[d,e,f,x]
+        end
+        mps_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3], sa[4], sa[5]))
+    end
+    Array{Array{T, 5}}(mps_res)
+end
+
 
 function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
     env = ones(T, 1,1)
@@ -132,8 +149,7 @@ function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 4}, env::Array
     C
 end
 
-
-function scalar_prod_step1(mps_down::Array{T, 4}, mps_up::Array{T, 5}, env::Array{T, 2}) where T <: AbstractFloat
+function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 5}, env::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 5))
     @tensor begin
         #v concers contracting modes of size 1 in C
@@ -142,7 +158,25 @@ function scalar_prod_step1(mps_down::Array{T, 4}, mps_up::Array{T, 5}, env::Arra
     C
 end
 
+function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 4}, env::Array{T, 3}) where T <: AbstractFloat
+    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(env, 3))
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b, u] = mps_up[a,x,v,z]*mps_down[b,y,z,v]*env[x,y,u]
+    end
+    C
+end
 
+
+
+function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
+    env = ones(T, 1,1)
+    for i in length(mps_up):-1:1
+        env = scalar_prod_step(mps_down[i], mps_up[i], env)
+    end
+    #size(env) == (1,1) || error("output size $(size(env)) ≠ (1,1) not fully contracted")
+    env[1,1,:]
+end
 
 function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: AbstractFloat
     l = length(mps)
@@ -388,62 +422,77 @@ function make_qubo()
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
 
-# it is just a concept it will be changed
 
-
-function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 5}, env::Array{T, 2}) where T <: AbstractFloat
-    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 5))
-    @tensor begin
-        #v concers contracting modes of size 1 in C
-        C[a,b, u] = mps_up[a,x,v,z, u]*mps_down[b,y,z,v]*env[x,y]
-    end
-    C
-end
-
-function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 4}, env::Array{T, 3}) where T <: AbstractFloat
-    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(env, 3))
-    @tensor begin
-        #v concers contracting modes of size 1 in C
-        C[a,b, u] = mps_up[a,x,v,z]*mps_down[b,y,z,v]*env[x,y,u]
-    end
-    C
-end
-
-
-
-function compute_scalar_prod1(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
-    env = ones(T, 1,1)
-    for i in length(mps_up):-1:1
-        env = scalar_prod_step(mps_down[i], mps_up[i], env)
-    end
-    #size(env) == (1,1) || error("output size $(size(env)) ≠ (1,1) not fully contracted")
-    env
-end
-
-if false
 
 qubo = make_qubo()
 
 M = make_pepsTN(grid, qubo, 1.)
 
-M[1,2][:,:,:,:,2]
-
 lower_mps = make_lower_mps(M, 2, 0.)
 
 upper = [M[1,1], sum_over_last(M[1,2]), sum_over_last(M[1,3])]
 
-upper_p = [ones(1,2,1,2), M[1,2], sum_over_last(M[1,3])]
+a = compute_scalar_prod(lower_mps, upper)
 
-
-a = compute_scalar_prod1(lower_mps, upper)[1,1,:]
 a = a./sum(a)
 
-b = compute_scalar_prod1(lower_mps, upper_p)[1,1,:]
+m1 = reshape(kron([1.,0], [1.,0]), (1,2,1,2))
+upper_p1 = [m1, M[1,2], sum_over_last(M[1,3])]
 
-b[1]*a[1]
-b[2]*a[1]
-b[1]*a[2]
-b[2]*a[2]
+b1 = compute_scalar_prod(lower_mps, upper_p1)
+
+m2 = reshape(kron([0,1.], [0,1.]), (1,2,1,2))
+upper_p2 = [m2, M[1,2], sum_over_last(M[1,3])]
+
+lower_mps
+
+b2 = compute_scalar_prod(lower_mps, upper_p2)
+b2 = b2./sum(b2)
+b1 = b1./sum(b1)
+
+bb1 = b2[1]*a[2]
+b2[2]*a[2]
+
+b1[1]*a[1]
+bb2 = b1[2]*a[1]
+
+[1,-1]
+[-1,1]
+
+K11 = reshape([0, 1.], (1,1,1,2))
+K22 = reshape([1.,0.], (1,1,1,2))
+K1 = reshape(kron([0,1.], [0,1.]), (1,2,1,2))
+K2 = reshape(kron([1.,0], [1.,0]), (1,2,1,2))
+upper_p1 = [K11, K2, M[1,3]]
+upper_p2 = [K22, K1, M[1,3]]
+
+c1 = compute_scalar_prod(lower_mps, upper_p1)
+
+c1 = c1./sum(c1)
+
+c2 = compute_scalar_prod(lower_mps, upper_p2)
+
+c2 = c2./sum(c2)
+
+cc1 = (c1*bb1)[2]
+cc2 = (c2*bb2)[1]
+
+
+[1,-1,1]
+
+up1 = [K11, K22, K11]
+
+up2 = [K22, K11, K22]
+
+mps1 = MPSxMPO(M[2,:], up1)
+
+mps2 = MPSxMPO(M[2,:], up2)
+
+M[2,:]
+
+
+
+
+[-1,1,-1]
 
 solve(qubo, grid, 2; β = 1.)
-end
