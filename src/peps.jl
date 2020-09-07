@@ -174,7 +174,6 @@ function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array
     for i in length(mps_up):-1:1
         env = scalar_prod_step(mps_down[i], mps_up[i], env)
     end
-    #size(env) == (1,1) || error("output size $(size(env)) ≠ (1,1) not fully contracted")
     env[1,1,:]
 end
 
@@ -188,20 +187,9 @@ function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: A
         else
             A = set_last(mps[i], s[i])
             ind = spins2index(s[i])
-            #if i > 1
-            if false
-                # breaks bonds between subsequent tensors in row
-                # if s is set, excludes first element of the row
-                output_mps[i] = A[ind:ind,:,:,:]
-                output_mps[i-1] = output_mps[i-1][:,ind:ind,:,:]
-            else
-                output_mps[i] = A
-            end
-            if false
-                size(A, 3) > 1
-                up_bonds[i] = ind
-                output_mps[i] = output_mps[i][:,:,ind:ind,:]
-            end
+
+            output_mps[i] = A
+
         end
     end
     Vector{Array{T, 4}}(output_mps)
@@ -215,7 +203,7 @@ function set_part(M::Vector{Array{T,5}}, s::Vector{Int} = Int[]) where T <: Abst
 
     if l > 0
         v = [T(s[l] == -1), T(s[l] == 1)]
-        K1 = reshape(v, (1,1,1,2))
+        K1 = reshape(v, (1,2,1,1))
         chain = vcat([K1], chain)
     end
 
@@ -262,15 +250,48 @@ function set_row(mps::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: Abstract
 end
 
 function chain2point(chain::Vector{Array{T, N} where N}) where T <: AbstractFloat
-    println(length(chain))
-    println([size(e) for e in chain])
-    1
+    l = length(chain)
+
+    env = ones(T, 1)
+    for i in l:-1:1
+        env = chain2pointstep(chain[i], env)
+    end
+    env[1,:]./sum(env)
+end
+
+function chain2pointstep(t::Array{T, 5}, env::Array{T, 1}) where T <: AbstractFloat
+    ret = zeros(T, size(t, 1), size(t, 5))
+    t = t[:,:,1,1,:]
+
+    @tensor begin
+        ret[a,b] = t[a, x, b]*env[x]
+    end
+    ret
+end
+
+function chain2pointstep(t::Array{T, 4}, env::Array{T, 1}) where T <: AbstractFloat
+    ret = zeros(T, size(t, 1))
+    t = t[:,:,1,1]
+    @tensor begin
+        ret[a] = t[a, x]*env[x]
+    end
+    ret
+end
+
+function chain2pointstep(t::Array{T,4}, env::Array{T,2}) where T <: AbstractFloat
+    ret = zeros(T, size(t, 1), size(env, 2))
+    t = t[:,:,1,1]
+
+    @tensor begin
+        ret[a,b] = t[a, x]*env[x, b]
+    end
+    ret
 end
 
 function comp_marg_p(mps_u::Vector{Array{T, 4}}, mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
     mpo = set_spins_on_mps(M, ses)
     mps_u = copy(mps_u)
-    #reduce_bonds_horizontally!(mps_u, s)
+
     mps_n = MPSxMPO(mpo, mps_u)
     compute_scalar_prod(mps_d, mps_n), mps_n
 end
@@ -283,7 +304,7 @@ end
 function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
     mpo = set_spins_on_mps(M, ses)
     mps_u = copy(mps_u)
-    #reduce_bonds_horizontally!(mps_u, s)
+
     compute_scalar_prod(mpo, mps_u)
 end
 
@@ -315,14 +336,21 @@ mutable struct Partial_sol{T <: AbstractFloat}
         new{T}(spins, objective, [zeros(0,0,0,0)])
     end
     function(::Type{Partial_sol{T}})() where T <:AbstractFloat
-        new{T}(Int[], 0., [zeros(0,0,0,0)])
+        new{T}(Int[], 1., [zeros(0,0,0,0)])
     end
 end
+
+
 
 
 function add_spin(ps::Partial_sol{T}, s::Int) where T <: AbstractFloat
     s in [-1,1] || error("spin should be 1 or -1 we got $s")
     Partial_sol{T}(vcat(ps.spins, [s]), T(0.), ps.upper_mps)
+end
+
+function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
+    s in [-1,1] || error("spin should be 1 or -1 we got $s")
+    Partial_sol{T}(vcat(ps.spins, [s]), ps.objective*objective, ps.upper_mps)
 end
 
 
@@ -333,6 +361,8 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
 
     partial_solutions = Partial_sol{T}[Partial_sol{T}()]
 
+    partial_s = Partial_sol{T}[Partial_sol{T}()]
+
     for row in 1:s[1]
 
         #this may need to ge cashed
@@ -340,17 +370,16 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
 
         for j in grid[row,:]
 
-            if j == 1
-                objectives = conditional_probabs(M[row,:], lower_mps, Int[])
-                println("..... objectives .....")
-                println(objectives)
-            end
+            partial_s_temp = Partial_sol{T}[Partial_sol{T}()]
 
-            for ps in partial_solutions
+
+            for ps in partial_s
+
                 part_sol = ps.spins
+
                 sol = part_sol[1+(row-1)*s[2]:end]
 
-                objectives = 0.
+                objectives = [0., 0.]
 
                 if row == 1
                     objectives = conditional_probabs(M[row,:], lower_mps, sol)
@@ -366,15 +395,35 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
                     chain = set_part(Mtemp, sol)
                     objectives = chain2point(chain)
                 end
-                println("..... objectives .....")
-                println(objectives)
+
+                a = add_spin(ps, -1, objectives[1])
+                b = add_spin(ps, 1, objectives[2])
+
+
+                if partial_s_temp[1].spins == []
+                    partial_s_temp = vcat(a,b)
+                else
+                    partial_s_temp = vcat(partial_s_temp, a,b)
+                end
+
             end
 
-             a = [add_spin(ps, 1) for ps in partial_solutions]
-             b = [add_spin(ps, -1) for ps in partial_solutions]
-             partial_solutions = vcat(a,b)
+            obj = [ps.objective for ps in partial_s_temp]
 
-             for ps in partial_solutions
+            perm = sortperm(obj)
+
+            p = last_m_els(perm, no_sols)
+
+            partial_s = partial_s_temp[p]
+
+
+            a = [add_spin(ps, 1) for ps in partial_solutions]
+            b = [add_spin(ps, -1) for ps in partial_solutions]
+            partial_solutions = vcat(a,b)
+
+
+
+            for ps in partial_solutions
 
                 part_sol = ps.spins
                 sol = part_sol[1+(row-1)*s[2]:end]
@@ -407,8 +456,11 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
             partial_solutions = partial_solutions[p1]
 
             if j == problem_size
-
-                return partial_solutions
+                #println("peps")
+                #println([e.spins for e in partial_s])
+                #println("test")
+                #println([e.spins for e in partial_solutions])
+                return partial_s
             end
         end
     end
@@ -508,45 +560,5 @@ qubo = make_qubo()
 
 M = make_pepsTN(grid, qubo, 1.)
 
-lower_mps = make_lower_mps(M, 2, 0.)
 
-a = conditional_probabs(M[1,:], lower_mps)
-
-b1 = conditional_probabs(M[1,:], lower_mps, [-1])
-b2 = conditional_probabs(M[1,:], lower_mps, [1])
-
-println("conditional")
-
-println(b2)
-println(b1)
-
-
-println(sum(b2))
-println(sum(b1))
-
-println("marginal")
-
-println(b2[1]*a[2])
-println(b1[2]*a[1])
-println(b2[2]*a[2])
-println(b1[1]*a[1])
-
-println(b2[1]*a[2] + b1[2]*a[1] + b2[2]*a[2] + b1[1]*a[1])
-
-bb1 = b2[1]*a[2]
-b2[2]*a[2]
-
-b1[1]*a[1]
-bb2 = b1[2]*a[1]
-
-ccc1 = conditional_probabs(M[1,:], lower_mps, [-1, 1])
-ccc2 = conditional_probabs(M[1,:], lower_mps, [1, -1])
-
-println(ccc1)
-println(ccc2)
-
-println(ccc1.*bb1)
-println(ccc2.*bb2)
-
-
-solve(qubo, grid, 2; β = 1.)
+solve(qubo, grid, 6; β = 1.)
