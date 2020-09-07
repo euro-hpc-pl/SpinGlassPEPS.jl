@@ -201,7 +201,7 @@ end
 read couplings from give vertex, if there is no returns 0.
 """
 function readJs(mg::MetaGraph, vertex::Int)
-    # linear trem coefficient
+    # linear term coefficient
     h = props(mg, vertex)[:h]
     T = typeof(h)
     # quadratic

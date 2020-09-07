@@ -440,7 +440,8 @@ end
 
             mps11 = set_spins_on_mps(M[1,:], [-1, 1, 0])
             sp = compute_scalar_prod(mps_r, mps11)
-            # marginal probability
+
+            ##### marginal probability implementation ####
             spp, _ = comp_marg_p_first(mps_r, M[1,:], [-1,1,0])
             @test sp ≈ props(mg, 1)[:tensor][1]
             @test spp ≈ props(mg, 1)[:tensor][1]
@@ -460,9 +461,7 @@ end
             contract_on_graph!(mg)
 
             mpo3 = set_spins_on_mps(M[2,:], [-1,1,0])
-
             mps_r2 = MPSxMPO(mps, mpo3)
-            #reduce_bonds_horizontally!(mps12, ses)
 
             sp3 = compute_scalar_prod(mps_r2, mps12)
             sp4, _ = comp_marg_p(mps12, mps, M[2,:], [-1,1,0])
@@ -476,7 +475,7 @@ end
 
             mps = set_spins_on_mps(M[1,:], [-1,1,1])
             mpo = set_spins_on_mps(M[2,:], [-1,1,1])
-            #reduce_bonds_horizontally!(mps, s)
+
             mps1 = MPSxMPO(mpo, mps)
             pss = comp_marg_p_last(mps1, M[3,:], [-1,0,0])
             psss = comp_marg_p_last(mps1, M[3,:], [-1,1,0])
@@ -489,6 +488,23 @@ end
             contract_on_graph!(mg)
 
             @test pssss ≈ props(mg, 1)[:tensor][1]
+
+
+            ####   conditional probability implementation
+            # TODO more tests
+
+            mps = MPSxMPO([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
+            @test mps == [2*ones(1,4,1,1), 4*ones(4,1,1,1)]
+
+            mps = MPSxMPO([ones(1,2,2,1,2), 2*ones(2,1,2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
+            @test mps == [2*ones(1,4,1,1,2), 4*ones(4,1,1,1,2)]
+
+            a = compute_scalar_prod([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
+
+            #b = compute_scalar_prod([ones(1,2,2,1,2), 2*ones(1,2,2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
+
+            @test a == 32.
+
         end
     end
 end
@@ -508,18 +524,21 @@ end
     end
     train_qubo = make_qubo()
 
-    #conf, f = naive_solve(train_qubo, 4, 1., 0.)
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
     ses = solve(train_qubo, grid, 4; β = 1.)
 
-    #@test [ses[i].objective for i in 1:4] ≈ f
+    ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
     #first
     @test ses[3].spins == [-1,1,-1,-1,1,-1,1,1,1]
     #ground
     @test ses[4].spins == [1,-1,1,1,-1,1,1,1,1]
 
+    @test ses[4].spins == ses1[4].spins
+    @test ses[3].spins == ses1[3].spins
+    @test ses[2].spins == ses1[2].spins
+    @test ses[1].spins == ses1[1].spins
 
     # here we give a little Jii to 7,8,9 q-bits to allow there for 8 additional
     # combinations with low excitiation energies

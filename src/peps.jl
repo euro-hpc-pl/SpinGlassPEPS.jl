@@ -140,6 +140,14 @@ function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array
     env[1,1]
 end
 
+function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
+    env = ones(T, 1,1)
+    for i in length(mps_up):-1:1
+        env = scalar_prod_step(mps_down[i], mps_up[i], env)
+    end
+    env[1,1,:]
+end
+
 function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 4}, env::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1))
     @tensor begin
@@ -167,33 +175,6 @@ function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 4}, env::Array
     C
 end
 
-
-
-function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
-    env = ones(T, 1,1)
-    for i in length(mps_up):-1:1
-        env = scalar_prod_step(mps_down[i], mps_up[i], env)
-    end
-    env[1,1,:]
-end
-
-function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: AbstractFloat
-    l = length(mps)
-    up_bonds = zeros(Int, l)
-    output_mps = Array{Union{Nothing, Array{T, 4}}}(nothing, l)
-    for i in 1:l
-        if s[i] == 0
-            output_mps[i] = sum_over_last(mps[i])
-        else
-            A = set_last(mps[i], s[i])
-            ind = spins2index(s[i])
-
-            output_mps[i] = A
-
-        end
-    end
-    Vector{Array{T, 4}}(output_mps)
-end
 
 function set_part(M::Vector{Array{T,5}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
     l = length(s)
@@ -288,25 +269,6 @@ function chain2pointstep(t::Array{T,4}, env::Array{T,2}) where T <: AbstractFloa
     ret
 end
 
-function comp_marg_p(mps_u::Vector{Array{T, 4}}, mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mpo = set_spins_on_mps(M, ses)
-    mps_u = copy(mps_u)
-
-    mps_n = MPSxMPO(mpo, mps_u)
-    compute_scalar_prod(mps_d, mps_n), mps_n
-end
-
-function comp_marg_p_first(mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mps_u = set_spins_on_mps(M, ses)
-    compute_scalar_prod(mps_d, mps_u), mps_u
-end
-
-function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mpo = set_spins_on_mps(M, ses)
-    mps_u = copy(mps_u)
-
-    compute_scalar_prod(mpo, mps_u)
-end
 
 function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, threshold::T) where T <: AbstractFloat
     s = size(M,1)
@@ -341,12 +303,17 @@ mutable struct Partial_sol{T <: AbstractFloat}
 end
 
 
-
-
 function add_spin(ps::Partial_sol{T}, s::Int) where T <: AbstractFloat
     s in [-1,1] || error("spin should be 1 or -1 we got $s")
     Partial_sol{T}(vcat(ps.spins, [s]), T(0.), ps.upper_mps)
 end
+
+"""
+    add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
+
+here the new objective is multipmed by the old one, hence we can take advantage
+of the marginal probabilities
+"""
 
 function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
     s in [-1,1] || error("spin should be 1 or -1 we got $s")
@@ -359,10 +326,7 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
     s = size(grid)
     M = make_pepsTN(grid, qubo, β)
 
-    partial_solutions = Partial_sol{T}[Partial_sol{T}()]
-
     partial_s = Partial_sol{T}[Partial_sol{T}()]
-
     for row in 1:s[1]
 
         #this may need to ge cashed
@@ -371,12 +335,9 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
         for j in grid[row,:]
 
             partial_s_temp = Partial_sol{T}[Partial_sol{T}()]
-
-
             for ps in partial_s
 
                 part_sol = ps.spins
-
                 sol = part_sol[1+(row-1)*s[2]:end]
 
                 objectives = [0., 0.]
@@ -399,68 +360,20 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
                 a = add_spin(ps, -1, objectives[1])
                 b = add_spin(ps, 1, objectives[2])
 
-
                 if partial_s_temp[1].spins == []
                     partial_s_temp = vcat(a,b)
                 else
                     partial_s_temp = vcat(partial_s_temp, a,b)
                 end
-
             end
 
             obj = [ps.objective for ps in partial_s_temp]
-
             perm = sortperm(obj)
-
             p = last_m_els(perm, no_sols)
-
             partial_s = partial_s_temp[p]
 
-
-            a = [add_spin(ps, 1) for ps in partial_solutions]
-            b = [add_spin(ps, -1) for ps in partial_solutions]
-            partial_solutions = vcat(a,b)
-
-
-
-            for ps in partial_solutions
-
-                part_sol = ps.spins
-                sol = part_sol[1+(row-1)*s[2]:end]
-                l = s[2] - length(sol)
-                sol = vcat(sol, fill(0, l))
-
-                u = []
-                prob = 0.
-                if row == 1
-                    prob, u = comp_marg_p_first(lower_mps, M[row,:], sol)
-                elseif row == s[1]
-                    prob = comp_marg_p_last(ps.upper_mps, M[row,:], sol)
-                else
-                    prob, u = comp_marg_p(ps.upper_mps, lower_mps, M[row,:], sol)
-                end
-
-                ps.objective = prob
-
-                if (j % s[2] == 0) & (j < problem_size)
-                    ps.upper_mps = u
-                end
-            end
-
-            objectives = [ps.objective for ps in partial_solutions]
-
-            perm = sortperm(objectives)
-
-            p1 = last_m_els(perm, no_sols)
-
-            partial_solutions = partial_solutions[p1]
-
             if j == problem_size
-                #println("peps")
-                #println([e.spins for e in partial_s])
-                #println("test")
-                #println([e.spins for e in partial_solutions])
-                return partial_s
+                    return partial_s
             end
         end
     end
@@ -529,6 +442,11 @@ function svd_approx(mps::Vector{Array{T, 4}}, threshold::T) where T <: AbstractF
     mps
 end
 
+"""
+    function print_tensors_squared(t1, t2)
+
+can be used to determine whic tensors are orthogonaly decomposed.
+"""
 
 function print_tensors_squared(t1, t2)
     A = permutedims(t1, [2,1,3,4])
@@ -544,8 +462,6 @@ function print_tensors_squared(t1, t2)
     println("right = ", A*A')
 end
 
-grid = [1 2 3; 4 5 6; 7 8 9]
-
 function make_qubo()
     css = -2.
     qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
@@ -553,12 +469,118 @@ function make_qubo()
     qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
+train_qubo = make_qubo()
 
 
+grid = [1 2 3; 4 5 6; 7 8 9]
 
-qubo = make_qubo()
+ses = solve(train_qubo, grid, 4; β = 1.)
 
-M = make_pepsTN(grid, qubo, 1.)
+#ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
+
+for el in ses
+    println(el.spins)
+end
+
+######## arbitrary decomposition  ############
 
 
-solve(qubo, grid, 6; β = 1.)
+function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: AbstractFloat
+    l = length(mps)
+    up_bonds = zeros(Int, l)
+    output_mps = Array{Union{Nothing, Array{T, 4}}}(nothing, l)
+    for i in 1:l
+        if s[i] == 0
+            output_mps[i] = sum_over_last(mps[i])
+        else
+            A = set_last(mps[i], s[i])
+            ind = spins2index(s[i])
+
+            output_mps[i] = A
+
+        end
+    end
+    Vector{Array{T, 4}}(output_mps)
+end
+
+function comp_marg_p(mps_u::Vector{Array{T, 4}}, mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
+    mpo = set_spins_on_mps(M, ses)
+    mps_u = copy(mps_u)
+
+    mps_n = MPSxMPO(mpo, mps_u)
+    compute_scalar_prod(mps_d, mps_n), mps_n
+end
+
+function comp_marg_p_first(mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
+    mps_u = set_spins_on_mps(M, ses)
+    compute_scalar_prod(mps_d, mps_u), mps_u
+end
+
+function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
+    mpo = set_spins_on_mps(M, ses)
+    mps_u = copy(mps_u)
+
+    compute_scalar_prod(mpo, mps_u)
+end
+
+function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, threshold::T = T(0.)) where T <: AbstractFloat
+    problem_size = maximum(grid)
+    s = size(grid)
+    M = make_pepsTN(grid, qubo, β)
+
+    partial_solutions = Partial_sol{T}[Partial_sol{T}()]
+
+    for row in 1:s[1]
+        #this may need to ge cashed
+        lower_mps = make_lower_mps(M, row + 1, threshold)
+
+        for j in grid[row,:]
+
+            a = [add_spin(ps, 1) for ps in partial_solutions]
+            b = [add_spin(ps, -1) for ps in partial_solutions]
+            partial_solutions = vcat(a,b)
+
+            for ps in partial_solutions
+
+                part_sol = ps.spins
+                sol = part_sol[1+(row-1)*s[2]:end]
+                l = s[2] - length(sol)
+                sol = vcat(sol, fill(0, l))
+
+                u = []
+                prob = 0.
+                if row == 1
+                    prob, u = comp_marg_p_first(lower_mps, M[row,:], sol)
+                elseif row == s[1]
+                    prob = comp_marg_p_last(ps.upper_mps, M[row,:], sol)
+                else
+                    prob, u = comp_marg_p(ps.upper_mps, lower_mps, M[row,:], sol)
+                end
+
+                ps.objective = prob
+
+                if (j % s[2] == 0) & (j < problem_size)
+                    ps.upper_mps = u
+                end
+            end
+
+            objectives = [ps.objective for ps in partial_solutions]
+
+            perm = sortperm(objectives)
+
+            p1 = last_m_els(perm, no_sols)
+
+            partial_solutions = partial_solutions[p1]
+
+            if j == problem_size
+                    return partial_solutions
+            end
+        end
+    end
+end
+
+ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
+
+for el in ses1
+    println(el.spins)
+end
