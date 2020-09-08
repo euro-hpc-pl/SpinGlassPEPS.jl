@@ -398,7 +398,7 @@ function reduce_bond_size_svd_right2left(t1::Array{T, 4}, t2::Array{T, 4}, thres
     A1 = permutedims(t1, p1)
     A1 = reshape(A1, (s[2], s[1]*s[3]*s[4]))
 
-    U,Σ,V = svd(A1)
+    U,Σ,V = svd(Float64.(A1))
     k = length(filter(e -> e > threshold, Σ))
     proj = transpose(U)[1:k,:]
 
@@ -418,7 +418,7 @@ function reduce_bond_size_svd_left2right(t1::Array{T, 4}, t2::Array{T, 4}, thres
     s = size(t2)
     A2 = reshape(t2, (s[1], s[2]*s[3]*s[4]))
 
-    U,Σ,V = svd(A2)
+    U,Σ,V = svd(Float64.(A2))
     k = length(filter(e -> e > threshold, Σ))
     proj = transpose(U)[1:k,:]
 
@@ -434,6 +434,7 @@ end
 
 
 function svd_approx(mps::Vector{Array{T, 4}}, threshold::T) where T <: AbstractFloat
+
     for i in 1:(length(mps)-1)
         mps[i], mps[i+1] = reduce_bond_size_svd_right2left(mps[i], mps[i+1], threshold)
 

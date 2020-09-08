@@ -494,7 +494,6 @@ end
 
 
             ####   conditional probability implementation
-            # TODO more tests
 
             mps = MPSxMPO([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
             @test mps == [2*ones(1,4,1,1), 4*ones(4,1,1,1)]
@@ -619,7 +618,7 @@ end
     grid = [1 2 3; 4 5 6; 7 8 9]
 
     # svd does not work for the BigFloat
-    ses = solve(train_qubo, grid, 4; β = T(2.))
+    ses = solve(train_qubo, grid, 4; β = T(2.), threshold = T(1e-12))
 
     #first
     @test ses[3].spins == [-1,1,-1,-1,1,-1,1,1,1]
