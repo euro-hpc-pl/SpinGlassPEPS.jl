@@ -130,6 +130,11 @@ function MPSxMPO(mps_down::Vector{Array{T, 5}}, mps_up::Vector{Array{T, 4}}) whe
     Array{Array{T, 5}}(mps_res)
 end
 
+"""
+    function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
+
+for general implementation
+"""
 
 function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
     env = ones(T, 1,1)
@@ -139,6 +144,12 @@ function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array
     size(env) == (1,1) || error("output size $(size(env)) ≠ (1,1) not fully contracted")
     env[1,1]
 end
+
+"""
+    compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
+
+for peps implementation
+"""
 
 function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
     env = ones(T, 1,1)
@@ -474,7 +485,7 @@ train_qubo = make_qubo()
 
 grid = [1 2 3; 4 5 6; 7 8 9]
 
-ses = solve(train_qubo, grid, 4; β = 1.)
+ses = solve(train_qubo, grid, 1; β = 1.)
 
 #ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
 
@@ -579,7 +590,7 @@ function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{In
     end
 end
 
-ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
+ses1 = solve_arbitrary_decomposition(train_qubo, grid, 1; β = 1.)
 
 for el in ses1
     println(el.spins)

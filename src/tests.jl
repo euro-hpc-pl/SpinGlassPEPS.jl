@@ -442,6 +442,9 @@ end
             sp = compute_scalar_prod(mps_r, mps11)
 
             ##### marginal probability implementation ####
+            @test 32. == compute_scalar_prod([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
+
+
             spp, _ = comp_marg_p_first(mps_r, M[1,:], [-1,1,0])
             @test sp ≈ props(mg, 1)[:tensor][1]
             @test spp ≈ props(mg, 1)[:tensor][1]
@@ -499,12 +502,32 @@ end
             mps = MPSxMPO([ones(1,2,2,1,2), 2*ones(2,1,2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
             @test mps == [2*ones(1,4,1,1,2), 4*ones(4,1,1,1,2)]
 
-            a = compute_scalar_prod([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
 
-            #b = compute_scalar_prod([ones(1,2,2,1,2), 2*ones(1,2,2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
+            b = compute_scalar_prod([ones(1,2,2,1), ones(2,1,2,1)], [ones(1,2,1,2,2), 2*ones(2,1,1,2)])
+            @test b == [32.0, 32.0]
 
-            @test a == 32.
+            a = scalar_prod_step(ones(2,2,1,2), ones(2,2,2,1), ones(2,2))
+            @test a == [8.0 8.0; 8.0 8.0]
+            a = scalar_prod_step(ones(2,2,1,2), ones(2,2,2,1,2), ones(2,2))
+            @test a[:,:,1] == [8.0 8.0; 8.0 8.0]
+            @test a[:,:,2] == [8.0 8.0; 8.0 8.0]
+            a = scalar_prod_step(ones(2,2,1,2), ones(2,2,2,1), ones(2,2,2))
+            @test a[:,:,1] == [8.0 8.0; 8.0 8.0]
+            @test a[:,:,2] == [8.0 8.0; 8.0 8.0]
 
+            v1 = [ones(1,2,1,2,2), ones(2,2,1,2,2), ones(2,2,1,2,2), ones(2,1,1,2,2)]
+            v2 = [ones(1,2,2,1), ones(2,2,2,1), ones(2,2,2,1), ones(2,1,2,1)]
+            a = conditional_probabs(v1, v2, [1,1,1])
+            @test a == [0.5, 0.5]
+
+            a = chain2point([ones(1,2,1,1,2), ones(2,1,1,1)])
+            @test a == [0.5, 0.5]
+
+            a = chain2point([reshape([1.,0.], (1,2,1,1)), ones(2,2,1,1,2), ones(2,2,1,1), ones(2,1,1,1)])
+            @test a == [0.5, 0.5]
+
+            a = chain2point([reshape([1.,0.], (1,2,1,1)), ones(2,1,1,1,2)])
+            @test a == [0.5, 0.5]
         end
     end
 end
@@ -605,4 +628,21 @@ end
     # we should think about this atol
 
     @test typeof(ses[1].objective) == BigFloat
+end
+
+@testset "larger QUBO" begin
+    function make_qubo()
+        qubo = [(1,1) -1.; (1,2) 0.5; (1,5) 0.5; (2,2) 1.; (2,3) 0.5; (2,6) 0.5; (3,3) -1.0; (3,4) 0.5; (3,7) 0.5; (4,4) 1.0; (4,8) 0.5]
+        qubo = vcat(qubo, [(5,5) -1.; (5,6) 0.5; (5,9) 0.5; (6,6) 1.; (6,7) 0.5; (6,10) 0.5; (7,7) -1.0; (7,8) 0.5; (7,11) 0.5; (8,8) 1.0; (8,12) 0.5])
+        qubo = vcat(qubo, [(9,9) -1.; (9,10) 0.5; (9,13) 0.5; (10,10) 1.; (10,11) 0.5; (10,14) 0.5; (11,11) -1.0; (11,12) 0.5; (11,15) 0.5; (12,12) 1.0; (12,16) 0.5])
+        qubo = vcat(qubo, [(13,13) -1.; (13,14) 0.5; (14,14) 1.; (14,15) 0.5; (15,15) -1.0; (15,16) 0.5; (16,16) 1.0])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    train_qubo = make_qubo()
+
+
+    grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
+
+    @time ses = solve(train_qubo, grid, 10; β = 2., threshold = 1e-12)
+    @test ses[end].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 end
