@@ -618,6 +618,7 @@ end
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
+    # svd does not work for the BigFloat
     ses = solve(train_qubo, grid, 4; β = T(2.))
 
     #first

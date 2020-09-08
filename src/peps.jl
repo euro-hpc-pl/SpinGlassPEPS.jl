@@ -392,7 +392,6 @@ end
 
 
 function reduce_bond_size_svd_right2left(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
-
     s = size(t1)
 
     p1 = [2,1,3,4]
