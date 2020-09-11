@@ -391,7 +391,7 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
 end
 
 
-function reduce_bond_size_svd_right2left(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
+function make_left_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
     s = size(t1)
 
     p1 = [2,1,3,4]
@@ -399,8 +399,12 @@ function reduce_bond_size_svd_right2left(t1::Array{T, 4}, t2::Array{T, 4}, thres
     A1 = reshape(A1, (s[2], s[1]*s[3]*s[4]))
 
     U,Σ,V = svd(Float64.(A1))
-    k = length(filter(e -> e > threshold, Σ))
-    proj = transpose(U)[1:k,:]
+    proj = transpose(U)
+
+    if threshold >= 0
+        k = length(filter(e -> e > threshold, Σ))
+        proj = proj[1:k,:]
+    end
 
     @tensor begin
         t1[a,e,c,d] := t1[a,b,c,d]*proj[e,b]
@@ -413,14 +417,18 @@ function reduce_bond_size_svd_right2left(t1::Array{T, 4}, t2::Array{T, 4}, thres
 end
 
 
-function reduce_bond_size_svd_left2right(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
+function make_right_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
 
     s = size(t2)
     A2 = reshape(t2, (s[1], s[2]*s[3]*s[4]))
 
     U,Σ,V = svd(Float64.(A2))
-    k = length(filter(e -> e > threshold, Σ))
-    proj = transpose(U)[1:k,:]
+
+    proj = transpose(U)
+    if threshold >= 0
+        k = length(filter(e -> e > threshold, Σ))
+        proj = proj[1:k,:]
+    end
 
     @tensor begin
         t1[a,e,c,d] := t1[a,b,c,d]*proj[e,b]
@@ -432,24 +440,33 @@ function reduce_bond_size_svd_left2right(t1::Array{T, 4}, t2::Array{T, 4}, thres
     t1, t2
 end
 
+function vec_of_right_canonical(mps::Vector{Array{T, 4}}, threshold::T = T(-1.)) where T <: AbstractFloat
+    for i in length(mps)-1:-1:1
+        mps[i], mps[i+1] = make_right_canonical(mps[i], mps[i+1], threshold)
+    end
+    mps
+end
+
+function vec_of_left_canonical(mps::Vector{Array{T, 4}}, threshold::T = T(-1.)) where T <: AbstractFloat
+    for i in 1:length(mps)-1
+        mps[i], mps[i+1] = make_left_canonical(mps[i], mps[i+1], threshold)
+    end
+    mps
+end
 
 function svd_approx(mps::Vector{Array{T, 4}}, threshold::T) where T <: AbstractFloat
+    mps = vec_of_left_canonical(mps, threshold)
+    vec_of_right_canonical(mps, threshold)
+end
 
-    for i in 1:(length(mps)-1)
-        mps[i], mps[i+1] = reduce_bond_size_svd_right2left(mps[i], mps[i+1], threshold)
-
-        #println("left 2 right")
-        #println(" i = ", i, "i+1 = ", i+1)
-        #print_tensors_squared(mps[i], mps[i+1])
-    end
-
-    for i in length(mps):-1:2
-        mps[i-1], mps[i] = reduce_bond_size_svd_left2right(mps[i-1], mps[i], threshold)
-
-        #println("right 2 left")
-        #println(" i = ", i-1, "i+1 = ", i)
-        #print_tensors_squared(mps[i-1], mps[i])
-    end
+function compress_mps_itterativelly(mps::Vector{Array{T,4}}, D::Int) where T <: AbstractFloat
+    # svd anzatz
+    # loop over mpses (how many times?)
+        # mixed representation
+        # itterative loop (minimisation of ε)
+            # conctract mps exact with mps anzatz without the ith M
+            # result of contraction -> M
+            # ε = 1- ∑ trace(M' * M)
     mps
 end
 

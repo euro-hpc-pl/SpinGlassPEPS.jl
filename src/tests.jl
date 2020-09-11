@@ -387,12 +387,11 @@ end
             B2 = copy(B)
             C2 = copy(C)
 
+            A,B = make_left_canonical(A,B, 1e-12)
+            B,C = make_left_canonical(B,C, 1e-12)
 
-            A,B = reduce_bond_size_svd_right2left(A,B, 1e-12)
-            B,C = reduce_bond_size_svd_right2left(B,C, 1e-12)
-
-            B1,C1 = reduce_bond_size_svd_left2right(B1,C1, 1e-12)
-            A1,B1 = reduce_bond_size_svd_left2right(A1,B1, 1e-12)
+            B1,C1 = make_right_canonical(B1,C1, 1e-12)
+            A1,B1 = make_right_canonical(A1,B1, 1e-12)
 
 
             @tensor begin
@@ -422,6 +421,30 @@ end
 
             @test D2[1] ≈ props(mg, 1)[:tensor][1]
 
+            A3 = rand(1,2,2,1)
+            B3 = rand(2,2,2,1)
+            C3 = rand(2,1,2,1)
+
+            D3 = vec_of_right_canonical([A3, B3, C3])
+            X = D3[3][:,:,1,1]
+            X1 = D3[3][:,:,2,1]
+            # sum over σ
+            K = X*X'+X1*X1'
+            @test K ≈ diagm(diag(K))
+            X = D3[2][:,:,1,1]
+            X1 = D3[2][:,:,2,1]
+            K = X*X'+X1*X1'
+            @test K ≈ diagm(diag(K))
+
+            E3 = vec_of_left_canonical([A3, B3, C3])
+            X = E3[1][:,:,1,1]
+            X1 = E3[1][:,:,2,1]
+            K = X'*X+X1'*X1
+            @test K ≈ diagm(diag(K))
+            X = E3[2][:,:,1,1]
+            X1 = E3[2][:,:,2,1]
+            K = X'*X+X1'*X1
+            @test K ≈ diagm(diag(K))
         end
 
         @testset "testing marginal probabilities for various configurations" begin
