@@ -391,53 +391,61 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
 end
 
 
-function make_left_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
+function make_left_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold = T(-1.)) where T <: AbstractFloat
     s = size(t1)
 
-    p1 = [2,1,3,4]
+    p1 = [1,3,4,2]
     A1 = permutedims(t1, p1)
-    A1 = reshape(A1, (s[2], s[1]*s[3]*s[4]))
+    A1 = reshape(A1, (s[1]*s[3]*s[4], s[2]))
 
     U,Σ,V = svd(Float64.(A1))
-    proj = transpose(U)
+    T2 = diagm(Σ)*transpose(V)
 
+    k = 0
     if threshold >= 0
         k = length(filter(e -> e > threshold, Σ))
-        proj = proj[1:k,:]
+        U = U[:, 1:k]
+        T2 = T2[1:k, :]
+    else
+        k = s[2]
     end
+    Anew = reshape(U, (s[1], s[3], s[4], k))
+    Anew = permutedims(Anew, invperm(p1))
 
     @tensor begin
-        t1[a,e,c,d] := t1[a,b,c,d]*proj[e,b]
+        t2[a,b,c,d] := T2[a,x]*t2[x,b,c,d]
     end
-
-    @tensor begin
-        t2[e,a,c,d] := t2[b,a,c,d]*proj[e,b]
-    end
-    t1, t2
+    Anew, t2
 end
 
 
-function make_right_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T) where T <: AbstractFloat
+
+function make_right_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T = T(-1.)) where T <: AbstractFloat
 
     s = size(t2)
-    A2 = reshape(t2, (s[1], s[2]*s[3]*s[4]))
 
-    U,Σ,V = svd(Float64.(A2))
+    B2 = reshape(t2, (s[1], s[2]*s[3]*s[4]))
 
-    proj = transpose(U)
+    U,Σ,V = svd(Float64.(B2))
+
+    T1 = U*diagm(Σ)
+    k = 0
     if threshold >= 0
         k = length(filter(e -> e > threshold, Σ))
-        proj = proj[1:k,:]
+        V = V[:, 1:k]
+        T1 = T1[:, 1:k]
+    else
+        k = s[1]
     end
 
-    @tensor begin
-        t1[a,e,c,d] := t1[a,b,c,d]*proj[e,b]
-    end
+    V = transpose(V)
+    Bnew = reshape(V, (k, s[2], s[3], s[4]))
 
     @tensor begin
-        t2[e,a,c,d] := t2[b,a,c,d]*proj[e,b]
+        t1[a,b,c,d] := T1[x,b]*t1[a,x,c,d]
     end
-    t1, t2
+
+    t1, Bnew
 end
 
 function vec_of_right_canonical(mps::Vector{Array{T, 4}}, threshold::T = T(-1.)) where T <: AbstractFloat
@@ -446,6 +454,7 @@ function vec_of_right_canonical(mps::Vector{Array{T, 4}}, threshold::T = T(-1.))
     end
     mps
 end
+
 
 function vec_of_left_canonical(mps::Vector{Array{T, 4}}, threshold::T = T(-1.)) where T <: AbstractFloat
     for i in 1:length(mps)-1

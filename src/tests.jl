@@ -3,6 +3,7 @@ include("notation.jl")
 using Test
 using LinearAlgebra
 
+include("alternative_approach.jl")
 
 @testset "test axiliary functions" begin
 
@@ -39,8 +40,6 @@ using LinearAlgebra
         @test last_m_els([1,2,3,4], 5) == [1,2,3,4]
     end
 end
-
-include("alternative_approach.jl")
 
 
 @testset "graphical implementation" begin
@@ -366,85 +365,89 @@ end
         contract_on_graph!(mg)
 
         mps_t = make_lower_mps(M, 1, 0.)
-        A = mps_t[1]
-        B = mps_t[2]
-        C = mps_t[3]
+        M1 = mps_t[1]
+        M2 = mps_t[2]
+        M3 = mps_t[3]
 
         E = ones(1,1)
 
         @tensor begin
-            D[] := A[a,x,z,v]*B[x,y,z,v]*C[y,a,z1,v1]*E[z1,v1]
+            D[] := M1[a,x,z,v]*M2[x,y,z,v]*M3[y,a,z1,v1]*E[z1,v1]
         end
         @test D[1] == props(mg, 1)[:tensor][1]
 
-        @testset "testing svd approximation" begin
 
-            A1 = copy(A)
-            B1 = copy(B)
-            C1 = copy(C)
+        mps_svd = svd_approx(mps_t, 1e-12)
+        A2 = mps_svd[1]
+        B2 = mps_svd[2]
+        C2 = mps_svd[3]
 
-            A2 = copy(A)
-            B2 = copy(B)
-            C2 = copy(C)
+        @test size(A2) == (1,1,1,1)
+        @test size(B2) == (1,1,1,1)
+        @test size(C2) == (1,1,1,1)
 
-            A,B = make_left_canonical(A,B, 1e-12)
-            B,C = make_left_canonical(B,C, 1e-12)
+        @tensor begin
+            D2[] := A2[a,x,z,v]*B2[x,y,z,v]*C2[y,a,z1,v1]*E[z1,v1]
+        end
 
-            B1,C1 = make_right_canonical(B1,C1, 1e-12)
-            A1,B1 = make_right_canonical(A1,B1, 1e-12)
+        @test D2[1] ≈ props(mg, 1)[:tensor][1]
 
+        @testset "testing itterative approximation" begin
 
-            @tensor begin
-                D[] := A[a,x,z,v]*B[x,y,z,v]*C[y,a,z1,v1]*E[z1,v1]
-            end
+            T1 = rand(1,2,2,1)
+            T2 = rand(2,2,2,1)
+            T3 = rand(2,1,2,1)
 
-            @test D[1] ≈ props(mg, 1)[:tensor][1]
+            A1, A2 = make_left_canonical(T1, T2)
 
-            @tensor begin
-                D1[] := A1[a,x,z,v]*B1[x,y,z,v]*C1[y,a,z1,v1]*E[z1,v1]
-            end
-
-            @test D1[1] ≈ props(mg, 1)[:tensor][1]
-
-            mps_svd = svd_approx([A2, B2, C2], 1e-12)
-            A2 = mps_svd[1]
-            B2 = mps_svd[2]
-            C2 = mps_svd[3]
-
-            @test size(A2) == (1,1,1,1)
-            @test size(B2) == (1,1,1,1)
-            @test size(C2) == (1,1,1,1)
+            A11 = A1[:,:,1,1]
+            A12 = A1[:,:,2,1]
+            @test A11'*A11+A12'*A12 ≈ Matrix(I, 2, 2)
 
             @tensor begin
-                D2[] := A2[a,x,z,v]*B2[x,y,z,v]*C2[y,a,z1,v1]*E[z1,v1]
+                V[i,m,k,n] := A1[i,j,k,l]*A2[j,m, n, l]
+                W[i,m,k,n] := T1[i,j,k,l]*T2[j,m, n, l]
             end
 
-            @test D2[1] ≈ props(mg, 1)[:tensor][1]
+            @test norm(abs.(V-W)) ≈ 0. atol=1e-14
 
-            A3 = rand(1,2,2,1)
-            B3 = rand(2,2,2,1)
-            C3 = rand(2,1,2,1)
+            A2,A3 = make_left_canonical(T2, T3)
 
-            D3 = vec_of_right_canonical([A3, B3, C3])
-            X = D3[3][:,:,1,1]
-            X1 = D3[3][:,:,2,1]
-            # sum over σ
-            K = X*X'+X1*X1'
-            @test K ≈ diagm(diag(K))
-            X = D3[2][:,:,1,1]
-            X1 = D3[2][:,:,2,1]
-            K = X*X'+X1*X1'
-            @test K ≈ diagm(diag(K))
+            X = A2[:,:,1,1]
+            X1 = A2[:,:,2,1]
+            @test X'*X+X1'*X1 ≈ Matrix(I, 2, 2)
 
-            E3 = vec_of_left_canonical([A3, B3, C3])
-            X = E3[1][:,:,1,1]
-            X1 = E3[1][:,:,2,1]
-            K = X'*X+X1'*X1
-            @test K ≈ diagm(diag(K))
-            X = E3[2][:,:,1,1]
-            X1 = E3[2][:,:,2,1]
-            K = X'*X+X1'*X1
-            @test K ≈ diagm(diag(K))
+            B1,B2 = make_right_canonical(T1, T2)
+
+            B11 = B2[:,:,1,1]
+            B12 = B2[:,:,2,1]
+            @test B11*B11'+B12*B12' ≈ Matrix(I, 2, 2)
+
+            @tensor begin
+                V[i,m,k,n] := B1[i,j,k,l]*B2[j,m, n, l]
+                W[i,m,k,n] := T1[i,j,k,l]*T2[j,m, n, l]
+            end
+
+            @test norm(abs.(V-W)) ≈ 0. atol=1e-14
+
+            v = vec_of_left_canonical([T1, T2, T3])
+            X = v[1][:,:,1,1]
+            X1 = v[1][:,:,2,1]
+            @test X'*X+X1'*X1 ≈ Matrix(I, 2, 2)
+
+            X = v[2][:,:,1,1]
+            X1 = v[2][:,:,2,1]
+            @test X'*X+X1'*X1 ≈ Matrix(I, 2, 2)
+
+            v = vec_of_right_canonical([T1, T2, T3])
+            B = v[2][:,:,1,1]
+            B1 = v[2][:,:,2,1]
+            @test B*B'+B1*B1' ≈ Matrix(I, 2, 2)
+
+            B = v[3][:,:,1,1]
+            B1 = v[3][:,:,2,1]
+            @test B*B'+B1*B1' ≈ Matrix(I, 2, 2)
+
         end
 
         @testset "testing marginal probabilities for various configurations" begin
@@ -641,7 +644,7 @@ end
     grid = [1 2 3; 4 5 6; 7 8 9]
 
     # svd does not work for the BigFloat
-    ses = solve(train_qubo, grid, 4; β = T(2.), threshold = T(1e-12))
+    ses = solve(train_qubo, grid, 4; β = T(2.), threshold = T(1e-13))
 
     #first
     @test ses[3].spins == [-1,1,-1,-1,1,-1,1,1,1]
@@ -666,6 +669,6 @@ end
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    @time ses = solve(train_qubo, grid, 10; β = 2., threshold = 1e-12)
+    @time ses = solve(train_qubo, grid, 10; β = 2.)
     @test ses[end].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 end
