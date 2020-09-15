@@ -5,6 +5,7 @@ using LinearAlgebra
 
 include("alternative_approach.jl")
 
+if true
 @testset "test axiliary functions" begin
 
     @testset "Qubo_el type" begin
@@ -255,6 +256,7 @@ end
         @test conf[2,:] == [1,-1,1,1,-1,1,1,1,1]
     end
 end
+end
 
 include("peps.jl")
 
@@ -364,7 +366,7 @@ end
         @test mps[2] == reshape(props(mg, 8)[:tensor], (2,2,2,1))
         contract_on_graph!(mg)
 
-        mps_t = make_lower_mps(M, 1, 0.)
+        mps_t = make_lower_mps(M, 1, 0)
         M1 = mps_t[1]
         M2 = mps_t[2]
         M3 = mps_t[3]
@@ -374,23 +376,8 @@ end
         @tensor begin
             D[] := M1[a,x,z,v]*M2[x,y,z,v]*M3[y,a,z1,v1]*E[z1,v1]
         end
-        @test D[1] == props(mg, 1)[:tensor][1]
+        @test D[1] ≈ props(mg, 1)[:tensor][1]
 
-
-        mps_svd = svd_approx(mps_t, 1e-12)
-        A2 = mps_svd[1]
-        B2 = mps_svd[2]
-        C2 = mps_svd[3]
-
-        @test size(A2) == (1,1,1,1)
-        @test size(B2) == (1,1,1,1)
-        @test size(C2) == (1,1,1,1)
-
-        @tensor begin
-            D2[] := A2[a,x,z,v]*B2[x,y,z,v]*C2[y,a,z1,v1]*E[z1,v1]
-        end
-
-        @test D2[1] ≈ props(mg, 1)[:tensor][1]
 
         @testset "testing itterative approximation" begin
 
@@ -448,16 +435,57 @@ end
             B1 = v[3][:,:,2,1]
             @test B*B'+B1*B1' ≈ Matrix(I, 2, 2)
 
+            T1 = rand(1,8,4,1)
+            T2 = rand(8,8,4,1)
+            T3 = rand(8,1,4,1)
+
+            mps_svd = left_canonical_approx([T1, T2, T3], 3)
+            T11 = mps_svd[1]
+            T12 = mps_svd[2]
+            T13 = mps_svd[3]
+
+            @test size(T11) == (1,3,4,1)
+            @test size(T12) == (3,3,4,1)
+            @test size(T13) == (3,1,4,1)
+
+            E = ones(1,1)
+            @tensor begin
+                D2[z1, z2, z3, v1, v2, v3] := T1[a,x,z1,v1]*T2[x,y,z2,v2]*T3[y,a,z3,v3]
+                D12[z1, z2, z3, v1, v2, v3] := T11[a,x,z1,v1]*T12[x,y,z2,v2]*T13[y,a,z3,v3]
+            end
+
+            @test norm(D2) ≈ norm(D12) atol = 1e-1
+
+            mps_svd = right_canonical_approx([T1, T2, T3], 3)
+            T11 = mps_svd[1]
+            T12 = mps_svd[2]
+            T13 = mps_svd[3]
+
+            @test size(T11) == (1,3,4,1)
+            @test size(T12) == (3,3,4,1)
+            @test size(T13) == (3,1,4,1)
+
+            @tensor begin
+                D12[z1, z2, z3, v1, v2, v3] := T11[a,x,z1,v1]*T12[x,y,z2,v2]*T13[y,a,z3,v3]
+            end
+            @test norm(D2) ≈ norm(D12) atol = 1e-1
+
+            v = compress_mps_itterativelly([T1, T2, T3], 2)
+
+            println("... + size of compressed itterativelly ...")
+            for i in 1:3
+                println(size(v[i]))
+            end
         end
 
         @testset "testing marginal probabilities for various configurations" begin
 
-            mps_r = make_lower_mps(M, 2, 0.)
+            mps_r = make_lower_mps(M, 2, 0)
             sp = compute_scalar_prod(mps_r, mps1)
 
             spp, _ = comp_marg_p_first(mps_r, M[1,:], [0,0,0])
-            @test sp == props(mg, 1)[:tensor][1]
-            @test spp == props(mg, 1)[:tensor][1]
+            @test sp ≈ props(mg, 1)[:tensor][1]
+            @test spp ≈ props(mg, 1)[:tensor][1]
 
             mg = make_graph3x3()
             add_qubo2graph!(mg, qubo)
@@ -482,7 +510,7 @@ end
 
             mps12 = set_spins_on_mps(M[1,:], [-1, 1, 1])
             sp1 = compute_scalar_prod(mps_r, mps12)
-            @test sp1 == props(mg, 1)[:tensor][1]
+            @test sp1 ≈ props(mg, 1)[:tensor][1]
 
             mg = make_graph3x3()
             add_qubo2graph!(mg, qubo)
@@ -616,7 +644,7 @@ end
 
     @testset "svd approximatimation in solution" begin
 
-        ses_a = solve(permuted_train_qubo, grid, 16; β = 1., threshold = 1e-12)
+        ses_a = solve(permuted_train_qubo, grid, 16; β = 1., χ = 2)
 
         for i in 9:16
             @test ses_a[i].spins[1:6] == [1,-1,1,1,-1,1]
@@ -644,7 +672,7 @@ end
     grid = [1 2 3; 4 5 6; 7 8 9]
 
     # svd does not work for the BigFloat
-    ses = solve(train_qubo, grid, 4; β = T(2.), threshold = T(1e-13))
+    ses = solve(train_qubo, grid, 4; β = T(2.), χ = 2)
 
     #first
     @test ses[3].spins == [-1,1,-1,-1,1,-1,1,1,1]
@@ -669,6 +697,6 @@ end
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    @time ses = solve(train_qubo, grid, 10; β = 2.)
+    @time ses = solve(train_qubo, grid, 2; β = 15., χ = 2)
     @test ses[end].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 end

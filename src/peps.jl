@@ -168,6 +168,7 @@ function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 4}, env::Array
     C
 end
 
+
 function scalar_prod_step(mps_down::Array{T, 4}, mps_up::Array{T, 5}, env::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 5))
     @tensor begin
@@ -281,7 +282,7 @@ function chain2pointstep(t::Array{T,4}, env::Array{T,2}) where T <: AbstractFloa
 end
 
 
-function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, threshold::T) where T <: AbstractFloat
+function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int) where T <: AbstractFloat
     s = size(M,1)
     if k <= s
         mps = trace_all_spins(M[s,:])
@@ -289,10 +290,7 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, threshold::T) where T <:
             mpo = trace_all_spins(M[i,:])
             mps = MPSxMPO(mps, mpo)
         end
-        if threshold != 0.
-            mps = svd_approx(mps, threshold)
-        end
-        return mps
+        return left_canonical_approx(mps, χ)
     end
     0
 end
@@ -332,7 +330,7 @@ function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractF
 end
 
 
-function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, threshold::T = T(0.)) where T <: AbstractFloat
+function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ::Int = 0) where T <: AbstractFloat
     problem_size = maximum(grid)
     s = size(grid)
     M = make_pepsTN(grid, qubo, β)
@@ -341,7 +339,7 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
     for row in 1:s[1]
 
         #this may need to ge cashed
-        lower_mps = make_lower_mps(M, row + 1, threshold)
+        lower_mps = make_lower_mps(M, row + 1, χ)
 
         for j in grid[row,:]
 
@@ -391,7 +389,7 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
 end
 
 
-function make_left_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold = T(-1.)) where T <: AbstractFloat
+function make_left_canonical(t1::Array{T, 4}, t2::Array{T, 4}) where T <: AbstractFloat
     s = size(t1)
 
     p1 = [1,3,4,2]
@@ -400,15 +398,8 @@ function make_left_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold = T(-1.
 
     U,Σ,V = svd(Float64.(A1))
     T2 = diagm(Σ)*transpose(V)
+    k = length(Σ)
 
-    k = 0
-    if threshold >= 0
-        k = length(filter(e -> e > threshold, Σ))
-        U = U[:, 1:k]
-        T2 = T2[1:k, :]
-    else
-        k = s[2]
-    end
     Anew = reshape(U, (s[1], s[3], s[4], k))
     Anew = permutedims(Anew, invperm(p1))
 
@@ -420,25 +411,17 @@ end
 
 
 
-function make_right_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T = T(-1.)) where T <: AbstractFloat
+function make_right_canonical(t1::Array{T, 4}, t2::Array{T, 4}) where T <: AbstractFloat
 
     s = size(t2)
 
     B2 = reshape(t2, (s[1], s[2]*s[3]*s[4]))
 
     U,Σ,V = svd(Float64.(B2))
-
+    k = length(Σ)
     T1 = U*diagm(Σ)
-    k = 0
-    if threshold >= 0
-        k = length(filter(e -> e > threshold, Σ))
-        V = V[:, 1:k]
-        T1 = T1[:, 1:k]
-    else
-        k = s[1]
-    end
-
     V = transpose(V)
+
     Bnew = reshape(V, (k, s[2], s[3], s[4]))
 
     @tensor begin
@@ -448,56 +431,102 @@ function make_right_canonical(t1::Array{T, 4}, t2::Array{T, 4}, threshold::T = T
     t1, Bnew
 end
 
-function vec_of_right_canonical(mps::Vector{Array{T, 4}}, threshold::T = T(-1.)) where T <: AbstractFloat
+function vec_of_right_canonical(mps::Vector{Array{T, 4}}) where T <: AbstractFloat
     for i in length(mps)-1:-1:1
-        mps[i], mps[i+1] = make_right_canonical(mps[i], mps[i+1], threshold)
+        mps[i], mps[i+1] = make_right_canonical(mps[i], mps[i+1])
     end
     mps
 end
 
 
-function vec_of_left_canonical(mps::Vector{Array{T, 4}}, threshold::T = T(-1.)) where T <: AbstractFloat
+function vec_of_left_canonical(mps::Vector{Array{T, 4}}) where T <: AbstractFloat
     for i in 1:length(mps)-1
-        mps[i], mps[i+1] = make_left_canonical(mps[i], mps[i+1], threshold)
+        mps[i], mps[i+1] = make_left_canonical(mps[i], mps[i+1])
     end
     mps
 end
 
-function svd_approx(mps::Vector{Array{T, 4}}, threshold::T) where T <: AbstractFloat
-    mps = vec_of_left_canonical(mps, threshold)
-    vec_of_right_canonical(mps, threshold)
+function left_canonical_approx(mps::Vector{Array{T, 4}}, χ::Int) where T <: AbstractFloat
+
+    mps = vec_of_left_canonical(mps)
+    if χ == 0
+        return mps
+    else
+        for i in 1:length(mps)-1
+            s = size(mps[i], 2)
+            χ = min(s, χ)
+
+            mps[i] = mps[i][:,1:χ,:,:]
+            mps[i+1] = mps[i+1][1:χ,:,:,:]
+        end
+    end
+    mps
 end
 
-function compress_mps_itterativelly(mps::Vector{Array{T,4}}, D::Int) where T <: AbstractFloat
-    # svd anzatz
-    # loop over mpses (how many times?)
+function right_canonical_approx(mps::Vector{Array{T, 4}}, χ::Int) where T <: AbstractFloat
+
+    mps = vec_of_right_canonical(mps)
+    if χ == 0
+        return mps
+    else
+        for i in 2:length(mps)
+            s = size(mps[i], 1)
+            χ = min(s, χ)
+            mps[i-1] = mps[i-1][:,1:χ,:,:]
+            mps[i] = mps[i][1:χ,:,:,:]
+        end
+    end
+    mps
+end
+
+function L_step(mps_anzatz::Array{T, 4}, mps::Array{T, 4}, env::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps_anzatz, 2), size(mps, 2))
+
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b] = env[x,y]*mps_anzatz[x,a,v,z]*mps[y,b,v,z]
+    end
+    C
+end
+
+
+function R_update(mps_sol::Array{T, 4}, mps::Array{T, 4}, R::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps_sol, 1), size(mps, 1))
+
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b] = R[x,y]*mps_sol[x,a,v,z]*mps[y,b,v,z]
+    end
+    C
+end
+
+function compress_mps_itterativelly(mps::Vector{Array{T,4}}, χ::Int) where T <: AbstractFloat
+    mps = left_canonical_approx(mps, 0)
+    mps_anzatz = left_canonical_approx(mps, χ)
+
+    all_L = [ones(T,1,1)]
+    for i in 1:length(mps)-1
+        E = L_step(mps_anzatz[i], mps[i], all_L[i])
+        push!(all_L, E)
+    end
+
+    Tens = all_L[end]
+    R = ones(T,1,1)
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b,c,d] := Tens[a,y]*mps[end][y,z,c,d]*R[b,z]
+    end
+    println(C)
+    println(mps_anzatz[end])
+
         # mixed representation
         # itterative loop (minimisation of ε)
             # conctract mps exact with mps anzatz without the ith M
             # result of contraction -> M
             # ε = 1- ∑ trace(M' * M)
-    mps
+    mps_anzatz
 end
 
-"""
-    function print_tensors_squared(t1, t2)
-
-can be used to determine whic tensors are orthogonaly decomposed.
-"""
-
-function print_tensors_squared(t1, t2)
-    A = permutedims(t1, [2,1,3,4])
-    s = size(A)
-    A = reshape(A, (s[1], s[2]*s[3]*s[4]))
-
-    println("left =", A*A')
-
-    A = t2
-    s = size(A)
-    A = reshape(A, (s[1], s[2]*s[3]*s[4]))
-
-    println("right = ", A*A')
-end
 
 function make_qubo()
     css = -2.
@@ -560,7 +589,7 @@ function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, se
     compute_scalar_prod(mpo, mps_u)
 end
 
-function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, threshold::T = T(0.)) where T <: AbstractFloat
+function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ = 0) where T <: AbstractFloat
     problem_size = maximum(grid)
     s = size(grid)
     M = make_pepsTN(grid, qubo, β)
@@ -569,7 +598,7 @@ function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{In
 
     for row in 1:s[1]
         #this may need to ge cashed
-        lower_mps = make_lower_mps(M, row + 1, threshold)
+        lower_mps = make_lower_mps(M, row + 1, χ)
 
         for j in grid[row,:]
 
