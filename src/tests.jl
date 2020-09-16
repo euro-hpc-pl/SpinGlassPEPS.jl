@@ -5,7 +5,7 @@ using LinearAlgebra
 
 include("alternative_approach.jl")
 
-if true
+if false
 @testset "test axiliary functions" begin
 
     @testset "Qubo_el type" begin
@@ -444,6 +444,12 @@ end
             T12 = mps_svd[2]
             T13 = mps_svd[3]
 
+            mps_svd_exact = left_canonical_approx([T1, T2, T3], 8)
+
+            T1e = mps_svd_exact[1]
+            T2e = mps_svd_exact[2]
+            T3e = mps_svd_exact[3]
+
             @test size(T11) == (1,3,4,1)
             @test size(T12) == (3,3,4,1)
             @test size(T13) == (3,1,4,1)
@@ -452,9 +458,11 @@ end
             @tensor begin
                 D2[z1, z2, z3, v1, v2, v3] := T1[a,x,z1,v1]*T2[x,y,z2,v2]*T3[y,a,z3,v3]
                 D12[z1, z2, z3, v1, v2, v3] := T11[a,x,z1,v1]*T12[x,y,z2,v2]*T13[y,a,z3,v3]
+                D1e[z1, z2, z3, v1, v2, v3] := T1e[a,x,z1,v1]*T2e[x,y,z2,v2]*T3e[y,a,z3,v3]
             end
 
             @test norm(D2) ≈ norm(D12) atol = 1e-1
+            @test norm(D2) ≈ norm(D1e)
 
             mps_svd = right_canonical_approx([T1, T2, T3], 3)
             T11 = mps_svd[1]
@@ -465,10 +473,17 @@ end
             @test size(T12) == (3,3,4,1)
             @test size(T13) == (3,1,4,1)
 
+            mps_svd_exact_r = right_canonical_approx([T1, T2, T3], 8)
+            T1er = mps_svd_exact_r[1]
+            T2er = mps_svd_exact_r[2]
+            T3er = mps_svd_exact_r[3]
+
             @tensor begin
-                D12[z1, z2, z3, v1, v2, v3] := T11[a,x,z1,v1]*T12[x,y,z2,v2]*T13[y,a,z3,v3]
+                D21[z1, z2, z3, v1, v2, v3] := T11[a,x,z1,v1]*T12[x,y,z2,v2]*T13[y,a,z3,v3]
+                D1er[z1, z2, z3, v1, v2, v3] := T1er[a,x,z1,v1]*T2er[x,y,z2,v2]*T3er[y,a,z3,v3]
             end
-            @test norm(D2) ≈ norm(D12) atol = 1e-1
+            @test norm(D2) ≈ norm(D1er)
+            @test norm(D2) ≈ norm(D21) atol = 1e-1
 
             v = compress_mps_itterativelly([T1, T2, T3], 2)
 
@@ -697,6 +712,6 @@ end
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    @time ses = solve(train_qubo, grid, 2; β = 15., χ = 2)
+    @time ses = solve(train_qubo, grid, 2; β = 2.5, χ = 2)
     @test ses[end].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 end

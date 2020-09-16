@@ -454,10 +454,10 @@ function left_canonical_approx(mps::Vector{Array{T, 4}}, χ::Int) where T <: Abs
     else
         for i in 1:length(mps)-1
             s = size(mps[i], 2)
-            χ = min(s, χ)
+            χ1 = min(s, χ)
 
-            mps[i] = mps[i][:,1:χ,:,:]
-            mps[i+1] = mps[i+1][1:χ,:,:,:]
+            mps[i] = mps[i][:,1:χ1,:,:]
+            mps[i+1] = mps[i+1][1:χ1,:,:,:]
         end
     end
     mps
@@ -471,9 +471,10 @@ function right_canonical_approx(mps::Vector{Array{T, 4}}, χ::Int) where T <: Ab
     else
         for i in 2:length(mps)
             s = size(mps[i], 1)
-            χ = min(s, χ)
-            mps[i-1] = mps[i-1][:,1:χ,:,:]
-            mps[i] = mps[i][1:χ,:,:,:]
+            χ1 = min(s, χ)
+
+            mps[i-1] = mps[i-1][:,1:χ1,:,:]
+            mps[i] = mps[i][1:χ1,:,:,:]
         end
     end
     mps
@@ -516,8 +517,8 @@ function compress_mps_itterativelly(mps::Vector{Array{T,4}}, χ::Int) where T <:
         #v concers contracting modes of size 1 in C
         C[a,b,c,d] := Tens[a,y]*mps[end][y,z,c,d]*R[b,z]
     end
-    println(C)
-    println(mps_anzatz[end])
+    #println(C)
+    #println(mps_anzatz[end])
 
         # mixed representation
         # itterative loop (minimisation of ε)
