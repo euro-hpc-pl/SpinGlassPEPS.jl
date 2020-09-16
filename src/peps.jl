@@ -290,7 +290,11 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int) where T <: Abst
             mpo = trace_all_spins(M[i,:])
             mps = MPSxMPO(mps, mpo)
         end
-        return left_canonical_approx(mps, χ)
+        if χ > 0
+            return compress_mps_itterativelly(mps, χ)
+        else
+            return left_canonical_approx(mps, χ)
+        end
     end
     0
 end
@@ -448,7 +452,7 @@ end
 
 function left_canonical_approx(mps::Vector{Array{T, 4}}, χ::Int) where T <: AbstractFloat
 
-    mps = vec_of_left_canonical(mps)
+    mps = vec_of_left_canonical(copy(mps))
     if χ == 0
         return mps
     else
@@ -465,7 +469,7 @@ end
 
 function right_canonical_approx(mps::Vector{Array{T, 4}}, χ::Int) where T <: AbstractFloat
 
-    mps = vec_of_right_canonical(mps)
+    mps = vec_of_right_canonical(copy(mps))
     if χ == 0
         return mps
     else
@@ -490,42 +494,79 @@ function L_step(mps_anzatz::Array{T, 4}, mps::Array{T, 4}, env::Array{T, 2}) whe
     C
 end
 
+function QR_make_right_canonical(t2::Array{T, 4}) where T <: AbstractFloat
+
+    s = size(t2)
+    p = [2,3,4,1]
+    t2 = permutedims(t2, p)
+
+    B2 = reshape(t2, (s[2]*s[3]*s[4], s[1]))
+
+    Q,R = qr(B2)
+    Q = Q[:,1:size(R,1)]
+
+    #println(Q'*Q)
+    l = min(size(Q,2), s[1])
+
+    Bnew = reshape(Q, (s[2], s[3], s[4], l))
+    Bnew = permutedims(Bnew, invperm(p))
+
+    T.(Bnew), T.(R)
+end
 
 function R_update(mps_sol::Array{T, 4}, mps::Array{T, 4}, R::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_sol, 1), size(mps, 1))
 
     @tensor begin
         #v concers contracting modes of size 1 in C
-        C[a,b] = R[x,y]*mps_sol[x,a,v,z]*mps[y,b,v,z]
+        C[a,b] = mps_sol[a,x,v,z]*mps[b,y,v,z]*R[x,y]
     end
     C
 end
 
-function compress_mps_itterativelly(mps::Vector{Array{T,4}}, χ::Int) where T <: AbstractFloat
-    mps = left_canonical_approx(mps, 0)
-    mps_anzatz = left_canonical_approx(mps, χ)
+function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int) where T <: AbstractFloat
+
+    mps = left_canonical_approx(mps_d, 0)
+    mps_anzatz = left_canonical_approx(mps_d, χ)
+
+    mps_ret = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
 
     all_L = [ones(T,1,1)]
     for i in 1:length(mps)-1
+
         E = L_step(mps_anzatz[i], mps[i], all_L[i])
         push!(all_L, E)
     end
 
-    Tens = all_L[end]
+    s = size(mps[end],2)
+    M_exact = Matrix{T}(I, s,s)
     R = ones(T,1,1)
-    @tensor begin
-        #v concers contracting modes of size 1 in C
-        C[a,b,c,d] := Tens[a,y]*mps[end][y,z,c,d]*R[b,z]
-    end
-    #println(C)
-    #println(mps_anzatz[end])
 
-        # mixed representation
-        # itterative loop (minimisation of ε)
-            # conctract mps exact with mps anzatz without the ith M
-            # result of contraction -> M
-            # ε = 1- ∑ trace(M' * M)
-    mps_anzatz
+    for i in length(mps):-1:1
+        @tensor begin
+            mps_e[a,b,c,d] := mps[i][a,x,c,d]*M_exact[b,x]
+        end
+
+        Tens = all_L[i]
+        @tensor begin
+            #v concers contracting modes of size 1 in C
+            C[a,b,c,d] := Tens[a,y]*mps_e[y,z,c,d]*R[b,z]
+        end
+
+        Q, _ = QR_make_right_canonical(C)
+        Q_exact, M_exact = QR_make_right_canonical(mps_e)
+
+        mps_ret[i] = Q
+        R = R_update(Q, Q_exact, R)
+    end
+
+    for M in mps_ret
+        @tensor begin
+            X[x,y] := M[x,a,b,c]*M[y,a,b,c]
+        end
+        println("epsylon = ", size(X,1)-tr(X))
+    end
+    mps_ret
 end
 
 

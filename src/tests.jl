@@ -485,12 +485,29 @@ end
             @test norm(D2) ≈ norm(D1er)
             @test norm(D2) ≈ norm(D21) atol = 1e-1
 
+            println("chi = 2")
             v = compress_mps_itterativelly([T1, T2, T3], 2)
+            println("chi = 1")
+            v1 = compress_mps_itterativelly([T1, T2, T3], 1)
 
-            println("... + size of compressed itterativelly ...")
             for i in 1:3
+                println("chi = 2")
                 println(size(v[i]))
+                println("chi = 1")
+                println(size(v1[i]))
             end
+
+            @tensor begin
+                Dc[z1, z2, z3, v1, v2, v3] := v[1][a,x,z1,v1]*v[2][x,y,z2,v2]*v[3][y,a,z3,v3]
+                Dc1[z1, z2, z3, v1, v2, v3] := v1[1][a,x,z1,v1]*v1[2][x,y,z2,v2]*v1[3][y,a,z3,v3]
+            end
+
+            println("norms")
+
+            println("ours chi = 2, = ", norm(Dc./D2.*norm(D2).+1))
+            println("ours chi = 1, = ", norm(Dc1./D2.*norm(D2).+1))
+
+            println("svd cutoff = ", norm(D12./D2.-1))
         end
 
         @testset "testing marginal probabilities for various configurations" begin
