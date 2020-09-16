@@ -503,6 +503,9 @@ end
             end
 
             println("norms")
+            println(norm(D2))
+            println(norm(D12))
+
 
             println("ours chi = 2, = ", norm(Dc./D2.*norm(D2).+1))
             println("ours chi = 1, = ", norm(Dc1./D2.*norm(D2).+1))

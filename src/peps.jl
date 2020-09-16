@@ -550,22 +550,23 @@ function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int) where T 
         Tens = all_L[i]
         @tensor begin
             #v concers contracting modes of size 1 in C
-            C[a,b,c,d] := Tens[a,y]*mps_e[y,z,c,d]*R[b,z]
+            M[a,b,c,d] := Tens[a,y]*mps_e[y,z,c,d]*R[b,z]
         end
 
-        Q, _ = QR_make_right_canonical(C)
+        Q, TD = QR_make_right_canonical(M)
         Q_exact, M_exact = QR_make_right_canonical(mps_e)
+
+        @tensor begin
+            X[x,y] := M[x,a,b,c]*M[y,a,b,c]
+        end
+        n = norm(TD)
+
+        println("n = ", n , " epsylon = ", 1-tr(X./n^2))
 
         mps_ret[i] = Q
         R = R_update(Q, Q_exact, R)
     end
 
-    for M in mps_ret
-        @tensor begin
-            X[x,y] := M[x,a,b,c]*M[y,a,b,c]
-        end
-        println("epsylon = ", size(X,1)-tr(X))
-    end
     mps_ret
 end
 
