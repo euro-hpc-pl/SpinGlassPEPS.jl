@@ -484,15 +484,6 @@ function right_canonical_approx(mps::Vector{Array{T, 4}}, χ::Int) where T <: Ab
     mps
 end
 
-function L_step(mps_anzatz::Array{T, 4}, mps::Array{T, 4}, env::Array{T, 2}) where T <: AbstractFloat
-    C = zeros(T, size(mps_anzatz, 2), size(mps, 2))
-
-    @tensor begin
-        #v concers contracting modes of size 1 in C
-        C[a,b] = env[x,y]*mps_anzatz[x,a,v,z]*mps[y,b,v,z]
-    end
-    C
-end
 
 function QR_make_right_canonical(t2::Array{T, 4}) where T <: AbstractFloat
 
@@ -505,7 +496,6 @@ function QR_make_right_canonical(t2::Array{T, 4}) where T <: AbstractFloat
     Q,R = qr(B2)
     Q = Q[:,1:size(R,1)]
 
-    #println(Q'*Q)
     l = min(size(Q,2), s[1])
 
     Bnew = reshape(Q, (s[2], s[3], s[4], l))
@@ -514,60 +504,129 @@ function QR_make_right_canonical(t2::Array{T, 4}) where T <: AbstractFloat
     T.(Bnew), T.(R)
 end
 
-function R_update(mps_sol::Array{T, 4}, mps::Array{T, 4}, R::Array{T, 2}) where T <: AbstractFloat
-    C = zeros(T, size(mps_sol, 1), size(mps, 1))
+function QR_make_left_canonical(t2::Array{T, 4}) where T <: AbstractFloat
 
+    s = size(t2)
+    p = [1,3,4,2]
+    t2 = permutedims(t2, p)
+
+    B2 = reshape(t2, (s[1]*s[3]*s[4], s[2]))
+
+    Q,R = qr(B2)
+    Q = Q[:,1:size(R,1)]
+    l = min(size(Q,2), s[2])
+
+    Bnew = reshape(Q, (s[1], s[3], s[4], l))
+    Bnew = permutedims(Bnew, invperm(p))
+
+    T.(Bnew), T.(R)
+end
+
+function R_update(U::Array{T, 4}, U_exact::Array{T, 4}, R::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(U, 1), size(U_exact, 1))
     @tensor begin
         #v concers contracting modes of size 1 in C
-        C[a,b] = mps_sol[a,x,v,z]*mps[b,y,v,z]*R[x,y]
+        C[a,b] = U[a,x,v,z]*U_exact[b,y,v,z]*R[x,y]
     end
     C
 end
 
-function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int) where T <: AbstractFloat
+function L_update(U::Array{T, 4}, U_exact::Array{T, 4}, R::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(U, 2), size(U_exact, 2))
+    @tensor begin
+        #v concers contracting modes of size 1 in C
+        C[a,b] = U[x,a,v,z]*U_exact[y,b,v,z]*R[x,y]
+    end
+    C
+end
+
+function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int, threshold::T = T(1e-14)) where T <: AbstractFloat
 
     mps = left_canonical_approx(mps_d, 0)
     mps_anzatz = left_canonical_approx(mps_d, χ)
+    mps_centr = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
 
     mps_ret = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
+    mps_ret1 = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
 
-    all_L = [ones(T,1,1)]
+
+    # initialize R and L
+    all_L = [ones(T,1,1) for _ in 1:length(mps)]
     for i in 1:length(mps)-1
-
-        E = L_step(mps_anzatz[i], mps[i], all_L[i])
-        push!(all_L, E)
+        all_L[i+1] = L_update(mps_anzatz[i], mps[i], all_L[i])
     end
+    all_R = [ones(T,1,1) for _ in 1:length(mps)]
 
     s = size(mps[end],2)
     M_exact = Matrix{T}(I, s,s)
-    R = ones(T,1,1)
+    for k in 1:5
+        n = 0.
+        ϵ = 0.
+        for i in length(mps):-1:1
+            # transform to canonical centre
+            @tensor begin
+                mps_c[a,b,c,d] := mps[i][a,x,c,d]*M_exact[b,x]
+            end
+            mps_centr[i] = mps_c
 
-    for i in length(mps):-1:1
-        @tensor begin
-            mps_e[a,b,c,d] := mps[i][a,x,c,d]*M_exact[b,x]
+            @tensor begin
+                #v concers contracting modes of size 1 in C
+                M[a,b,c,d] := all_L[i][a,y]*mps_c[y,z,c,d]*all_R[i][b,z]
+            end
+
+            Q, TD = QR_make_right_canonical(M)
+            Q_exact, M_exact = QR_make_right_canonical(mps_c)
+
+            # compute ϵ
+            @tensor begin
+                X[x,y] := M[x,a,b,c]*M[y,a,b,c]
+            end
+            n = norm(M_exact)
+            ϵ = ϵ + 1-tr(X./n^2)
+
+            mps_ret[i] = Q
+            if i > 1
+                all_R[i-1] = R_update(Q, Q_exact, all_R[i])
+            end
+        end
+        if true
+            println("ϵ l2r = ", ϵ)
         end
 
-        Tens = all_L[i]
-        @tensor begin
-            #v concers contracting modes of size 1 in C
-            M[a,b,c,d] := Tens[a,y]*mps_e[y,z,c,d]*R[b,z]
+        ϵ = 0.
+
+        s = size(mps[1],1)
+        M_exact = Matrix{T}(I, s,s)
+        for i in 1:length(mps)
+
+            mps_c = mps_centr[i]
+
+            @tensor begin
+                #v concers contracting modes of size 1 in C
+                M[a,b,c,d] := all_L[i][a,y]*mps_c[y,z,c,d]*all_R[i][b,z]
+            end
+
+            Q, TD = QR_make_left_canonical(M)
+            mps_ret1[i] = Q
+
+            @tensor begin
+                X[x,y] := M[x,a,b,c]*M[y,a,b,c]
+            end
+            ϵ = ϵ + 1-tr(X./n^2)
+
+            if i < length(mps)
+                A = L_update(Q, mps[i], all_L[i])
+                all_L[i+1] = A
+            end
         end
-
-        Q, TD = QR_make_right_canonical(M)
-        Q_exact, M_exact = QR_make_right_canonical(mps_e)
-
-        @tensor begin
-            X[x,y] := M[x,a,b,c]*M[y,a,b,c]
+        if true
+            println("ϵ r2l = ", ϵ)
         end
-        n = norm(TD)
-
-        println("n = ", n , " epsylon = ", 1-tr(X./n^2))
-
-        mps_ret[i] = Q
-        R = R_update(Q, Q_exact, R)
+        if abs(ϵ) < threshold
+            return mps_ret1
+        end
     end
-
-    mps_ret
+    mps_ret1
 end
 
 

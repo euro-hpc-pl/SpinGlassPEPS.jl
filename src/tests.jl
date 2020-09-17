@@ -435,6 +435,25 @@ end
             B1 = v[3][:,:,2,1]
             @test B*B'+B1*B1' ≈ Matrix(I, 2, 2)
 
+            U,R = QR_make_right_canonical(T2)
+            U1,R1 = QR_make_left_canonical(T2)
+
+            @test R[2,1] == 0.0
+            @test R1[2,1] == 0.0
+
+            B = U[:,:,1,1]
+            B1 = U[:,:,2,1]
+            @test B*B'+B1*B1' ≈ Matrix(I, 2,2)
+
+            A = U1[:,:,1,1]
+            A1 = U1[:,:,2,1]
+            @test A'*A+A1'*A1 ≈ Matrix(I, 2,2)
+
+            @test R_update(U,U, Matrix{Float64}(I, 2,2)) ≈ Matrix(I, 2,2)
+            @test L_update(U1,U1, Matrix{Float64}(I, 2,2)) ≈ Matrix(I, 2,2)
+
+            # approximations of PePses
+
             T1 = rand(1,8,4,1)
             T2 = rand(8,8,4,1)
             T3 = rand(8,1,4,1)
@@ -485,32 +504,38 @@ end
             @test norm(D2) ≈ norm(D1er)
             @test norm(D2) ≈ norm(D21) atol = 1e-1
 
-            println("chi = 2")
-            v = compress_mps_itterativelly([T1, T2, T3], 2)
             println("chi = 1")
             v1 = compress_mps_itterativelly([T1, T2, T3], 1)
+            println("chi = 2")
+            v2 = compress_mps_itterativelly([T1, T2, T3], 2)
+            println("chi = 3")
+            v3 = compress_mps_itterativelly([T1, T2, T3], 3)
 
-            for i in 1:3
-                println("chi = 2")
-                println(size(v[i]))
-                println("chi = 1")
-                println(size(v1[i]))
-            end
+            @test size(v3[2]) == (3,3,4,1)
+            @test size(v2[2]) == (2,2,4,1)
+            @test size(v1[2]) == (1,1,4,1)
 
             @tensor begin
-                Dc[z1, z2, z3, v1, v2, v3] := v[1][a,x,z1,v1]*v[2][x,y,z2,v2]*v[3][y,a,z3,v3]
+                Dc3[z1, z2, z3, v1, v2, v3] := v3[1][a,x,z1,v1]*v3[2][x,y,z2,v2]*v3[3][y,a,z3,v3]
+                Dc2[z1, z2, z3, v1, v2, v3] := v2[1][a,x,z1,v1]*v2[2][x,y,z2,v2]*v2[3][y,a,z3,v3]
                 Dc1[z1, z2, z3, v1, v2, v3] := v1[1][a,x,z1,v1]*v1[2][x,y,z2,v2]*v1[3][y,a,z3,v3]
             end
 
-            println("norms")
-            println(norm(D2))
-            println(norm(D12))
+            println("norms error itterative")
+            println("χ = 3")
+            println(norm(Dc3./D2.*norm(D2).+1))
+            println("χ = 2")
+            println(norm(Dc2./D2.*norm(D2).+1))
+            println("χ = 1")
+            println(norm(Dc1./D2.*norm(D2).+1))
 
+            println("norm error svd cut χ = 3")
+            println(norm(D12./D2.-1))
 
-            println("ours chi = 2, = ", norm(Dc./D2.*norm(D2).+1))
-            println("ours chi = 1, = ", norm(Dc1./D2.*norm(D2).+1))
-
-            println("svd cutoff = ", norm(D12./D2.-1))
+            # norm difference from the original one
+            @test norm(abs.(Dc3./D2.*norm(D2)).-1) < norm(Dc2./D2.*norm(D2).+1)
+            @test norm(abs.(Dc2./D2.*norm(D2)).-1) < norm(Dc1./D2.*norm(D2).+1)
+            @test norm(abs.(Dc3./D2.*norm(D2)).-1) < norm(D12./D2.-1)
         end
 
         @testset "testing marginal probabilities for various configurations" begin
@@ -732,6 +757,6 @@ end
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    @time ses = solve(train_qubo, grid, 2; β = 2.5, χ = 2)
+    @time ses = solve(train_qubo, grid, 2; β = 3., χ = 2)
     @test ses[end].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 end
