@@ -1,4 +1,6 @@
 using TensorOperations
+using LinearAlgebra
+using GenericLinearAlgebra
 
 include("notation.jl")
 
@@ -282,7 +284,7 @@ function chain2pointstep(t::Array{T,4}, env::Array{T,2}) where T <: AbstractFloa
 end
 
 
-function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int) where T <: AbstractFloat
+function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int, threshold::T) where T <: AbstractFloat
     s = size(M,1)
     if k <= s
         mps = trace_all_spins(M[s,:])
@@ -290,10 +292,10 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int) where T <: Abst
             mpo = trace_all_spins(M[i,:])
             mps = MPSxMPO(mps, mpo)
         end
-        if χ > 0
-            return compress_mps_itterativelly(mps, χ)
+        if threshold > 0.
+            return compress_mps_itterativelly(mps, χ, threshold)
         else
-            return left_canonical_approx(mps, χ)
+            return left_canonical_approx(mps, 0)
         end
     end
     0
@@ -334,7 +336,7 @@ function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractF
 end
 
 
-function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ::Int = 0) where T <: AbstractFloat
+function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ::Int = 0, threshold::T = T(1e-14)) where T <: AbstractFloat
     problem_size = maximum(grid)
     s = size(grid)
     M = make_pepsTN(grid, qubo, β)
@@ -343,7 +345,7 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
     for row in 1:s[1]
 
         #this may need to ge cashed
-        lower_mps = make_lower_mps(M, row + 1, χ)
+        lower_mps = make_lower_mps(M, row + 1, χ, threshold)
 
         for j in grid[row,:]
 
@@ -400,7 +402,7 @@ function make_left_canonical(t1::Array{T, 4}, t2::Array{T, 4}) where T <: Abstra
     A1 = permutedims(t1, p1)
     A1 = reshape(A1, (s[1]*s[3]*s[4], s[2]))
 
-    U,Σ,V = svd(Float64.(A1))
+    U,Σ,V = svd(A1)
     T2 = diagm(Σ)*transpose(V)
     k = length(Σ)
 
@@ -421,7 +423,7 @@ function make_right_canonical(t1::Array{T, 4}, t2::Array{T, 4}) where T <: Abstr
 
     B2 = reshape(t2, (s[1], s[2]*s[3]*s[4]))
 
-    U,Σ,V = svd(Float64.(B2))
+    U,Σ,V = svd(B2)
     k = length(Σ)
     T1 = U*diagm(Σ)
     V = transpose(V)
@@ -492,7 +494,6 @@ function QR_make_right_canonical(t2::Array{T, 4}) where T <: AbstractFloat
     t2 = permutedims(t2, p)
 
     B2 = reshape(t2, (s[2]*s[3]*s[4], s[1]))
-
     Q,R = qr(B2)
     Q = Q[:,1:size(R,1)]
 
@@ -501,7 +502,7 @@ function QR_make_right_canonical(t2::Array{T, 4}) where T <: AbstractFloat
     Bnew = reshape(Q, (s[2], s[3], s[4], l))
     Bnew = permutedims(Bnew, invperm(p))
 
-    T.(Bnew), T.(R)
+    Bnew, R
 end
 
 function QR_make_left_canonical(t2::Array{T, 4}) where T <: AbstractFloat
@@ -511,7 +512,6 @@ function QR_make_left_canonical(t2::Array{T, 4}) where T <: AbstractFloat
     t2 = permutedims(t2, p)
 
     B2 = reshape(t2, (s[1]*s[3]*s[4], s[2]))
-
     Q,R = qr(B2)
     Q = Q[:,1:size(R,1)]
     l = min(size(Q,2), s[2])
@@ -519,7 +519,7 @@ function QR_make_left_canonical(t2::Array{T, 4}) where T <: AbstractFloat
     Bnew = reshape(Q, (s[1], s[3], s[4], l))
     Bnew = permutedims(Bnew, invperm(p))
 
-    T.(Bnew), T.(R)
+    Bnew, R
 end
 
 function R_update(U::Array{T, 4}, U_exact::Array{T, 4}, R::Array{T, 2}) where T <: AbstractFloat
@@ -540,7 +540,7 @@ function L_update(U::Array{T, 4}, U_exact::Array{T, 4}, R::Array{T, 2}) where T 
     C
 end
 
-function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int, threshold::T = T(1e-14)) where T <: AbstractFloat
+function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int, threshold::T) where T <: AbstractFloat
 
     mps = left_canonical_approx(mps_d, 0)
     mps_anzatz = left_canonical_approx(mps_d, χ)
@@ -642,113 +642,10 @@ train_qubo = make_qubo()
 
 grid = [1 2 3; 4 5 6; 7 8 9]
 
-ses = solve(train_qubo, grid, 1; β = 1.)
+ses = solve(train_qubo, grid, 1; β = 1., χ = 2, threshold = 1e-14)
 
 #ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
 
 for el in ses
-    println(el.spins)
-end
-
-######## arbitrary decomposition  ############
-
-
-function set_spins_on_mps(mps::Vector{Array{T, 5}}, s::Vector{Int}) where T <: AbstractFloat
-    l = length(mps)
-    up_bonds = zeros(Int, l)
-    output_mps = Array{Union{Nothing, Array{T, 4}}}(nothing, l)
-    for i in 1:l
-        if s[i] == 0
-            output_mps[i] = sum_over_last(mps[i])
-        else
-            A = set_last(mps[i], s[i])
-            ind = spins2index(s[i])
-
-            output_mps[i] = A
-
-        end
-    end
-    Vector{Array{T, 4}}(output_mps)
-end
-
-function comp_marg_p(mps_u::Vector{Array{T, 4}}, mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mpo = set_spins_on_mps(M, ses)
-    mps_u = copy(mps_u)
-
-    mps_n = MPSxMPO(mpo, mps_u)
-    compute_scalar_prod(mps_d, mps_n), mps_n
-end
-
-function comp_marg_p_first(mps_d::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mps_u = set_spins_on_mps(M, ses)
-    compute_scalar_prod(mps_d, mps_u), mps_u
-end
-
-function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
-    mpo = set_spins_on_mps(M, ses)
-    mps_u = copy(mps_u)
-
-    compute_scalar_prod(mpo, mps_u)
-end
-
-function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ = 0) where T <: AbstractFloat
-    problem_size = maximum(grid)
-    s = size(grid)
-    M = make_pepsTN(grid, qubo, β)
-
-    partial_solutions = Partial_sol{T}[Partial_sol{T}()]
-
-    for row in 1:s[1]
-        #this may need to ge cashed
-        lower_mps = make_lower_mps(M, row + 1, χ)
-
-        for j in grid[row,:]
-
-            a = [add_spin(ps, 1) for ps in partial_solutions]
-            b = [add_spin(ps, -1) for ps in partial_solutions]
-            partial_solutions = vcat(a,b)
-
-            for ps in partial_solutions
-
-                part_sol = ps.spins
-                sol = part_sol[1+(row-1)*s[2]:end]
-                l = s[2] - length(sol)
-                sol = vcat(sol, fill(0, l))
-
-                u = []
-                prob = 0.
-                if row == 1
-                    prob, u = comp_marg_p_first(lower_mps, M[row,:], sol)
-                elseif row == s[1]
-                    prob = comp_marg_p_last(ps.upper_mps, M[row,:], sol)
-                else
-                    prob, u = comp_marg_p(ps.upper_mps, lower_mps, M[row,:], sol)
-                end
-
-                ps.objective = prob
-
-                if (j % s[2] == 0) & (j < problem_size)
-                    ps.upper_mps = u
-                end
-            end
-
-            objectives = [ps.objective for ps in partial_solutions]
-
-            perm = sortperm(objectives)
-
-            p1 = last_m_els(perm, no_sols)
-
-            partial_solutions = partial_solutions[p1]
-
-            if j == problem_size
-                    return partial_solutions
-            end
-        end
-    end
-end
-
-ses1 = solve_arbitrary_decomposition(train_qubo, grid, 1; β = 1.)
-
-for el in ses1
     println(el.spins)
 end
