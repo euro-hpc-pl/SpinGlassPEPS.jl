@@ -43,12 +43,33 @@ function comp_marg_p_last(mps_u::Vector{Array{T, 4}}, M::Vector{Array{T, 5}}, se
     compute_scalar_prod(mpo, mps_u)
 end
 
+mutable struct Partial_sol1{T <: AbstractFloat}
+    spins::Vector{Int}
+    objective::T
+    upper_mps::Vector{Array{T, 4}}
+    function(::Type{Partial_sol1{T}})(spins::Vector{Int}, objective::T, upper_mps::Vector{Array{T, 4}}) where T <:AbstractFloat
+        new{T}(spins, objective, upper_mps)
+    end
+    function(::Type{Partial_sol1{T}})(spins::Vector{Int}, objective::T) where T <:AbstractFloat
+        new{T}(spins, objective, [zeros(0,0,0,0)])
+    end
+    function(::Type{Partial_sol1{T}})() where T <:AbstractFloat
+        new{T}(Int[], 1., [zeros(0,0,0,0)])
+    end
+end
+
+function add_spin(ps::Partial_sol1{T}, s::Int) where T <: AbstractFloat
+    s in [-1,1] || error("spin should be 1 or -1 we got $s")
+    Partial_sol1{T}(vcat(ps.spins, [s]), T(0.), ps.upper_mps)
+end
+
+
 function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T) where T <: AbstractFloat
     problem_size = maximum(grid)
     s = size(grid)
     M = make_pepsTN(grid, qubo, β)
 
-    partial_solutions = Partial_sol{T}[Partial_sol{T}()]
+    Partial_solutions = Partial_sol1{T}[Partial_sol1{T}()]
 
     for row in 1:s[1]
         #this may need to ge cashed
@@ -58,11 +79,11 @@ function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{In
 
         for j in grid[row,:]
 
-            a = [add_spin(ps, 1) for ps in partial_solutions]
-            b = [add_spin(ps, -1) for ps in partial_solutions]
-            partial_solutions = vcat(a,b)
+            a = [add_spin(ps, 1) for ps in Partial_solutions]
+            b = [add_spin(ps, -1) for ps in Partial_solutions]
+            Partial_solutions = vcat(a,b)
 
-            for ps in partial_solutions
+            for ps in Partial_solutions
 
                 part_sol = ps.spins
                 sol = part_sol[1+(row-1)*s[2]:end]
@@ -86,36 +107,17 @@ function solve_arbitrary_decomposition(qubo::Vector{Qubo_el{T}}, grid::Matrix{In
                 end
             end
 
-            objectives = [ps.objective for ps in partial_solutions]
+            objectives = [ps.objective for ps in Partial_solutions]
 
             perm = sortperm(objectives)
 
             p1 = last_m_els(perm, no_sols)
 
-            partial_solutions = partial_solutions[p1]
+            Partial_solutions = Partial_solutions[p1]
 
             if j == problem_size
-                    return partial_solutions
+                    return Partial_solutions
             end
         end
     end
-end
-
-function make_qubo()
-    css = -2.
-    qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
-    qubo = vcat(qubo, [(6,6) 0.; (6,5) 1.75; (6,9) 0.; (5,5) -0.75; (5,4) 1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
-    qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-end
-train_qubo = make_qubo()
-
-
-grid = [1 2 3; 4 5 6; 7 8 9]
-
-
-ses1 = solve_arbitrary_decomposition(train_qubo, grid, 1; β = 1.)
-
-for el in ses1
-    println(el.spins)
 end

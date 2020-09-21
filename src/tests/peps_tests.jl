@@ -21,17 +21,14 @@ end
     ps = Partial_sol{Float64}()
     @test ps.spins == []
     @test ps.objective == 1.
-    @test ps.upper_mps == [zeros(0,0,0,0)]
 
-    ps1 = Partial_sol{Float64}([1,1], 1., [ones(2,2,2,2), ones(2,2,2,2)])
+    ps1 = Partial_sol{Float64}([1,1], 1.)
     @test ps1.spins == [1,1]
     @test ps1.objective == 1.
-    @test ps1.upper_mps == [ones(2,2,2,2), ones(2,2,2,2)]
 
-    ps2 = add_spin(ps1, -1)
+    ps2 = add_spin(ps1, -1, 1.)
     @test ps2.spins == [1,1,-1]
-    @test ps2.objective == 0.
-    @test ps2.upper_mps == [ones(2,2,2,2), ones(2,2,2,2)]
+    @test ps2.objective == 1.
 end
 
 @testset "PEPS network creation" begin
@@ -285,6 +282,27 @@ end
     # and this to 1st excited
     for i in 1:8
         @test ses[i].spins[1:6] == [-1,1,-1,-1,1,-1]
+    end
+
+
+    function make_qubo()
+        css = -2.
+        qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
+        qubo = vcat(qubo, [(6,6) 0.; (6,5) 1.75; (6,9) 0.; (5,5) -0.75; (5,4) 1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
+        qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    train_qubo = make_qubo()
+
+
+    grid = [1 2 3; 4 5 6; 7 8 9]
+
+    ses = solve(train_qubo, grid, 1; β = 1., χ = 2, threshold = 1e-14)
+
+    #ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
+
+    for el in ses
+        println(el.spins)
     end
 
     @testset "svd approximatimation in solution" begin

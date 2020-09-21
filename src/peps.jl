@@ -2,8 +2,6 @@ using TensorOperations
 using LinearAlgebra
 using GenericLinearAlgebra
 
-include("notation.jl")
-
 # axiliary
 
 function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
@@ -305,23 +303,14 @@ end
 mutable struct Partial_sol{T <: AbstractFloat}
     spins::Vector{Int}
     objective::T
-    upper_mps::Vector{Array{T, 4}}
-    function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T, upper_mps::Vector{Array{T, 4}}) where T <:AbstractFloat
-        new{T}(spins, objective, upper_mps)
-    end
     function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T) where T <:AbstractFloat
-        new{T}(spins, objective, [zeros(0,0,0,0)])
+        new{T}(spins, objective)
     end
     function(::Type{Partial_sol{T}})() where T <:AbstractFloat
-        new{T}(Int[], 1., [zeros(0,0,0,0)])
+        new{T}(Int[], 1.)
     end
 end
 
-
-function add_spin(ps::Partial_sol{T}, s::Int) where T <: AbstractFloat
-    s in [-1,1] || error("spin should be 1 or -1 we got $s")
-    Partial_sol{T}(vcat(ps.spins, [s]), T(0.), ps.upper_mps)
-end
 
 """
     add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
@@ -332,7 +321,7 @@ of the marginal probabilities
 
 function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
     s in [-1,1] || error("spin should be 1 or -1 we got $s")
-    Partial_sol{T}(vcat(ps.spins, [s]), ps.objective*objective, ps.upper_mps)
+    Partial_sol{T}(vcat(ps.spins, [s]), ps.objective*objective)
 end
 
 
@@ -627,25 +616,4 @@ function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int, threshol
         end
     end
     mps_ret1
-end
-
-
-function make_qubo()
-    css = -2.
-    qubo = [(1,1) -1.25; (1,2) 1.75; (1,4) css; (2,2) -1.75; (2,3) 1.75; (2,5) 0.; (3,3) -1.75; (3,6) css]
-    qubo = vcat(qubo, [(6,6) 0.; (6,5) 1.75; (6,9) 0.; (5,5) -0.75; (5,4) 1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
-    qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-end
-train_qubo = make_qubo()
-
-
-grid = [1 2 3; 4 5 6; 7 8 9]
-
-ses = solve(train_qubo, grid, 1; β = 1., χ = 2, threshold = 1e-14)
-
-#ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
-
-for el in ses
-    println(el.spins)
 end
