@@ -159,12 +159,16 @@ end
             @test norm(D2) ≈ norm(D1er)
             @test norm(D2) ≈ norm(D21) atol = 1e-1
 
+            mps_lc = left_canonical_approx([T1, T2, T3], 0)
             println("chi = 1")
-            v1 = compress_mps_itterativelly([T1, T2, T3], 1, 1e-14)
+            mps_anzatz = left_canonical_approx([T1, T2, T3], 1)
+            v1 = compress_mps_itterativelly(mps_lc, mps_anzatz, 1, 1e-14)
             println("chi = 2")
-            v2 = compress_mps_itterativelly([T1, T2, T3], 2, 1e-14)
+            mps_anzatz = left_canonical_approx([T1, T2, T3], 2)
+            v2 = compress_mps_itterativelly(mps_lc, mps_anzatz, 2, 1e-14)
             println("chi = 3")
-            v3 = compress_mps_itterativelly([T1, T2, T3], 3, 1e-14)
+            mps_anzatz = left_canonical_approx([T1, T2, T3], 3)
+            v3 = compress_mps_itterativelly(mps_lc, mps_anzatz, 3, 1e-14)
 
             @test size(v3[2]) == (3,3,4,1)
             @test size(v2[2]) == (2,2,4,1)
@@ -178,14 +182,14 @@ end
 
             println("norms error itterative")
             println("χ = 3")
-            println(norm(Dc3./D2.*norm(D2).+1))
+            println(norm(abs.(Dc3./D2.*norm(D2)).-1))
             println("χ = 2")
-            println(norm(Dc2./D2.*norm(D2).+1))
+            println(norm(abs.(Dc2./D2.*norm(D2)).-1))
             println("χ = 1")
-            println(norm(Dc1./D2.*norm(D2).+1))
+            println(norm(abs.(Dc1./D2.*norm(D2)).-1))
 
             println("norm error svd cut χ = 3")
-            println(norm(D12./D2.-1))
+            println(norm(abs.(D12./D2.-1)))
 
             # norm difference from the original one
             @test norm(abs.(Dc3./D2.*norm(D2)).-1) < norm(Dc2./D2.*norm(D2).+1)
@@ -342,7 +346,6 @@ end
     #ground
     @test ses[4].spins == [1,-1,1,1,-1,1,1,1,1]
 
-    # we should think about this atol
 
     @test typeof(ses[1].objective) == BigFloat
 end

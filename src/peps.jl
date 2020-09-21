@@ -289,11 +289,14 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int, threshold::T) w
         for i in s-1:-1:k
             mpo = trace_all_spins(M[i,:])
             mps = MPSxMPO(mps, mpo)
+
         end
+        mps_lc = left_canonical_approx(mps, 0)
         if threshold > 0.
-            return compress_mps_itterativelly(mps, χ, threshold)
+            mps_anzatz = left_canonical_approx(mps, χ)
+            return compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
         else
-            return left_canonical_approx(mps, 0)
+            return mps_lc
         end
     end
     0
@@ -529,15 +532,13 @@ function L_update(U::Array{T, 4}, U_exact::Array{T, 4}, R::Array{T, 2}) where T 
     C
 end
 
-function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int, threshold::T) where T <: AbstractFloat
+function compress_mps_itterativelly(mps::Vector{Array{T,4}}, mps_anzatz::Vector{Array{T,4}}, χ::Int, threshold::T) where T <: AbstractFloat
 
-    mps = left_canonical_approx(mps_d, 0)
-    mps_anzatz = left_canonical_approx(mps_d, χ)
     mps_centr = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
 
     mps_ret = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
     mps_ret1 = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
-
+    maxsweeps = 5
 
     # initialize R and L
     all_L = [ones(T,1,1) for _ in 1:length(mps)]
@@ -547,14 +548,15 @@ function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int, threshol
     all_R = [ones(T,1,1) for _ in 1:length(mps)]
 
     s = size(mps[end],2)
-    M_exact = Matrix{T}(I, s,s)
-    for k in 1:5
+    R_exact = Matrix{T}(I, s,s)
+
+    for sweep = 1:maxsweeps
         n = 0.
         ϵ = 0.
         for i in length(mps):-1:1
             # transform to canonical centre
             @tensor begin
-                mps_c[a,b,c,d] := mps[i][a,x,c,d]*M_exact[b,x]
+                mps_c[a,b,c,d] := mps[i][a,x,c,d]*R_exact[b,x]
             end
             mps_centr[i] = mps_c
 
@@ -564,13 +566,15 @@ function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int, threshol
             end
 
             Q, TD = QR_make_right_canonical(M)
-            Q_exact, M_exact = QR_make_right_canonical(mps_c)
+            Q_exact, R_exact = QR_make_right_canonical(mps_c)
 
             # compute ϵ
             @tensor begin
                 X[x,y] := M[x,a,b,c]*M[y,a,b,c]
             end
-            n = norm(M_exact)
+            if n == 0.
+                n = norm(R_exact)
+            end
             ϵ = ϵ + 1-tr(X./n^2)
 
             mps_ret[i] = Q
@@ -585,7 +589,7 @@ function compress_mps_itterativelly(mps_d::Vector{Array{T,4}}, χ::Int, threshol
         ϵ = 0.
 
         s = size(mps[1],1)
-        M_exact = Matrix{T}(I, s,s)
+        R_exact = Matrix{T}(I, s,s)
         for i in 1:length(mps)
 
             mps_c = mps_centr[i]
