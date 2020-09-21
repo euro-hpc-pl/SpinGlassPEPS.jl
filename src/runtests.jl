@@ -1,8 +1,14 @@
 using Test
 using LinearAlgebra
+using TensorOperations
 
-include("/home/kdomino/Dokumenty/julia_modules/MPStates.jl/src/MPStates.jl")
-
+path = "/home/kdomino/Dokumenty/julia_modules/"
+include(path*"MPStates.jl/src/MPStates.jl")
+include(path*"MPStates.jl/src/mps.jl")
+include(path*"MPStates.jl/src/mps_operations.jl")
+include(path*"MPStates.jl/src/cache.jl")
+include(path*"MPStates.jl/src/tensor_contractions.jl")
+include(path*"MPStates.jl/src/tensor_factorizations.jl")
 
 include("notation.jl")
 include("tests/notation_tests.jl")

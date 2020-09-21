@@ -113,6 +113,7 @@ end
             T2 = rand(8,8,4,1)
             T3 = rand(8,1,4,1)
 
+
             mps_svd = left_canonical_approx([T1, T2, T3], 3)
             T11 = mps_svd[1]
             T12 = mps_svd[2]
@@ -174,6 +175,7 @@ end
             @test size(v2[2]) == (2,2,4,1)
             @test size(v1[2]) == (1,1,4,1)
 
+
             @tensor begin
                 Dc3[z1, z2, z3, v1, v2, v3] := v3[1][a,x,z1,v1]*v3[2][x,y,z2,v2]*v3[3][y,a,z3,v3]
                 Dc2[z1, z2, z3, v1, v2, v3] := v2[1][a,x,z1,v1]*v2[2][x,y,z2,v2]*v2[3][y,a,z3,v3]
@@ -195,6 +197,65 @@ end
             @test norm(abs.(Dc3./D2.*norm(D2)).-1) < norm(Dc2./D2.*norm(D2).+1)
             @test norm(abs.(Dc2./D2.*norm(D2)).-1) < norm(Dc1./D2.*norm(D2).+1)
             @test norm(abs.(Dc3./D2.*norm(D2)).-1) < norm(D12./D2.-1)
+
+            @testset "compare with otner implemtation" begin
+
+                T1 = rand(1,16,4,1)
+                T2 = rand(16,16,4,1)
+                T3 = rand(16,1,4,1)
+
+                println("comparison with the state of art")
+
+                tol = 1e-10
+
+                println(" .....time of our computation ...., tol = ", tol)
+
+                @time mps_lc = left_canonical_approx([T1, T2, T3], 0)
+
+                @time mps_anzatz = left_canonical_approx([T1, T2, T3], 3)
+
+                @time v3 = compress_mps_itterativelly(mps_lc, mps_anzatz, 3, tol)
+
+                println("......")
+
+                ts = [T1[:,:,:,1], T2[:,:,:,1], T3[:,:,:,1]]
+                ts = [permutedims(e, [1,3,2]) for e in ts]
+
+                mps_mps = Mps(ts, 3, 4)
+
+                println("state of art time")
+                @time mps_mps = simplify!(mps_mps, 3; tol = tol);
+
+
+                println("1, delta of norms")
+
+                println(norm(permutedims(v3[1][:,:,:,1], [1,3,2]).-mps_mps.M[1]))
+
+                println("norm")
+
+                println(norm(mps_mps.M[1]))
+
+
+                println(".........")
+                println("2, delta of norms")
+
+                println(norm(permutedims(v3[2][:,:,:,1], [1,3,2]).-mps_mps.M[2]))
+
+                println("norm")
+
+                println(norm(mps_mps.M[2]))
+
+                println(".........")
+                println("3, delta of norms")
+
+                println(norm(permutedims(v3[3][:,:,:,1], [1,3,2]).-mps_mps.M[3]))
+
+                println("norm")
+
+                println(norm(mps_mps.M[3]))
+
+
+            end
         end
 
         @testset "testing marginal probabilities for various configurations" begin
@@ -363,6 +424,6 @@ end
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    @time ses = solve(train_qubo, grid, 2; β = 3., χ = 2)
+    @time ses = solve(train_qubo, grid, 2; β = 3., χ = 2, threshold = 1e-11)
     @test ses[end].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 end

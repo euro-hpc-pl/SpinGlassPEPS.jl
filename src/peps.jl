@@ -538,7 +538,7 @@ function compress_mps_itterativelly(mps::Vector{Array{T,4}}, mps_anzatz::Vector{
 
     mps_ret = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
     mps_ret1 = [zeros(T, 1,1,1,1) for _ in 1:length(mps)]
-    maxsweeps = 5
+    maxsweeps = 300
 
     # initialize R and L
     all_L = [ones(T,1,1) for _ in 1:length(mps)]
@@ -582,7 +582,7 @@ function compress_mps_itterativelly(mps::Vector{Array{T,4}}, mps_anzatz::Vector{
                 all_R[i-1] = R_update(Q, Q_exact, all_R[i])
             end
         end
-        if true
+        if false
             println("ϵ l2r = ", ϵ)
         end
 
@@ -612,7 +612,7 @@ function compress_mps_itterativelly(mps::Vector{Array{T,4}}, mps_anzatz::Vector{
                 all_L[i+1] = A
             end
         end
-        if true
+        if false
             println("ϵ r2l = ", ϵ)
         end
         if abs(ϵ) < threshold
