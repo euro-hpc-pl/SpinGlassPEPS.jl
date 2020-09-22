@@ -121,23 +121,6 @@ function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) whe
     Array{Array{T, 3}}(mps_res)
 end
 
-function MPSxMPO(mps_down::Vector{Array{T, 5}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
-        mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
-        for i in 1:length(mps_down)
-        A = mps_down[i]
-        B = mps_up[i]
-        sa = size(A)
-        sb = size(B)
-
-        C = zeros(T, sa[1] , sb[1], sa[2], sb[2], sb[3], sa[4], sa[5])
-        @tensor begin
-            C[a,d,b,e,f,c, g] = A[a,b,x,c,g]*B[d,e,f,x]
-        end
-        mps_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3], sa[4], sa[5]))
-    end
-    Array{Array{T, 5}}(mps_res)
-end
-
 """
     function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
 
@@ -145,7 +128,6 @@ for general implementation
 """
 
 function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
-    #mps_down = [reshape(e, (size(e)..., 1)) for e in mps_down]
     env = ones(T, 1,1)
     for i in length(mps_up):-1:1
         env = scalar_prod_step(mps_down[i], mps_up[i], env)
@@ -161,7 +143,6 @@ for peps implementation
 """
 
 function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
-    #mps_down = [reshape(e, (size(e)..., 1)) for e in mps_down]
     env = ones(T, 1,1)
     for i in length(mps_up):-1:1
         env = scalar_prod_step(mps_down[i], mps_up[i], env)
@@ -169,9 +150,9 @@ function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array
     env[1,1,:]
 end
 
-function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 4}, env::Array{T, 2}) where T <: AbstractFloat
+function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1))
-    mps_up = mps_up[:,:,1,:]
+    #mps_up = mps_up[:,:,1,:]
     @tensor begin
         C[a,b] = mps_up[a,x,z]*mps_down[b,y,z]*env[x,y]
     end
@@ -179,18 +160,18 @@ function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 4}, env::Array
 end
 
 
-function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 5}, env::Array{T, 2}) where T <: AbstractFloat
-    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 5))
-    mps_up = mps_up[:,:,1,:,:]
+function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 4}, env::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 4))
+    #mps_up = mps_up[:,:,1,:,:]
     @tensor begin
         C[a,b, u] = mps_up[a,x,z,u]*mps_down[b,y,z]*env[x,y]
     end
     C
 end
 
-function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 4}, env::Array{T, 3}) where T <: AbstractFloat
+function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 3}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(env, 3))
-    mps_up = mps_up[:,:,1,:]
+    #mps_up = mps_up[:,:,1,:]
     @tensor begin
         C[a,b,u] = mps_up[a,x,z]*mps_down[b,y,z]*env[x,y,u]
     end
@@ -198,7 +179,7 @@ function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 4}, env::Array
 end
 
 
-function set_part(M::Vector{Array{T,5}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
+function set_part(M::Vector{Array{T,3}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
     l = length(s)
     siz = size(M,1)
     chain = [M[l+1]]
@@ -206,14 +187,14 @@ function set_part(M::Vector{Array{T,5}}, s::Vector{Int} = Int[]) where T <: Abst
 
     if l > 0
         v = [T(s[l] == -1), T(s[l] == 1)]
-        K1 = reshape(v, (1,2,1,1))
+        K1 = reshape(v, (1,2))
         chain = vcat([K1], chain)
     end
 
     Vector{Array{T, N} where N}(chain)
 end
 
-function conditional_probabs(M::Vector{Array{T,5}}, lower_mps::Vector{Array{T,3}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
+function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
 
     l = length(s)
     siz = size(M,1)
@@ -226,12 +207,12 @@ function conditional_probabs(M::Vector{Array{T,5}}, lower_mps::Vector{Array{T,3}
     end
     if l > 0
         v = [T(s[l] == -1), T(s[l] == 1)]
-        K = reshape(kron(v, v), (1,2,1,2))
+        K = reshape(kron(v, v), (1,2,2))
         upper = vcat([K], upper)
 
         for j in l-1:-1:1
             v = [T(s[j] == -1), T(s[j] == 1)]
-            K1 = reshape(v, (1,1,1,2))
+            K1 = reshape(v, (1,1,2))
             upper = vcat([K1], upper)
         end
     end
@@ -240,16 +221,22 @@ function conditional_probabs(M::Vector{Array{T,5}}, lower_mps::Vector{Array{T,3}
     unnorm_prob./sum(unnorm_prob)
 end
 
-
-function set_row(mps::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
+# set the 3-th mode according to sping from above
+function set_row(mpo::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
     l = length(ses)
-    upper = [ones(T, 1,1,1,1) for _ in 1:l]
+    ret = [ones(T, 1,1,1,1) for _ in 1:l]
     for i in 1:l
+        A = mpo[i]
         v = [T(ses[i] == -1), T(ses[i] == 1)]
-        upper[i] = reshape(v, (1,1,1,2))
+        B = reshape(v, (2))
+        s = size(A)
+        C = ones(T, s[1], s[2], s[4], s[5])
+        @tensor begin
+            C[a,b,c,d] = A[a,b,x,c,d]*B[x]
+        end
+        ret[i] = C
     end
-
-        MPSxMPO(mps, Vector{Array{T, 4}}(upper))
+    ret
 end
 
 function chain2point(chain::Vector{Array{T, N} where N}) where T <: AbstractFloat
@@ -262,9 +249,8 @@ function chain2point(chain::Vector{Array{T, N} where N}) where T <: AbstractFloa
     env[1,:]./sum(env)
 end
 
-function chain2pointstep(t::Array{T, 5}, env::Array{T, 1}) where T <: AbstractFloat
-    ret = zeros(T, size(t, 1), size(t, 5))
-    t = t[:,:,1,1,:]
+function chain2pointstep(t::Array{T, 3}, env::Array{T, 1}) where T <: AbstractFloat
+    ret = zeros(T, size(t, 1), size(t, 3))
 
     @tensor begin
         ret[a,b] = t[a, x, b]*env[x]
@@ -272,18 +258,17 @@ function chain2pointstep(t::Array{T, 5}, env::Array{T, 1}) where T <: AbstractFl
     ret
 end
 
-function chain2pointstep(t::Array{T, 4}, env::Array{T, 1}) where T <: AbstractFloat
+function chain2pointstep(t::Array{T, 2}, env::Array{T, 1}) where T <: AbstractFloat
     ret = zeros(T, size(t, 1))
-    t = t[:,:,1,1]
+
     @tensor begin
         ret[a] = t[a, x]*env[x]
     end
     ret
 end
 
-function chain2pointstep(t::Array{T,4}, env::Array{T,2}) where T <: AbstractFloat
+function chain2pointstep(t::Array{T,2}, env::Array{T,2}) where T <: AbstractFloat
     ret = zeros(T, size(t, 1), size(env, 2))
-    t = t[:,:,1,1]
 
     @tensor begin
         ret[a,b] = t[a, x]*env[x, b]
@@ -360,7 +345,9 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
                 objectives = [0., 0.]
 
                 if row == 1
-                    objectives = conditional_probabs(M[row,:], lower_mps, sol)
+                    # first row, up index can be reduced
+                    A = [e[:,:,1,:,:] for e in M[row,:]]
+                    objectives = conditional_probabs(A, lower_mps, sol)
 
                 elseif row < s[1]
                     sol_row = part_sol[1+(row-2)*s[2]:(row-1)*s[2]]
@@ -370,6 +357,8 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
                 else
                     sol_row = part_sol[1+(row-2)*s[2]:(row-1)*s[2]]
                     Mtemp = set_row(M[row,:], sol_row)
+                    # last row, down index can be reduced
+                    Mtemp = [e[:,:,1,:] for e in Mtemp]
                     chain = set_part(Mtemp, sol)
                     objectives = chain2point(chain)
                 end

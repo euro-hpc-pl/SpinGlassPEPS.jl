@@ -266,34 +266,31 @@ end
             mps = MPSxMPO([ones(1,2,2), 2*ones(2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
             @test mps == [2*ones(1,4,1), 4*ones(4,1,1)]
 
-            mps = MPSxMPO([ones(1,2,2,1,2), 2*ones(2,1,2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
-            @test mps == [2*ones(1,4,1,1,2), 4*ones(4,1,1,1,2)]
+            mps = set_row([ones(1,2,2,1,2), 2*ones(2,1,2,1,2)], [1,1])
+            @test mps == [ones(1,2,1,2), 2*ones(2,1,1,2)]
 
 
-            b = compute_scalar_prod([ones(1,2,2), ones(2,1,2)], [ones(1,2,1,2,2), 2*ones(2,1,1,2)])
+            b = compute_scalar_prod([ones(1,2,2), ones(2,1,2)], [ones(1,2,2,2), 2*ones(2,1,2)])
             @test b == [32.0, 32.0]
 
-            a = scalar_prod_step(ones(2,2,2), ones(2,2,1,2), ones(2,2))
+            a = scalar_prod_step(ones(2,2,2), ones(2,2,2), ones(2,2))
             @test a == [8.0 8.0; 8.0 8.0]
-            a = scalar_prod_step(ones(2,2,2), ones(2,2,1,2,2), ones(2,2))
+            a = scalar_prod_step(ones(2,2,2), ones(2,2,2,2), ones(2,2))
             @test a[:,:,1] == [8.0 8.0; 8.0 8.0]
             @test a[:,:,2] == [8.0 8.0; 8.0 8.0]
-            a = scalar_prod_step(ones(2,2,2), ones(2,2,1,2), ones(2,2,2))
+            a = scalar_prod_step(ones(2,2,2), ones(2,2,2), ones(2,2,2))
             @test a[:,:,1] == [8.0 8.0; 8.0 8.0]
             @test a[:,:,2] == [8.0 8.0; 8.0 8.0]
 
-            v1 = [ones(1,2,1,2,2), ones(2,2,1,2,2), ones(2,2,1,2,2), ones(2,1,1,2,2)]
+            v1 = [ones(1,2,2,2), ones(2,2,2,2), ones(2,2,2,2), ones(2,1,2,2)]
             v2 = [ones(1,2,2), ones(2,2,2), ones(2,2,2), ones(2,1,2)]
             a = conditional_probabs(v1, v2, [1,1,1])
             @test a == [0.5, 0.5]
 
-            a = chain2point([ones(1,2,1,1,2), ones(2,1,1,1)])
+            a = chain2point([reshape([1.,0.], (1,2)), ones(2,2,2), ones(2,2), ones(2,1)])
             @test a == [0.5, 0.5]
 
-            a = chain2point([reshape([1.,0.], (1,2,1,1)), ones(2,2,1,1,2), ones(2,2,1,1), ones(2,1,1,1)])
-            @test a == [0.5, 0.5]
-
-            a = chain2point([reshape([1.,0.], (1,2,1,1)), ones(2,1,1,1,2)])
+            a = chain2point([reshape([1.,0.], (1,2)), ones(2,1,2)])
             @test a == [0.5, 0.5]
         end
 end
