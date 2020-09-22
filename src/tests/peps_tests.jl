@@ -36,58 +36,58 @@ end
 
         @testset "testing itterative approximation" begin
 
-            T1 = rand(1,2,2,1)
-            T2 = rand(2,2,2,1)
-            T3 = rand(2,1,2,1)
+            T1 = rand(1,2,2)
+            T2 = rand(2,2,2)
+            T3 = rand(2,1,2)
 
             A1, A2 = make_left_canonical(T1, T2)
 
-            A11 = A1[:,:,1,1]
-            A12 = A1[:,:,2,1]
+            A11 = A1[:,:,1]
+            A12 = A1[:,:,2]
             @test A11'*A11+A12'*A12 ≈ Matrix(I, 2, 2)
 
             @tensor begin
-                V[i,m,k,n] := A1[i,j,k,l]*A2[j,m, n, l]
-                W[i,m,k,n] := T1[i,j,k,l]*T2[j,m, n, l]
+                V[i,m,k,n] := A1[i,j,k]*A2[j,m, n]
+                W[i,m,k,n] := T1[i,j,k]*T2[j,m, n]
             end
 
             @test norm(abs.(V-W)) ≈ 0. atol=1e-14
 
             A2,A3 = make_left_canonical(T2, T3)
 
-            X = A2[:,:,1,1]
-            X1 = A2[:,:,2,1]
+            X = A2[:,:,1]
+            X1 = A2[:,:,2]
             @test X'*X+X1'*X1 ≈ Matrix(I, 2, 2)
 
             B1,B2 = make_right_canonical(T1, T2)
 
-            B11 = B2[:,:,1,1]
-            B12 = B2[:,:,2,1]
+            B11 = B2[:,:,1]
+            B12 = B2[:,:,2]
             @test B11*B11'+B12*B12' ≈ Matrix(I, 2, 2)
 
             @tensor begin
-                V[i,m,k,n] := B1[i,j,k,l]*B2[j,m, n, l]
-                W[i,m,k,n] := T1[i,j,k,l]*T2[j,m, n, l]
+                V[i,m,k,n] := B1[i,j,k]*B2[j,m, n]
+                W[i,m,k,n] := T1[i,j,k]*T2[j,m, n]
             end
 
             @test norm(abs.(V-W)) ≈ 0. atol=1e-14
 
             v = vec_of_left_canonical([T1, T2, T3])
-            X = v[1][:,:,1,1]
-            X1 = v[1][:,:,2,1]
+            X = v[1][:,:,1]
+            X1 = v[1][:,:,2]
             @test X'*X+X1'*X1 ≈ Matrix(I, 2, 2)
 
-            X = v[2][:,:,1,1]
-            X1 = v[2][:,:,2,1]
+            X = v[2][:,:,1]
+            X1 = v[2][:,:,2]
             @test X'*X+X1'*X1 ≈ Matrix(I, 2, 2)
 
             v = vec_of_right_canonical([T1, T2, T3])
-            B = v[2][:,:,1,1]
-            B1 = v[2][:,:,2,1]
+            B = v[2][:,:,1]
+            B1 = v[2][:,:,2]
             @test B*B'+B1*B1' ≈ Matrix(I, 2, 2)
 
-            B = v[3][:,:,1,1]
-            B1 = v[3][:,:,2,1]
+            B = v[3][:,:,1]
+            B1 = v[3][:,:,2]
             @test B*B'+B1*B1' ≈ Matrix(I, 2, 2)
 
             U,R = QR_make_right_canonical(T2)
@@ -96,12 +96,12 @@ end
             @test R[2,1] == 0.0
             @test R1[2,1] == 0.0
 
-            B = U[:,:,1,1]
-            B1 = U[:,:,2,1]
+            B = U[:,:,1]
+            B1 = U[:,:,2]
             @test B*B'+B1*B1' ≈ Matrix(I, 2,2)
 
-            A = U1[:,:,1,1]
-            A1 = U1[:,:,2,1]
+            A = U1[:,:,1]
+            A1 = U1[:,:,2]
             @test A'*A+A1'*A1 ≈ Matrix(I, 2,2)
 
             @test R_update(U,U, Matrix{Float64}(I, 2,2)) ≈ Matrix(I, 2,2)
@@ -109,9 +109,9 @@ end
 
             # approximations of PePses
 
-            T1 = rand(1,8,4,1)
-            T2 = rand(8,8,4,1)
-            T3 = rand(8,1,4,1)
+            T1 = rand(1,8,4)
+            T2 = rand(8,8,4)
+            T3 = rand(8,1,4)
 
 
             mps_svd = left_canonical_approx([T1, T2, T3], 3)
@@ -125,15 +125,15 @@ end
             T2e = mps_svd_exact[2]
             T3e = mps_svd_exact[3]
 
-            @test size(T11) == (1,3,4,1)
-            @test size(T12) == (3,3,4,1)
-            @test size(T13) == (3,1,4,1)
+            @test size(T11) == (1,3,4)
+            @test size(T12) == (3,3,4)
+            @test size(T13) == (3,1,4)
 
             E = ones(1,1)
             @tensor begin
-                D2[z1, z2, z3, v1, v2, v3] := T1[a,x,z1,v1]*T2[x,y,z2,v2]*T3[y,a,z3,v3]
-                D12[z1, z2, z3, v1, v2, v3] := T11[a,x,z1,v1]*T12[x,y,z2,v2]*T13[y,a,z3,v3]
-                D1e[z1, z2, z3, v1, v2, v3] := T1e[a,x,z1,v1]*T2e[x,y,z2,v2]*T3e[y,a,z3,v3]
+                D2[z1, z2, z3] := T1[a,x,z1]*T2[x,y,z2]*T3[y,a,z3]
+                D12[z1, z2, z3] := T11[a,x,z1]*T12[x,y,z2]*T13[y,a,z3]
+                D1e[z1, z2, z3] := T1e[a,x,z1]*T2e[x,y,z2]*T3e[y,a,z3]
             end
 
             @test norm(D2) ≈ norm(D12) atol = 1e-1
@@ -144,9 +144,9 @@ end
             T12 = mps_svd[2]
             T13 = mps_svd[3]
 
-            @test size(T11) == (1,3,4,1)
-            @test size(T12) == (3,3,4,1)
-            @test size(T13) == (3,1,4,1)
+            @test size(T11) == (1,3,4)
+            @test size(T12) == (3,3,4)
+            @test size(T13) == (3,1,4)
 
             mps_svd_exact_r = right_canonical_approx([T1, T2, T3], 8)
             T1er = mps_svd_exact_r[1]
@@ -154,8 +154,8 @@ end
             T3er = mps_svd_exact_r[3]
 
             @tensor begin
-                D21[z1, z2, z3, v1, v2, v3] := T11[a,x,z1,v1]*T12[x,y,z2,v2]*T13[y,a,z3,v3]
-                D1er[z1, z2, z3, v1, v2, v3] := T1er[a,x,z1,v1]*T2er[x,y,z2,v2]*T3er[y,a,z3,v3]
+                D21[z1, z2, z3] := T11[a,x,z1]*T12[x,y,z2]*T13[y,a,z3]
+                D1er[z1, z2, z3] := T1er[a,x,z1]*T2er[x,y,z2]*T3er[y,a,z3]
             end
             @test norm(D2) ≈ norm(D1er)
             @test norm(D2) ≈ norm(D21) atol = 1e-1
@@ -171,15 +171,15 @@ end
             mps_anzatz = left_canonical_approx([T1, T2, T3], 3)
             v3 = compress_mps_itterativelly(mps_lc, mps_anzatz, 3, 1e-14)
 
-            @test size(v3[2]) == (3,3,4,1)
-            @test size(v2[2]) == (2,2,4,1)
-            @test size(v1[2]) == (1,1,4,1)
+            @test size(v3[2]) == (3,3,4)
+            @test size(v2[2]) == (2,2,4)
+            @test size(v1[2]) == (1,1,4)
 
 
             @tensor begin
-                Dc3[z1, z2, z3, v1, v2, v3] := v3[1][a,x,z1,v1]*v3[2][x,y,z2,v2]*v3[3][y,a,z3,v3]
-                Dc2[z1, z2, z3, v1, v2, v3] := v2[1][a,x,z1,v1]*v2[2][x,y,z2,v2]*v2[3][y,a,z3,v3]
-                Dc1[z1, z2, z3, v1, v2, v3] := v1[1][a,x,z1,v1]*v1[2][x,y,z2,v2]*v1[3][y,a,z3,v3]
+                Dc3[z1, z2, z3] := v3[1][a,x,z1]*v3[2][x,y,z2]*v3[3][y,a,z3]
+                Dc2[z1, z2, z3] := v2[1][a,x,z1]*v2[2][x,y,z2]*v2[3][y,a,z3]
+                Dc1[z1, z2, z3] := v1[1][a,x,z1]*v1[2][x,y,z2]*v1[3][y,a,z3]
             end
 
             println("norms error itterative")
@@ -200,9 +200,9 @@ end
 
             @testset "compare with otner implemtation" begin
 
-                T1 = rand(1,16,4,1)
-                T2 = rand(16,16,4,1)
-                T3 = rand(16,1,4,1)
+                T1 = rand(1,16,4)
+                T2 = rand(16,16,4)
+                T3 = rand(16,1,4)
 
                 println("comparison with the state of art")
 
@@ -218,7 +218,7 @@ end
 
                 println("......")
 
-                ts = [T1[:,:,:,1], T2[:,:,:,1], T3[:,:,:,1]]
+                ts = [T1, T2, T3]
                 ts = [permutedims(e, [1,3,2]) for e in ts]
 
                 mps_mps = Mps(ts, 3, 4)
@@ -229,7 +229,7 @@ end
 
                 println("1, delta of norms")
 
-                println(norm(permutedims(v3[1][:,:,:,1], [1,3,2]).-mps_mps.M[1]))
+                println(norm(permutedims(v3[1], [1,3,2]).-mps_mps.M[1]))
 
                 println("norm")
 
@@ -239,7 +239,7 @@ end
                 println(".........")
                 println("2, delta of norms")
 
-                println(norm(permutedims(v3[2][:,:,:,1], [1,3,2]).-mps_mps.M[2]))
+                println(norm(permutedims(v3[2], [1,3,2]).-mps_mps.M[2]))
 
                 println("norm")
 
@@ -248,7 +248,7 @@ end
                 println(".........")
                 println("3, delta of norms")
 
-                println(norm(permutedims(v3[3][:,:,:,1], [1,3,2]).-mps_mps.M[3]))
+                println(norm(permutedims(v3[3], [1,3,2]).-mps_mps.M[3]))
 
                 println("norm")
 
@@ -263,27 +263,27 @@ end
 
             ####   conditional probability implementation
 
-            mps = MPSxMPO([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
-            @test mps == [2*ones(1,4,1,1), 4*ones(4,1,1,1)]
+            mps = MPSxMPO([ones(1,2,2), 2*ones(2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
+            @test mps == [2*ones(1,4,1), 4*ones(4,1,1)]
 
             mps = MPSxMPO([ones(1,2,2,1,2), 2*ones(2,1,2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
             @test mps == [2*ones(1,4,1,1,2), 4*ones(4,1,1,1,2)]
 
 
-            b = compute_scalar_prod([ones(1,2,2,1), ones(2,1,2,1)], [ones(1,2,1,2,2), 2*ones(2,1,1,2)])
+            b = compute_scalar_prod([ones(1,2,2), ones(2,1,2)], [ones(1,2,1,2,2), 2*ones(2,1,1,2)])
             @test b == [32.0, 32.0]
 
-            a = scalar_prod_step(ones(2,2,1,2), ones(2,2,2,1), ones(2,2))
+            a = scalar_prod_step(ones(2,2,2), ones(2,2,1,2), ones(2,2))
             @test a == [8.0 8.0; 8.0 8.0]
-            a = scalar_prod_step(ones(2,2,1,2), ones(2,2,2,1,2), ones(2,2))
+            a = scalar_prod_step(ones(2,2,2), ones(2,2,1,2,2), ones(2,2))
             @test a[:,:,1] == [8.0 8.0; 8.0 8.0]
             @test a[:,:,2] == [8.0 8.0; 8.0 8.0]
-            a = scalar_prod_step(ones(2,2,1,2), ones(2,2,2,1), ones(2,2,2))
+            a = scalar_prod_step(ones(2,2,2), ones(2,2,1,2), ones(2,2,2))
             @test a[:,:,1] == [8.0 8.0; 8.0 8.0]
             @test a[:,:,2] == [8.0 8.0; 8.0 8.0]
 
             v1 = [ones(1,2,1,2,2), ones(2,2,1,2,2), ones(2,2,1,2,2), ones(2,1,1,2,2)]
-            v2 = [ones(1,2,2,1), ones(2,2,2,1), ones(2,2,2,1), ones(2,1,2,1)]
+            v2 = [ones(1,2,2), ones(2,2,2), ones(2,2,2), ones(2,1,2)]
             a = conditional_probabs(v1, v2, [1,1,1])
             @test a == [0.5, 0.5]
 
