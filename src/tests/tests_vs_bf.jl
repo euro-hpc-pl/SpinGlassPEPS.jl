@@ -3,11 +3,24 @@ using NPZ
 include("../notation.jl")
 include("../peps.jl")
 
-data = npzread("examples.npz")
+file = "examples.npz"
 no_diag_degeneracy = true
+j = 10
+β = 4.
+
+#file = "examples2.npz"
+#no_diag_degeneracy = false
+#j = 1
+#β = 3.
+
+
+data = npzread(file)
+
+println(file)
+
 
 for k in 1:100
-    println("n.o. sample = ", k)
+    println("SAMPLE = ", k)
     QM = data["Js"][k,:,:]
     states = data["states"][k,:,:]
     ens = data["energies"][k,:,:]
@@ -32,10 +45,10 @@ for k in 1:100
 
     grid = [1 2 3 4 5; 6 7 8 9 10; 11 12 13 14 15; 16 17 18 19 20; 21 22 23 24 25]
 
-    β = 4.
-    @time ses = solve(qubo, grid, 10; β = β, χ = 0, threshold = 0.)
 
-    j = 10
+    @time ses = solve(qubo, grid, j; β = β, χ = 0, threshold = 0.)
+
+
     for i in 1:j
         testv = (Int.(states[i,:]) == ses[j-i+1].spins) | (Int.(states[i,:])*.-1 == ses[j-i+1].spins)
         if !testv
@@ -45,17 +58,19 @@ for k in 1:100
 
             println(Int.(states[i,:]))
             println(ses[j-i+1].spins)
+
             println(ens[i])
             println(ses[j-i+1].objective)
         end
+
     end
 
     χ = 2
 
-    @time ses = solve(qubo, grid, 10; β = β, χ = χ, threshold = 1e-6)
+    @time ses = solve(qubo, grid, j; β = β, χ = χ, threshold = 1e-6)
 
 
-    j = 10
+
     for i in 1:j
         testv = false
         if no_diag_degeneracy
@@ -69,6 +84,7 @@ for k in 1:100
 
             println(Int.(states[i,:]))
             println(ses[j-i+1].spins)
+
             println(ens[i])
             println(ses[j-i+1].objective)
         end

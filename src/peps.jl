@@ -290,6 +290,7 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int, threshold::T) w
         if threshold > 0.
             mps_anzatz = left_canonical_approx(mps, χ)
             return compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
+            #return mps_anzatz
         else
             return mps_lc
         end
