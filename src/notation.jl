@@ -32,7 +32,7 @@ end
 
 c building block
 """
-c(γ::Int, J::T, s::Int, β::T) where T <: AbstractFloat =  exp(-β*J*γ*s)
+c(γ::Int, J::T, s::Int, β::T) where T <: AbstractFloat =  exp(β*2*J*γ*s)
 
 """
     function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jir::T, Jid::T, Jii::T , β::T) where T <: AbstractFloat
@@ -41,7 +41,7 @@ returns the element of the tensor, l, r, u, d represents the link with another t
 If some of these are zero there is no link and the corresponding boulding block returns 1.
 """
 function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jil::T, Jiu::T, Jii::T, β::T) where T <: AbstractFloat
-    delta(r, s)*delta(d, s)*c(l, Jil, s, β)*c(u, Jiu, s, β)*exp(-β*Jii*s)
+    delta(r, s)*delta(d, s)*c(l, Jil, s, β)*c(u, Jiu, s, β)*exp(β*Jii*s)
 end
 
 

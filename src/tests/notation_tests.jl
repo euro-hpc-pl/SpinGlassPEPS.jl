@@ -20,9 +20,9 @@
         @test delta(-1,1) == 0
         @test delta(1,1) == 1
         @test c(0, 1., 20, 1.) == 1
-        @test Tgen(0,0,0,0,-1,0.,0.,1., 1.) == exp(1.)
-        @test Tgen(0,0,0,0,-1,0.,0.,1., 2.) == exp(2.)
-        @test Tgen(0,0,0,0,-1,0.,0.,-1., 2.) == exp(-2.)
+        @test Tgen(0,0,0,0,-1,0.,0.,1., 1.) == exp(-1.)
+        @test Tgen(0,0,0,0,-1,0.,0.,1., 2.) == exp(-2.)
+        @test Tgen(0,0,0,0,-1,0.,0.,-1., 2.) == exp(2.)
     end
 
     @testset "axiliary" begin

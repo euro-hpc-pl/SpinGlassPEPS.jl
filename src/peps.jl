@@ -200,6 +200,7 @@ function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}
     siz = size(M,1)
 
     upper = [M[l+1]]
+
     if l < siz-1
         # this can be cashed
         upper = vcat(upper, [sum_over_last(M[i]) for i in (l+2):siz])
@@ -285,8 +286,8 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int, threshold::T) w
             mpo = trace_all_spins(M[i,:])
             mps = MPSxMPO(mps, mpo)
         end
-
         mps_lc = left_canonical_approx(mps, 0)
+
         if threshold > 0.
             mps_anzatz = left_canonical_approx(mps, χ)
             return compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
@@ -380,7 +381,8 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
             partial_s = partial_s_temp[p]
 
             if j == problem_size
-                    return partial_s
+                # sort from the ground state
+                return partial_s[end:-1:1]
             end
         end
     end
