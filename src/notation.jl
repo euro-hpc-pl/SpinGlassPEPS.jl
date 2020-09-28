@@ -52,29 +52,7 @@ end
 
 """
 function sum_over_last(tensor::Array{T, N}) where {T <: AbstractFloat, N}
-    tensorcontract(tensor, collect(1:N), ones(size(tensor,N)), [N])
-end
-
-"""
-    set_last(T::Array{T, N}, s::Int) where N
-
-set value of the physical index, s ∈ {-1,1} are supported
-"""
-function set_last(tensor::Array{T, N}, s::Int) where {T <: AbstractFloat, N}
-    if s == -1
-        B = [1.,0.]
-    elseif s == 1
-        B = [0.,1.]
-    else
-        error("spin value $s ∉ {-1, 1}")
-    end
-    tensorcontract(tensor, collect(1:N), B, [N])
-end
-
-
-function spins2index(s::Int)
-    s in [-1, 1] || error("spin must equal to -1 or 1 we get $s")
-    div((s+1), 2)+1
+    dropdims(sum(tensor, dims = N), dims = N)
 end
 
 

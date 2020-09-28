@@ -14,7 +14,7 @@
     @testset "operations on tensors" begin
         A = ones(2,2,2,2)
         @test sum_over_last(A) == 2*ones(2,2,2)
-        @test set_last(A, -1) == ones(2,2,2)
+        #@test set_last(A, -1) == ones(2,2,2)
 
         @test delta(0,-1) == 1
         @test delta(-1,1) == 0
@@ -26,10 +26,6 @@
     end
 
     @testset "axiliary" begin
-        @test spins2index(-1) == 1
-        @test spins2index(1) == 2
-        @test_throws ErrorException spins2index(2)
-
         @test last_m_els([1,2,3,4], 2) == [3,4]
         @test last_m_els([1,2,3,4], 5) == [1,2,3,4]
     end

@@ -1,5 +1,5 @@
 
-function make_qubo()
+function make_qubo0()
     qubo = [(1,1) -0.2; (1,2) -0.5; (1,4) -1.5; (2,2) -0.6; (2,3) -1.5; (2,5) -0.5; (3,3) -0.2; (3,6) 1.5]
     qubo = vcat(qubo, [(6,6) -2.2; (5,6) -0.25; (6,9) -0.52; (5,5) 0.2; (4,5) 0.5; (5,8) 0.5; (4,4) -2.2; (4,7) -0.01])
     qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
@@ -7,7 +7,7 @@ function make_qubo()
 end
 
 @testset "PEPS - axiliary functions" begin
-    qubo = make_qubo()
+    qubo = make_qubo0()
 
     @test JfromQubo_el(qubo, 1,2) == -0.5
     @test JfromQubo_el(qubo, 2,1) == -0.5
@@ -75,7 +75,7 @@ function contract3x3by_ncon(M::Matrix{Array{T, 5}}) where T <: AbstractFloat
 end
 
 @testset "PEPS network vs encon" begin
-    qubo = make_qubo()
+    qubo = make_qubo0()
 
     grid = [1 2 3 ; 4 5 6 ; 7 8 9]
 
@@ -139,13 +139,13 @@ end
     a = chain2point([reshape([1.,0.], (1,2)), ones(2,1,2)])
     @test a == [0.5, 0.5]
 
-    qubo = make_qubo()
+    qubo = make_qubo0()
     grid = [1 2 3; 4 5 6; 7 8 9]
     β = 3.
     M = make_pepsTN(grid, qubo, β)
     cc = contract3x3by_ncon(M)
     su = sum(cc)
-    
+
     # trace all spins
     m3 = trace_all_spins(M[3,:]; is_mps = true)
     m2 = trace_all_spins(M[2,:]; is_mps = false)
@@ -461,19 +461,6 @@ end
         @test ses[i].spins[1:6] == [-1,1,-1,-1,1,-1]
     end
 
-    train_qubo = make_qubo()
-
-
-    grid = [1 2 3; 4 5 6; 7 8 9]
-
-    ses = solve(train_qubo, grid, 1; β = 1., χ = 2, threshold = 1e-14)
-
-    #ses1 = solve_arbitrary_decomposition(train_qubo, grid, 4; β = 1.)
-
-    for el in ses
-        println(el.spins)
-    end
-
     @testset "svd approximatimation in solution" begin
 
         ses_a = solve(permuted_train_qubo, grid, 16; β = 1., χ = 2)
@@ -487,18 +474,35 @@ end
             @test ses_a[i].spins[1:6] == [-1,1,-1,-1,1,-1]
         end
     end
+
+    @testset "PEPS  - solving it on Float32" begin
+        T = Float32
+
+        train_qubo = make_qubo(T)
+
+        grid = [1 2 3; 4 5 6; 7 8 9]
+
+        ses = solve(train_qubo, grid, 4; β = T(2.), χ = 2, threshold = T(1e-6))
+
+        #first
+        @test ses[2].spins == [-1,1,-1,-1,1,-1,1,1,1]
+        #ground
+        @test ses[1].spins == [1,-1,1,1,-1,1,1,1,1]
+
+
+        @test typeof(ses[1].objective) == Float32
+    end
 end
 
 @testset "larger QUBO" begin
-    function make_qubo()
+    function make_qubo_l()
         qubo = [(1,1) 1.; (1,2) -0.25; (1,5) -0.25; (2,2) -1.; (2,3) -0.25; (2,6) -0.25; (3,3) 1.0; (3,4) -0.25; (3,7) -0.25; (4,4) -1.0; (4,8) -0.25]
         qubo = vcat(qubo, [(5,5) 1.; (5,6) -0.25; (5,9) -0.25; (6,6) -1.; (6,7) -0.25; (6,10) -0.25; (7,7) 1.0; (7,8) -0.25; (7,11) -0.25; (8,8) -1.0; (8,12) -0.25])
         qubo = vcat(qubo, [(9,9) 1.; (9,10) -0.25; (9,13) -0.25; (10,10) -1.; (10,11) -0.25; (10,14) -0.25; (11,11) 1.0; (11,12) -0.25; (11,15) -0.25; (12,12) -1.0; (12,16) -0.25])
         qubo = vcat(qubo, [(13,13) 1.; (13,14) -0.25; (14,14) -1.; (14,15) -0.25; (15,15) 1.0; (15,16) -0.25; (16,16) -1.0])
         [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
-    l_qubo = make_qubo()
-
+    l_qubo = make_qubo_l()
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
