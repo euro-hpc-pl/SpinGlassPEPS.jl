@@ -15,7 +15,7 @@ catch
 end
 
 include("notation.jl")
-include("tests/notation_tests.jl")
+#include("tests/notation_tests.jl")
 
 include("peps.jl")
 include("tests/peps_tests.jl")
