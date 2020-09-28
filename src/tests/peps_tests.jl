@@ -375,38 +375,41 @@ end
 
         ts = [T1, T2, T3]
         ts = [permutedims(e, [1,3,2]) for e in ts]
+        try
+            mps_mps = Mps(ts, 3, 4)
 
-        mps_mps = Mps(ts, 3, 4)
+            println("state of art time")
+            @time mps_mps = simplify!(mps_mps, 3; tol = tol);
 
-        println("state of art time")
-        @time mps_mps = simplify!(mps_mps, 3; tol = tol);
+            println("1, delta of norms")
 
-        println("1, delta of norms")
+            println(norm(permutedims(v3[1], [1,3,2]).-mps_mps.M[1]))
 
-        println(norm(permutedims(v3[1], [1,3,2]).-mps_mps.M[1]))
+            println("norm")
 
-        println("norm")
-
-        println(norm(mps_mps.M[1]))
+            println(norm(mps_mps.M[1]))
 
 
-        println(".........")
-        println("2, delta of norms")
+            println(".........")
+            println("2, delta of norms")
 
-        println(norm(permutedims(v3[2], [1,3,2]).-mps_mps.M[2]))
+            println(norm(permutedims(v3[2], [1,3,2]).-mps_mps.M[2]))
 
-        println("norm")
+            println("norm")
 
-        println(norm(mps_mps.M[2]))
+            println(norm(mps_mps.M[2]))
 
-        println(".........")
-        println("3, delta of norms")
+            println(".........")
+            println("3, delta of norms")
 
-        println(norm(permutedims(v3[3], [1,3,2]).-mps_mps.M[3]))
+            println(norm(permutedims(v3[3], [1,3,2]).-mps_mps.M[3]))
 
-        println("norm")
+            println("norm")
 
-        println(norm(mps_mps.M[3]))
+            println(norm(mps_mps.M[3]))
+        catch
+            println("no MPStates.jl for comparison of the approximation")
+        end
     end
 end
 
