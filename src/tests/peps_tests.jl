@@ -163,33 +163,50 @@ end
 
     A = [e[:,:,1,:,:] for e in M[1,:]]
     lower_mps = make_lower_mps(M, 2, 0, 0.)
-    # marginal
+    # marginal prob
     sol = Int[]
     objective = conditional_probabs(A, lower_mps, sol)
     p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
     p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
+    # approx due to numerical accuracy
     @test objective ≈ [p1, p2]
 
-    #conditional for another
+    #conditional prob
     p11 = sum(cc[1,1,:,:,:,:,:,:,:])/su
     p12 = sum(cc[1,2,:,:,:,:,:,:,:])/su
     sol1 = Int[-1]
     objective1 = conditional_probabs(A, lower_mps, sol1)
+    # approx due to numerical accuracy
     @test objective1 ≈ [p11/p1, p12/p1]
 
-    # the same with approximation
-    # marginal
+
+    cond1 = sum(cc[1,2,1,2,1,:,:,:,:])/sum(cc[1,2,1,2,:,:,:,:,:])
+    cond2 = sum(cc[1,2,1,2,2,:,:,:,:])/sum(cc[1,2,1,2,:,:,:,:,:])
+    @test cond1+cond2 ≈ 1
+
+    sol2 = Int[-1,1,-1,1]
+
+    lower_mps = make_lower_mps(M, 3, 0, 0.)
+    M_temp = set_row(M[2,:], sol2[1:3])
+    obj2 = conditional_probabs(M_temp, lower_mps, sol2[4:4])
+    # this is exact
+    @test [cond1, cond2] == obj2
+
+    # with approximation marginal
     lower_mps_a = make_lower_mps(M, 2, 2, 1e-6)
     objective = conditional_probabs(A, lower_mps_a, sol)
     @test objective ≈ [p1, p2]
-    # conditional for another
+
     objective1 = conditional_probabs(A, lower_mps_a, sol1)
     @test objective1 ≈ [p11/p1, p12/p1]
 
-
+    lower_mps_a = make_lower_mps(M, 3, 2, 1.e-6)
+    obj2_a = conditional_probabs(M_temp, lower_mps_a, sol2[4:4])
+    # this is approx
+    @test [cond1, cond2] ≈ obj2_a
 
 end
-
+if true
 @testset "testing itterative approximation" begin
 
     T1 = rand(1,2,2)
@@ -511,4 +528,5 @@ end
 
     @time ses = solve(l_qubo, grid, 2; β = 3., χ = 2, threshold = 1e-11)
     @test ses[1].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
+end
 end

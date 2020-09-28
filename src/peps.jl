@@ -286,17 +286,16 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int, threshold::T) w
             mpo = trace_all_spins(M[i,:])
             mps = MPSxMPO(mps, mpo)
         end
-        mps_lc = left_canonical_approx(mps, 0)
-
-        if threshold > 0.
-            mps_anzatz = left_canonical_approx(mps, χ)
-            return compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
-            #return mps_anzatz
-        else
-            return mps_lc
+        if threshold == 0.
+            return mps
         end
+
+        mps_lc = left_canonical_approx(mps, 0)
+        mps_anzatz = left_canonical_approx(mps, χ)
+        return compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
+        #return mps_anzatz
     end
-    0
+    [zeros(T,1)]
 end
 
 

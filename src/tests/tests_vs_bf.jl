@@ -6,15 +6,17 @@ include("../notation.jl")
 include("../peps.jl")
 
 file = "examples.npz"
-β = 4.
+β = 2.
 j = 10
 examples = 100
+r=2
 
 if false
     file = "examples2.npz"
     β = 2.
     j = 10
     examples = 100
+    r = 1
 end
 
 if false
@@ -22,6 +24,7 @@ file = "energies_and_matrix_only.npz"
     β = 2.
     j = 25
     examples = 1
+    r = 2
 end
 
 T = Float64
@@ -69,7 +72,7 @@ for k in 1:examples
     grid = [1 2 3 4 5; 6 7 8 9 10; 11 12 13 14 15; 16 17 18 19 20; 21 22 23 24 25]
 
 
-    ses = solve(qubo, grid, j; β = T(β), χ = 0, threshold = T(0.))
+    ses = solve(qubo, grid, r*j; β = T(β), χ = 0, threshold = T(0.))
 
     count = copy(j)
     for i in 1:j
@@ -113,7 +116,7 @@ for k in 1:examples
 
 
     χ = 2
-    ses_a = solve(qubo, grid, j; β = T(β), χ = χ, threshold = T(1e-10))
+    ses_a = solve(qubo, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
 
 
     count_a = copy(j)
@@ -121,7 +124,7 @@ for k in 1:examples
         v = ses_a[i].spins
 
         if !(v2energy(QM, v) ≈ -ens[i])
-            println("exact")
+            println("approx")
             println("n.o. state = ", i)
             println("energies (peps,bf)", (v2energy(QM, v), -ens[i]))
             count_a = count_a - 1
