@@ -4,14 +4,6 @@ using GenericLinearAlgebra
 
 # axiliary
 
-function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
-    try
-        return filter(x->x.ind==(i,j), qubo)[1].coupling
-    catch
-        return filter(x->x.ind==(j,i), qubo)[1].coupling
-    end
-end
-
 
 function make_tensor_sizes(l::Bool, r::Bool, u::Bool, d::Bool, s_virt::Int = 2, s_phys::Int = 2)
     tensor_size = [1,1,1,1,s_phys]
@@ -33,7 +25,7 @@ end
 function make_peps_node(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int, β::T) where T <: AbstractFloat
 
     ind = findall(x->x==i, grid)[1]
-    h = filter(x->x.ind==(i,i), qubo)[1].coupling
+    h = JfromQubo_el(qubo, i,i)
     bonds = [[0], [0], [0], [0], [-1,1]]
 
     # determine bonds directions from grid
@@ -148,6 +140,14 @@ function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array
         env = scalar_prod_step(mps_down[i], mps_up[i], env)
     end
     env[1,1,:]
+end
+
+function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 3}}) where T <: AbstractFloat
+    env = ones(T, 1,1)
+    for i in length(mps_up):-1:1
+        env = scalar_prod_step(mps_down[i], mps_up[i], env)
+    end
+    env
 end
 
 function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat

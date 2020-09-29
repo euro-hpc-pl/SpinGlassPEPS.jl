@@ -69,3 +69,14 @@ function last_m_els(vector::Vector{Int}, m::Int)
         return vector[end-m+1:end]
     end
 end
+
+
+function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
+    try
+        return filter(x->x.ind==(i,j), qubo)[1].coupling
+    catch
+        return filter(x->x.ind==(j,i), qubo)[1].coupling
+    end
+end
+
+ind2spin(i::Int) = 2*i-3

@@ -7,11 +7,6 @@ function make_qubo0()
 end
 
 @testset "PEPS - axiliary functions" begin
-    qubo = make_qubo0()
-
-    @test JfromQubo_el(qubo, 1,2) == -0.5
-    @test JfromQubo_el(qubo, 2,1) == -0.5
-    @test_throws BoundsError JfromQubo_el(qubo, 1,3)
 
     @test make_tensor_sizes(false, false, true, true , 2,2) == (1,1,2,2,2)
     @test make_tensor_sizes(true, false, true, true , 2,2) == (2,1,2,2,2)
@@ -206,7 +201,7 @@ end
     @test [cond1, cond2] ≈ obj2_a
 
 end
-if false
+if true
 @testset "testing itterative approximation" begin
 
     T1 = rand(1,2,2)
