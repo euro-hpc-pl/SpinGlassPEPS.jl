@@ -8,6 +8,15 @@ end
 
 function make_ones(T::Type = Float64)
     d = 2
+    ret = zeros(T, 1,1,d,d)
+    for j in 1:d
+        ret[1,1,j,j] = T(1.)
+    end
+    ret
+end
+
+function make_ones_inside(T::Type = Float64)
+    d = 2
     ret = zeros(T, d,d,d,d)
     for i in 1:d
         for j in 1:d
@@ -17,7 +26,7 @@ function make_ones(T::Type = Float64)
     ret
 end
 
-function T_with_B(T::Type = Float64)
+function T_with_B(l::Bool = false, r::Bool = false, T::Type = Float64)
     d = 2
     ret = zeros(T, d,d,d,d)
     for i in 1:d
@@ -29,10 +38,15 @@ function T_with_B(T::Type = Float64)
             end
         end
     end
-    ret
+    if l
+        return sum(ret, dims = 1)
+    elseif r
+        return sum(ret, dims = 2)
+    end
+    return ret
 end
 
-function T_with_C(Jb::T) where T <: AbstractFloat
+function T_with_C(Jb::T, l::Bool = false, r::Bool = false) where T <: AbstractFloat
     d = 2
     ret = zeros(T, d,d,d,d)
     for i in 1:d
@@ -44,15 +58,24 @@ function T_with_C(Jb::T) where T <: AbstractFloat
             end
         end
     end
-    ret
+    if l
+        return sum(ret, dims = 1)
+    elseif r
+        return sum(ret, dims = 2)
+    end
+    return ret
 end
 
 function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, i_n::Vector{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T<: AbstractFloat
-    mpo[i] = T_with_B(T)
+    k = minimum([i, i_n...])
+    l = maximum([i, i_n...])
+    for j in k:l
+        mpo[j] = make_ones_inside(T)
+    end
+    mpo[i] = T_with_B(i==k, i==l, T)
     for j in i_n
         J = JfromQubo_el(qubo, i,j)
-        println(i,",", j,",", J)
-        mpo[j] = T_with_C(J*β)
+        mpo[j] = T_with_C(J*β, j==k, j==l)
     end
     mpo
 end

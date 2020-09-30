@@ -7,12 +7,6 @@ function make_qubo_x()
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
 
-function make_qubo_0()
-    qubo = [(1,1) 0.; (1,2) -.5; (1,4) -1.5; (2,2) 0.; (2,3) -1.5; (2,5) -0.5; (3,3) 0.; (3,6) 1.5]
-    qubo = vcat(qubo, [(6,6) 0.; (5,6) -0.25; (6,9) 0.; (5,5) 0.; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) 0.])
-    qubo = vcat(qubo, [(7,7) 0.; (7,8) 0.0; (8,8) 0.; (8,9) 0.; (9,9) 0.])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-end
 
 function make_qubo_circ()
     qubo = [(1,1) 0.; (1,2) 0.; (1,4) 2.; (2,2) 0.; (2,3) 2.; (2,5) 0.; (3,3) 0.; (3,6) 2.]
@@ -63,27 +57,32 @@ end
     @test mps[2] == ones(1,1,2)
     @test mps[3] == ones(1,1,2)
 
-    qubo =  make_qubo_circ()
+    qubo =  make_qubo_x()
 
     β = 1.
 
     mpo = [make_ones() for _ in 1:9]
     add_MPO!(mpo, 1, [2,4] ,qubo, β)
     add_MPO!(mpo, 9, [6,8] ,qubo, β)
-    reduce_first_and_last!(mpo)
 
     x = MPSxMPO(mps, mpo)
 
+    println([size(x[i]) for i in 1:9])
+
     mpo = [make_ones() for _ in 1:9]
     add_MPO!(mpo, 3, [2,6] ,qubo, β)
-    add_MPO!(mpo, 7, [4,8] ,qubo, β)
-    reduce_first_and_last!(mpo)
-
     x = MPSxMPO(x, mpo)
+
+    println([size(x[i]) for i in 1:9])
+
+    mpo = [make_ones() for _ in 1:9]
+    add_MPO!(mpo, 7, [4,8] ,qubo, β)
+    x = MPSxMPO(x, mpo)
+
+    println([size(x[i]) for i in 1:9])
 
     mpo = [make_ones() for _ in 1:9]
     add_MPO!(mpo, 5, [2,4,6,8] ,qubo, β)
-    reduce_first_and_last!(mpo)
     x = MPSxMPO(x, mpo)
 
     println([size(x[i]) for i in 1:9])
@@ -97,35 +96,25 @@ end
     println(sum(cc[2,1,:,:,:,:,:,:,:])/sum(cc))
     println(sum(cc[2,2,:,:,:,:,:,:,:])/sum(cc))
 
-    B1 = x[1]
+    B1 = x[1][:,:,1:1]
     C1 = x[2][:,:,1:1]
     B2 = x[1][:,:,2:2]
     C2 = x[2][:,:,2:2]
 
-    bb = x[1][:,:,1]
-    cc = x[2][:,:,1]
 
+    Z = compute_scalar_prod(x,x)
 
-    Z = compute_scalar_prod(x,x)[1]
-    println(Z)
-
-
-    X = compute_scalar_prod(x[5:end],x[5:end])
-
-    println(size(X))
-    println(X)
-
-    #println(Z1)
-    #println(Z1./Z)
+    Z1 = compute_scalar_prod([B1, C1, x[3:end]...],[B1, C1, x[3:end]...])
+    println(Z1./Z)
 
     Z1 = compute_scalar_prod([B1, C2, x[3:end]...],[B1, C2, x[3:end]...])
     println(Z1./Z)
 
-    #Z1 = compute_scalar_prod([B2, C1, x[3:end]...],[B2, C1, x[3:end]...])
-    #println(Z1./Z)
+    Z1 = compute_scalar_prod([B2, C1, x[3:end]...],[B2, C1, x[3:end]...])
+    println(Z1./Z)
 
-    #Z1 = compute_scalar_prod([B2, C2, x[3:end]...],[B2, C2, x[3:end]...])
-    #println(Z1./Z)
+    Z1 = compute_scalar_prod([B2, C2, x[3:end]...],[B2, C2, x[3:end]...])
+    println(Z1./Z)
 
 
 end
