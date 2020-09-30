@@ -80,7 +80,13 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, i_n::Vector{Int}, qubo::Vect
     mpo
 end
 
-function reduce_first_and_last!(mpo::Vector{Array{T, 4}}) where T <:AbstractFloat
-    mpo[1] = sum(mpo[1], dims = 1)
-    mpo[end] = sum(mpo[end], dims = 2)
+function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}}, β::T) where T<: AbstractFloat
+    d = size(mps[1], 3)
+    for i in 1:length(mps)
+        # we have a twice from the scalar product
+        h = JfromQubo_el(qubo, i,i)/2
+        for j in 1:d
+            mps[i][:,:,j] = mps[i][:,:,j]*exp(ind2spin(j)*β*h)
+        end
+    end
 end

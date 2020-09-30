@@ -1,9 +1,9 @@
 using TensorOperations
 
 function make_qubo_x()
-    qubo = [(1,1) 0.; (1,2) -0.5; (1,4) -1.5; (2,2) 0.; (2,3) -1.5; (2,5) -0.5; (3,3) 0.; (3,6) 1.5]
-    qubo = vcat(qubo, [(6,6) 0.; (5,6) -0.25; (6,9) -0.52; (5,5) 0.; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
-    qubo = vcat(qubo, [(7,7) 0.; (7,8) 0.5; (8,8) 0.; (8,9) -0.05; (9,9) 0.])
+    qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
+    qubo = vcat(qubo, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
+    qubo = vcat(qubo, [(7,7) 0.35; (7,8) 0.5; (8,8) -0.08; (8,9) -0.05; (9,9) 0.33])
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
 
@@ -84,6 +84,7 @@ end
     mpo = [make_ones() for _ in 1:9]
     add_MPO!(mpo, 5, [2,4,6,8] ,qubo, β)
     x = MPSxMPO(x, mpo)
+    add_phase!(x,qubo, β)
 
     println([size(x[i]) for i in 1:9])
 
@@ -116,5 +117,6 @@ end
     Z1 = compute_scalar_prod([B2, C2, x[3:end]...],[B2, C2, x[3:end]...])
     println(Z1./Z)
 
-
+    M = compute_scalar_prod(x[3:end],x[3:end])
+    println(M)
 end
