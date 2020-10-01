@@ -323,6 +323,11 @@ function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractF
     Partial_sol{T}(vcat(ps.spins, [s]), ps.objective*objective)
 end
 
+function add_spin_marginal(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
+    s in [-1,1] || error("spin should be 1 or -1 we got $s")
+    Partial_sol{T}(vcat(ps.spins, [s]), objective)
+end
+
 
 function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ::Int = 0, threshold::T = T(1e-14)) where T <: AbstractFloat
     problem_size = maximum(grid)

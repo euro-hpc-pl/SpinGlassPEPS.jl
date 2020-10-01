@@ -90,3 +90,100 @@ function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}}, β::T) w
         end
     end
 end
+
+function v_from_mps(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
+    env = ones(T,1)
+    for i in 1:length(spins)
+        j = spins2ind(spins[i])
+        env = env*mps[i][:,:,j]
+    end
+    reshape(env, size(env,2))
+end
+
+function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
+    d = size(mps[1], 3)
+    k = length(spins)+1
+    left_v = v_from_mps(mps, spins)
+
+    A = mps[k]
+    probs_at_k = zeros(T, d,d)
+    if k < length(mps)
+        right_m = compute_scalar_prod(mps[k+1:end], mps[k+1:end])
+
+        @tensor begin
+            probs_at_k[x,y] = A[a,b,x]*A[c,d,y]*left_v[a]*left_v[c]*right_m[b,d]
+        end
+
+    else
+        # uses one() insted of right mstrix
+        @tensor begin
+            probs_at_k[x,y] = A[a,b,x]*A[c,b,y]*left_v[a]*left_v[c]
+        end
+    end
+    return(diag(probs_at_k))
+end
+
+function construct_mps_step(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
+                                                    β::T, is::Vector{Int},
+                                                    js::Vector{Vector{Int}}) where T<: AbstractFloat
+    mpo = [make_ones() for _ in 1:length(mps)]
+    for k in 1:length(is)
+        add_MPO!(mpo, is[k], js[k] ,qubo, β)
+    end
+    MPSxMPO(mps, mpo)
+end
+
+
+function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
+                                                all_is::Vector{Vector{Int}},
+                                                all_js::Vector{Vector{Vector{Int}}},
+                                                χ::Int, threshold::T) where T<: AbstractFloat
+    mps = initialize_mps(l)
+    for _ in 1:β_step
+        for k in 1:length(all_is)
+            mps = construct_mps_step(mps, qubo, β/β_step, all_is[k], all_js[k])
+        end
+        if threshold > 0.
+            mps_lc = left_canonical_approx(mps, 0)
+            mps_anzatz = left_canonical_approx(mps, χ)
+            mps = compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
+        end
+    end
+    add_phase!(mps,qubo, β)
+    mps
+end
+
+function solve_mps(qubo::Vector{Qubo_el{T}}, all_is::Vector{Vector{Int}},
+                all_js::Vector{Vector{Vector{Int}}}, problem_size::Int,
+                no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
+    mps = construct_mps(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
+
+    partial_s = Partial_sol{T}[Partial_sol{T}()]
+    for i in 1:problem_size
+
+        partial_s_temp = Partial_sol{T}[Partial_sol{T}()]
+        for ps in partial_s
+
+            objectives = compute_probs(mps, ps.spins)
+
+            a = add_spin_marginal(ps, -1, objectives[1])
+            b = add_spin_marginal(ps, 1, objectives[2])
+
+            if partial_s_temp[1].spins == []
+                partial_s_temp = vcat(a,b)
+            else
+                partial_s_temp = vcat(partial_s_temp, a,b)
+            end
+        end
+
+        obj = [ps.objective for ps in partial_s_temp]
+        perm = sortperm(obj)
+        p = last_m_els(perm, no_sols)
+        partial_s = partial_s_temp[p]
+
+        if i == problem_size
+            # sort from the ground state
+            return partial_s[end:-1:1]
+        end
+    end
+end

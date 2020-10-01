@@ -80,3 +80,5 @@ function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: Abstr
 end
 
 ind2spin(i::Int) = 2*i-3
+
+spins2ind(s::Int) = div(s+3, 2)
