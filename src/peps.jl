@@ -544,6 +544,7 @@ function compress_mps_itterativelly(mps::Vector{Array{T,3}}, mps_anzatz::Vector{
     mps_ret = [zeros(T, 1,1,1) for _ in 1:length(mps)]
     mps_ret1 = [zeros(T, 1,1,1) for _ in 1:length(mps)]
     maxsweeps = 300
+    maxsweeps = 5
 
     # initialize R and L
     all_L = [ones(T,1,1) for _ in 1:length(mps)]

@@ -139,17 +139,24 @@ function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
                                                 all_js::Vector{Vector{Vector{Int}}},
                                                 χ::Int, threshold::T) where T<: AbstractFloat
     mps = initialize_mps(l)
-    for _ in 1:β_step
+    for a in 1:β_step
         for k in 1:length(all_is)
             mps = construct_mps_step(mps, qubo, β/β_step, all_is[k], all_js[k])
+
+            s = maximum([size(e, 1) for e in mps])
+            if ((threshold > 0) * (s > χ))
+
+                mps_lc = left_canonical_approx(mps, 0)
+                mps_anzatz = left_canonical_approx(mps, χ)
+                mps = compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
+            end
         end
-        if threshold > 0.
-            mps_lc = left_canonical_approx(mps, 0)
-            mps_anzatz = left_canonical_approx(mps, χ)
-            mps = compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
+        if a%10 == 0
+            println(a)
         end
     end
     add_phase!(mps,qubo, β)
+    println([size(e) for e in mps])
     mps
 end
 

@@ -110,7 +110,7 @@ end
 
     @test ps/sum(ps) ≈ pp/sum(pp)
 end
-end
+
 
 function make_qubo(T::Type = Float64)
     css = 2.
@@ -159,13 +159,14 @@ end
         @test ses[i].spins[1:6] == [-1,1,-1,-1,1,-1]
     end
 end
+end
 
 @testset "larger QUBO" begin
     function make_qubo_l()
-        qubo = [(1,1) 2.8; (1,2) -0.25; (1,5) -0.25; (2,2) -2.7; (2,3) -0.25; (2,6) -0.25; (3,3) 2.6; (3,4) -0.25; (3,7) -0.25; (4,4) -2.5; (4,8) -0.25]
-        qubo = vcat(qubo, [(5,5) 2.4; (5,6) -0.25; (5,9) -0.25; (6,6) -2.3; (6,7) -0.25; (6,10) -0.25; (7,7) 2.2; (7,8) -0.25; (7,11) -0.25; (8,8) -2.1; (8,12) -0.25])
-        qubo = vcat(qubo, [(9,9) 2.; (9,10) -0.25; (9,13) -0.25; (10,10) -1.9; (10,11) -0.25; (10,14) -0.25; (11,11) 1.8; (11,12) -0.25; (11,15) -0.25; (12,12) -1.7; (12,16) -0.25])
-        qubo = vcat(qubo, [(13,13) 1.6; (13,14) -0.25; (14,14) -1.5; (14,15) -0.25; (15,15) 1.4; (15,16) -0.25; (16,16) -1.3])
+        qubo = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
+        qubo = vcat(qubo, [(5,5) 2.4; (5,6) -0.15; (5,9) -0.211; (6,6) -2.3; (6,7) -0.2; (6,10) -0.15; (7,7) 2.2; (7,8) -0.11; (7,11) -0.35; (8,8) -2.1; (8,12) -0.19])
+        qubo = vcat(qubo, [(9,9) 2.; (9,10) -0.222; (9,13) -0.15; (10,10) -1.9; (10,11) -0.28; (10,14) -0.21; (11,11) 1.8; (11,12) -0.19; (11,15) -0.18; (12,12) -1.7; (12,16) -0.27])
+        qubo = vcat(qubo, [(13,13) 1.6; (13,14) -0.32; (14,14) -1.5; (14,15) -0.19; (15,15) 1.4; (15,16) -0.21; (16,16) -1.3])
         [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
     l_qubo = make_qubo_l()
@@ -173,20 +174,30 @@ end
     all_is = [[1, 10], [3, 12], [6, 13], [11], [5,15], [8]]
     all_js = [[[2,5], [6,9,11,14]], [[2,4,7], [8,11,16]], [[2,5,7], [9,14]], [[7, 15]], [[9],[14,16]], [[4,7]]]
 
-    @time ses = solve_mps(l_qubo, all_is, all_js, 16, 10; β=2., β_step=10, χ=4, threshold = 1e-12)
+    β = .75
+
+    @time ses = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=2, χ=12, threshold = 1.e-8)
+
+    @time ses_exact = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=1, χ=12, threshold = 0.)
+
 
     @test ses[1].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    @time ses_pepes = solve(l_qubo, grid, 10; β = 2., χ = 2, threshold = 1e-12)
+    @time ses_pepes = solve(l_qubo, grid, 10; β = β, χ = 2, threshold = 1e-12)
 
     @test ses[1].spins == ses_pepes[1].spins
 
     for k in 1:10
-        println(ses[k].objective, ",", ses_pepes[k].objective)
-        println(ses[k].spins)
-        println(ses_pepes[k].spins)
+        println(ses[k].objective, ", ", ses_exact[k].objective, ", ", ses_pepes[k].objective)
+        aa = (ses[k].spins == ses_pepes[k].spins)
+        println(aa)
+        println("exact ", ses_exact[k].spins == ses_pepes[k].spins)
+        if !aa
+            println(ses[k].spins)
+            println(ses_pepes[k].spins)
+        end
     end
 
 
