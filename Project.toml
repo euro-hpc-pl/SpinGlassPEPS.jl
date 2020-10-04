@@ -1,0 +1,4 @@
+name = "SpinGlassPEPS"
+uuid = "2c514f87-1261-494e-8566-326879aaf4fe"
+authors = ["Łukasz Pawela <lukasz.pawela@gmail.com>"]
+version = "0.0.1"
