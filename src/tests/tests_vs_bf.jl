@@ -4,6 +4,7 @@ using Test
 
 include("../notation.jl")
 include("../peps.jl")
+include("../mps_implementation.jl")
 
 file = "examples.npz"
 β = 2.
@@ -24,7 +25,7 @@ file = "energies_and_matrix_only.npz"
     β = 2.
     j = 25
     examples = 1
-    r = 2
+    r = 1
 end
 
 T = Float64
@@ -118,7 +119,6 @@ for k in 1:examples
     χ = 2
     ses_a = solve(qubo, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
 
-
     count_a = copy(j)
     for i in 1:j
         v = ses_a[i].spins
@@ -145,4 +145,37 @@ for k in 1:examples
     probs_a = [ses_a[i].objective for i in 1:j]
 
     println("max diff exact and approx = ", maximum(abs.(probs .- probs_a)))
+
+    χ = 10
+    β_step = 1
+    all_is = [[1,8,20], [3,10,17], [5,13], [2, 14], [4, 12, 18], [6, 22], [7,21], [11, 24]]
+
+    all_js = [[[2,6],[7,9,13],[15,19,25]],[[2,4,8], [9,15], [16,18,22]], [[4,10],[12,14,18]]]
+    all_js = vcat(all_js, [[[7], [9,15,19]], [[9], [11,17], [19,23]], [[7,11], [23]], [[12], [16,22]], [[16], [19,23,25]]])
+
+    ses_mps = solve_mps(qubo, all_is, all_js, 25, r*j; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
+
+    count_mps = copy(j)
+    for i in 1:j
+        v = ses_mps[i].spins
+
+        if !(v2energy(QM, v) ≈ -ens[i])
+            println("mps")
+            println("n.o. state = ", i)
+            println("energies (mps,bf)", (v2energy(QM, v), -ens[i]))
+            count_mps = count_mps - 1
+            try
+                v1 = Int.(states[i,:])
+                println(v1)
+                println(v)
+            catch
+                0
+            end
+        end
+    end
+
+    if count_mps != j
+        println("mps n.o. corresponding energies = $(count_mps), should be $j")
+    end
+
 end

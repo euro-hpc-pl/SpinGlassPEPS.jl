@@ -138,76 +138,31 @@ function construct_mps_step(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
 end
 
 
-function construct_mpo_step(mpo_d::Vector{Array{T, 4}}, qubo::Vector{Qubo_el{T}},
-                                                    β::T, is::Vector{Int},
-                                                    js::Vector{Vector{Int}}) where T<: AbstractFloat
-    mpo = [make_ones() for _ in 1:length(mpo_d)]
-    for k in 1:length(is)
-        add_MPO!(mpo, is[k], js[k] ,qubo, β)
-    end
-    MPOxMPO(mpo_d, mpo)
-end
-
-function construct_mps1(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
-                                                all_is::Vector{Vector{Int}},
-                                                all_js::Vector{Vector{Vector{Int}}},
-                                                χ::Int, threshold::T) where T<: AbstractFloat
-
-    mps = initialize_mps(l)
-    for k in 1:length(all_is)
-        mps = construct_mps_step(mps, qubo, β/β_step, all_is[k], all_js[k])
-        s = maximum([size(e, 1) for e in mps])
-        if ((threshold > 0) * ((s > 2*χ) | k==length(all_is)))
-            mps = compress_iter(mps, χ, threshold)
-        end
-    end
-
-    for a in 2:β_step
-        mpo = initialize_mpo(l)
-        for k in 1:length(all_is)
-            mpo = construct_mpo_step(mpo, qubo, β/β_step, all_is[k], all_js[k])
-            s = maximum([size(e, 1) for e in mpo])
-            if ((threshold > 0) * ((s > 2*χ) | k==length(all_is)))
-                mpo = compress_iter(mpo, χ, threshold)
-            end
-        end
-        mps = MPSxMPO(mps, mpo)
-        if threshold > 0
-            mps = compress_iter(mps, χ, threshold)
-        end
-        println(a)
-    end
-    add_phase!(mps,qubo, β)
-    println([size(e) for e in mps])
-    mps
-end
-
 
 function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
                                                 all_is::Vector{Vector{Int}},
                                                 all_js::Vector{Vector{Vector{Int}}},
                                                 χ::Int, threshold::T) where T<: AbstractFloat
     mps = initialize_mps(l)
-    for a in 1:β_step
+    for _ in 1:β_step
         for k in 1:length(all_is)
             mps = construct_mps_step(mps, qubo, β/β_step, all_is[k], all_js[k])
 
             s = maximum([size(e, 1) for e in mps])
-            if ((threshold > 0) * (s > 2*χ))
+            if ((threshold > 0) * (s > χ))
                 mps = compress_iter(mps, χ, threshold)
+                #mps = compress_svd(mps, χ)
             end
         end
-        println(a)
     end
     add_phase!(mps,qubo, β)
-    println([size(e) for e in mps])
     mps
 end
 
 function solve_mps(qubo::Vector{Qubo_el{T}}, all_is::Vector{Vector{Int}},
                 all_js::Vector{Vector{Vector{Int}}}, problem_size::Int,
                 no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
-    mps = construct_mps1(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
+    mps = construct_mps(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for i in 1:problem_size

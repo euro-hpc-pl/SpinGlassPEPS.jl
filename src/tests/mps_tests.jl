@@ -1,6 +1,6 @@
 using TensorOperations
 
-if false
+if true
 function make_qubo_x()
     qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
     qubo = vcat(qubo, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
@@ -53,7 +53,7 @@ function contract3x3by_ncon(M::Matrix{Array{T, 5}}) where T <: AbstractFloat
 end
 
 
-@testset "peps computing" begin
+@testset "MPS computing" begin
 
     qubo =  make_qubo_x()
 
@@ -120,7 +120,7 @@ function make_qubo(T::Type = Float64)
     [Qubo_el{T}(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
 
-@testset "PEPS - solving simple train problem" begin
+@testset "MPS - solving simple train problem" begin
 
     train_qubo = make_qubo()
 
@@ -161,7 +161,7 @@ end
 end
 end
 
-@testset "larger QUBO" begin
+@testset "MPS vs PEPS larger QUBO" begin
     function make_qubo_l()
         qubo = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
         qubo = vcat(qubo, [(5,5) 2.4; (5,6) -0.15; (5,9) -0.211; (6,6) -2.3; (6,7) -0.2; (6,10) -0.15; (7,7) 2.2; (7,8) -0.11; (7,11) -0.35; (8,8) -2.1; (8,12) -0.19])
@@ -174,8 +174,8 @@ end
     all_is = [[1, 10], [3, 12], [6, 13], [11], [5,15], [8]]
     all_js = [[[2,5], [6,9,11,14]], [[2,4,7], [8,11,16]], [[2,5,7], [9,14]], [[7, 15]], [[9],[14,16]], [[4,7]]]
 
-    β = 1.5
-    β_step = 6
+    β = 0.5
+    β_step = 2
 
     println("step = ", β_step)
 
@@ -193,15 +193,10 @@ end
     @test ses[1].spins == ses_pepes[1].spins
 
     for k in 1:10
-        println(ses[k].objective, ", ", ses_exact[k].objective, ", ", ses_pepes[k].objective)
-        aa = (ses[k].spins == ses_pepes[k].spins)
-        println(aa)
-        println("exact ", ses_exact[k].spins == ses_pepes[k].spins)
-        if !aa
-            println(ses[k].spins)
-            println(ses_pepes[k].spins)
-        end
+        #testing exact mpo
+        @test ses_exact[k].spins == ses_pepes[k].spins
+        # testing approx mpo
+        @test ses[k].spins == ses_pepes[k].spins
     end
-
 
 end

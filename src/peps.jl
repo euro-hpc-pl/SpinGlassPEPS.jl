@@ -307,11 +307,8 @@ function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int, threshold::T) w
         if threshold == 0.
             return mps
         end
-
-        mps_lc = left_canonical_approx(mps, 0)
-        mps_anzatz = left_canonical_approx(mps, χ)
-        return compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
-        #return mps_anzatz
+        return compress_iter(mps, χ, threshold)
+        #return compress_svd(mps, χ)
     end
     [zeros(T,1)]
 end
@@ -654,16 +651,6 @@ function compress_iter(mps::Vector{Array{T,3}}, χ::Int, threshold::T) where T <
     compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
 end
 
-
-function compress_iter(mpo::Vector{Array{T,4}}, χ::Int, threshold::T) where T <: AbstractFloat
-    s = [size(el) for el in mpo]
-    mps = [reshape(mpo[i], (s[i][1], s[i][2], s[i][3]*s[i][4])) for i in 1:length(mpo)]
-    mps_lc = left_canonical_approx(mps, 0)
-    mps_anzatz = left_canonical_approx(mps, χ)
-    mps = compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
-    sx = [size(el) for el in mps]
-    [reshape(mps[i], (sx[i][1], sx[i][2], s[i][3], s[i][4])) for i in 1:length(mps)]
-end
 
 function compress_svd(mps::Vector{Array{T,3}}, χ::Int) where T <: AbstractFloat
     left_canonical_approx(mps, χ)

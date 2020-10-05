@@ -107,6 +107,9 @@ end
     mps = MPSxMPO([ones(1,2,2), 2*ones(2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
     @test mps == [2*ones(1,4,1), 4*ones(4,1,1)]
 
+    mpo = MPOxMPO([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
+    @test mpo == [2*ones(1,4,1,1), 4*ones(4,1,1,1)]
+
     mps = set_row([ones(1,2,2,1,2), 2*ones(2,1,2,1,2)], [1,1])
     @test mps == [ones(1,2,1,2), 2*ones(2,1,1,2)]
 
@@ -204,6 +207,8 @@ end
 if true
 @testset "testing itterative approximation" begin
 
+    Random.seed!(21)
+
     T1 = rand(1,2,2)
     T2 = rand(2,2,2)
     T3 = rand(2,1,2)
@@ -275,7 +280,9 @@ if true
     @test R_update(U,U, Matrix{Float64}(I, 2,2)) ≈ Matrix(I, 2,2)
     @test L_update(U1,U1, Matrix{Float64}(I, 2,2)) ≈ Matrix(I, 2,2)
 
-    # approximations of PePses
+    # approximations of PEPSes
+
+    Random.seed!(21)
 
     T1 = rand(1,8,4)
     T2 = rand(8,8,4)
@@ -366,6 +373,8 @@ if true
     @test norm(abs.(Dc3./D2.*norm(D2)).-1) < norm(D12./D2.-1)
 
     @testset "compare with other implemtation" begin
+
+        Random.seed!(21)
 
         T1 = rand(1,16,4)
         T2 = rand(16,16,4)

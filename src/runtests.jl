@@ -1,6 +1,7 @@
 using Test
 using LinearAlgebra
 using TensorOperations
+using Random
 
 path = "/home/kdomino/Dokumenty/julia_modules/"
 try
