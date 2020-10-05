@@ -18,8 +18,8 @@ include("notation.jl")
 include("peps.jl")
 include("mps_implementation.jl")
 
-#include("tests/notation_tests.jl")
+include("tests/notation_tests.jl")
 
-#include("tests/peps_tests.jl")
+include("tests/peps_tests.jl")
 
 include("tests/mps_tests.jl")
