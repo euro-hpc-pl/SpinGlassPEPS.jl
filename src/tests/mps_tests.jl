@@ -174,9 +174,12 @@ end
     all_is = [[1, 10], [3, 12], [6, 13], [11], [5,15], [8]]
     all_js = [[[2,5], [6,9,11,14]], [[2,4,7], [8,11,16]], [[2,5,7], [9,14]], [[7, 15]], [[9],[14,16]], [[4,7]]]
 
-    β = .75
+    β = 1.5
+    β_step = 6
 
-    @time ses = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=2, χ=12, threshold = 1.e-8)
+    println("step = ", β_step)
+
+    @time ses = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @time ses_exact = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=1, χ=12, threshold = 0.)
 

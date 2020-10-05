@@ -113,6 +113,24 @@ function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) whe
     Array{Array{T, 3}}(mps_res)
 end
 
+
+function MPOxMPO(mpo_down::Vector{Array{T, 4}}, mpo_up::Vector{Array{T, 4}}) where T <: AbstractFloat
+        mpo_res = Array{Union{Nothing, Array{T}}}(nothing, length(mpo_down))
+        for i in 1:length(mpo_down)
+        A = mpo_down[i]
+        B = mpo_up[i]
+        sa = size(A)
+        sb = size(B)
+
+        C = zeros(T, sa[1] , sb[1], sa[2], sb[2], sb[3], sa[4])
+        @tensor begin
+            C[a,d,b,e,f,g] = A[a,b,x,g]*B[d,e,f,x]
+        end
+        mpo_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3], sa[4]))
+    end
+    Array{Array{T, 4}}(mpo_res)
+end
+
 """
     function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
 
@@ -626,4 +644,27 @@ function compress_mps_itterativelly(mps::Vector{Array{T,3}}, mps_anzatz::Vector{
         end
     end
     mps_ret1
+end
+
+# various compressing schemes
+
+function compress_iter(mps::Vector{Array{T,3}}, χ::Int, threshold::T) where T <: AbstractFloat
+    mps_lc = left_canonical_approx(mps, 0)
+    mps_anzatz = left_canonical_approx(mps, χ)
+    compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
+end
+
+
+function compress_iter(mpo::Vector{Array{T,4}}, χ::Int, threshold::T) where T <: AbstractFloat
+    s = [size(el) for el in mpo]
+    mps = [reshape(mpo[i], (s[i][1], s[i][2], s[i][3]*s[i][4])) for i in 1:length(mpo)]
+    mps_lc = left_canonical_approx(mps, 0)
+    mps_anzatz = left_canonical_approx(mps, χ)
+    mps = compress_mps_itterativelly(mps_lc, mps_anzatz, χ, threshold)
+    sx = [size(el) for el in mps]
+    [reshape(mps[i], (sx[i][1], sx[i][2], s[i][3], s[i][4])) for i in 1:length(mps)]
+end
+
+function compress_svd(mps::Vector{Array{T,3}}, χ::Int) where T <: AbstractFloat
+    left_canonical_approx(mps, χ)
 end
