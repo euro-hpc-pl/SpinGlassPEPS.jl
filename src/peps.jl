@@ -22,6 +22,46 @@ function make_tensor_sizes(l::Bool, r::Bool, u::Bool, d::Bool, s_virt::Int = 2, 
     (tensor_size..., )
 end
 
+
+function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}},
+                                                        i::Int, β::T) where T <: AbstractFloat
+
+    n = ns[i]
+    i == n.i || error("$i ≠ $(n.i), error in indexing a grid")
+
+    tensor_size = map(x -> 2^length(x), [n.left, n.right, n.up, n.down, n.spin_inds])
+    # for the initial mps
+
+    tensor = zeros(T, (tensor_size...))
+
+    if length(n.spin_inds) == 1
+        j = n.spin_inds[1]
+
+        h = JfromQubo_el(qubo, j,j)
+        Jil = T(0.)
+        if length(n.left) > 0
+            Jil = JfromQubo_el(qubo, n.left[1]...)
+        end
+
+        Jiu = T(0.)
+        if length(n.up) > 0
+            Jiu = JfromQubo_el(qubo, n.up[1]...)
+        end
+
+        for k in CartesianIndices(tuple(tensor_size...))
+
+            b = [ind2spin(k[i], tensor_size[i]) for i in 1:5]
+            tensor[k] = Tgen(b..., Jil, Jiu, h, β)
+        end
+    end
+    if length(n.down) == 0
+        return dropdims(tensor, dims = 4)
+    elseif length(n.up) == 0
+        return dropdims(tensor, dims = 3)
+    end
+    return tensor
+end
+
 function make_peps_node(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int, β::T) where T <: AbstractFloat
 
     ind = findall(x->x==i, grid)[1]
@@ -78,23 +118,7 @@ function make_pepsTN(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T
     Array{Array{T, 5}}(M_of_tens)
 end
 
-
-function trace_all_spins(mps::Vector{Array{T, 5}}; is_mps::Bool = false) where T <: AbstractFloat
-    l = length(mps)
-    N = 4
-    if is_mps
-        N = 3
-    end
-    traced_mps = Array{Union{Nothing, Array{T, N}}}(nothing, l)
-    for i in 1:l
-        if is_mps
-            traced_mps[i] = sum_over_last(mps[i])[:,:,:,1]
-        else
-            traced_mps[i] = sum_over_last(mps[i])
-        end
-    end
-    Vector{Array{T, N}}(traced_mps)
-end
+# above need to be refactorem / removed
 
 function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
         mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
@@ -170,7 +194,7 @@ end
 
 function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1))
-    #mps_up = mps_up[:,:,1,:]
+
     @tensor begin
         C[a,b] = mps_up[a,x,z]*mps_down[b,y,z]*env[x,y]
     end
@@ -180,7 +204,7 @@ end
 
 function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 4}, env::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 4))
-    #mps_up = mps_up[:,:,1,:,:]
+
     @tensor begin
         C[a,b, u] = mps_up[a,x,z,u]*mps_down[b,y,z]*env[x,y]
     end
@@ -189,7 +213,7 @@ end
 
 function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 3}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(env, 3))
-    #mps_up = mps_up[:,:,1,:]
+
     @tensor begin
         C[a,b,u] = mps_up[a,x,z]*mps_down[b,y,z]*env[x,y,u]
     end
@@ -241,19 +265,13 @@ function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}
 end
 
 # set the 3-th mode according to sping from above
-function set_row(mpo::Vector{Array{T, 5}}, ses::Vector{Int}) where T <: AbstractFloat
+# TODO this need to be refactored next
+function set_row(mpo, ses::Vector{Int})
     l = length(ses)
-    ret = [ones(T, 1,1,1,1) for _ in 1:l]
+    ret = [ones(typeof(mpo[1][1]), 1,1,1,1) for _ in 1:l]
     for i in 1:l
-        A = mpo[i]
-        v = [T(ses[i] == -1), T(ses[i] == 1)]
-        B = reshape(v, (2))
-        s = size(A)
-        C = ones(T, s[1], s[2], s[4], s[5])
-        @tensor begin
-            C[a,b,c,d] = A[a,b,x,c,d]*B[x]
-        end
-        ret[i] = C
+        k = spins2ind(ses[i])
+        ret[i] = mpo[i][:,:,k,:,:]
     end
     ret
 end
@@ -296,12 +314,14 @@ function chain2pointstep(t::Array{T,2}, env::Array{T,2}) where T <: AbstractFloa
 end
 
 
-function make_lower_mps(M::Matrix{Array{T, 5}}, k::Int, χ::Int, threshold::T) where T <: AbstractFloat
-    s = size(M,1)
+function make_lower_mps(grid::Matrix{Int}, ns::Vector{Node_of_grid},
+                                                qubo::Vector{Qubo_el{T}}, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
+    s = size(grid,1)
     if k <= s
-        mps = trace_all_spins(M[s,:]; is_mps = true)
+        mps = [sum_over_last(compute_single_tensor(ns, qubo, j, β)) for j in grid[s,:]]
         for i in s-1:-1:k
-            mpo = trace_all_spins(M[i,:])
+
+            mpo = [sum_over_last(compute_single_tensor(ns, qubo, j, β)) for j in grid[i,:]]
             mps = MPSxMPO(mps, mpo)
         end
         if threshold == 0.
@@ -346,6 +366,9 @@ end
 
 function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ::Int = 0, threshold::T = T(1e-14)) where T <: AbstractFloat
     problem_size = maximum(grid)
+    ns = [Node_of_grid(i, grid) for i in 1:problem_size]
+
+
     s = size(grid)
     M = make_pepsTN(grid, qubo, β)
 
@@ -353,7 +376,7 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
     for row in 1:s[1]
 
         #this may need to ge cashed
-        lower_mps = make_lower_mps(M, row + 1, χ, threshold)
+        lower_mps = make_lower_mps(grid, ns, qubo, row + 1, β, χ, threshold)
 
         for j in grid[row,:]
 
@@ -367,7 +390,8 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
 
                 if row == 1
                     # first row, up index can be reduced
-                    A = [e[:,:,1,:,:] for e in M[row,:]]
+                    #A = [e[:,:,1,:,:] for e in M[row,:]]
+                    A = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
                     objectives = conditional_probabs(A, lower_mps, sol)
 
                 elseif row < s[1]

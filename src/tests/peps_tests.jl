@@ -26,6 +26,31 @@ end
     @test ps2.objective == 1.
 end
 
+@testset "tensor computation" begin
+
+    q = make_qubo0()
+    grid = [1 2 3; 4 5 6; 7 8 9]
+    β = 1.
+
+    M = make_pepsTN(grid, q, β)
+
+    ns = [Node_of_grid(i, grid) for i in 1:9]
+    tensor = compute_single_tensor(ns, q, 1, β)
+    println(maximum(abs.(tensor.-M[1,1])))
+
+    tensor = compute_single_tensor(ns, q, 5, β)
+    println(maximum(abs.(tensor.-M[2,2])))
+
+    tensor = compute_single_tensor(ns, q, 6, β)
+    println(maximum(abs.(tensor.-M[2,3])))
+
+    tensor = compute_single_tensor(ns, q, 4, β)
+    println(maximum(abs.(tensor.-M[2,1])))
+
+    tensor = compute_single_tensor(ns, q, 9, β)
+    println(maximum(abs.(tensor.-M[3,3][:,:,:,1,:])))
+end
+
 function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
     d =  diag(M)
     M = M .- diagm(d)
@@ -33,14 +58,14 @@ function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
     transpose(v)*M*v + transpose(v)*d
 end
 
-function contract3x3by_ncon(M::Matrix{Array{T, 5}}) where T <: AbstractFloat
-    u1 = M[1,1][1,:,1,:,:]
+function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractFloat
+    u1 = M[1,1][1,:,:,:]
     v1 = [2,31, -1]
 
-    u2 = M[1,2][:,:,1,:,:]
+    u2 = M[1,2][:,:,:,:]
     v2 = [2,3,32,-2]
 
-    u3 = M[1,3][:,1,1,:,:]
+    u3 = M[1,3][:,1,:,:]
     v3 = [3,33,-3]
 
     m1 = M[2,1][1,:,:,:,:]
@@ -53,13 +78,13 @@ function contract3x3by_ncon(M::Matrix{Array{T, 5}}) where T <: AbstractFloat
 
     v6 = [5, 33, 43, -6]
 
-    d1 = M[3,1][1,:,:,1,:]
+    d1 = M[3,1][1,:,:,:]
 
     v7 = [6, 41, -7]
-    d2 = M[3,2][:,:,:,1,:]
+    d2 = M[3,2][:,:,:,:]
 
     v8 = [6,7,42,-8]
-    d3 = M[3,3][:,1,:,1,:]
+    d3 = M[3,3][:,1,:,:]
 
     v9 = [7, 43, -9]
 
@@ -82,8 +107,17 @@ end
         Mat[i,j] = Mat[j,i] = q.coupling
     end
 
+    ns = [Node_of_grid(i, grid) for i in 1:9]
     β = 3.
-    M = make_pepsTN(grid, qubo, β)
+    M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
+    k = 0
+    for i in 1:3
+        for j in 1:3
+            k = k+1
+            M[i,j] = compute_single_tensor(ns, qubo, k, β)
+        end
+    end
+    M = Matrix{Array{Float64, N} where N}(M)
     cc = contract3x3by_ncon(M)
     # testing peps creation
 
@@ -98,6 +132,7 @@ end
     @test exp.(β*v2energy(Mat, v)) ≈ cc[2,1,2,1,2,1,2,1,2]
 
 end
+
 
 @testset "testing marginal/conditional probabilities" begin
 
@@ -140,14 +175,28 @@ end
     qubo = make_qubo0()
     grid = [1 2 3; 4 5 6; 7 8 9]
     β = 3.
-    M = make_pepsTN(grid, qubo, β)
+
+    ns = [Node_of_grid(i, grid) for i in 1:9]
+    M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
+    k = 0
+    for i in 1:3
+        for j in 1:3
+            k = k+1
+            M[i,j] = compute_single_tensor(ns, qubo, k, β)
+        end
+    end
+    M = Matrix{Array{Float64, N} where N}(M)
+
+    #M = make_pepsTN(grid, qubo, β)
     cc = contract3x3by_ncon(M)
     su = sum(cc)
 
     # trace all spins
-    m3 = trace_all_spins(M[3,:]; is_mps = true)
-    m2 = trace_all_spins(M[2,:]; is_mps = false)
-    m1 = trace_all_spins(M[1,:]; is_mps = false)
+    m3 = [sum_over_last(el) for el in M[3,:]]
+    m2 = [sum_over_last(el) for el in M[2,:]]
+    m1 = [sum_over_last(el) for el in M[1,:]]
+    # get it back to array{4}
+    m1 = [reshape(el, (size(el,1), size(el,2), 1, size(el,3))) for el in m1]
 
     mx = MPSxMPO(m3, m2)
     mx = MPSxMPO(mx, m1)
@@ -159,8 +208,8 @@ end
 
     # probabilities
 
-    A = [e[:,:,1,:,:] for e in M[1,:]]
-    lower_mps = make_lower_mps(M, 2, 0, 0.)
+    A = Vector{Array{Float64, 4}}(M[1,:])
+    lower_mps = make_lower_mps(grid, ns, qubo, 2, β, 0, 0.)
     # marginal prob
     sol = Int[]
     objective = conditional_probabs(A, lower_mps, sol)
@@ -184,27 +233,27 @@ end
 
     sol2 = Int[-1,1,-1,1]
 
-    lower_mps = make_lower_mps(M, 3, 0, 0.)
+    lower_mps = make_lower_mps(grid, ns, qubo, 3, β ,0, 0.)
     M_temp = set_row(M[2,:], sol2[1:3])
     obj2 = conditional_probabs(M_temp, lower_mps, sol2[4:4])
     # this is exact
     @test [cond1, cond2] == obj2
 
     # with approximation marginal
-    lower_mps_a = make_lower_mps(M, 2, 2, 1e-6)
+    lower_mps_a = make_lower_mps(grid, ns, qubo, 2, β, 2, 1e-6)
     objective = conditional_probabs(A, lower_mps_a, sol)
     @test objective ≈ [p1, p2]
 
     objective1 = conditional_probabs(A, lower_mps_a, sol1)
     @test objective1 ≈ [p11/p1, p12/p1]
 
-    lower_mps_a = make_lower_mps(M, 3, 2, 1.e-6)
+    lower_mps_a = make_lower_mps(grid, ns, qubo, 3, β, 2, 1.e-6)
     obj2_a = conditional_probabs(M_temp, lower_mps_a, sol2[4:4])
     # this is approx
     @test [cond1, cond2] ≈ obj2_a
 
 end
-if true
+
 @testset "testing itterative approximation" begin
 
     Random.seed!(21)
@@ -520,10 +569,10 @@ end
 
 @testset "larger QUBO" begin
     function make_qubo_l()
-        qubo = [(1,1) 1.; (1,2) -0.25; (1,5) -0.25; (2,2) -1.; (2,3) -0.25; (2,6) -0.25; (3,3) 1.0; (3,4) -0.25; (3,7) -0.25; (4,4) -1.0; (4,8) -0.25]
-        qubo = vcat(qubo, [(5,5) 1.; (5,6) -0.25; (5,9) -0.25; (6,6) -1.; (6,7) -0.25; (6,10) -0.25; (7,7) 1.0; (7,8) -0.25; (7,11) -0.25; (8,8) -1.0; (8,12) -0.25])
-        qubo = vcat(qubo, [(9,9) 1.; (9,10) -0.25; (9,13) -0.25; (10,10) -1.; (10,11) -0.25; (10,14) -0.25; (11,11) 1.0; (11,12) -0.25; (11,15) -0.25; (12,12) -1.0; (12,16) -0.25])
-        qubo = vcat(qubo, [(13,13) 1.; (13,14) -0.25; (14,14) -1.; (14,15) -0.25; (15,15) 1.0; (15,16) -0.25; (16,16) -1.0])
+        qubo = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
+        qubo = vcat(qubo, [(5,5) 2.4; (5,6) -0.15; (5,9) -0.211; (6,6) -2.3; (6,7) -0.2; (6,10) -0.15; (7,7) 2.2; (7,8) -0.11; (7,11) -0.35; (8,8) -2.1; (8,12) -0.19])
+        qubo = vcat(qubo, [(9,9) 2.; (9,10) -0.222; (9,13) -0.15; (10,10) -1.9; (10,11) -0.28; (10,14) -0.21; (11,11) 1.8; (11,12) -0.19; (11,15) -0.18; (12,12) -1.7; (12,16) -0.27])
+        qubo = vcat(qubo, [(13,13) 1.6; (13,14) -0.32; (14,14) -1.5; (14,15) -0.19; (15,15) 1.4; (15,16) -0.21; (16,16) -1.3])
         [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
     end
     l_qubo = make_qubo_l()
@@ -532,5 +581,4 @@ end
 
     @time ses = solve(l_qubo, grid, 2; β = 3., χ = 2, threshold = 1e-11)
     @test ses[1].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
-end
 end

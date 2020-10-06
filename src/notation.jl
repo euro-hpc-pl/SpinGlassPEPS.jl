@@ -1,5 +1,45 @@
 using TensorOperations
 
+
+struct Node_of_grid
+    i::Int
+    spin_inds::Vector{Int}
+    intra_struct::Vector{Vector{Int}}
+    left::Vector{Vector{Int}}
+    right::Vector{Vector{Int}}
+    up::Vector{Vector{Int}}
+    down::Vector{Vector{Int}}
+    function(::Type{Node_of_grid})(i::Int, grid::Matrix{Int})
+        s = size(grid)
+        intra_struct = Vector{Int}[]
+        a = findall(x->x==i, grid)[1]
+        k = a[1]
+        j = a[2]
+
+
+        left = Vector{Int}[]
+        if j > 1
+            left = [[i, grid[k, j-1]]]
+        end
+
+        right = Vector{Int}[]
+        if j < s[2]
+            right = [[i, grid[k, j+1]]]
+        end
+
+        up = Vector{Int}[]
+        if k > 1
+            up = [[i, grid[k-1, j]]]
+        end
+
+        down = Vector{Int}[]
+        if k < s[1]
+            down = [[i, grid[k+1, j]]]
+        end
+        new(i, [i], intra_struct, left, right, up, down)
+    end
+end
+
 struct Qubo_el{T<:AbstractFloat}
     ind::Tuple{Int, Int}
     coupling::T
@@ -79,6 +119,14 @@ function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: Abstr
     end
 end
 
-ind2spin(i::Int) = 2*i-3
+function ind2spin(i::Int, s::Int = 2)
+    if s == 1
+        return 0
+    elseif s == 2
+        return 2*i-3
+    end
+    -100
+    # TODO mapping
+end
 
 spins2ind(s::Int) = div(s+3, 2)

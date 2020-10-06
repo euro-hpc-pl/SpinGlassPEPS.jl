@@ -1,3 +1,56 @@
+@testset "node type, connections on the graph" begin
+
+    grid = [1 2 3; 4 5 6; 7 8 9]
+
+    n = Node_of_grid(3, grid)
+    @test n.i == 3
+    @test n.spin_inds == [3]
+    @test n.intra_struct == Array{Int64,1}[]
+    @test n.left == [[3,2]]
+    @test n.right == Array{Int64,1}[]
+    @test n.up == Array{Int64,1}[]
+    @test n.down == [[3,6]]
+
+    n = Node_of_grid(5, grid)
+    @test n.i == 5
+    @test n.spin_inds == [5]
+    @test n.intra_struct == Array{Int64,1}[]
+    @test n.left == [[5,4]]
+    @test n.right == [[5,6]]
+    @test n.up == [[5,2]]
+    @test n.down == [[5,8]]
+
+    grid1 = [1 2 3 4; 5 6 7 8; 9 10 11 12]
+    n = Node_of_grid(4, grid1)
+    @test n.i == 4
+    @test n.spin_inds == [4]
+    @test n.intra_struct == Array{Int64,1}[]
+    @test n.left == [[4,3]]
+    @test n.right == Array{Int64,1}[]
+    @test n.up == Array{Int64,1}[]
+    @test n.down == [[4,8]]
+
+
+    n = Node_of_grid(9, grid1)
+    @test n.i == 9
+    @test n.spin_inds == [9]
+    @test n.intra_struct == Array{Int64,1}[]
+    @test n.left == Array{Int64,1}[]
+    @test n.right == [[9,10]]
+    @test n.up == [[9,5]]
+    @test n.down == Array{Int64,1}[]
+
+    n = Node_of_grid(12, grid1)
+    @test n.i == 12
+    @test n.spin_inds == [12]
+    @test n.intra_struct == Array{Int64,1}[]
+    @test n.left == [[12,11]]
+    @test n.right == Array{Int64,1}[]
+    @test n.up == [[12,8]]
+    @test n.down == Array{Int64,1}[]
+end
+
+
 function make_qubo0()
     qubo = [(1,1) -0.2; (1,2) -0.5; (1,4) -1.5; (2,2) -0.6; (2,3) -1.5; (2,5) -0.5; (3,3) -0.2; (3,6) 1.5]
     qubo = vcat(qubo, [(6,6) -2.2; (5,6) -0.25; (6,9) -0.52; (5,5) 0.2; (4,5) 0.5; (5,8) 0.5; (4,4) -2.2; (4,7) -0.01])
@@ -42,5 +95,6 @@ end
         @test last_m_els([1,2,3,4], 5) == [1,2,3,4]
         @test ind2spin(1) == -1
         @test ind2spin(2) == 1
+        @test ind2spin(1,1) == 0
     end
 end
