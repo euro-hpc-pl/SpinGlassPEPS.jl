@@ -16,14 +16,14 @@ function make_qubo_circ()
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
 
-function contract3x3by_ncon(M::Matrix{Array{T, 5}}) where T <: AbstractFloat
-    u1 = M[1,1][1,:,1,:,:]
+function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractFloat
+    u1 = M[1,1][1,:,:,:]
     v1 = [2,31, -1]
 
-    u2 = M[1,2][:,:,1,:,:]
+    u2 = M[1,2][:,:,:,:]
     v2 = [2,3,32,-2]
 
-    u3 = M[1,3][:,1,1,:,:]
+    u3 = M[1,3][:,1,:,:]
     v3 = [3,33,-3]
 
     m1 = M[2,1][1,:,:,:,:]
@@ -36,13 +36,13 @@ function contract3x3by_ncon(M::Matrix{Array{T, 5}}) where T <: AbstractFloat
 
     v6 = [5, 33, 43, -6]
 
-    d1 = M[3,1][1,:,:,1,:]
+    d1 = M[3,1][1,:,:,:]
 
     v7 = [6, 41, -7]
-    d2 = M[3,2][:,:,:,1,:]
+    d2 = M[3,2][:,:,:,:]
 
     v8 = [6,7,42,-8]
-    d3 = M[3,3][:,1,:,1,:]
+    d3 = M[3,3][:,1,:,:]
 
     v9 = [7, 43, -9]
 
@@ -70,7 +70,19 @@ end
     mps = construct_mps(qubo, β, 2, 9, all_is, all_js, 4, 0.)
 
     grid = [1 2 3 ; 4 5 6; 7 8 9]
-    M = make_pepsTN(grid, qubo, β)
+
+    ns = [Node_of_grid(i, grid) for i in 1:9]
+
+    M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
+    k = 0
+    for i in 1:3
+        for j in 1:3
+            k = k+1
+            M[i,j] = compute_single_tensor(ns, qubo, k, β)
+        end
+    end
+    M = Matrix{Array{Float64, N} where N}(M)
+
     cc = contract3x3by_ncon(M)
 
     v = ones(1)*mps[1][:,:,1]*mps[2][:,:,1]

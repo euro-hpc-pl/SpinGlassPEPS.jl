@@ -2,25 +2,6 @@ using TensorOperations
 using LinearAlgebra
 using GenericLinearAlgebra
 
-# axiliary
-
-
-function make_tensor_sizes(l::Bool, r::Bool, u::Bool, d::Bool, s_virt::Int = 2, s_phys::Int = 2)
-    tensor_size = [1,1,1,1,s_phys]
-    if l
-        tensor_size[1] = s_virt
-    end
-    if r
-        tensor_size[2] = s_virt
-    end
-    if u
-        tensor_size[3] = s_virt
-    end
-    if d
-        tensor_size[4] = s_virt
-    end
-    (tensor_size..., )
-end
 
 
 function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}},
@@ -61,64 +42,6 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}
     end
     return tensor
 end
-
-function make_peps_node(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, i::Int, β::T) where T <: AbstractFloat
-
-    ind = findall(x->x==i, grid)[1]
-    h = JfromQubo_el(qubo, i,i)
-    bonds = [[0], [0], [0], [0], [-1,1]]
-
-    # determine bonds directions from grid
-    l = 0 < ind[2]-1
-    r = ind[2]+1 <= size(grid, 2)
-    u = 0 < ind[1]-1
-    d = ind[1]+1 <= size(grid, 1)
-
-    if r
-        bonds[2] = [-1,1]
-    end
-
-    Jil = T(0.)
-    if l
-        j = grid[ind[1], ind[2]-1]
-        Jil = JfromQubo_el(qubo, i,j)
-        bonds[1] = [-1,1]
-    end
-
-    if d
-        bonds[4] = [-1,1]
-    end
-
-    Jiu = T(0.)
-    if u
-        j = grid[ind[1]-1, ind[2]]
-        Jiu = JfromQubo_el(qubo, i,j)
-        bonds[3] = [-1,1]
-    end
-
-    tensor_size = make_tensor_sizes(l,r,u,d,2,2)
-    tensor = zeros(T, tensor_size)
-
-    for i in CartesianIndices(tensor_size)
-        b = [bonds[j][i[j]] for j in 1:5]
-        tensor[i] = Tgen(b..., Jil, Jiu, h, β)
-    end
-    tensor
-end
-
-# tensor network
-
-function make_pepsTN(grid::Matrix{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T <: AbstractFloat
-    s = size(grid)
-    M_of_tens = Array{Union{Nothing, Array{T}}}(nothing, s)
-    for i in 1:prod(s)
-        ind = findall(x->x==i, grid)[1]
-        M_of_tens[ind] = make_peps_node(grid, qubo, i, β)
-    end
-    Array{Array{T, 5}}(M_of_tens)
-end
-
-# above need to be refactorem / removed
 
 function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
         mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
@@ -264,17 +187,6 @@ function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}
     unnorm_prob./sum(unnorm_prob)
 end
 
-# set the 3-th mode according to sping from above
-# TODO this need to be refactored next
-function set_row(mpo, ses::Vector{Int})
-    l = length(ses)
-    ret = [ones(typeof(mpo[1][1]), 1,1,1,1) for _ in 1:l]
-    for i in 1:l
-        k = spins2ind(ses[i])
-        ret[i] = mpo[i][:,:,k,:,:]
-    end
-    ret
-end
 
 function chain2point(chain::Vector{Array{T, N} where N}) where T <: AbstractFloat
     l = length(chain)
@@ -366,11 +278,9 @@ end
 
 function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ::Int = 0, threshold::T = T(1e-14)) where T <: AbstractFloat
     problem_size = maximum(grid)
-    ns = [Node_of_grid(i, grid) for i in 1:problem_size]
-
-
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
     s = size(grid)
-    M = make_pepsTN(grid, qubo, β)
+    #M = make_pepsTN(grid, qubo, β)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for row in 1:s[1]
@@ -389,22 +299,22 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
                 objectives = [0., 0.]
 
                 if row == 1
-                    # first row, up index can be reduced
-                    #A = [e[:,:,1,:,:] for e in M[row,:]]
+
                     A = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
                     objectives = conditional_probabs(A, lower_mps, sol)
 
                 elseif row < s[1]
                     sol_row = part_sol[1+(row-2)*s[2]:(row-1)*s[2]]
-                    Mtemp = set_row(M[row,:], sol_row)
+                    A = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
+                    A = [A[j][:,:,spins2ind(sol_row[j]),:,:] for j in 1:length(sol_row)]
 
-                    objectives = conditional_probabs(Mtemp, lower_mps, sol)
+                    objectives = conditional_probabs(A, lower_mps, sol)
                 else
                     sol_row = part_sol[1+(row-2)*s[2]:(row-1)*s[2]]
-                    Mtemp = set_row(M[row,:], sol_row)
-                    # last row, down index can be reduced
-                    Mtemp = [e[:,:,1,:] for e in Mtemp]
-                    chain = set_part(Mtemp, sol)
+                    A = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
+                    A = [A[j][:,:,spins2ind(sol_row[j]),:] for j in 1:length(sol_row)]
+
+                    chain = set_part(A, sol)
                     objectives = chain2point(chain)
                 end
 

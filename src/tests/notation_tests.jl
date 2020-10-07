@@ -79,7 +79,6 @@ end
     @testset "operations on tensors" begin
         A = ones(2,2,2,2)
         @test sum_over_last(A) == 2*ones(2,2,2)
-        #@test set_last(A, -1) == ones(2,2,2)
 
         @test delta(0,-1) == 1
         @test delta(-1,1) == 0

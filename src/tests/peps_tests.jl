@@ -8,9 +8,9 @@ end
 
 @testset "PEPS - axiliary functions" begin
 
-    @test make_tensor_sizes(false, false, true, true , 2,2) == (1,1,2,2,2)
-    @test make_tensor_sizes(true, false, true, true , 2,2) == (2,1,2,2,2)
-    @test make_tensor_sizes(false, false, true, false , 2,2) == (1,1,2,1,2)
+    #@test make_tensor_sizes(false, false, true, true , 2,2) == (1,1,2,2,2)
+    #@test make_tensor_sizes(true, false, true, true , 2,2) == (2,1,2,2,2)
+    #@test make_tensor_sizes(false, false, true, false , 2,2) == (1,1,2,1,2)
 
     # partial solution
     ps = Partial_sol{Float64}()
@@ -26,30 +26,6 @@ end
     @test ps2.objective == 1.
 end
 
-@testset "tensor computation" begin
-
-    q = make_qubo0()
-    grid = [1 2 3; 4 5 6; 7 8 9]
-    β = 1.
-
-    M = make_pepsTN(grid, q, β)
-
-    ns = [Node_of_grid(i, grid) for i in 1:9]
-    tensor = compute_single_tensor(ns, q, 1, β)
-    println(maximum(abs.(tensor.-M[1,1])))
-
-    tensor = compute_single_tensor(ns, q, 5, β)
-    println(maximum(abs.(tensor.-M[2,2])))
-
-    tensor = compute_single_tensor(ns, q, 6, β)
-    println(maximum(abs.(tensor.-M[2,3])))
-
-    tensor = compute_single_tensor(ns, q, 4, β)
-    println(maximum(abs.(tensor.-M[2,1])))
-
-    tensor = compute_single_tensor(ns, q, 9, β)
-    println(maximum(abs.(tensor.-M[3,3][:,:,:,1,:])))
-end
 
 function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
     d =  diag(M)
@@ -145,9 +121,6 @@ end
     mpo = MPOxMPO([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
     @test mpo == [2*ones(1,4,1,1), 4*ones(4,1,1,1)]
 
-    mps = set_row([ones(1,2,2,1,2), 2*ones(2,1,2,1,2)], [1,1])
-    @test mps == [ones(1,2,1,2), 2*ones(2,1,1,2)]
-
 
     b = compute_scalar_prod([ones(1,2,2), ones(2,1,2)], [ones(1,2,2,2), 2*ones(2,1,2)])
     @test b == [32.0, 32.0]
@@ -234,7 +207,7 @@ end
     sol2 = Int[-1,1,-1,1]
 
     lower_mps = make_lower_mps(grid, ns, qubo, 3, β ,0, 0.)
-    M_temp = set_row(M[2,:], sol2[1:3])
+    M_temp = [M[2,i][:,:,spins2ind(sol2[i]),:,:] for i in 1:3]
     obj2 = conditional_probabs(M_temp, lower_mps, sol2[4:4])
     # this is exact
     @test [cond1, cond2] == obj2
