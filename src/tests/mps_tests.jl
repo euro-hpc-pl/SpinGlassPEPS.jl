@@ -1,5 +1,12 @@
 using TensorOperations
 
+
+@testset "axiliary" begin
+    b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
+    @test b == 16.0*ones(1,1)
+
+
+end
 if true
 function make_qubo_x()
     qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
@@ -93,7 +100,7 @@ end
 
     A = mps[3]
     B = zeros(2,2)
-    M = compute_scalar_prod(mps[4:end],mps[4:end])
+    M = scalar_prod_with_itself(mps[4:end])
     @tensor begin
         B[x,y] = A[a,b,x]*A[c,d,y]*v1[a]*v1[c]*M[b,d]
     end

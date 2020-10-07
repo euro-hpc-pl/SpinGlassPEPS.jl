@@ -118,31 +118,18 @@ end
     mps = MPSxMPO([ones(1,2,2), 2*ones(2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
     @test mps == [2*ones(1,4,1), 4*ones(4,1,1)]
 
-    mpo = MPOxMPO([ones(1,2,2,1), 2*ones(2,1,2,1)], [ones(1,2,1,2), ones(2,1,1,2)])
-    @test mpo == [2*ones(1,4,1,1), 4*ones(4,1,1,1)]
-
-
-    b = compute_scalar_prod([ones(1,2,2), ones(2,1,2)], [ones(1,2,2,2), 2*ones(2,1,2)])
-    @test b == [32.0, 32.0]
-
     a = scalar_prod_step(ones(2,2,2), ones(2,2,2), ones(2,2))
     @test a == [8.0 8.0; 8.0 8.0]
-    a = scalar_prod_step(ones(2,2,2), ones(2,2,2,2), ones(2,2))
-    @test a[:,:,1] == [8.0 8.0; 8.0 8.0]
-    @test a[:,:,2] == [8.0 8.0; 8.0 8.0]
-    a = scalar_prod_step(ones(2,2,2), ones(2,2,2), ones(2,2,2))
-    @test a[:,:,1] == [8.0 8.0; 8.0 8.0]
-    @test a[:,:,2] == [8.0 8.0; 8.0 8.0]
+
+    a = scalar_prod_step(ones(2,2), ones(2,2,2), ones(2,2))
+    @test a == [8.0, 8.0]
 
     v1 = [ones(1,2,2,2), ones(2,2,2,2), ones(2,2,2,2), ones(2,1,2,2)]
     v2 = [ones(1,2,2), ones(2,2,2), ones(2,2,2), ones(2,1,2)]
     a = conditional_probabs(v1, v2, [1,1,1])
     @test a == [0.5, 0.5]
 
-    a = chain2point([reshape([1.,0.], (1,2)), ones(2,2,2), ones(2,2), ones(2,1)])
-    @test a == [0.5, 0.5]
-
-    a = chain2point([reshape([1.,0.], (1,2)), ones(2,1,2)])
+    a = conditional_probabs([ones(2,2), ones(2,2), ones(2,1)])
     @test a == [0.5, 0.5]
 
     qubo = make_qubo0()
@@ -210,7 +197,7 @@ end
     M_temp = [M[2,i][:,:,spins2ind(sol2[i]),:,:] for i in 1:3]
     obj2 = conditional_probabs(M_temp, lower_mps, sol2[4:4])
     # this is exact
-    @test [cond1, cond2] == obj2
+    @test [cond1, cond2] ≈ obj2
 
     # with approximation marginal
     lower_mps_a = make_lower_mps(grid, ns, qubo, 2, β, 2, 1e-6)

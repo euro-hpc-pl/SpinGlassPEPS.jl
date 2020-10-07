@@ -1,6 +1,25 @@
 include("peps.jl")
 include("notation.jl")
 
+
+function scalar_prod_with_itself(mps::Vector{Array{T, 3}}) where T <: AbstractFloat
+    env = ones(T, 1,1)
+    for i in length(mps):-1:1
+        env = scalar_prod_step(mps[i], env)
+    end
+    env
+end
+
+function scalar_prod_step(mps::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps, 1), size(mps, 1))
+
+    @tensor begin
+        C[a,b] = mps[a,x,z]*mps[b,y,z]*env[x,y]
+    end
+    C
+end
+
+
 function initialize_mps(l::Int, physical_dims::Int =  2, T::Type = Float64)
     [ones(T, 1,1,physical_dims) for _ in 1:l]
 end
@@ -112,7 +131,7 @@ function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: 
     A = mps[k]
     probs_at_k = zeros(T, d,d)
     if k < length(mps)
-        right_m = compute_scalar_prod(mps[k+1:end], mps[k+1:end])
+        right_m = scalar_prod_with_itself(mps[k+1:end])
 
         @tensor begin
             probs_at_k[x,y] = A[a,b,x]*A[c,d,y]*left_v[a]*left_v[c]*right_m[b,d]
@@ -159,6 +178,7 @@ function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
     mps
 end
 
+
 function solve_mps(qubo::Vector{Qubo_el{T}}, all_is::Vector{Vector{Int}},
                 all_js::Vector{Vector{Vector{Int}}}, problem_size::Int,
                 no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
@@ -172,8 +192,8 @@ function solve_mps(qubo::Vector{Qubo_el{T}}, all_is::Vector{Vector{Int}},
 
             objectives = compute_probs(mps, ps.spins)
 
-            a = add_spin_marginal(ps, -1, objectives[1])
-            b = add_spin_marginal(ps, 1, objectives[2])
+            a = add_spin(ps, -1, objectives[1])
+            b = add_spin(ps, 1, objectives[2])
 
             if partial_s_temp[1].spins == []
                 partial_s_temp = vcat(a,b)

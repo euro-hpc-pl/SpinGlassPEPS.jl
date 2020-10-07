@@ -3,7 +3,23 @@ using LinearAlgebra
 using GenericLinearAlgebra
 
 
+"""
+compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}}, i::Int, β::T)
 
+Returns an tensor form which mpses and mpos are build, initialy tensor is 5 mode:
+
+                   3
+                   |
+                   |
+            1 ---  T ---- 2
+                   |
+                   |
+                   4
+and mode 5 is physical.
+
+If tensor is expected to be on the top of the peps mode 3 is trivial and is removed
+If tensor is expected to be on the bottom of the peps mode 4 is trivial and is removed
+"""
 function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}},
                                                         i::Int, β::T) where T <: AbstractFloat
 
@@ -11,7 +27,6 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}
     i == n.i || error("$i ≠ $(n.i), error in indexing a grid")
 
     tensor_size = map(x -> 2^length(x), [n.left, n.right, n.up, n.down, n.spin_inds])
-    # for the initial mps
 
     tensor = zeros(T, (tensor_size...))
 
@@ -43,6 +58,11 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}
     return tensor
 end
 
+"""
+    MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
+
+returns an mps, the product of the mpo and mps
+"""
 function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
         mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
         for i in 1:length(mps_down)
@@ -60,54 +80,15 @@ function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) whe
     Array{Array{T, 3}}(mps_res)
 end
 
-
-function MPOxMPO(mpo_down::Vector{Array{T, 4}}, mpo_up::Vector{Array{T, 4}}) where T <: AbstractFloat
-        mpo_res = Array{Union{Nothing, Array{T}}}(nothing, length(mpo_down))
-        for i in 1:length(mpo_down)
-        A = mpo_down[i]
-        B = mpo_up[i]
-        sa = size(A)
-        sb = size(B)
-
-        C = zeros(T, sa[1] , sb[1], sa[2], sb[2], sb[3], sa[4])
-        @tensor begin
-            C[a,d,b,e,f,g] = A[a,b,x,g]*B[d,e,f,x]
-        end
-        mpo_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3], sa[4]))
-    end
-    Array{Array{T, 4}}(mpo_res)
-end
-
 """
-    function compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
+    function compute_scalar_prod(mps_down::Vector{Array{T, N} where N}, mps_up::Vector{Array{T, 3}}) where T <: AbstractFloat
 
-for general implementation
+Returns vector, the scalar product of two mpses. The first elemnt of mps_down
+is supposed to be a matrix, as its first mode is set due to the spin to the left.
+The first elemnt of mps_up has two virtual modes and one physical. Ather elements have
+all virtual modes.
 """
-
-function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
-    env = ones(T, 1,1)
-    for i in length(mps_up):-1:1
-        env = scalar_prod_step(mps_down[i], mps_up[i], env)
-    end
-    size(env) == (1,1) || error("output size $(size(env)) ≠ (1,1) not fully contracted")
-    env[1,1]
-end
-
-"""
-    compute_scalar_prod(mps_down::Vector{Array{T, 4}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
-
-for peps implementation
-"""
-
-function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, N} where N}) where T <: AbstractFloat
-    env = ones(T, 1,1)
-    for i in length(mps_up):-1:1
-        env = scalar_prod_step(mps_down[i], mps_up[i], env)
-    end
-    env[1,1,:]
-end
-
-function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 3}}) where T <: AbstractFloat
+function compute_scalar_prod(mps_down::Vector{Array{T, N} where N}, mps_up::Vector{Array{T, 3}}) where T <: AbstractFloat
     env = ones(T, 1,1)
     for i in length(mps_up):-1:1
         env = scalar_prod_step(mps_down[i], mps_up[i], env)
@@ -115,6 +96,11 @@ function compute_scalar_prod(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array
     env
 end
 
+"""
+    function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
+
+Returns matrix
+"""
 function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1))
 
@@ -124,110 +110,107 @@ function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array
     C
 end
 
+"""
+    function scalar_prod_step(mps_down::Array{T, 2}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
 
-function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 4}, env::Array{T, 2}) where T <: AbstractFloat
-    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(mps_up, 4))
+Returns a vector, proportional to the vector of probabilities
+"""
+function scalar_prod_step(mps_down::Array{T, 2}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps_up, 3))
 
     @tensor begin
-        C[a,b, u] = mps_up[a,x,z,u]*mps_down[b,y,z]*env[x,y]
+        C[a] = mps_up[x,z,a]*mps_down[y,z]*env[x,y]
     end
     C
 end
 
-function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 3}) where T <: AbstractFloat
-    C = zeros(T, size(mps_up, 1), size(mps_down, 1), size(env, 3))
+"""
+    function set_spin_from_letf(mps::Vector{Array{T,3}}, sol::Vector{Int}, s::Int) where T <: AbstractFloat
 
-    @tensor begin
-        C[a,b,u] = mps_up[a,x,z]*mps_down[b,y,z]*env[x,y,u]
+Returns a vector of matrices. First matrix is the corresponding mps with first
+mode set to the value correspodning to the spin of the element to the left.
+Following matrices are computed from mps by tracing out physical mode
+
+"""
+function set_spin_from_letf(mps::Vector{Array{T,3}}, sol::Vector{Int}, s::Int) where T <: AbstractFloat
+
+    Ms = []
+    # no element to the left
+    if length(sol) == 0
+        # transposition is to make a simple matrix multiplication for computing a probability
+        Ms = [Array(transpose(mps[1][1,:,:]))]
+    else
+        Ms = [Array(transpose(mps[1][spins2ind(sol[end]),:,:]))]
     end
-    C
+    # otherwise no elements to the right
+    if length(sol) < s
+        Ms = vcat(Ms, [sum_over_last(el) for el in mps[2:end]])
+    end
+    return Ms
 end
 
+"""
+    function set_spin_from_letf(mpo::Vector{Array{T,4}}, sol::Vector{Int}, s::Int) where T <: AbstractFloat
 
-function set_part(M::Vector{Array{T,3}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
-    l = length(s)
-    siz = size(M,1)
-    chain = [M[l+1]]
-    chain = vcat(chain, [sum_over_last(M[i]) for i in (l+2):siz])
-
-    if l > 0
-        v = [T(s[l] == -1), T(s[l] == 1)]
-        K1 = reshape(v, (1,2))
-        chain = vcat([K1], chain)
+Returns a vector of 3 mode arrays computed from the mpo. For the first one the
+first dim is set according to the spoin to the left. For next, the physical dimesion
+is traced.
+"""
+function set_spin_from_letf(mpo::Vector{Array{T,4}}, sol::Vector{Int}, s::Int) where T <: AbstractFloat
+    l = length(sol)
+    B = []
+    if l == 0
+        B = [mpo[1][1,:,:,:]]
+    else
+        B = [mpo[1][spins2ind(sol[end]),:,:,:]]
     end
-
-    Vector{Array{T, N} where N}(chain)
+    if l < s
+        B = vcat(B, [sum_over_last(el) for el in mpo[2:end]])
+    end
+    return B
 end
+
 
 function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
 
+    l1 = length(lower_mps)
     l = length(s)
-    siz = size(M,1)
 
-    upper = [M[l+1]]
+    A = set_spin_from_letf(M[l+1:end], s, l1-1)
 
-    if l < siz-1
-        # this can be cashed
-        upper = vcat(upper, [sum_over_last(M[i]) for i in (l+2):siz])
-
-    end
+    D = 0
     if l > 0
-        v = [T(s[l] == -1), T(s[l] == 1)]
-        K = reshape(kron(v, v), (1,2,2))
-        upper = vcat([K], upper)
-
-        for j in l-1:-1:1
-            v = [T(s[j] == -1), T(s[j] == 1)]
-            K1 = reshape(v, (1,1,2))
-            upper = vcat([K1], upper)
+        B = ones(T, 1)
+        for i in 1:l
+            B = transpose(B)*lower_mps[i][:,:,spins2ind(s[i])]
+            B = B[1,:]
         end
+        E = lower_mps[l+1]
+
+        @tensor begin
+            C[b,c] := E[a,b,c]*B[a]
+        end
+        D = vcat([C], [lower_mps[i] for i in l+2:l1])
+    else
+        D = vcat([lower_mps[1][1,:,:]], [lower_mps[i] for i in l+2:l1])
     end
 
-    unnorm_prob = compute_scalar_prod(lower_mps, upper)
+    unnorm_prob = compute_scalar_prod(D, A)
     unnorm_prob./sum(unnorm_prob)
 end
 
 
-function chain2point(chain::Vector{Array{T, N} where N}) where T <: AbstractFloat
-    l = length(chain)
-
+function conditional_probabs(chain::Vector{Array{T, 2}}) where T <: AbstractFloat
     env = ones(T, 1)
-    for i in l:-1:1
-        env = chain2pointstep(chain[i], env)
+    for i in length(chain):-1:1
+        env = chain[i]*env
     end
-    env[1,:]./sum(env)
-end
-
-function chain2pointstep(t::Array{T, 3}, env::Array{T, 1}) where T <: AbstractFloat
-    ret = zeros(T, size(t, 1), size(t, 3))
-
-    @tensor begin
-        ret[a,b] = t[a, x, b]*env[x]
-    end
-    ret
-end
-
-function chain2pointstep(t::Array{T, 2}, env::Array{T, 1}) where T <: AbstractFloat
-    ret = zeros(T, size(t, 1))
-
-    @tensor begin
-        ret[a] = t[a, x]*env[x]
-    end
-    ret
-end
-
-function chain2pointstep(t::Array{T,2}, env::Array{T,2}) where T <: AbstractFloat
-    ret = zeros(T, size(t, 1), size(env, 2))
-
-    @tensor begin
-        ret[a,b] = t[a, x]*env[x, b]
-    end
-    ret
+    env./sum(env)
 end
 
 
 function make_lower_mps(grid::Matrix{Int}, ns::Vector{Node_of_grid},
-                                                qubo::Vector{Qubo_el{T}}, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
+                                           qubo::Vector{Qubo_el{T}}, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
     s = size(grid,1)
     if k <= s
         mps = [sum_over_last(compute_single_tensor(ns, qubo, j, β)) for j in grid[s,:]]
@@ -245,7 +228,11 @@ function make_lower_mps(grid::Matrix{Int}, ns::Vector{Node_of_grid},
     [zeros(T,1)]
 end
 
+"""
+    mutable struct Partial_sol{T <: AbstractFloat}
 
+structure of the partial solution
+"""
 mutable struct Partial_sol{T <: AbstractFloat}
     spins::Vector{Int}
     objective::T
@@ -261,16 +248,10 @@ end
 """
     add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
 
-here the new objective is multipmed by the old one, hence we can take advantage
-of the marginal probabilities
+Add a spin and replace an objective function to Partial_sol{T} type
 """
 
 function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
-    s in [-1,1] || error("spin should be 1 or -1 we got $s")
-    Partial_sol{T}(vcat(ps.spins, [s]), ps.objective*objective)
-end
-
-function add_spin_marginal(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
     s in [-1,1] || error("spin should be 1 or -1 we got $s")
     Partial_sol{T}(vcat(ps.spins, [s]), objective)
 end
@@ -280,7 +261,6 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
     problem_size = maximum(grid)
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
     s = size(grid)
-    #M = make_pepsTN(grid, qubo, β)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for row in 1:s[1]
@@ -288,38 +268,36 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
         #this may need to ge cashed
         lower_mps = make_lower_mps(grid, ns, qubo, row + 1, β, χ, threshold)
 
+        upper_mpo = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
+
         for j in grid[row,:]
 
             partial_s_temp = Partial_sol{T}[Partial_sol{T}()]
             for ps in partial_s
 
-                part_sol = ps.spins
-                sol = part_sol[1+(row-1)*s[2]:end]
+                #part_sol = ps.spins
+                sol = ps.spins[1+(row-1)*s[2]:end]
 
                 objectives = [0., 0.]
 
                 if row == 1
-
-                    A = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
-                    objectives = conditional_probabs(A, lower_mps, sol)
+                    objectives = conditional_probabs(upper_mpo, lower_mps, sol)
 
                 elseif row < s[1]
-                    sol_row = part_sol[1+(row-2)*s[2]:(row-1)*s[2]]
-                    A = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
-                    A = [A[j][:,:,spins2ind(sol_row[j]),:,:] for j in 1:length(sol_row)]
+                    # set spins from above
+                    upper_mps = [upper_mpo[j][:,:,spins2ind(ps.spins[j+(row-2)*s[2]]),:,:] for j in 1:s[2]]
+                    objectives = conditional_probabs(upper_mps, lower_mps, sol)
 
-                    objectives = conditional_probabs(A, lower_mps, sol)
                 else
-                    sol_row = part_sol[1+(row-2)*s[2]:(row-1)*s[2]]
-                    A = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
-                    A = [A[j][:,:,spins2ind(sol_row[j]),:] for j in 1:length(sol_row)]
+                    l = length(sol)
+                    mps = [upper_mpo[j][:,:,spins2ind(ps.spins[j+(row-2)*s[2]]),:] for j in l+1:s[2]]
 
-                    chain = set_part(A, sol)
-                    objectives = chain2point(chain)
+                    chain = set_spin_from_letf(mps, sol, s[2])
+                    objectives = conditional_probabs(chain)
                 end
 
-                a = add_spin(ps, -1, objectives[1])
-                b = add_spin(ps, 1, objectives[2])
+                a = add_spin(ps, -1, ps.objective*objectives[1])
+                b = add_spin(ps, 1, ps.objective*objectives[2])
 
                 if partial_s_temp[1].spins == []
                     partial_s_temp = vcat(a,b)
