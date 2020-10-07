@@ -29,7 +29,7 @@ function Base.show(io::IO, ::MIME"text/plain", O::MPO)
     _show_mpo_dims(io, l, d, bonddims)
 end
 
-function _show_mpo_dims(io::IO, L, d, bonddims)
+function _show_mpo_dims(io::IO, l, d, bonddims)
     println(io, "  Physical dimension: $d")
     print(io, "  Bond dimensions:   ")
     if l > 8
