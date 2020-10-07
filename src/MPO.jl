@@ -21,6 +21,12 @@ Base.:(≈)(O::MPO, U::MPO)  = O.tensors ≈ U.tensors
 Base.getindex(O::MPO, args...) = getindex(O.tensors, args...)
 Base.length(O::MPO) = length(O.tensors)
 
+
+
+
+
+#printing
+
 function Base.show(io::IO, ::MIME"text/plain", O::MPO)
     d = length(O[2][1, 1, 1, :])
     l = length(O)
