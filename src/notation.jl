@@ -1,6 +1,11 @@
 using TensorOperations
 
+"""
+    struct Node_of_grid
 
+this structure is supposed to include all information about nodes on the grid.
+necessary to crearte the corresponding tensor (e.g. the element of the peps).
+"""
 struct Node_of_grid
     i::Int
     spin_inds::Vector{Int}
@@ -110,7 +115,11 @@ function last_m_els(vector::Vector{Int}, m::Int)
     end
 end
 
+"""
+    JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
 
+reades the coupling from the qubo, returns the number
+"""
 function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
     try
         return filter(x->x.ind==(i,j), qubo)[1].coupling
@@ -119,14 +128,26 @@ function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: Abstr
     end
 end
 
-function ind2spin(i::Int, s::Int = 2)
-    if s == 1
-        return 0
-    elseif s == 2
-        return 2*i-3
+"""
+    ind2spin(i::Int, s::Int = 2)
+
+return a spin from the physical index, if size is 1, returns zero.
+"""
+function ind2spin(i::Int, size::Int = 2)
+    if size == 1
+        return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    else
+        s = [2^i for i in 1:ceil(Int, log(2, size))]
+
+        return [1-2*Int((i-1)%j < j/2) for j in s]
     end
-    -100
-    # TODO mapping
 end
 
-spins2ind(s::Int) = div(s+3, 2)
+spins2ind(s::Int) = spins2ind([s])
+
+
+function spins2ind(s::Vector{Int})
+    s = [Int(el == 1) for el in s]
+    v = [2^i for i in 0:1:length(s)-1]
+    transpose(s)*v+1
+end

@@ -94,7 +94,7 @@ end
 
     v = ones(1)*mps[1][:,:,1]*mps[2][:,:,1]
     v = reshape(v, size(v,2))
-    v1 = v_from_mps(mps, [-1,-1])
+    v1 = v_from_mps(mps, [1,1])
 
     @test v == v1
 
@@ -105,27 +105,27 @@ end
         B[x,y] = A[a,b,x]*A[c,d,y]*v1[a]*v1[c]*M[b,d]
     end
 
-    @test compute_probs(mps, [-1,-1]) ≈ diag(B)
+    @test compute_probs(mps, [1,1]) ≈ diag(B)
 
-    @test compute_probs(mps, [-1,-1]) ≈ sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
-    @test compute_probs(mps, [-1,-1,1,1,-1]) ≈ sum(cc[1,1,2,2,1,:,:,:,:], dims = (2,3,4))
-    @test compute_probs(mps, [-1,-1,1,1,-1,1,1,-1]) ≈ cc[1,1,2,2,1,2,2,1,:]
+    @test compute_probs(mps, [1,1]) ≈ sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
+    @test compute_probs(mps, [1,1,2,2,1]) ≈ sum(cc[1,1,2,2,1,:,:,:,:], dims = (2,3,4))
+    @test compute_probs(mps, [1,1,2,2,1,2,2,1]) ≈ cc[1,1,2,2,1,2,2,1,:]
 
     # approximation
 
     mps_a = construct_mps(qubo, β, 3, 9, all_is, all_js, 2, 1.e-12)
     ps = sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
-    pp = compute_probs(mps, [-1,-1])
+    pp = compute_probs(mps, [1,1])
 
     @test ps/sum(ps) ≈ pp/sum(pp)
 
     ps = sum(cc[1,1,2,2,:,:,:,:,:], dims = (2,3,4,5))
-    pp = compute_probs(mps, [-1,-1,1,1])
+    pp = compute_probs(mps, [1,1,2,2])
 
     @test ps/sum(ps) ≈ pp/sum(pp)
 
     ps = cc[1,1,2,2,1,2,1,2,:]
-    pp = compute_probs(mps, [-1,-1,1,1,-1,1,-1,1])
+    pp = compute_probs(mps, [1,1,2,2,1,2,1,2])
 
     @test ps/sum(ps) ≈ pp/sum(pp)
 end
@@ -196,7 +196,7 @@ end
     β = 0.5
     β_step = 2
 
-    println("step = ", β_step)
+    println("number of β steps = ", β_step)
 
     @time ses = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 

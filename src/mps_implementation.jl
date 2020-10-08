@@ -76,7 +76,7 @@ function T_with_C(Jb::T, l::Bool = false, r::Bool = false) where T <: AbstractFl
         for j in 1:d
             for k in 1:d
                 for l in 1:d
-                    ret[i,j,k,l] = T(i==j)*T(k==l)*exp(Jb*ind2spin(i)*ind2spin(k))
+                    ret[i,j,k,l] = T(i==j)*T(k==l)*exp(Jb*ind2spin(i)[1]*ind2spin(k)[1])
                 end
             end
         end
@@ -109,7 +109,7 @@ function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}}, β::T) w
         # we have a twice from the scalar product
         h = JfromQubo_el(qubo, i,i)/2
         for j in 1:d
-            mps[i][:,:,j] = mps[i][:,:,j]*exp(ind2spin(j)*β*h)
+            mps[i][:,:,j] = mps[i][:,:,j]*exp(ind2spin(j)[1]*β*h)
         end
     end
 end
@@ -117,8 +117,7 @@ end
 function v_from_mps(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
     env = ones(T,1)
     for i in 1:length(spins)
-        j = spins2ind(spins[i])
-        env = env*mps[i][:,:,j]
+        env = env*mps[i][:,:,spins[i]]
     end
     reshape(env, size(env,2))
 end
@@ -182,34 +181,27 @@ end
 function solve_mps(qubo::Vector{Qubo_el{T}}, all_is::Vector{Vector{Int}},
                 all_js::Vector{Vector{Vector{Int}}}, problem_size::Int,
                 no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
+
     mps = construct_mps(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
 
+    physical_dim = 2
+
     partial_s = Partial_sol{T}[Partial_sol{T}()]
-    for i in 1:problem_size
+    for j in 1:problem_size
 
-        partial_s_temp = Partial_sol{T}[Partial_sol{T}()]
+        partial_s_temp = Partial_sol{T}[]
         for ps in partial_s
-
             objectives = compute_probs(mps, ps.spins)
 
-            a = add_spin(ps, -1, objectives[1])
-            b = add_spin(ps, 1, objectives[2])
-
-            if partial_s_temp[1].spins == []
-                partial_s_temp = vcat(a,b)
-            else
-                partial_s_temp = vcat(partial_s_temp, a,b)
+            for l in 1:physical_dim
+                push!(partial_s_temp, add_spin(ps, l, objectives[l]))
             end
         end
 
-        obj = [ps.objective for ps in partial_s_temp]
-        perm = sortperm(obj)
-        p = last_m_els(perm, no_sols)
-        partial_s = partial_s_temp[p]
+        partial_s = select_best_solutions(partial_s_temp, no_sols)
 
-        if i == problem_size
-            # sort from the ground state
-            return partial_s[end:-1:1]
+        if j == problem_size
+            return return_solutions(partial_s)
         end
     end
 end

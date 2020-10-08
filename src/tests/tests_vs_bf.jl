@@ -3,6 +3,7 @@ using Plots
 using Test
 
 include("../notation.jl")
+include("../compression.jl")
 include("../peps.jl")
 include("../mps_implementation.jl")
 
