@@ -1,12 +1,44 @@
 include("peps.jl")
 include("notation.jl")
 
+
+function scalar_prod_with_itself(mps::Vector{Array{T, 3}}) where T <: AbstractFloat
+    env = ones(T, 1,1)
+    for i in length(mps):-1:1
+        env = scalar_prod_step(mps[i], env)
+    end
+    env
+end
+
+function scalar_prod_step(mps::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
+    C = zeros(T, size(mps, 1), size(mps, 1))
+
+    @tensor begin
+        C[a,b] = mps[a,x,z]*mps[b,y,z]*env[x,y]
+    end
+    C
+end
+
+
 function initialize_mps(l::Int, physical_dims::Int =  2, T::Type = Float64)
     [ones(T, 1,1,physical_dims) for _ in 1:l]
 end
 
+function initialize_mpo(l::Int, physical_dims::Int =  2, T::Type = Float64)
+    [make_ones(T) for _ in 1:l]
+end
+
 
 function make_ones(T::Type = Float64)
+    d = 2
+    ret = zeros(T, 1,1,d,d)
+    for j in 1:d
+        ret[1,1,j,j] = T(1.)
+    end
+    ret
+end
+
+function make_ones_inside(T::Type = Float64)
     d = 2
     ret = zeros(T, d,d,d,d)
     for i in 1:d
@@ -17,7 +49,7 @@ function make_ones(T::Type = Float64)
     ret
 end
 
-function T_with_B(T::Type = Float64)
+function T_with_B(l::Bool = false, r::Bool = false, T::Type = Float64)
     d = 2
     ret = zeros(T, d,d,d,d)
     for i in 1:d
@@ -29,35 +61,147 @@ function T_with_B(T::Type = Float64)
             end
         end
     end
-    ret
+    if l
+        return sum(ret, dims = 1)
+    elseif r
+        return sum(ret, dims = 2)
+    end
+    return ret
 end
 
-function T_with_C(Jb::T) where T <: AbstractFloat
+function T_with_C(Jb::T, l::Bool = false, r::Bool = false) where T <: AbstractFloat
     d = 2
     ret = zeros(T, d,d,d,d)
     for i in 1:d
         for j in 1:d
             for k in 1:d
                 for l in 1:d
-                    ret[i,j,k,l] = T(i==j)*T(k==l)*exp(Jb*ind2spin(i)*ind2spin(k))
+                    ret[i,j,k,l] = T(i==j)*T(k==l)*exp(Jb*ind2spin(i)[1]*ind2spin(k)[1])
                 end
             end
         end
     end
-    ret
+    if l
+        return sum(ret, dims = 1)
+    elseif r
+        return sum(ret, dims = 2)
+    end
+    return ret
 end
 
 function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, i_n::Vector{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T<: AbstractFloat
-    mpo[i] = T_with_B(T)
+    k = minimum([i, i_n...])
+    l = maximum([i, i_n...])
+    for j in k:l
+        mpo[j] = make_ones_inside(T)
+    end
+    mpo[i] = T_with_B(i==k, i==l, T)
     for j in i_n
         J = JfromQubo_el(qubo, i,j)
-        println(i,",", j,",", J)
-        mpo[j] = T_with_C(J*β)
+        mpo[j] = T_with_C(J*β, j==k, j==l)
     end
     mpo
 end
 
-function reduce_first_and_last!(mpo::Vector{Array{T, 4}}) where T <:AbstractFloat
-    mpo[1] = sum(mpo[1], dims = 1)
-    mpo[end] = sum(mpo[end], dims = 2)
+function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}}, β::T) where T<: AbstractFloat
+    d = size(mps[1], 3)
+    for i in 1:length(mps)
+        # we have a twice from the scalar product
+        h = JfromQubo_el(qubo, i,i)/2
+        for j in 1:d
+            mps[i][:,:,j] = mps[i][:,:,j]*exp(ind2spin(j)[1]*β*h)
+        end
+    end
+end
+
+function v_from_mps(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
+    env = ones(T,1)
+    for i in 1:length(spins)
+        env = env*mps[i][:,:,spins[i]]
+    end
+    reshape(env, size(env,2))
+end
+
+function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
+    d = size(mps[1], 3)
+    k = length(spins)+1
+    left_v = v_from_mps(mps, spins)
+
+    A = mps[k]
+    probs_at_k = zeros(T, d,d)
+    if k < length(mps)
+        right_m = scalar_prod_with_itself(mps[k+1:end])
+
+        @tensor begin
+            probs_at_k[x,y] = A[a,b,x]*A[c,d,y]*left_v[a]*left_v[c]*right_m[b,d]
+        end
+
+    else
+        # uses one() insted of right mstrix
+        @tensor begin
+            probs_at_k[x,y] = A[a,b,x]*A[c,b,y]*left_v[a]*left_v[c]
+        end
+    end
+    return(diag(probs_at_k))
+end
+
+function construct_mps_step(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
+                                                    β::T, is::Vector{Int},
+                                                    js::Vector{Vector{Int}}) where T<: AbstractFloat
+    mpo = [make_ones() for _ in 1:length(mps)]
+    for k in 1:length(is)
+        add_MPO!(mpo, is[k], js[k] ,qubo, β)
+    end
+    MPSxMPO(mps, mpo)
+end
+
+
+
+function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
+                                                all_is::Vector{Vector{Int}},
+                                                all_js::Vector{Vector{Vector{Int}}},
+                                                χ::Int, threshold::T) where T<: AbstractFloat
+    mps = initialize_mps(l)
+    for _ in 1:β_step
+        for k in 1:length(all_is)
+            mps = construct_mps_step(mps, qubo, β/β_step, all_is[k], all_js[k])
+
+            s = maximum([size(e, 1) for e in mps])
+            if ((threshold > 0) * (s > χ))
+                mps = compress_iter(mps, χ, threshold)
+                #mps = compress_svd(mps, χ)
+            end
+        end
+    end
+    add_phase!(mps,qubo, β)
+    mps
+end
+
+
+function solve_mps(qubo::Vector{Qubo_el{T}}, all_is::Vector{Vector{Int}},
+                all_js::Vector{Vector{Vector{Int}}}, problem_size::Int,
+                no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
+
+    mps = construct_mps(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
+
+    physical_dim = 2
+
+    partial_s = Partial_sol{T}[Partial_sol{T}()]
+    for j in 1:problem_size
+
+        partial_s_temp = Partial_sol{T}[]
+        for ps in partial_s
+            objectives = compute_probs(mps, ps.spins)
+
+            for l in 1:physical_dim
+                push!(partial_s_temp, add_spin(ps, l, objectives[l]))
+            end
+        end
+
+        partial_s = select_best_solutions(partial_s_temp, no_sols)
+
+        if j == problem_size
+            return return_solutions(partial_s)
+        end
+    end
 end

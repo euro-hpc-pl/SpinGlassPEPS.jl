@@ -1,6 +1,7 @@
 using Test
 using LinearAlgebra
 using TensorOperations
+using Random
 
 path = "/home/kdomino/Dokumenty/julia_modules/"
 try
@@ -15,11 +16,11 @@ catch
 end
 
 include("notation.jl")
+include("compression.jl")
 include("peps.jl")
 include("mps_implementation.jl")
 
 include("tests/notation_tests.jl")
-
+include("tests/compression_tests.jl")
 include("tests/peps_tests.jl")
-
 include("tests/mps_tests.jl")
