@@ -1,5 +1,10 @@
 @testset "MPS" begin
 
+d = 10
+a = randn(ComplexF64, d)
+sites = 5
+ψ = MPS(a, sites)
+
 @testset "creation from vector" begin
     d = 10
     a = randn(ComplexF64, d)
@@ -16,8 +21,9 @@
     @test copy(ψ) == ψ
 end
 
-# @testset "adjoints" begin
-    
-# end
+@testset "adjoints" begin
+    ϕ = ψ'
+    @test real(ϕ*ψ) > 0
+end
 
 end

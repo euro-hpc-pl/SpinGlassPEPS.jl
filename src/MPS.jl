@@ -45,14 +45,20 @@ Base.:(*)(x::Number, ψ::MPS) = ψ * x
 Base.:(/)(ψ::MPS, x::Number) = MPS(ψ.tensors ./ x)
 Base.copy(ψ::MPS) = MPS(copy(ψ.tensors))
 
-function Base.adjoint(ψ::MPS{T}) where {T}
-    Adjoint{T, MPS{T}}(ψ)
+function Base.adjoint(ψ::MPS{T}) where {T <: AbstractArray{S, 3}} where {S <: Number}
+    Adjoint{S, MPS{T}}(ψ)
 end
 
-Base.size(ψ::Adjoint{T, MPS{T}}) where {T} = (1, length(ψ.parent[1]))
+#TODO: this should use views
+function Base.getindex(ψ::Adjoint{S, MPS{T}}, args...) where {T <: AbstractArray{S, 3}} where {S <: Number}
+    out = getindex(reverse(ψ.parent.tensors), args...)
+    permutedims(conj.(out), (2, 1, 3))
+end
+
+Base.size(ψ::Adjoint{S, MPS{T}}) where {T <: AbstractArray{S, 3}} where {S <: Number} = (1, length(ψ.parent[1]))
 adjoint_tensors(ψ::MPS) = reverse(conj.(permutedims.(ψ.tensors, [(2, 1, 3)])))
 
-function Base.:(*)(ψ′::Adjoint{T, MPS{T}}, ϕ::MPS{T}) where {T}
+function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, ϕ::MPS{T}) where {T <: AbstractArray{S, 3}} where {S <: Number}
     ψ = ψ′.parent
 
     M   = ϕ.tensors[1]
@@ -60,14 +66,15 @@ function Base.:(*)(ψ′::Adjoint{T, MPS{T}}, ϕ::MPS{T}) where {T}
     
     @tensor cont[b₁, a₁] := M̃dg[b₁, 1, σ₁] * M[1, a₁, σ₁]
     
-    for i in 2:L-1
+    l = length(ϕ)
+    for i in 2:l-1
         M   = ϕ.tensors[i]
         M̃dg = dg(ψ.tensors[i])
 
         @tensor cont[bᵢ, aᵢ] := M̃dg[bᵢ, bᵢ₋₁, σᵢ] * cont[bᵢ₋₁, aᵢ₋₁] * M[aᵢ₋₁, aᵢ, σᵢ]
     end
-    M   = ϕ.tensors[L]
-    M̃dg = dg(ψ.tensors[L])
+    M   = ϕ.tensors[l]
+    M̃dg = dg(ψ.tensors[l])
     
     @tensor M̃dg[1, bᴸ⁻¹, σᴸ] * cont[bᴸ⁻¹, aᴸ⁻¹] * M[aᴸ⁻¹, 1, σᴸ]
 end
@@ -79,7 +86,7 @@ function Base.show(io::IO, ::MIME"text/plain", ψ::MPS)
     l = length(ψ)
     d = length(ψ.tensors[2][1, 1, :])
     bonddims = [size(ψ[i][:, :, 1]) for i in 1:l]
-    println(io, "Matrix product state on $L sites")
+    println(io, "Matrix product state on $l sites")
     _show_mps_dims(io, l, d, bonddims)
 end
 
@@ -112,21 +119,16 @@ function Base.show(io::IO, ψ::MPS)
     print(io, "MPS on $l sites")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", ψ::Adjoint{T, MPS{T}}) where {T}
+function Base.show(io::IO, ::MIME"text/plain", ψ::Adjoint{S, MPS{T}}) where {T <: AbstractArray{S, 3}} where {S <: Number}
     d = length(ψ.parent[2][1, 1, :])
     l = length(ψ)
-    bonddims = reverse([reverse(size(ψ.parent[i][:, :, 1])) for i in 1:L])
+    bonddims = reverse([reverse(size(ψ.parent[i][:, :, 1])) for i in 1:l])
     println(io, "Adjoint matrix product state on $l sites")
-    _show_mps_dims(io, L, d, bonddims)
+    _show_mps_dims(io, l, d, bonddims)
 end
 
-function Base.show(io::IO, ψ::Adjoint{T, MPS{T}}) where {T}
+function Base.show(io::IO, ψ::Adjoint{S, MPS{T}}) where {T <: AbstractArray{S, 3}} where {S <: Number}
     l = length(ψ)
     print(io, "Adjoint MPS on $l sites")t
-end
-
-function Base.getindex(ψ::Adjoint{T, MPS{T}}, args...) where {T}
-    out = getindex(reverse(ψ.parent.tensors), args...)
-    permutedims(conj.(out), (2, 1, 3))
 end
 
