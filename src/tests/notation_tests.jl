@@ -48,6 +48,9 @@
     @test n.right == Array{Int64,1}[]
     @test n.up == [[12,8]]
     @test n.down == Array{Int64,1}[]
+
+    ns = [Node_of_grid(i, grid1) for i in 1:maximum(grid1)]
+    @test get_system_size(ns) == 12
 end
 
 

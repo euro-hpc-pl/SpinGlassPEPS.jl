@@ -1,5 +1,24 @@
 using TensorOperations
 
+function get_connection_if_exists(i::Int, j::Int, k::Int, grid::Matrix{Int})
+    try
+        return [[i, grid[j, k]]]
+    catch
+        return Vector{Int}[]
+    end
+end
+
+function read_connecting_pairs(grid::Matrix{Int}, i::Int)
+    a = findall(x->x==i, grid)[1]
+    j = a[1]
+    k = a[2]
+    left = get_connection_if_exists(i, j, k-1, grid)
+    right = get_connection_if_exists(i, j, k+1, grid)
+    up = get_connection_if_exists(i, j-1, k, grid)
+    down = get_connection_if_exists(i, j+1, k, grid)
+    return left, right, up, down
+end
+
 """
     struct Node_of_grid
 
@@ -17,32 +36,14 @@ struct Node_of_grid
     function(::Type{Node_of_grid})(i::Int, grid::Matrix{Int})
         s = size(grid)
         intra_struct = Vector{Int}[]
-        a = findall(x->x==i, grid)[1]
-        k = a[1]
-        j = a[2]
 
-
-        left = Vector{Int}[]
-        if j > 1
-            left = [[i, grid[k, j-1]]]
-        end
-
-        right = Vector{Int}[]
-        if j < s[2]
-            right = [[i, grid[k, j+1]]]
-        end
-
-        up = Vector{Int}[]
-        if k > 1
-            up = [[i, grid[k-1, j]]]
-        end
-
-        down = Vector{Int}[]
-        if k < s[1]
-            down = [[i, grid[k+1, j]]]
-        end
+        left, right, up, down = read_connecting_pairs(grid, i)
         new(i, [i], intra_struct, left, right, up, down)
     end
+end
+
+function get_system_size(ns::Vector{Node_of_grid})
+    mapreduce(x -> length(x.spin_inds), +, ns)
 end
 
 struct Qubo_el{T<:AbstractFloat}

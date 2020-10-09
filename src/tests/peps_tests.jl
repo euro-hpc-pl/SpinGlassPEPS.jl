@@ -28,8 +28,15 @@ end
     @test b[1].spins == [1, 1, 2]
     @test b[1].objective == 1.
 
-    spins, objectives = return_solutions([ps3, ps2])
-    @test spins == [[-1, -1, 1],[-1, -1, -1]]
+    grid = [1 2; 3 4]
+
+    a =  Partial_sol{Float64}([1,1,1,2], 0.2)
+    b = Partial_sol{Float64}([1,1,2,2], 1.)
+
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+
+    spins, objectives = return_solutions([a,b], ns)
+    @test spins == [[-1, -1, 1, 1],[-1, -1, -1, 1]]
     @test objectives == [1.0, 0.2]
 end
 

@@ -260,8 +260,11 @@ end
 
 function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ::Int = 0, threshold::T = T(1e-14)) where T <: AbstractFloat
     problem_size = maximum(grid)
-    physical_dim = 2
+
+    # this will be moved outside
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+
+    physical_dim = 2
     s = size(grid)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
@@ -304,7 +307,7 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
             partial_s = select_best_solutions(partial_s_temp, no_sols)
 
             if j == problem_size
-                return return_solutions(partial_s)
+                return return_solutions(partial_s, ns)
             end
         end
     end
@@ -316,11 +319,28 @@ end
 return final solutions sorted backwards in form Vector{Partial_sol{T}}
 spins are given in -1,1
 """
-function return_solutions(partial_s::Vector{Partial_sol{T}})  where T <: AbstractFloat
-    # TODO mapping should be implemented
+function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Vector{Node_of_grid})  where T <: AbstractFloat
+
     l = length(partial_s)
-    spins = [[ind2spin(x)[1] for x in partial_s[i].spins] for i in l:-1:1]
-    objective = [partial_s[i].objective for i in l:-1:1]
+    objective = zeros(T, l)
+    spins = [Int[] for _ in 1:l]
+    size = get_system_size(ns)
+    # order is reversed, to correspond with sort
+    for i in 1:l
+        one_solution = zeros(Int, size)
+        objective[l-i+1] = partial_s[i].objective
+
+        ses = partial_s[i].spins
+
+        for k in 1:length(ns)
+            ii = ind2spin(ses[k])
+            for j in 1:length(ii)
+                one_solution[ns[k].spin_inds[j]] = ii[j]
+            end
+        end
+        spins[l-i+1] = one_solution
+    end
+
     return spins, objective
 end
 

@@ -155,12 +155,74 @@ function construct_mps_step(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
     MPSxMPO(mps, mpo)
 end
 
+function cluster_conncetions(all_is::Vector{Int}, all_js::Vector{Vector{Int}})
+    l = length(all_is)
+    mins = [0 for _ in 1:l]
+    maxes = [0 for _ in 1:l]
+    for i in 1:l
+        temp = [all_is[i], all_js[i]...]
+        mins[i] = minimum(temp)
+        maxes[i] = maximum(temp)
+    end
+    is = Vector{Int}[]
+    js = Vector{Vector{Int}}[]
+    i_chosen = Int[]
+    for k in 1:100
+        is_temp = Int[]
+        js_temp = Vector{Int}[]
+        max = 0
+        min = 100
+        for i in 1:l
+            temp = [all_is[i], all_js[i]...]
+            a = maximum(temp)
+            b = minimum(temp)
 
+            min_cond = (b > max) | (a < min)
+
+            if min_cond && !(all_is[i] in i_chosen)
+                push!(is_temp, all_is[i])
+                push!(js_temp, all_js[i])
+                push!(i_chosen, all_is[i])
+                max = maximum([a, max])
+                min = minimum([b, min])
+            end
+        end
+        push!(is, is_temp)
+        push!(js, js_temp)
+        if length(i_chosen) == l
+            return is, js
+        end
+    end
+end
+
+function connections_for_mps(grid::Matrix{Int})
+    all_is = Int[]
+    all_js = Vector{Int}[]
+    conections = Vector{Int}[]
+    for i in grid
+        left, right, up, down = read_connecting_pairs(grid, i)
+        pairs = [left..., right..., up..., down...]
+        pairs_not_accounted = Int[]
+        for p in pairs
+
+            if !(p in conections) && !(p[2:-1:1] in conections)
+                push!(pairs_not_accounted, p[2])
+                push!(conections, p)
+            end
+        end
+        if pairs_not_accounted != Int[]
+            push!(all_is, i)
+            push!(all_js, pairs_not_accounted)
+        end
+    end
+    all_is, all_js
+end
 
 function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
                                                 all_is::Vector{Vector{Int}},
                                                 all_js::Vector{Vector{Vector{Int}}},
                                                 χ::Int, threshold::T) where T<: AbstractFloat
+
     mps = initialize_mps(l)
     for _ in 1:β_step
         for k in 1:length(all_is)
@@ -178,13 +240,16 @@ function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
 end
 
 
-function solve_mps(qubo::Vector{Qubo_el{T}}, all_is::Vector{Vector{Int}},
-                all_js::Vector{Vector{Vector{Int}}}, problem_size::Int,
+function solve_mps(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, problem_size::Int,
                 no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
 
-    mps = construct_mps(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
-
     physical_dim = 2
+
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+
+    is, js = connections_for_mps(Array(transpose(grid)))
+    all_is, all_js = cluster_conncetions(is,js)
+    mps = construct_mps(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for j in 1:problem_size
@@ -201,7 +266,7 @@ function solve_mps(qubo::Vector{Qubo_el{T}}, all_is::Vector{Vector{Int}},
         partial_s = select_best_solutions(partial_s_temp, no_sols)
 
         if j == problem_size
-            return return_solutions(partial_s)
+            return return_solutions(partial_s, ns)
         end
     end
 end

@@ -5,9 +5,27 @@ using TensorOperations
     b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
     @test b == 16.0*ones(1,1)
 
+    M = [1 2; 3 4]
+    i,j = connections_for_mps(Array(transpose(M)))
+    @test i == [1,2,3]
+    @test j == [[3, 2], [4], [4]]
+    a,b = cluster_conncetions(i,j)
+
+    @test a == [[1], [2], [3]]
+    @test b == [[[3, 2]], [[4]], [[4]]]
+
+    grid = [1 2 3; 4 5 6; 7 8 9]
+
+    i,j = connections_for_mps(grid)
+    @test i == [1, 4, 7, 2, 5, 8, 3, 6]
+    @test j == [[2, 4], [5, 7], [8], [3, 5], [6, 8], [9], [6], [9]]
+
+    a,b = cluster_conncetions(i,j)
+    @test a == [[1, 7], [4, 8], [2, 6], [5], [3]]
+    @test b == [[[2, 4], [8]], [[5, 7], [9]], [[3, 5], [9]], [[6, 8]], [[6]]]
 
 end
-
+if true
 function make_qubo_x()
     qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
     qubo = vcat(qubo, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
@@ -71,8 +89,9 @@ end
     @test mps[2] == ones(1,1,2)
     @test mps[3] == ones(1,1,2)
 
-    all_is = [[1,9], [3], [7], [5]]
-    all_js = [[[2,4],[6,8]], [[2,6]], [[4,8]], [[2,4,6,8]]]
+    grid = [1 2 3; 4 5 6; 7 8 9]
+    is, js = connections_for_mps(Array(transpose(grid)))
+    all_is, all_js = cluster_conncetions(is,js)
 
     mps = construct_mps(qubo, β, 2, 9, all_is, all_js, 4, 0.)
 
@@ -143,19 +162,15 @@ end
 
     train_qubo = make_qubo()
 
+    grid = [1 2 3; 4 5 6; 7 8 9]
 
-    all_is = [[1,9], [3], [7], [5]]
-    all_js = [[[2,4],[6,8]], [[2,6]], [[4,8]], [[2,4,6,8]]]
-
-    spins, _ = solve_mps(train_qubo, all_is, all_js, 9, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
+    spins, _ = solve_mps(train_qubo, grid, 9, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     #ground
     @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
 
     #first
     @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
-
-
 
     function make_qubo1()
         css = 2.
@@ -166,7 +181,7 @@ end
     end
     permuted_train_qubo = make_qubo1()
 
-    spins, objective = solve_mps(permuted_train_qubo, all_is, all_js, 9, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
+    spins, objective = solve_mps(permuted_train_qubo, grid, 9, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
     @test objective[1] ≈ 0.30956452652382055
@@ -202,24 +217,20 @@ end
     end
     l_qubo = make_qubo_l()
 
-    all_is = [[1, 10], [3, 12], [6, 13], [11], [5,15], [8]]
-    all_js = [[[2,5], [6,9,11,14]], [[2,4,7], [8,11,16]], [[2,5,7], [9,14]], [[7, 15]], [[9],[14,16]], [[4,7]]]
+    grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
     β = 0.5
     β_step = 2
 
     println("number of β steps = ", β_step)
 
-    spins, _ = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    spins, _ = solve_mps(l_qubo, grid, 16, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_exact, _ = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=1, χ=12, threshold = 0.)
-
-    grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
+    spins_exact, _ = solve_mps(l_qubo, grid, 16, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
     spins_peps, _ = solve(l_qubo, grid, 10; β = β, χ = 2, threshold = 1e-12)
-
 
     for k in 1:10
         #testing exact
@@ -227,4 +238,5 @@ end
         # testing approximate
         @test spins[k] == spins_peps[k]
     end
+end
 end
