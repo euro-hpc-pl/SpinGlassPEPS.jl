@@ -8,9 +8,6 @@ end
 
 @testset "PEPS - axiliary functions" begin
 
-    #@test make_tensor_sizes(false, false, true, true , 2,2) == (1,1,2,2,2)
-    #@test make_tensor_sizes(true, false, true, true , 2,2) == (2,1,2,2,2)
-    #@test make_tensor_sizes(false, false, true, false , 2,2) == (1,1,2,1,2)
 
     # partial solution
     ps = Partial_sol{Float64}()
@@ -31,11 +28,9 @@ end
     @test b[1].spins == [1, 1, 2]
     @test b[1].objective == 1.
 
-    a = return_solutions([ps3, ps2])
-    @test a[1].spins == [-1, -1, 1]
-    @test a[1].objective == 1.0
-    @test a[2].spins == [-1, -1, -1]
-    @test a[2].objective == 0.2
+    spins, objectives = return_solutions([ps3, ps2])
+    @test spins == [[-1, -1, 1],[-1, -1, -1]]
+    @test objectives == [1.0, 0.2]
 end
 
 
@@ -245,15 +240,15 @@ end
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
-    ses = solve(train_qubo, grid, 4; β = 1., χ = 2)
+    spins, objective = solve(train_qubo, grid, 4; β = 1., χ = 2)
 
     #first
-    @test ses[2].spins == [-1,1,-1,-1,1,-1,1,1,1]
+    @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
     #ground
-    @test ses[1].spins == [1,-1,1,1,-1,1,1,1,1]
+    @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
 
     # here we give a little Jii to 7,8,9 q-bits to allow there for 8 additional
-    # combinations with low excitiation energies
+    # combinations and degeneracy
 
     function make_qubo1()
         css = 2.
@@ -266,30 +261,56 @@ end
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
-    ses = solve(permuted_train_qubo, grid, 16; β = 1., threshold = 0.)
+    spins, objective = solve(permuted_train_qubo, grid, 16; β = 1., threshold = 0.)
 
-    # this correspond to the ground
-    for i in 1:8
-        @test ses[i].spins[1:6] == [1,-1,1,1,-1,1]
-    end
+    spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
+    objective[1] ≈ 0.12151449832031348
 
-    # and this to 1st excited
-    for i in 9:16
-        @test ses[i].spins[1:6] == [-1,1,-1,-1,1,-1]
-    end
+    first_deg = [[1, -1, 1, 1, -1, 1, -1, 1, 1], [1, -1, 1, 1, -1, 1, 1, -1, 1], [1, -1, 1, 1, -1, 1, 1, 1, -1]]
+    @test spins[2] in first_deg
+    @test spins[3] in first_deg
+    @test spins[4] in first_deg
+    @test objective[2] ≈ 0.09948765671968342
+    @test objective[3] ≈ 0.09948765671968342
+    @test objective[4] ≈ 0.09948765671968342
+
+    second_deg = [[1, -1, 1, 1, -1, 1, -1, 1, -1], [1, -1, 1, 1, -1, 1, -1, -1, 1], [1, -1, 1, 1, -1, 1, 1, -1, -1]]
+    @test spins[5] in second_deg
+    @test spins[6] in second_deg
+    @test spins[7] in second_deg
+    @test objective[5] ≈ 0.08145360410807015
+    @test objective[6] ≈ 0.08145360410807015
+    @test objective[7] ≈ 0.08145360410807015
+
+    @test spins[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
+    @test objective[8] ≈ 0.06668857063231606
+
 
     @testset "svd approximatimation in solution" begin
 
-        ses_a = solve(permuted_train_qubo, grid, 16; β = 1., χ = 2)
+        spins_a, objective_a = solve(permuted_train_qubo, grid, 16; β = 1., χ = 2)
 
-        for i in 1:8
-            @test ses_a[i].spins[1:6] == [1,-1,1,1,-1,1]
-        end
+        spins_a[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
+        objective_a[1] ≈ 0.12151449832031348
 
-        # and this to 1st excited
-        for i in 9:16
-            @test ses_a[i].spins[1:6] == [-1,1,-1,-1,1,-1]
-        end
+        first_deg = [[1, -1, 1, 1, -1, 1, -1, 1, 1], [1, -1, 1, 1, -1, 1, 1, -1, 1], [1, -1, 1, 1, -1, 1, 1, 1, -1]]
+        @test spins_a[2] in first_deg
+        @test spins_a[3] in first_deg
+        @test spins_a[4] in first_deg
+        @test objective_a[2] ≈ 0.09948765671968342
+        @test objective_a[3] ≈ 0.09948765671968342
+        @test objective_a[4] ≈ 0.09948765671968342
+
+        second_deg = [[1, -1, 1, 1, -1, 1, -1, 1, -1], [1, -1, 1, 1, -1, 1, -1, -1, 1], [1, -1, 1, 1, -1, 1, 1, -1, -1]]
+        @test spins_a[5] in second_deg
+        @test spins_a[6] in second_deg
+        @test spins_a[7] in second_deg
+        @test objective_a[5] ≈ 0.08145360410807015
+        @test objective_a[6] ≈ 0.08145360410807015
+        @test objective_a[7] ≈ 0.08145360410807015
+
+        @test spins_a[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
+        @test objective_a[8] ≈ 0.06668857063231606
     end
 
     @testset "PEPS  - solving it on Float32" begin
@@ -299,15 +320,17 @@ end
 
         grid = [1 2 3; 4 5 6; 7 8 9]
 
-        ses = solve(train_qubo, grid, 4; β = T(2.), χ = 2, threshold = T(1e-6))
+        spins, objective = solve(train_qubo, grid, 4; β = T(2.), χ = 2, threshold = T(1e-6))
+
+        #ground
+        @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
 
         #first
-        @test ses[2].spins == [-1,1,-1,-1,1,-1,1,1,1]
-        #ground
-        @test ses[1].spins == [1,-1,1,1,-1,1,1,1,1]
+        @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
 
 
-        @test typeof(ses[1].objective) == Float32
+
+        @test typeof(objective[1]) == Float32
     end
 end
 
@@ -323,6 +346,6 @@ end
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    @time ses = solve(l_qubo, grid, 2; β = 3., χ = 2, threshold = 1e-11)
-    @test ses[1].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
+    spins, objective = solve(l_qubo, grid, 2; β = 3., χ = 2, threshold = 1e-11)
+    @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 end

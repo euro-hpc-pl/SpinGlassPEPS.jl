@@ -318,9 +318,10 @@ spins are given in -1,1
 """
 function return_solutions(partial_s::Vector{Partial_sol{T}})  where T <: AbstractFloat
     # TODO mapping should be implemented
-    partial_s = [Partial_sol{T}([ind2spin(x)[1] for x in e.spins], e.objective) for e in partial_s]
-    # TODO and some nice return type
-    return partial_s[end:-1:1]
+    l = length(partial_s)
+    spins = [[ind2spin(x)[1] for x in partial_s[i].spins] for i in l:-1:1]
+    objective = [partial_s[i].objective for i in l:-1:1]
+    return spins, objective
 end
 
 """

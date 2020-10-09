@@ -7,7 +7,7 @@ using TensorOperations
 
 
 end
-if true
+
 function make_qubo_x()
     qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
     qubo = vcat(qubo, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
@@ -147,15 +147,15 @@ end
     all_is = [[1,9], [3], [7], [5]]
     all_js = [[[2,4],[6,8]], [[2,6]], [[4,8]], [[2,4,6,8]]]
 
-    ses = solve_mps(train_qubo, all_is, all_js, 9, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
+    spins, _ = solve_mps(train_qubo, all_is, all_js, 9, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
+
+    #ground
+    @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
 
     #first
-    @test ses[2].spins == [-1,1,-1,-1,1,-1,1,1,1]
-    #ground
-    @test ses[1].spins == [1,-1,1,1,-1,1,1,1,1]
+    @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
 
-    # here we give a little Jii to 7,8,9 q-bits to allow there for 8 additional
-    # combinations with low excitiation energies
+
 
     function make_qubo1()
         css = 2.
@@ -166,19 +166,31 @@ end
     end
     permuted_train_qubo = make_qubo1()
 
-    @time ses = solve_mps(permuted_train_qubo, all_is, all_js, 9, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
+    spins, objective = solve_mps(permuted_train_qubo, all_is, all_js, 9, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
 
-    # this correspond to the ground
-    for i in 1:8
-        @test ses[i].spins[1:6] == [1,-1,1,1,-1,1]
-    end
+    @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
+    @test objective[1] ≈ 0.30956452652382055
 
-    # and this to 1st excited
-    for i in 9:16
-        @test ses[i].spins[1:6] == [-1,1,-1,-1,1,-1]
-    end
+    first_deg = [[1, -1, 1, 1, -1, 1, -1, 1, 1], [1, -1, 1, 1, -1, 1, 1, -1, 1], [1, -1, 1, 1, -1, 1, 1, 1, -1]]
+    @test spins[2] in first_deg
+    @test spins[3] in first_deg
+    @test spins[4] in first_deg
+    @test objective[2] ≈ 0.20750730767045347
+    @test objective[3] ≈ 0.20750730767045347
+    @test objective[4] ≈ 0.20750730767045347
+
+    second_deg = [[1, -1, 1, 1, -1, 1, -1, 1, -1], [1, -1, 1, 1, -1, 1, -1, -1, 1], [1, -1, 1, 1, -1, 1, 1, -1, -1]]
+    @test spins[5] in second_deg
+    @test spins[6] in second_deg
+    @test spins[7] in second_deg
+    @test objective[5] ≈ 0.1390963080303899
+    @test objective[6] ≈ 0.1390963080303899
+    @test objective[7] ≈ 0.1390963080303899
+
+    @test spins[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
+    @test objective[8] ≈ 0.09323904360231824
 end
-end
+
 
 @testset "MPS vs PEPS larger QUBO" begin
     function make_qubo_l()
@@ -198,24 +210,21 @@ end
 
     println("number of β steps = ", β_step)
 
-    @time ses = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    spins, _ = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
-    @time ses_exact = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=1, χ=12, threshold = 0.)
+    @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-
-    @test ses[1].spins == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
+    spins_exact, _ = solve_mps(l_qubo, all_is, all_js, 16, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    @time ses_pepes = solve(l_qubo, grid, 10; β = β, χ = 2, threshold = 1e-12)
+    spins_peps, _ = solve(l_qubo, grid, 10; β = β, χ = 2, threshold = 1e-12)
 
-    @test ses[1].spins == ses_pepes[1].spins
 
     for k in 1:10
-        #testing exact mpo
-        @test ses_exact[k].spins == ses_pepes[k].spins
-        # testing approx mpo
-        @test ses[k].spins == ses_pepes[k].spins
+        #testing exact
+        @test spins_exact[k] == spins_peps[k]
+        # testing approximate
+        @test spins[k] == spins_peps[k]
     end
-
 end
