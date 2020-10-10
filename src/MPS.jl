@@ -1,4 +1,5 @@
 export MPS
+
 # from https://github.com/MasonProtter/MatrixProductStates.jl/blob/v0.1/src/MPS.jl
 struct MPS{T <: AbstractArray{<:Number, 3}}
     tensors::Vector{T}
@@ -17,7 +18,7 @@ function MPS(vs::Vector{T}) where {T <: AbstractVector{<:Number}}
     MPS(tensrs)
 end
 
-@inline _create_empty(::Type{T}, l) where {T <: Vector{S}} where {S <: Number} = Vector{Array{S, 3}}(undef, l)
+@inline _create_empty(::Type{T}, l) where {T <: AbstractVector{S}} where {S <: Number} = Vector{Array{S, 3}}(undef, l)
 @inline _create_empty(::Type{T}, l) where {T <: CuVector{S}} where {S <: Number} = Vector{CuArray{S, 3}}(undef, l)
 
 MPS(v::AbstractVector{T}, l::Int) where {T <: Number} = MPS([v for _ in 1:l])
@@ -37,7 +38,7 @@ Base.length(mps::MPS) = length(mps.tensors)
 Base.:(==)(ψ::MPS, ϕ::MPS) = ψ.tensors == ϕ.tensors
 Base.isapprox(ψ::MPS, ϕ::MPS) = isapprox(ψ.tensors, ϕ.tensors)
 Base.eltype(::Type{MPS{T}}) where {T <: AbstractArray{S, 3}} where {S <: Number} = S
-Base.size(::MPS) = (length(mps.tensors), )
+Base.size(ψ::MPS) = (length(ψ.tensors), )
 Base.getindex(ψ::MPS, i::Int) = getindex(ψ.tensors, i)
 
 Base.:(*)(ψ::MPS, x::Number) = MPS(ψ.tensors .* x)
@@ -63,11 +64,11 @@ function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, ϕ::MPS{T}) where {T <: AbstractAr
 
     M   = ϕ.tensors[1]
     M̃dg = dg(ψ.tensors[1])
-    
+
     @tensor cont[b₁, a₁] := M̃dg[b₁, 1, σ₁] * M[1, a₁, σ₁]
-    
+
     l = length(ϕ)
-    for i in 2:l-1
+    for i=2:l-1
         M   = ϕ.tensors[i]
         M̃dg = dg(ψ.tensors[i])
 
@@ -79,6 +80,26 @@ function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, ϕ::MPS{T}) where {T <: AbstractAr
     @tensor M̃dg[1, bᴸ⁻¹, σᴸ] * cont[bᴸ⁻¹, aᴸ⁻¹] * M[aᴸ⁻¹, 1, σᴸ]
 end
 
+function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, ϕ::MPS{T}) where {T <: CuArray{S, 3}} where {S <: Number}
+    ψ = ψ′.parent
+
+    M   = ϕ.tensors[1]
+    M̃dg = dg(ψ.tensors[1])
+
+    @cutensor cont[b₁, a₁] := M̃dg[b₁, 1, σ₁] * M[1, a₁, σ₁]
+
+    l = length(ϕ)
+    for i=2:l-1
+        M   = ϕ.tensors[i]
+        M̃dg = dg(ψ.tensors[i])
+
+        @cutensor cont[bᵢ, aᵢ] := M̃dg[bᵢ, bᵢ₋₁, σᵢ] * cont[bᵢ₋₁, aᵢ₋₁] * M[aᵢ₋₁, aᵢ, σᵢ]
+    end
+    M   = ϕ.tensors[l]
+    M̃dg = dg(ψ.tensors[l])
+    
+    @cutensor M̃dg[1, bᴸ⁻¹, σᴸ] * cont[bᴸ⁻¹, aᴸ⁻¹] * M[aᴸ⁻¹, 1, σᴸ]
+end
 
 #printing
 
@@ -129,6 +150,6 @@ end
 
 function Base.show(io::IO, ψ::Adjoint{S, MPS{T}}) where {T <: AbstractArray{S, 3}} where {S <: Number}
     l = length(ψ)
-    print(io, "Adjoint MPS on $l sites")t
+    print(io, "Adjoint MPS on $l sites")
 end
 
