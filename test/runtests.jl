@@ -2,7 +2,7 @@ using SpinGlassPEPS
 
 using LinearAlgebra
 using CUDA
-CUDA.allowscalar(false)
+# CUDA.allowscalar(false)
 using Test
 
 my_tests = ["MPS.jl", "MPO.jl", "PEPS.jl"]
