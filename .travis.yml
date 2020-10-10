@@ -4,7 +4,6 @@ os:
   - osx
 julia:
   - 1.5
-  - nightly
 
 notifications:
   email: false
