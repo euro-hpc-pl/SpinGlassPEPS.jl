@@ -17,13 +17,18 @@ sites = 5
     @test ψ / 2 == MPS(a/2, sites)
     @test copy(ψ) == ψ
     @show ψ
+    println(ψ)
+
+    @test adjoint_tensors(ψ)[1] == dg(ψ.tensors[end])
 end
 
 @testset "adjoints" begin
     ψ = MPS(a, sites)
     ϕ = ψ'
     @test real(ϕ*ψ) > 0
+    @test size(ϕ) == (1, sites)
     @show ϕ
+    println(ϕ)
 end
 
 end

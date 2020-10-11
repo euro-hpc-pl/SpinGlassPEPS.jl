@@ -1,4 +1,4 @@
-export MPS
+export MPS, adjoint_tensors
 
 # from https://github.com/MasonProtter/MatrixProductStates.jl/blob/v0.1/src/MPS.jl
 struct MPS{T <: AbstractArray{<:Number, 3}}
@@ -55,7 +55,7 @@ function Base.getindex(ψ::Adjoint{S, MPS{T}}, args...) where {T <: AbstractArra
     permutedims(conj.(out), (2, 1, 3))
 end
 
-Base.size(ψ::Adjoint{S, MPS{T}}) where {T <: AbstractArray{S, 3}} where {S <: Number} = (1, length(ψ.parent[1]))
+Base.size(ψ::Adjoint{S, MPS{T}}) where {T <: AbstractArray{S, 3}} where {S <: Number} = (1, length(ψ.parent))
 adjoint_tensors(ψ::MPS) = reverse(conj.(permutedims.(ψ.tensors, [(2, 1, 3)])))
 
 function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, ϕ::MPS{T}) where {T <: AbstractArray{S, 3}} where {S <: Number}
