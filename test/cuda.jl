@@ -2,7 +2,7 @@
     d = 10
     a = CUDA.randn(Float32, d)
     sites = 5
-    @testset "creation from vector on cuda" begin
+    @testset "creation of MPS from vector on cuda" begin
         ψ = MPS(a, sites)
 
         @test length(ψ) == sites
@@ -15,10 +15,18 @@
         @test copy(ψ) == ψ
     end
 
-    @testset "adjoints" begin
+    @testset "adjoints of MPS" begin
         ψ = MPS(a, sites)
         ϕ = ψ'
         @test real.(ϕ*ψ) > 0
+    end
+
+    @testset "MPO on cuda" begin
+        d = 10
+        a = CUDA.rand(Float32, d, d, d, d)
+        sites = 5
+        H = MPO(a, sites)
+        @test typeof(H.tensors[1]) <: CuArray
     end
 
 end
