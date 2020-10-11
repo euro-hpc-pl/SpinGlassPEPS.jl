@@ -1,3 +1,4 @@
+export MPO
 struct MPO{T <: AbstractArray{<:Number, 4}}
     tensors::Vector{T}
 end
@@ -20,10 +21,6 @@ Base.:(==)(O::MPO, U::MPO) = O.tensors == U.tensors
 Base.:(≈)(O::MPO, U::MPO)  = O.tensors ≈ U.tensors
 Base.getindex(O::MPO, args...) = getindex(O.tensors, args...)
 Base.length(O::MPO) = length(O.tensors)
-
-
-
-
 
 #printing
 
