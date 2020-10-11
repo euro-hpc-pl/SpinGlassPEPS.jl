@@ -1,4 +1,5 @@
-export MPS, adjoint_tensors
+export MPS
+export adjoint_tensors, *, ==, ≈, adjoint, getindex, randn
 
 # from https://github.com/MasonProtter/MatrixProductStates.jl/blob/v0.1/src/MPS.jl
 struct MPS{T <: AbstractArray{<:Number, 3}}

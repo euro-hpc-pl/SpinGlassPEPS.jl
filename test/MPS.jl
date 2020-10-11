@@ -20,6 +20,10 @@ sites = 5
     println(ψ)
 
     @test adjoint_tensors(ψ)[1] == dg(ψ.tensors[end])
+
+    as = [a for _=1:sites]
+    ψ = MPS(Vector{ComplexF32}, as)
+    @test eltype(ψ) == ComplexF32
 end
 
 @testset "adjoints" begin
