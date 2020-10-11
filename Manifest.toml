@@ -88,6 +88,12 @@ git-tree-sha1 = "788ab2f8a434a63f065ad962368a8cd0f8660a21"
 uuid = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
 version = "1.1.0"
 
+[[LazyStack]]
+deps = ["LinearAlgebra", "NamedDims", "OffsetArrays", "Test", "ZygoteRules"]
+git-tree-sha1 = "a8bf67afad3f1ee59d367267adb7c44ccac7fdee"
+uuid = "1fad7336-0346-5a1a-a56f-a06ba010965b"
+version = "0.0.7"
+
 [[LibGit2]]
 deps = ["Printf"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
@@ -120,6 +126,17 @@ deps = ["Libdl", "LinearAlgebra", "Pkg", "Requires", "Statistics"]
 git-tree-sha1 = "1ef04283efe283be08e2d0de842f5e5286dd0b7a"
 uuid = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 version = "0.7.5"
+
+[[NamedDims]]
+deps = ["LinearAlgebra", "Pkg", "Requires", "Statistics"]
+git-tree-sha1 = "263f7305bfa5b8b69cd3239ec6a4c037ff96b3df"
+uuid = "356022a1-0364-5f58-8944-0da4b18d706f"
+version = "0.2.28"
+
+[[OffsetArrays]]
+git-tree-sha1 = "a416e2f267e2c8729f25bcaf1ce19d2893faf393"
+uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
+version = "1.3.1"
 
 [[OrderedCollections]]
 git-tree-sha1 = "16c08bf5dba06609fe45e30860092d6fa41fde7b"
@@ -171,6 +188,12 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
+[[StaticArrays]]
+deps = ["LinearAlgebra", "Random", "Statistics"]
+git-tree-sha1 = "016d1e1a00fabc556473b07161da3d39726ded35"
+uuid = "90137ffa-7385-5640-81b9-e52037218182"
+version = "0.12.4"
+
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
@@ -180,6 +203,12 @@ deps = ["LinearAlgebra", "TupleTools"]
 git-tree-sha1 = "82111d3fe7982756d98e8b6606394efc6bb8df40"
 uuid = "5e0ebb24-38b0-5f93-81fe-25c709ecae67"
 version = "1.1.1"
+
+[[TensorCast]]
+deps = ["Compat", "LazyStack", "LinearAlgebra", "MacroTools", "OffsetArrays", "Random", "Requires", "StaticArrays", "ZygoteRules"]
+git-tree-sha1 = "33d8c8e3b5d37e9f98af3f5ae49ec22200d2d277"
+uuid = "02d47bb6-7ce6-556a-be16-bb1710789e2b"
+version = "0.3.2"
 
 [[TensorOperations]]
 deps = ["CUDA", "LRUCache", "LinearAlgebra", "Requires", "Strided", "TupleTools"]
@@ -208,3 +237,9 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[ZygoteRules]]
+deps = ["MacroTools"]
+git-tree-sha1 = "b3b4882cc9accf6731a08cc39543fbc6b669dca8"
+uuid = "700de1a5-db45-46bc-99cf-38207098b444"
+version = "0.2.0"

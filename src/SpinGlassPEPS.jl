@@ -1,12 +1,12 @@
 module SpinGlassPEPS
     using LinearAlgebra
     using Requires
-    using TensorOperations
+    using TensorOperations, TensorCast
 
 
     include("graph.jl")
-    include("MPO.jl")
     include("MPS.jl")
+    include("MPO.jl")
     include("PEPS.jl")
     include("utils.jl")
 

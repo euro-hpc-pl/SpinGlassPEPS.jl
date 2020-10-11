@@ -22,6 +22,51 @@ Base.:(≈)(O::MPO, U::MPO)  = O.tensors ≈ U.tensors
 Base.getindex(O::MPO, args...) = getindex(O.tensors, args...)
 Base.length(O::MPO) = length(O.tensors)
 
+#contractions
+
+function Base.:(*)(O::MPO, ψ::MPS)
+    tensors = copy(ψ.tensors)
+    l = length(O)
+    for i in 1:l
+        W = O.tensors[i]
+        M = ψ.tensors[i]
+
+        @reduce N[(bᵢ₋₁, aᵢ₋₁), (bᵢ, aᵢ), σᵢ] :=  sum(σ′ᵢ) W[bᵢ₋₁, bᵢ, σᵢ, σ′ᵢ] * M[aᵢ₋₁, aᵢ, σ′ᵢ]
+        
+        tensors[i] = N
+    end
+    MPS(tensors)
+end
+
+function Base.:(*)(O1::MPO{T}, O2::MPO{T}) where {T}
+    tensors = copy(O1.tensors)
+    l = length(O1)
+    for i in 1:l
+        W1 = O1.tensors[i]
+        W2 = O2.tensors[i]
+
+        @reduce V[(bᵢ₋₁, aᵢ₋₁), (bᵢ, aᵢ), σᵢ, σ′ᵢ] :=  sum(σ′′ᵢ) W1[bᵢ₋₁, bᵢ, σᵢ, σ′′ᵢ] * W2[aᵢ₋₁, aᵢ, σ′′ᵢ, σ′ᵢ]
+        
+        tensors[i] = V
+    end
+    MPO{T}(tensors)
+end
+
+function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, O::MPO) where {T <: AbstractArray{S, 3}} where {S <: Number}
+    ψ = ψ′.parent
+    tensors = copy(ψ.tensors)
+    Ws = dg.(reverse(O.tensors))
+    l = length(O)
+    for i in 1:l
+        W = Ws[i]
+        M = ψ.tensors[i]
+
+        @reduce A[(bᵢ₋₁, aᵢ₋₁), (bᵢ, aᵢ), σᵢ] :=  sum(σ′ᵢ) W[bᵢ₋₁, bᵢ, σᵢ, σ′ᵢ] * M[aᵢ₋₁, aᵢ, σ′ᵢ]
+        tensors[i] = A
+    end
+    adjoint(MPS{T}(tensors))
+end
+
 #printing
 
 function Base.show(io::IO, ::MIME"text/plain", O::MPO)

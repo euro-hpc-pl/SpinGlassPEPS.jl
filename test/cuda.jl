@@ -1,6 +1,7 @@
 @testset "cuda" begin
     d = 10
     a = CUDA.randn(Float32, d)
+    W = CUDA.rand(Float32, d, d, d, d)
     sites = 5
     @testset "creation of MPS from vector on cuda" begin
         ψ = MPS(a, sites)
@@ -22,11 +23,15 @@
     end
 
     @testset "MPO on cuda" begin
-        d = 10
-        a = CUDA.rand(Float32, d, d, d, d)
-        sites = 5
-        H = MPO(a, sites)
+        H = MPO(W, sites)
         @test typeof(H.tensors[1]) <: CuArray
     end
 
+    @testset "contraction on cuda" begin
+        H = MPO(W, sites)
+        ψ = MPS(a, sites)
+        @test typeof((H*H).tensors[1]) <: CuArray
+        @test typeof((H*ψ).tensors[1]) <: CuArray
+        @test typeof((ψ' * H).parent.tensors[1]) <: CuArray
+    end
 end
