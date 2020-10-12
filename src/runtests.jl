@@ -17,7 +17,7 @@ end
 
 include("notation.jl")
 include("compression.jl")
-include("peps.jl")
+include("peps_no_types.jl")
 include("mps_implementation.jl")
 
 include("tests/notation_tests.jl")
