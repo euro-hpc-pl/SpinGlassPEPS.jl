@@ -72,12 +72,25 @@ function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, ϕ::MPS{T}) where {T <: AbstractAr
         M   = ϕ.tensors[i]
         M̃dg = dg(ψ.tensors[i])
 
-        @tensor cont[bᵢ, aᵢ] := M̃dg[bᵢ, bᵢ₋₁, σᵢ] * cont[bᵢ₋₁, aᵢ₋₁] * M[aᵢ₋₁, aᵢ, σᵢ]
+        @tensor cont[bᵢ, aᵢ] := M̃dg[bᵢ, bᵢ₋₁, σᵢ]I& * cont[bᵢ₋₁, aᵢ₋₁] * M[aᵢ₋₁, aᵢ, σᵢ]
     end
     M   = ϕ.tensors[l]
     M̃dg = dg(ψ.tensors[l])
     
     @tensor M̃dg[1, bᴸ⁻¹, σᴸ] * cont[bᴸ⁻¹, aᴸ⁻¹] * M[aᴸ⁻¹, 1, σᴸ]
+end
+
+function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, O::Vector{Matrix}, ϕ::MPS{T}) where {T <: AbstractArray{S, 3}} where {S <: Number}
+    ψ = ψ′.parent
+    L = length(ϕ)
+
+    C = I
+    for i ∈ 1:L
+        M = ϕ.tensors[i]
+        N = ψ.tensors[i]
+        @tensor C[α, β] := N[y, α, σ] * O[i][σ, η] * C[y, x] * M[x, α, σ] order = (x, η, y, σ)
+    end
+    return C
 end
 
 #printing
