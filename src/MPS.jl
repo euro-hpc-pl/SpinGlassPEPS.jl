@@ -93,6 +93,12 @@ function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, O::Vector{Matrix}, ϕ::MPS{T}) whe
     return C
 end
 
+function Base.:(*)(ψ′::Adjoint{S, MPS{T}}, ϕ::MPS{T}) where {T <: AbstractArray{S, 3}} where {S <: Number}
+    L = length(ϕ)
+    O = [I for _ ∈ 1:L]
+    return  ψ′ * O * ϕ
+end
+
 #printing
 
 function Base.show(io::IO, ::MIME"text/plain", ψ::MPS)
