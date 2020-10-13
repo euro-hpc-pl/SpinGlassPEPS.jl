@@ -7,10 +7,11 @@ using CUDA
 
 using Test
 
-my_tests = ["MPS.jl", "MPO.jl", "PEPS.jl"]
+my_tests = ["contractions.jl"] #["MPS.jl", "MPO.jl", "PEPS.jl", "contractions.jl"]
 for my_test in my_tests
     include(my_test)
 end
+
 if CUDA.functional()
     include("cuda.jl")
 end
