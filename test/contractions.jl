@@ -1,15 +1,21 @@
 @testset "contractions" begin
 
-    d = 10
-    a = randn(ComplexF64, d)
-    b = randn(ComplexF64, d)
-    sites = 5
+D = 10
+d = 3
+sites = 5
+T = Array{ComplexF64, 3}
 
-    @testset "dot products" begin
-        ψ = MPS(a, sites)
-        ϕ = MPS(b, sites)
-        
-        #@test ϕ' * ψ == dot(ϕ, ψ)
-        @test dot2(ψ, ϕ) == conj(dot2(ϕ, ψ))    
-    end
+ψ = randn(MPS{T}, sites, D, d)
+ϕ = randn(MPS{T}, sites, D, d)
+Id = [I(d) for _ ∈ 1:length(ϕ)]
+
+@testset "dot products" begin
+    @test dot(ψ, ψ) ≈ dot(ψ, ψ)  
+    @test dot(ψ, ϕ) ≈ conj(dot(ϕ, ψ)) 
+   
+    @test dot(ψ, Id, ϕ) ≈ conj(dot(ϕ, Id, ψ))
+    @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)  
+
+    #@test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ))) Do NOT pass
+end
 end

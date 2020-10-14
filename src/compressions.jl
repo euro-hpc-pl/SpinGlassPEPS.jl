@@ -1,28 +1,70 @@
-function compress(ψ::MPS{L, T}, to_the::Right; Dcut::Int=typemax(Int)) where {L, T}
-    tensors = Array{T, 3}[]
-    
-    B = ψ[1]
-    d = length(B[1, 1, :])
-    
-    @cast Bm[(σ¹, a⁰), a¹] |= B[a⁰, a¹, σ¹]
-    U, S, V = psvd(Bm, rank=Dcut)
-    #S = S/√sum(S .^ 2)
+export truncate!, canonise!
 
-    @cast A[a⁰, a¹, σ¹] |= U[(σ¹, a⁰), a¹] (σ¹:d)
-    push!(tensors, A)
-    
-    for i ∈ 2:L
+function canonise!(ψ::MPS{T}) where T <: AbstractArray{<:Number, 3}
+    canonise!(ψ, "left")
+    canonise!(ψ, "right")
+end 
+
+function canonise!(ψ::MPS{T}, type::String) where T <: AbstractArray{<:Number, 3}
+    if type == "right"
+        _left_sweep_SVD!(ψ, typemax(Int))
+    elseif type == "left"
+        _right_sweep_SVD!(ψ, typemax(Int))
+    else
+        error("Choose: left or right")    
+    end    
+end
+
+function truncate!(ψ::MPS{T}, type::String, Dcut::Int) where T <: AbstractArray{<:Number, 3}
+    if type == "right"
+        _left_sweep_SVD!(ψ, Dcut)
+    elseif type == "left"
+        _right_sweep_SVD!(ψ, Dcut)
+    else
+        error("Choose: left or right")    
+    end    
+end
+
+function _right_sweep_SVD!(ψ::MPS{T}, Dcut::Int) where T <: AbstractArray{<:Number, 3}
+    Σ = V = ones(eltype(T), 1, 1)
+
+    for i ∈ 1:length(ψ)
+
         B = ψ[i]
-        d = length(B[1, 1, :])
+        C = Diagonal(Σ) * V'
 
-        @tensor M[aⁱ⁻¹, aⁱ, σⁱ] := (Diagonal(S)*V')[aⁱ⁻¹, aⁱ⁻¹′] * B[aⁱ⁻¹′, aⁱ, σⁱ]
-        @cast   Mm[(σⁱ, aⁱ⁻¹), aⁱ] |= M[aⁱ⁻¹, aⁱ, σⁱ]
+        # attach
+        @tensor M[x, σ, y] := C[x, α] * B[α, σ, y]
+        @cast   M̃[(x, σ), y] |= M[x, σ, y]
         
-        U, S, V = psvd(Mm, rank=Dcut)
-        #S = S/√sum(S .^ 2)
+        # decompose
+        U, Σ, V = psvd(M̃, rank=Dcut)
 
-        @cast A[aⁱ⁻¹, aⁱ, σⁱ] |= U[(σⁱ, aⁱ⁻¹), aⁱ] (σⁱ:d)
-        push!(tensors, A)
+        # create new    
+        d = size(ψ[i], 2)
+        @cast B[x, σ, y] |= U[(x, σ), y] (σ:d)
+        ψ.tensors[i] = B
     end
-    MPS{L, T}(tensors), Left()
+end
+
+function _left_sweep_SVD!(ψ::MPS{T}, Dcut::Int) where T <: AbstractArray{<:Number, 3}
+    Σ = U = ones(eltype(T), 1, 1)
+
+    for i ∈ length(ψ):-1:1
+
+        A = ψ[i]
+        C = U * Diagonal(Σ)
+
+        # attach
+        @tensor M[x, σ, y]   := A[x, σ, α] * C[α, y]
+        @cast   M̃[x, (σ, y)] |= M[x, σ, y]
+
+        # decompose
+        U, Σ, V = psvd(M̃, rank=Dcut)
+
+        # create new 
+        d = size(ψ[i], 2)
+        @cast A[x, σ, y] |= V'[x, (σ, y)] (σ:d)
+        ψ.tensors[i] = A
+    end
 end

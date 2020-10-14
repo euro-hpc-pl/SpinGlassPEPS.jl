@@ -1,12 +1,69 @@
-@testset "contractions" begin
+using TensorOperations
 
-    d = 2
-    a = randn(ComplexF64, d)
-    sites = 5
+@testset "Canonisation and Compression" begin
 
-    @testset "compression" begin
-        ψ = MPS(a, sites)
-        @test_nowarn ϕ = _right_compress(ψ)     
-        @test_nowarn ϕ = _left_compress(ψ) 
-    end
+D = 10
+Dcut = 5
+
+d = 3
+sites = 5
+
+T = Array{ComplexF64, 3}
+
+ψ = randn(MPS{T}, sites, D, d)
+ϕ = randn(MPS{T}, sites, D, d)
+χ = randn(MPS{T}, sites, D, d)
+
+@testset "Canonisation (left)" begin
+    canonise!(ψ, "left")  
+    show(ψ)  
+ 
+    is_left_normalized = true
+    for i ∈ 1:length(ψ)
+        A = ψ[i]
+        D = size(A, 3)
+
+        @tensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
+        is_left_normalized *= I(D) ≈ Id
+    end 
+
+    @test is_left_normalized 
+    @test dot(ψ, ψ) ≈ 1  
+end
+
+@testset "Canonisation (right)" begin
+    canonise!(ϕ, "right")  
+    show(ϕ)
+
+    is_right_normalized = true
+    for i ∈ 1:length(ϕ)
+        B = ϕ[i]
+        D = size(B, 1)
+
+        @tensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
+        is_right_normalized *= I(D) ≈ Id
+    end 
+
+    @test is_right_normalized 
+    @test dot(ϕ, ϕ) ≈ 1      
+end
+
+@testset "Canonisation (both)" begin
+    canonise!(χ)  
+    show(χ)
+    @test dot(χ, χ) ≈ 1      
+end
+
+@testset "Truncation (SVD, right)" begin
+    truncate!(ψ, "right", Dcut)  
+    show(ψ)
+    @test dot(ψ, ψ) ≈ 1     
+end
+
+@testset "Truncation (SVD, left)" begin
+    truncate!(ψ, "left", Dcut)  
+    show(ψ)
+    @test dot(ψ, ψ) ≈ 1     
+end
+
 end
