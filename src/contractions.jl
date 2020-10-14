@@ -1,9 +1,8 @@
 
 export norm 
 
-function LinearAlgebra.dot(ϕ::MPS{T}, ψ::MPS{T}) where T <: AbstractArray{<:Number, 3} 
-    S = eltype(ψ)
-    C = ones(S, 1, 1)
+function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
+    C = ones(eltype(ψ), 1, 1)
 
     for i ∈ 1:length(ψ)
         M = ψ[i]
@@ -13,11 +12,11 @@ function LinearAlgebra.dot(ϕ::MPS{T}, ψ::MPS{T}) where T <: AbstractArray{<:Nu
     return C[1]
 end
 
-function LinearAlgebra.norm(ψ::MPS{T}) where T <: AbstractArray{<:Number, 3}
-    return sqrt(abs(dot(ψ,ψ)))
+function LinearAlgebra.norm(ψ::MPS)
+    return sqrt(abs(dot(ψ, ψ)))
 end
 
-function LinearAlgebra.dot(ϕ::MPS{T}, O::Vector{S}, ψ::MPS{T}) where {T <: AbstractArray{<:Number, 3}, S <: AbstractMatrix}
+function LinearAlgebra.dot(ϕ::MPS, O::Vector{S}, ψ::MPS) where {S <: AbstractMatrix}
     R = eltype(ψ)
     C = ones(R, 1, 1)
 
@@ -30,19 +29,20 @@ function LinearAlgebra.dot(ϕ::MPS{T}, O::Vector{S}, ψ::MPS{T}) where {T <: Abs
     return C[1]
 end
 
-function dot(O::MPO{T}, ψ::MPS{S}) where {T <: AbstractArray{<:Number, 4}, S <: AbstractArray{<:Number, 3}}
-    tensors = copy(ψ.tensors)
+function dot(O::MPO, ψ::MPS{T}) where {T}
+    L = length(ψ)
+    ϕ = MPS{T}(L)
 
-    for i in 1:length(O)
+    for i in 1:L
         W = O[i]
         M = ψ[i]
 
         @reduce N[(x, a), (y, b), σ] := sum(η) W[x, σ, y, η] * M[a, η, b]      
-        tensors[i] = N
+        ϕ[i] = N
     end
-    MPS(tensors)
+    ϕ
 end
 
-function Base.:(*)(O::MPO{T}, ψ::MPS{S}) where {T <: AbstractArray{<:Number, 4}, S <: AbstractArray{<:Number, 3}}
+function Base.:(*)(O::MPO, ψ::MPS)
     return dot(O, ψ)
 end

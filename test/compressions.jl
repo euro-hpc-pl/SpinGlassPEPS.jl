@@ -15,7 +15,7 @@ T = Array{ComplexF64, 3}
 χ = randn(MPS{T}, sites, D, d)
 
 @testset "Canonisation (left)" begin
-    canonise!(ψ, "left")  
+    canonise!(ψ, :left)  
     show(ψ)  
  
     is_left_normalized = true
@@ -32,7 +32,7 @@ T = Array{ComplexF64, 3}
 end
 
 @testset "Canonisation (right)" begin
-    canonise!(ϕ, "right")  
+    canonise!(ϕ, :right)  
     show(ϕ)
 
     is_right_normalized = true
@@ -55,13 +55,13 @@ end
 end
 
 @testset "Truncation (SVD, right)" begin
-    truncate!(ψ, "right", Dcut)  
+    truncate!(ψ, :right, Dcut)  
     show(ψ)
     @test dot(ψ, ψ) ≈ 1     
 end
 
 @testset "Truncation (SVD, left)" begin
-    truncate!(ψ, "left", Dcut)  
+    truncate!(ψ, :left, Dcut)  
     show(ψ)
     @test dot(ψ, ψ) ≈ 1     
 end
