@@ -12,6 +12,6 @@ for my_test in my_tests
     include(my_test)
 end
 
-if CUDA.functional()
+if CUDA.functional() && false #skip cuda for now
     include("cuda.jl")
 end
