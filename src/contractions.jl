@@ -1,5 +1,5 @@
 
-export norm 
+export dot, norm
 
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     C = ones(eltype(ψ), 1, 1)
@@ -12,9 +12,7 @@ function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     return C[1]
 end
 
-function LinearAlgebra.norm(ψ::MPS)
-    return sqrt(abs(dot(ψ, ψ)))
-end
+LinearAlgebra.norm(ψ::MPS) = sqrt(abs(dot(ψ, ψ)))
 
 function LinearAlgebra.dot(ϕ::MPS, O::Vector{S}, ψ::MPS) where {S <: AbstractMatrix}
     R = eltype(ψ)
@@ -29,7 +27,7 @@ function LinearAlgebra.dot(ϕ::MPS, O::Vector{S}, ψ::MPS) where {S <: AbstractM
     return C[1]
 end
 
-function dot(O::MPO, ψ::MPS{T}) where {T}
+function LinearAlgebra.dot(O::MPO, ψ::MPS{T}) where {T}
     L = length(ψ)
     ϕ = MPS{T}(L)
 
