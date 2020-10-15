@@ -19,6 +19,34 @@ function read_connecting_pairs(grid::Matrix{Int}, i::Int)
     return left, right, up, down
 end
 
+struct Bond_with_other_node
+    node::Int
+    spins1::Vector{Int}
+    spins2::Vector{Int}
+end
+
+struct Qubo_el{T<:AbstractFloat}
+    ind::Tuple{Int, Int}
+    coupling::T
+    function(::Type{Qubo_el{T}})(ind::Tuple{Int, Int}, coupling::T1) where {T <: AbstractFloat, T1 <: AbstractFloat}
+        new{T}(ind, T(coupling))
+    end
+    function(::Type{Qubo_el})(ind::Tuple{Int, Int}, coupling::Float64)
+        new{Float64}(ind, coupling)
+    end
+end
+
+function matrix2qubo_vec(M::Matrix{T}) where T <:AbstractFloat
+    s = size(M)
+    q_vec = Qubo_el{T}[]
+    for i in 1:s[1]
+        for j in 1:i
+            push!(q_vec, Qubo_el((i,j), M[i,j]))
+        end
+    end
+    q_vec 
+end
+
 """
     struct Node_of_grid
 
@@ -33,28 +61,43 @@ struct Node_of_grid
     right::Vector{Vector{Int}}
     up::Vector{Vector{Int}}
     down::Vector{Vector{Int}}
+    all_connections::Vector{Vector{Int}}
+    bonds::Vector{Bond_with_other_node}
     function(::Type{Node_of_grid})(i::Int, grid::Matrix{Int})
         s = size(grid)
         intra_struct = Vector{Int}[]
 
         left, right, up, down = read_connecting_pairs(grid, i)
-        new(i, [i], intra_struct, left, right, up, down)
+        all_connections = [left..., right..., up..., down...]
+        #all_connections = [el[2] for el in all_connections]
+        new(i, [i], intra_struct, left, right, up, down, all_connections)
     end
+    function(::Type{Node_of_grid})(i::Int, qubos::Vector{Qubo_el{T}}) where T <: AbstractFloat
+        x = Vector{Int}[]
+        all_connections = Vector{Int}[]
+        for q in qubos
+            if (q.ind[1] == i && q.ind[2] != i)
+                push!(all_connections, [q.ind...])
+            end
+            if (q.ind[2] == i && q.ind[1] != i)
+                push!(all_connections, [q.ind[2], q.ind[1]])
+            end
+        end
+
+        new(i, [i], x, x, x, x, x, all_connections)
+    end
+end
+
+function get_system_size(qubo::Vector{Qubo_el{T}}) where T <: AbstractFloat
+    size = 0
+    for q in qubo
+        size = maximum([size, q.ind[1], q.ind[2]])
+    end
+    size
 end
 
 function get_system_size(ns::Vector{Node_of_grid})
     mapreduce(x -> length(x.spin_inds), +, ns)
-end
-
-struct Qubo_el{T<:AbstractFloat}
-    ind::Tuple{Int, Int}
-    coupling::T
-    function(::Type{Qubo_el{T}})(ind::Tuple{Int, Int}, coupling::T1) where {T <: AbstractFloat, T1 <: AbstractFloat}
-        new{T}(ind, T(coupling))
-    end
-    function(::Type{Qubo_el})(ind::Tuple{Int, Int}, coupling::Float64)
-        new{Float64}(ind, coupling)
-    end
 end
 
 

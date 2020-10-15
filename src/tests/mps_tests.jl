@@ -6,7 +6,9 @@ using TensorOperations
     @test b == 16.0*ones(1,1)
 
     M = [1 2; 3 4]
-    i,j = connections_for_mps(Array(transpose(M)))
+    ns = [Node_of_grid(i, Array(transpose(M))) for i in 1:maximum(M)]
+
+    i,j = connections_for_mps(ns)
     @test i == [1,2,3]
     @test j == [[3, 2], [4], [4]]
     a,b = cluster_conncetions(i,j)
@@ -15,17 +17,19 @@ using TensorOperations
     @test b == [[[3, 2]], [[4]], [[4]]]
 
     grid = [1 2 3; 4 5 6; 7 8 9]
+    A = Array(transpose(grid))
 
-    i,j = connections_for_mps(grid)
-    @test i == [1, 4, 7, 2, 5, 8, 3, 6]
-    @test j == [[2, 4], [5, 7], [8], [3, 5], [6, 8], [9], [6], [9]]
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    i,j = connections_for_mps(ns)
+
+    @test i == [1, 2, 3, 4, 5, 6, 7, 8]
+    @test j == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
 
     a,b = cluster_conncetions(i,j)
-    @test a == [[1, 7], [4, 8], [2, 6], [5], [3]]
-    @test b == [[[2, 4], [8]], [[5, 7], [9]], [[3, 5], [9]], [[6, 8]], [[6]]]
-
+    @test a == [[1, 5], [2, 6], [3, 7], [4, 8]]
+    @test b == [[[2, 4], [6, 8]], [[3, 5], [9]], [[6], [8]], [[5, 7], [9]]]
 end
-if true
+
 function make_qubo_x()
     qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
     qubo = vcat(qubo, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
@@ -90,7 +94,9 @@ end
     @test mps[3] == ones(1,1,2)
 
     grid = [1 2 3; 4 5 6; 7 8 9]
-    is, js = connections_for_mps(Array(transpose(grid)))
+    ns = [Node_of_grid(i,grid) for i in 1:maximum(grid)]
+
+    is, js = connections_for_mps(ns)
     all_is, all_js = cluster_conncetions(is,js)
 
     mps = construct_mps(qubo, β, 2, 9, all_is, all_js, 4, 0.)
@@ -164,7 +170,9 @@ end
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
-    spins, _ = solve_mps(train_qubo, grid, 9, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
+    ns = [Node_of_grid(i, train_qubo) for i in 1:get_system_size(train_qubo)]
+
+    spins, _ = solve_mps(train_qubo, ns, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     #ground
     @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
@@ -181,7 +189,9 @@ end
     end
     permuted_train_qubo = make_qubo1()
 
-    spins, objective = solve_mps(permuted_train_qubo, grid, 9, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
+    ns = [Node_of_grid(i, permuted_train_qubo) for i in 1:get_system_size(permuted_train_qubo)]
+
+    spins, objective = solve_mps(permuted_train_qubo, ns, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
     @test objective[1] ≈ 0.30956452652382055
@@ -224,11 +234,13 @@ end
 
     println("number of β steps = ", β_step)
 
-    spins, _ = solve_mps(l_qubo, grid, 16, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    ns = [Node_of_grid(i, l_qubo) for i in 1:get_system_size(l_qubo)]
+
+    spins, _ = solve_mps(l_qubo, ns, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_exact, _ = solve_mps(l_qubo, grid, 16, 10; β=β, β_step=1, χ=12, threshold = 0.)
+    spins_exact, _ = solve_mps(l_qubo, ns, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
     spins_peps, _ = solve(l_qubo, grid, 10; β = β, χ = 2, threshold = 1e-12)
 
@@ -239,4 +251,36 @@ end
         @test spins[k] == spins_peps[k]
     end
 end
+
+@testset "MPS vs PEPS larger QUBO" begin
+    function make_qubo_full()
+        qubo = [(1,1) 0.1; (1,2) 1.; (1,3) 1.; (1,4) 0.2; (2,2) -0.1; (2,3) 1.0; (2,4) 0.2]
+        qubo = vcat(qubo, [(3,3) 0.2; (3,4) 0.2; (4,4) -0.2])
+        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    end
+    l_qubo = make_qubo_full()
+
+    β = 0.5
+    β_step = 2
+
+    println("number of β steps = ", β_step)
+
+    ns = [Node_of_grid(i, l_qubo) for i in 1:get_system_size(l_qubo)]
+
+    spins, _ = solve_mps(l_qubo, ns, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+
+    @test spins == [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
+
+    M = rand([-1.,-0.5,0.,0.5,1.], 64,64)
+    M = M*(M')
+
+    q = matrix2qubo_vec(M)
+
+    ns = [Node_of_grid(i, q) for i in 1:get_system_size(q)]
+
+    @time s, _ = solve_mps(q, ns, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    println(s[1])
+    println(s[2])
+    println(s[3])
+    println(s[4])
 end

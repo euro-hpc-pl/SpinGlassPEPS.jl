@@ -1,4 +1,4 @@
-include("peps.jl")
+include("peps_no_types.jl")
 include("notation.jl")
 
 
@@ -195,13 +195,14 @@ function cluster_conncetions(all_is::Vector{Int}, all_js::Vector{Vector{Int}})
     end
 end
 
-function connections_for_mps(grid::Matrix{Int})
+function connections_for_mps(ns::Vector{Node_of_grid})
     all_is = Int[]
     all_js = Vector{Int}[]
     conections = Vector{Int}[]
-    for i in grid
-        left, right, up, down = read_connecting_pairs(grid, i)
-        pairs = [left..., right..., up..., down...]
+
+    for i in [e.i for e in ns]
+
+        pairs = ns[i].all_connections
         pairs_not_accounted = Int[]
         for p in pairs
 
@@ -240,14 +241,12 @@ function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
 end
 
 
-function solve_mps(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, problem_size::Int,
+function solve_mps(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid},
                 no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
 
-    physical_dim = 2
 
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
-
-    is, js = connections_for_mps(Array(transpose(grid)))
+    problem_size = length(ns)
+    is, js = connections_for_mps(ns)
     all_is, all_js = cluster_conncetions(is,js)
     mps = construct_mps(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
 
@@ -258,7 +257,7 @@ function solve_mps(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, problem_size::In
         for ps in partial_s
             objectives = compute_probs(mps, ps.spins)
 
-            for l in 1:physical_dim
+            for l in 1:length(objectives)
                 push!(partial_s_temp, add_spin(ps, l, objectives[l]))
             end
         end

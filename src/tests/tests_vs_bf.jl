@@ -4,7 +4,7 @@ using Test
 
 include("../notation.jl")
 include("../compression.jl")
-include("../peps.jl")
+include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 
 
@@ -21,7 +21,7 @@ if false
     examples = 100
 end
 
-if false
+if true
 file = "energies_and_matrix_only.npz"
     j = 25
     examples = 1
@@ -51,6 +51,8 @@ for k in 1:examples
         0
     end
     ens = data["energies"][k,:,:]
+
+    # TODO replace the function
 
     function M2Qubbo_els(M::Matrix{Float64}, T::Type = Float64)
         qubo = Qubo_el{T}[]
@@ -138,16 +140,9 @@ for k in 1:examples
     χ = 10
     β_step = 2
 
-    is,js = connections_for_mps(Array(transpose(grid)))
-    all_is, all_js = cluster_conncetions(is,js)
-
-    #all_is = [[1,8,20], [3,10,17], [5,13], [2, 14], [4, 12, 18], [6, 22], [7,21], [11, 24]]
-
-    #all_js = [[[2,6],[7,9,13],[15,19,25]],[[2,4,8], [9,15], [16,18,22]], [[4,10],[12,14,18]]]
-    #all_js = vcat(all_js, [[[7], [9,15,19]], [[9], [11,17], [19,23]], [[7,11], [23]], [[12], [16,22]], [[16], [19,23,25]]])
-
     print("mps time  =  ")
-    @time spins_mps, objective_mps = solve_mps(qubo, grid, 25, r*j; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
+    ns = [Node_of_grid(i, qubo) for i in 1:get_system_size(qubo)]
+    @time spins_mps, objective_mps = solve_mps(qubo, ns, r*j; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
 
     count_mps = copy(j)
     for i in 1:j

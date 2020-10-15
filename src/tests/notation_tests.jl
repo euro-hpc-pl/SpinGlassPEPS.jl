@@ -2,6 +2,11 @@
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
+    b = Bond_with_other_node(1, [2,10], [3,11])
+    @test b.node == 1
+    @test b.spins1 == [2,10]
+    @test b.spins2 == [3,11]
+
     n = Node_of_grid(3, grid)
     @test n.i == 3
     @test n.spin_inds == [3]
@@ -10,6 +15,7 @@
     @test n.right == Array{Int64,1}[]
     @test n.up == Array{Int64,1}[]
     @test n.down == [[3,6]]
+    @test n.all_connections == [[3, 2], [3, 6]]
 
     n = Node_of_grid(5, grid)
     @test n.i == 5
@@ -59,6 +65,24 @@ function make_qubo0()
     qubo = vcat(qubo, [(6,6) -2.2; (5,6) -0.25; (6,9) -0.52; (5,5) 0.2; (4,5) 0.5; (5,8) 0.5; (4,4) -2.2; (4,7) -0.01])
     qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+end
+
+@testset "axiliary on qubo" begin
+    qubo = make_qubo0()
+    n = Node_of_grid(1, qubo)
+    @test n.all_connections == [[1,2],[1,4]]
+
+    n = Node_of_grid(5, qubo)
+    @test n.all_connections == [[5, 2], [5, 6], [5, 4], [5, 8]]
+
+    n = Node_of_grid(9, qubo)
+    @test n.all_connections == [[9, 6], [9, 8]]
+
+    println(get_system_size(qubo) == 9)
+
+    M = rand(10,10)
+    matrix2qubo_vec(M)
+
 end
 
 @testset "test notation" begin
