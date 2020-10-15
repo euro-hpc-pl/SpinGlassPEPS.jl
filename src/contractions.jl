@@ -14,11 +14,7 @@ end
 
 LinearAlgebra.norm(ψ::MPS) = sqrt(abs(dot(ψ, ψ)))
 
-<<<<<<< HEAD
-function LinearAlgebra.dot(ϕ::MPS{T}, O::Vector{S}, ψ::MPS{T}) where {T <: AbstractArray{<:Number, 3}, S <: AbstractArray{<:Number, 2}}
-=======
 function LinearAlgebra.dot(ϕ::MPS, O::Vector{S}, ψ::MPS) where {S <: AbstractMatrix}
->>>>>>> 19fa41ae9126f12b46ec0d2b7b43843e5c3732f4
     R = eltype(ψ)
     C = ones(R, 1, 1)
 
