@@ -4,8 +4,7 @@ module SpinGlassPEPS
     using TensorOperations, TensorCast
     using LowRankApprox
 
-    include("MPS.jl")
-    include("MPO.jl")
+    include("base.jl")
     include("compressions.jl")
     include("contractions.jl")   
     include("graph.jl")
