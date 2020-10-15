@@ -15,7 +15,7 @@ T = Array{ComplexF64, 3}
     @test size(ψ) == (sites, )
     @test eltype(ψ) == ComplexF64
 
-    #@test ϕ = copy(ψ) 
+    #ϕ = copy(ψ) 
     #@test ϕ == ψ
     #@test ϕ ≈ ψ
 

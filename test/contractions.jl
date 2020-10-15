@@ -16,6 +16,6 @@ Id = [I(d) for _ ∈ 1:length(ϕ)]
     @test dot(ψ, Id, ϕ) ≈ conj(dot(ϕ, Id, ψ))
     @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)  
 
-    #@test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ))) Do NOT pass
+    @test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ))) ;
 end
 end
