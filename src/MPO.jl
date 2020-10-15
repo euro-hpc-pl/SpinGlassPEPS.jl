@@ -44,7 +44,7 @@ function MPS(O::MPO{T}) where T <: AbstractArray{<:Number, 4}
 end  
 
 function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where T <: AbstractArray{<:Number, 4}
-    S = AbstractArray{eltype(T), 3} # !!! This probably can be done better !!!
+    S = newDim(T, 3) 
     ψ = randn(MPS{S}, L, D, d^2) 
     MPO(ψ)
 end
