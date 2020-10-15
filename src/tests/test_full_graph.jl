@@ -23,8 +23,9 @@ for d in data
     i = ceil(Int, d[1])+1
     j = ceil(Int, d[2])+1
     if d[3] != 0.
-        push!(q_vec, Qubo_el((i,j), d[3]))
+        push!(q_vec, Qubo_el((i,j), -1*d[3]))
         M[i,j] = d[3]
+        M[j,i] = d[3]
     end
 end
 
@@ -32,8 +33,8 @@ for i in 1:10
     println(q_vec[i])
 end
 
-χ = 15
-β = 2.
+χ = 20
+β = 3.
 β_step = 2
 
 print("mps time  =  ")
