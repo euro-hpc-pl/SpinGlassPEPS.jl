@@ -1,3 +1,3 @@
 export newdim
 
-# S = newdims(T, 4)
+newdim(::Type{T}, dims) where {T<:AbstractArray} = T.name.wrapper{eltype(T), dims}
