@@ -10,8 +10,8 @@ include("../mps_implementation.jl")
 
 file = "data/Qfile_tests.txt"
 s = 48
-file = "data/QUBO8qbits"
-s = 8
+#file = "data/QUBO8qbits"
+#s = 8
 #file = "data/QUBO6qbits"
 # s = 6
 
@@ -33,10 +33,11 @@ for d in data
     M[i,j] = d[3]
 end
 
+# TODO this needs by be specified why 2v
 function M2qubo(Q::Matrix{T}) where T <: AbstractFloat
     J = (Q - diagm(diag(Q)))/4
-    v = dropdims(sum(Q; dims=1); dims = 1)
-    h = diagm(diag(Q)/2 + v/2)
+    v = dropdims(sum(J; dims=1); dims = 1)
+    h = diagm(diag(Q)/2 + v*2)
     J + h
 end
 
@@ -60,8 +61,7 @@ end
 
 q_vec = M2Qubbo_els(J)
 
-
-χ = 50
+#χ = 50
 χ = 15
 β = 1.
 β_step = 2

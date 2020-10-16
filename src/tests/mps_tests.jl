@@ -1,5 +1,5 @@
 using TensorOperations
-
+if false
 
 @testset "axiliary" begin
     b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
@@ -252,7 +252,7 @@ end
     end
 end
 
-@testset "MPS vs PEPS larger QUBO" begin
+@testset "MPS on fill graph" begin
     function make_qubo_full()
         qubo = [(1,1) 0.1; (1,2) 1.; (1,3) 1.; (1,4) 0.2; (2,2) -0.1; (2,3) 1.0; (2,4) 0.2]
         qubo = vcat(qubo, [(3,3) 0.2; (3,4) 0.2; (4,4) -0.2])
@@ -283,4 +283,106 @@ end
     println(s[2])
     println(s[3])
     println(s[4])
+end
+end
+
+@testset "mps full graph real train problem" begin
+
+    # TODO this needs by be specified, why 2v
+
+    function M2qubo(Q::Matrix{T}) where T <: AbstractFloat
+        J = (Q - diagm(diag(Q)))/4
+        v = dropdims(sum(J; dims=1); dims = 1)
+        h = diagm(diag(Q)/2 + v*2)
+        J + h
+    end
+
+    function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
+        d =  diag(M)
+        M = M .- diagm(d)
+
+        transpose(v)*M*v + transpose(v)*d
+    end
+
+    #TODO this is repeationg
+
+    function M2Qubbo_els(M::Matrix{Float64}, T::Type = Float64)
+        qubo = Qubo_el{T}[]
+        s = size(M)
+        for i in 1:s[1]
+            for j in i:s[2]
+                if (M[i,j] != 0.) | (i == j)
+                    x = T(M[i,j])
+                    q = Qubo_el{T}((i,j), x)
+                    push!(qubo, q)
+                end
+            end
+        end
+        qubo
+    end
+
+    X = rand(10,10)
+    X = X*X'
+
+    #X = ones(2,2)
+
+    J = M2qubo(X)
+
+    Delta = 4J - X
+    @test maximum(abs.(Delta - diagm(diag(Delta)))) ≈ 0. atol = 1e-12
+
+    # a sum over interactions
+    Y = J - diagm(diag(J))
+    v = dropdims(sum(Y; dims=1); dims = 1)
+
+    b = diag(X)
+    # TODO why 4v not 2v
+    @test maximum(abs.(2*diag(J) - 4*v - b)) ≈ 0. atol = 1e-12
+
+
+    file = "tests/data/QUBO8qbits"
+    s = 8
+    #file = "tests/data/QUBO6qbits"
+    #s = 6
+
+    data = (x-> Array{Any}([parse(Int, x[1]), parse(Int, x[2]), parse(Float64, x[3])])).(split.(readlines(open(file))))
+
+    M = zeros(s,s)
+    for d in data
+        i = ceil(Int, d[1])+1
+        j = ceil(Int, d[2])+1
+        M[i,j] = d[3]
+    end
+
+    #-1 this for the model
+    J = -1*M2qubo(M)
+    q_vec = M2Qubbo_els(J)
+
+    χ = 10
+    β = .5
+    β_step = 2
+
+    print("mps time  =  ")
+    ns = [Node_of_grid(i, q_vec) for i in 1:get_system_size(q_vec)]
+    @time spins_mps, objective_mps = solve_mps(q_vec, ns, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+
+    #println(spins_mps)
+    for spin in spins_mps
+        #println(v2energy(J, spin))
+        binary = [Int(i > 0) for i in spin]
+        println(binary)
+        println(binary'*M*binary)
+    end
+
+
+    if file == "tests/data/QUBO8qbits"
+        println("testing ground")
+        binary = [Int(i > 0) for i in spins_mps[1]]
+        println(binary == [0,1,0,0,1,0,0,0])
+    elseif file == "tests/data/QUBO6qbits"
+        println("testing ground")
+        binary = [Int(i > 0) for i in spins_mps[1]]
+        println(binary == [0,1,0,1,0,0])
+    end
+
 end
