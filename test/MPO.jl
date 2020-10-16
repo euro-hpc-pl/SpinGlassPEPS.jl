@@ -1,7 +1,7 @@
 @testset "MPO" begin
 
 D = 9
-d = 2
+d = 4
 sites = 5
 T = Array{ComplexF64, 4}
 
@@ -15,9 +15,9 @@ T = Array{ComplexF64, 4}
     @test size(O) == (sites, )
     @test eltype(O) == ComplexF64
 
-    #@test P = copy(O)
-    #@test P == O 
-    #@test P ≈ O 
+    P = copy(O)
+    @test P == O 
+    @test P ≈ O 
 end
 
 end

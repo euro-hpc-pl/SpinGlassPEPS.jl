@@ -7,6 +7,7 @@ T = Array{ComplexF64, 3}
 
 ψ = randn(MPS{T}, sites, D, d)
 ϕ = randn(MPS{T}, sites, D, d)
+
 Id = [I(d) for _ ∈ 1:length(ϕ)]
 
 @testset "dot products" begin
@@ -18,4 +19,10 @@ Id = [I(d) for _ ∈ 1:length(ϕ)]
 
     @test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ)))
 end
+
+@testset "left environment" begin
+    L = left_env(ϕ, ψ)
+    @test L[end][1] ≈ dot(ϕ, ψ)  
+end
+
 end

@@ -1,8 +1,8 @@
 export truncate!, canonise!
 
 function canonise!(ψ::MPS)
-    canonise!(ψ, :left)
     canonise!(ψ, :right)
+    canonise!(ψ, :left)
 end
 
 canonise!(ψ::MPS, s::Symbol) = canonise!(ψ, Val(s))
@@ -18,12 +18,11 @@ function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
     Σ = V = ones(eltype(ψ), 1, 1)
 
     for i ∈ 1:length(ψ)
-
-        B = ψ[i]
+        A = ψ[i]
         C = Diagonal(Σ) * V'
 
         # attach
-        @tensor M[x, σ, y] := C[x, α] * B[α, σ, y]
+        @tensor M[x, σ, y] := C[x, α] * A[α, σ, y]
         @cast   M̃[(x, σ), y] |= M[x, σ, y]
         
         # decompose
@@ -31,8 +30,8 @@ function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
 
         # create new    
         d = size(ψ[i], 2)
-        @cast B[x, σ, y] |= U[(x, σ), y] (σ:d)
-        ψ[i] = B
+        @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
+        ψ[i] = A
     end
 end
 
@@ -40,12 +39,11 @@ function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
     Σ = U = ones(eltype(ψ), 1, 1)
 
     for i ∈ length(ψ):-1:1
-
-        A = ψ[i]
+        B = ψ[i]
         C = U * Diagonal(Σ)
 
         # attach
-        @tensor M[x, σ, y]   := A[x, σ, α] * C[α, y]
+        @tensor M[x, σ, y]   := B[x, σ, α] * C[α, y]
         @cast   M̃[x, (σ, y)] |= M[x, σ, y]
 
         # decompose
@@ -53,7 +51,36 @@ function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
 
         # create new 
         d = size(ψ[i], 2)
-        @cast A[x, σ, y] |= V'[x, (σ, y)] (σ:d)
-        ψ[i] = A
+        @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
+        ψ[i] = B
     end
 end
+
+"""
+function compress(ψ::MPS{T}, Dcut::Int, tol::Number, max_sweeps::Int=4) where {T}
+    S = eltype(ψ)
+    size = length(ϕ) 
+
+    # Initial guess - truncated ψ 
+    ϕ = copy(ψ)
+    truncate!(ϕ, :right, Dcut)
+
+    # Create left environment 
+    L = left_env(ϕ, ψ)
+    overlap = L[end][1]
+
+    # Initialize right environment 
+    R = Vector{T}(undef, size)
+
+    while diff > tol 
+
+        if sweep > max_sweep
+            println("Max number of sweeps (sweep) reached.")
+        else    
+            for i ∈ 1:
+            # Optimize
+        end    
+    end
+    return ϕ    
+end
+"""
