@@ -8,15 +8,17 @@ function get_connection_if_exists(i::Int, j::Int, k::Int, grid::Matrix{Int})
     end
 end
 
-function read_connecting_pairs(grid::Matrix{Int}, i::Int)
-    a = findall(x->x==i, grid)[1]
-    j = a[1]
-    k = a[2]
+function enviroment(i::Int,j::Int,k::Int,grid)
     left = get_connection_if_exists(i, j, k-1, grid)
     right = get_connection_if_exists(i, j, k+1, grid)
     up = get_connection_if_exists(i, j-1, k, grid)
     down = get_connection_if_exists(i, j+1, k, grid)
     return left, right, up, down
+end
+
+function read_connecting_pairs(grid::Matrix{Int}, i::Int)
+    a = findall(x->x==i, grid)[1]
+    enviroment(i,a[1],a[2], grid)
 end
 
 struct Bond_with_other_node
@@ -44,7 +46,7 @@ function matrix2qubo_vec(M::Matrix{T}) where T <:AbstractFloat
             push!(q_vec, Qubo_el((i,j), M[i,j]))
         end
     end
-    q_vec 
+    q_vec
 end
 
 """
@@ -63,15 +65,23 @@ struct Node_of_grid
     down::Vector{Vector{Int}}
     all_connections::Vector{Vector{Int}}
     bonds::Vector{Bond_with_other_node}
+    #construction from the grid
     function(::Type{Node_of_grid})(i::Int, grid::Matrix{Int})
         s = size(grid)
         intra_struct = Vector{Int}[]
 
         left, right, up, down = read_connecting_pairs(grid, i)
         all_connections = [left..., right..., up..., down...]
-        #all_connections = [el[2] for el in all_connections]
         new(i, [i], intra_struct, left, right, up, down, all_connections)
     end
+    #construction from matrix of matrices (a grid of many nodes)
+    function(::Type{Node_of_grid})(j::Int, k::Int, grid::Array{Array{Int64,N} where N,2})
+        intra_struct = grid[j,k]
+        spin_inds = vec(intra_struct)
+        # TODO ......
+        1
+    end
+    # construction from qubo directly, It will not check if qubo fits grid
     function(::Type{Node_of_grid})(i::Int, qubos::Vector{Qubo_el{T}}) where T <: AbstractFloat
         x = Vector{Int}[]
         all_connections = Vector{Int}[]
@@ -83,7 +93,6 @@ struct Node_of_grid
                 push!(all_connections, [q.ind[2], q.ind[1]])
             end
         end
-
         new(i, [i], x, x, x, x, x, all_connections)
     end
 end

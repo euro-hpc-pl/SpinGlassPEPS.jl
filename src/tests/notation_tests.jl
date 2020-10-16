@@ -57,6 +57,16 @@
 
     ns = [Node_of_grid(i, grid1) for i in 1:maximum(grid1)]
     @test get_system_size(ns) == 12
+
+
+    grid = Array{Array{Int}}(undef, (2,2))
+    grid[1,1] = [1 2;5 6]
+    grid[1,2] = [3 4; 7 8]
+    grid[2,1] = [9 10;13 14]
+    grid[2,2] = [11 12;15 16]
+    grid = Array{Array{Int}}(grid)
+
+    n = Node_of_grid(1,1, grid)
 end
 
 
@@ -78,10 +88,11 @@ end
     n = Node_of_grid(9, qubo)
     @test n.all_connections == [[9, 6], [9, 8]]
 
-    println(get_system_size(qubo) == 9)
+    @test get_system_size(qubo) == 9
 
     M = rand(10,10)
-    matrix2qubo_vec(M)
+    m = matrix2qubo_vec(M)
+
 
 end
 

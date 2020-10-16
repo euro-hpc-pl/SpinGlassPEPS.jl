@@ -1,5 +1,5 @@
 using TensorOperations
-if false
+
 
 @testset "axiliary" begin
     b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
@@ -284,11 +284,11 @@ end
     println(s[3])
     println(s[4])
 end
-end
+
 
 @testset "mps full graph real train problem" begin
 
-    # TODO this needs by be specified, why 2v
+    # TODO this needs by be specified, why 2v not v
 
     function M2qubo(Q::Matrix{T}) where T <: AbstractFloat
         J = (Q - diagm(diag(Q)))/4
@@ -366,7 +366,7 @@ end
     ns = [Node_of_grid(i, q_vec) for i in 1:get_system_size(q_vec)]
     @time spins_mps, objective_mps = solve_mps(q_vec, ns, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
-    #println(spins_mps)
+    println("first 10 states")
     for spin in spins_mps
         #println(v2energy(J, spin))
         binary = [Int(i > 0) for i in spin]
@@ -378,11 +378,11 @@ end
     if file == "tests/data/QUBO8qbits"
         println("testing ground")
         binary = [Int(i > 0) for i in spins_mps[1]]
-        println(binary == [0,1,0,0,1,0,0,0])
+        @test binary == [0,1,0,0,1,0,0,0]
     elseif file == "tests/data/QUBO6qbits"
         println("testing ground")
         binary = [Int(i > 0) for i in spins_mps[1]]
-        println(binary == [0,1,0,1,0,0])
+        @test binary == [0,1,0,1,0,0]
     end
 
 end
