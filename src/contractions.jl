@@ -1,5 +1,5 @@
 
-export dot, norm, left_env
+export left_env
 
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     C = ones(eltype(ψ), 1, 1)
@@ -32,9 +32,9 @@ end
 
 LinearAlgebra.norm(ψ::MPS) = sqrt(abs(dot(ψ, ψ)))
 
-function LinearAlgebra.dot(ϕ::MPS, O::Vector{S}, ψ::MPS) where {S <: AbstractMatrix}
-    R = eltype(ψ)
-    C = ones(R, 1, 1)
+function LinearAlgebra.dot(ϕ::MPS, O::Vector{T}, ψ::MPS) where {T <: AbstractMatrix}
+    S = eltype(ψ)
+    C = ones(S, 1, 1)
 
     for i ∈ 1:length(ψ)
         M = ψ[i]
@@ -61,7 +61,7 @@ end
 
 Base.:(*)(O::MPO, ψ::MPS) = return dot(O, ψ)
 
-function LinearAlgebra.dot(O1::MPO{T}, O2::MPO{T}) where T <: AbstractArray{<:Number, 4}
+function LinearAlgebra.dot(O1::MPO{T}, O2::MPO{T}) where {T}
     L = length(O1)
     tensors = Vector{T}(undef, L)
 
