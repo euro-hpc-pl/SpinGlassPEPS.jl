@@ -116,6 +116,7 @@ struct Node_of_grid
             v1 = M[:,end]
             Mp = grid[j, k+1]
             v2 = Mp[:,1]
+
             for i in 1:length(v1)
                 push!(right, [v1[i], v2[i]])
             end
@@ -247,7 +248,7 @@ return a spin from the physical index, if size is 1, returns zero.
 """
 function ind2spin(i::Int, size::Int = 2)
     if size == 1
-        return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        return [0]
     else
         s = [2^i for i in 1:ceil(Int, log(2, size))]
 

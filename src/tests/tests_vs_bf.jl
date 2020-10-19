@@ -21,7 +21,7 @@ if false
     examples = 100
 end
 
-if true
+if false
 file = "energies_and_matrix_only.npz"
     j = 25
     examples = 1

@@ -20,8 +20,13 @@ and mode 5 is physical.
 If tensor is expected to be on the top of the peps mode 3 is trivial and is removed
 If tensor is expected to be on the bottom of the peps mode 4 is trivial and is removed
 """
+
+f(i::Int) = div((i-1), 2)+1
+
+
 function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}},
                                                         i::Int, β::T) where T <: AbstractFloat
+
 
     n = ns[i]
     i == n.i || error("$i ≠ $(n.i), error in indexing a grid")
@@ -30,28 +35,89 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}
 
     tensor = zeros(T, (tensor_size...))
 
-    r = 0
-    if length(n.spin_inds) == 1
-        r = r + 1
-        j = n.spin_inds[1]
 
-        h = JfromQubo_el(qubo, j,j)
-        Jil = T(0.)
-        if length(n.left) > 0
-            Jil = JfromQubo_el(qubo, n.left[1]...)
+    Jil = T[]
+    Jiu = T[]
+    h = T[]
+
+    left = Int[]
+    right = Int[]
+    up = Int[]
+    down = Int[]
+
+    for j in n.spin_inds
+
+        push!(h, JfromQubo_el(qubo, j,j))
+
+        if j in [e[1] for e in n.left]
+            #this [1] has to be changed for pegasus
+            a = findall(x->x[1]==j, n.left)[1]
+            push!(Jil, JfromQubo_el(qubo, n.left[a]...))
+
+            b = findall(x->x[1]==j, n.spin_inds)[1]
+            push!(left, b)
         end
 
-        Jiu = T(0.)
-        if length(n.up) > 0
-            Jiu = JfromQubo_el(qubo, n.up[1]...)
+        if j in [e[1] for e in n.right]
+            a = findall(x->x[1]==j, n.spin_inds)[1]
+            push!(right, a)
         end
 
-        for k in CartesianIndices(tuple(tensor_size...))
+        if j in [e[1] for e in n.down]
+            a = findall(x->x[1]==j, n.spin_inds)[1]
+            push!(down, a)
+        end
 
-            b = [ind2spin(k[i], tensor_size[i])[1] for i in 1:5]
-            tensor[k] = Tgen(b..., Jil, Jiu, h, β)
+        if j in [e[1] for e in n.up]
+            a = findall(x->x[1]==j, n.up)[1]
+            push!(Jiu, JfromQubo_el(qubo, n.up[a]...))
+            b = findall(x->x[1]==j, n.spin_inds)[1]
+            push!(up, b)
         end
     end
+
+    for k in CartesianIndices(tuple(tensor_size...))
+
+        spins = [ind2spin(k[i], tensor_size[i]) for i in 1:5]
+
+        J1 = 0.
+        if length(Jil) > 0
+            J1 = sum(Jil.*spins[1].*spins[5][left])
+        end
+
+        J2 = 0.
+        if length(Jiu) > 0
+            J2 = sum(Jiu.*spins[3].*spins[5][up])
+        end
+
+        hh = β*sum(h.*spins[5])
+
+        if n.intra_struct != Array{Int64,1}[]
+            for pair in n.intra_struct
+                a = findall(x->x==pair[1], n.spin_inds)[1]
+                b = findall(x->x==pair[2], n.spin_inds)[1]
+
+                s1 = spins[5][a]
+                s2 = spins[5][b]
+                J = JfromQubo_el(qubo, pair[1], pair[2])
+                #println(2*β*J*s1*s2)
+                hh = hh + 2*β*J*s1*s2
+            end
+        end
+
+        r = 1.
+        if length(right) > 0
+            r = T(spins[2] == spins[5][right])
+        end
+
+        d = 1.
+        if length(down) > 0
+            d = T(spins[4] == spins[5][down])
+        end
+
+        tensor[k] = r*d*exp(β*2*J1)*exp(β*2*J2)*exp(hh)
+    end
+
     if length(n.down) == 0
         return dropdims(tensor, dims = 4)
     elseif length(n.up) == 0
