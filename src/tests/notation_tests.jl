@@ -65,8 +65,52 @@
     grid[2,1] = [9 10;13 14]
     grid[2,2] = [11 12;15 16]
     grid = Array{Array{Int}}(grid)
+    M = [1 2;3 4]
 
-    n = Node_of_grid(1,1, grid)
+    n = Node_of_grid(1,M, grid)
+    @test n.i == 1
+    @test n.spin_inds == [1, 2, 5, 6]
+    @test n.intra_struct == [[1, 2], [5, 6], [1, 5], [2, 6]]
+    @test n.left == Array{Int64,1}[]
+    @test n.right == [[2, 3], [6, 7]]
+    @test n.up == Array{Int64,1}[]
+    @test n.down == [[5, 9], [6, 10]]
+    @test n.all_connections == [[2, 3], [6, 7], [5, 9], [6, 10]]
+
+    grid = Array{Array{Int}}(undef, (3,3))
+    grid[1,1] = [1 2;6 7]
+    grid[1,2] = [3 4; 8 9]
+    grid[1,3] = reshape([5 ; 10], (2,1))
+    grid[2,1] = [11 12;16 17]
+    grid[2,2] = [13 14;18 19]
+    grid[2,3] = reshape([15; 20], (2,1))
+    grid[3,1] = reshape([21; 22], (1,2))
+    grid[3,2] = reshape([23; 24], (1,2))
+    grid[3,3] = reshape([25], (1,1))
+
+    grid = Array{Array{Int}}(grid)
+    M = [1 2 3 ;4 5 6; 7 8 9]
+
+    n = Node_of_grid(5,M, grid)
+    @test n.i == 5
+    @test n.spin_inds == [13, 14, 18, 19]
+    @test n.intra_struct == [[13, 14], [18, 19], [13, 18], [14, 19]]
+    @test n.left == [[13, 12], [18, 17]]
+    @test n.right == [[14, 15], [19, 20]]
+    @test n.up == [[13, 8], [14, 9]]
+    @test n.down == [[18, 23], [19, 24]]
+    @test n.all_connections == [[13, 12], [18, 17], [14, 15], [19, 20], [13, 8], [14, 9], [18, 23], [19, 24]]
+
+    n = Node_of_grid(9,M, grid)
+    @test n.i == 9
+    @test n.spin_inds == [25]
+    @test n.intra_struct == Array{Int64,1}[]
+    @test n.left == [[25, 24]]
+    @test n.right == Array{Int64,1}[]
+    @test n.up == [[25, 20]]
+    @test n.down == Array{Int64,1}[]
+    @test n.all_connections == [[25, 24], [25, 20]]
+
 end
 
 

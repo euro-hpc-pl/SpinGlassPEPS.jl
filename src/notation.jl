@@ -8,6 +8,8 @@ function get_connection_if_exists(i::Int, j::Int, k::Int, grid::Matrix{Int})
     end
 end
 
+
+
 function enviroment(i::Int,j::Int,k::Int,grid)
     left = get_connection_if_exists(i, j, k-1, grid)
     right = get_connection_if_exists(i, j, k+1, grid)
@@ -75,11 +77,68 @@ struct Node_of_grid
         new(i, [i], intra_struct, left, right, up, down, all_connections)
     end
     #construction from matrix of matrices (a grid of many nodes)
-    function(::Type{Node_of_grid})(j::Int, k::Int, grid::Array{Array{Int64,N} where N,2})
-        intra_struct = grid[j,k]
-        spin_inds = vec(intra_struct)
-        # TODO ......
-        1
+    function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int}, grid::Array{Array{Int64,N} where N,2})
+
+        left = Vector{Int}[]
+        right = Vector{Int}[]
+        up = Vector{Int}[]
+        down = Vector{Int}[]
+
+        a = findall(x->x==i, Mat)[1]
+        j = a[1]
+        k = a[2]
+        M = grid[j,k]
+        # this makes better ordering
+        spin_inds = vec(transpose(M))
+        intra_struct = Vector[]
+        s = size(M)
+        for i in 1:s[1]
+            if length(M[i,:]) > 1
+                push!(intra_struct, M[i,:])
+            end
+        end
+        for i in 1:s[2]
+            if length(M[:,i]) > 1
+                push!(intra_struct, M[:,i])
+            end
+        end
+        l,r,u,d = read_connecting_pairs(Mat, i)
+
+        if l != Array{Int64,1}[]
+            v1 = M[:,1]
+            Mp = grid[j, k-1]
+            v2 = Mp[:,end]
+            for i in 1:length(v1)
+                push!(left, [v1[i], v2[i]])
+            end
+        end
+        if r != Array{Int64,1}[]
+            v1 = M[:,end]
+            Mp = grid[j, k+1]
+            v2 = Mp[:,1]
+            for i in 1:length(v1)
+                push!(right, [v1[i], v2[i]])
+            end
+        end
+        if u != Array{Int64,1}[]
+            v1 = M[1,:]
+            Mp = grid[j-1, k]
+            v2 = Mp[end,:]
+            for i in 1:length(v1)
+                push!(up, [v1[i], v2[i]])
+            end
+        end
+        if d != Array{Int64,1}[]
+            v1 = M[end,:]
+            Mp = grid[j+1, k]
+            v2 = Mp[1,:]
+            for i in 1:length(v1)
+                push!(down, [v1[i], v2[i]])
+            end
+        end
+        #TODO this all_connections may need to be changed
+        all_connections = [left..., right..., up..., down...]
+        new(i, spin_inds, intra_struct, left, right, up, down, all_connections)
     end
     # construction from qubo directly, It will not check if qubo fits grid
     function(::Type{Node_of_grid})(i::Int, qubos::Vector{Qubo_el{T}}) where T <: AbstractFloat
