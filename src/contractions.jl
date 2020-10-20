@@ -9,6 +9,12 @@ export left_env
 #                                 3           - 1          0 -
 # ---------------------------------------------------------------
 #
+# TODO
+# 1) right moving dot version
+# 2) write right_env analogous to left_env
+# 3) combine 1-2 into one function
+# 4)
+
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     C = ones(eltype(ψ), 1, 1)
 

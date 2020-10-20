@@ -1,5 +1,9 @@
 export truncate!, canonise!, compress
 
+# TODO
+# 1) write two sites compress function
+
+
 function _qr_fix!(Q::AbstractMatrix, R::AbstractMatrix)
     d = diag(R)
     ph = d./abs.(d)
@@ -89,13 +93,12 @@ function compress(ψ::MPS{T}, Dcut::Int, tol::Number, max_sweeps::Int=4) where {
     env = left_env(ϕ, ψ)
 
     # Variational compression
-    sweep = 1
     overlap = 0 
     overlap_befor = 1
      
     println("Compressing down to: $Dcut") 
     
-    for i ∈ 1:max_sweeps            
+    for sweep ∈ 1:max_sweeps            
                    _left_sweep_var!!(ϕ, env, ψ, Dcut)
         overlap = _right_sweep_var!!(ϕ, env, ψ, Dcut)
 
@@ -103,14 +106,12 @@ function compress(ψ::MPS{T}, Dcut::Int, tol::Number, max_sweeps::Int=4) where {
         println("Convergence: ", diff)
 
         if diff < tol
+            println("Finished in $sweep sweeps (of $max_sweeps).")
             break
         else
             overlap_befor = overlap
         end    
-        sweep = i
     end
-
-    println("Finished in $sweep sweeps (of $max_sweeps).")
     return ϕ  
 end
 
@@ -121,8 +122,6 @@ function _left_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T 
     env[end] = ones(S, 1, 1)
 
     for i ∈ length(ψ):-1:1
-
-        # get environments 
         L = env[i]
         R = env[i+1]
 
@@ -152,7 +151,6 @@ function _right_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T
     # overwrite the overlap
     env[1] = ones(S, 1, 1)
 
-    sgn = 1
     for i ∈ 1:length(ψ)
         L = env[i]
         R = env[i+1]
@@ -175,15 +173,6 @@ function _right_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T
         @tensor LL[x, y] := conj(A[β, σ, x]) * L[β, α] * B[α, σ, y] order = (α, β, σ)
         env[i+1] = LL
     end
-
     return real(env[end][1])
 end
 
-"""
-function get_bond_dim(ψ::MPS)
-    bondDim = -inf  
-    for A ∈ ψ
-        if size(A)
-    end    
-end    
-"""
