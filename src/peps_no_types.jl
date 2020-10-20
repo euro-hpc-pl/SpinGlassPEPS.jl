@@ -199,7 +199,7 @@ mode set to the value correspodning to the spin of the element to the left.
 Following matrices are computed from mps by tracing out physical mode
 
 """
-function set_spin_from_letf(mps::Vector{Array{T,3}}, sol::Vector{Int}, s::Int) where T <: AbstractFloat
+function set_spin_from_letf(mps::Vector{Array{T,3}}, sol::Vector{Int}, new_s::Int, s::Int) where T <: AbstractFloat
 
     Ms = []
     # no element to the left
@@ -207,7 +207,7 @@ function set_spin_from_letf(mps::Vector{Array{T,3}}, sol::Vector{Int}, s::Int) w
         # transposition is to make a simple matrix multiplication for computing a probability
         Ms = [Array(transpose(mps[1][1,:,:]))]
     else
-        Ms = [Array(transpose(mps[1][sol[end],:,:]))]
+        Ms = [Array(transpose(mps[1][new_s,:,:]))]
     end
     # otherwise no elements to the right
     if length(sol) < s
@@ -223,13 +223,13 @@ Returns a vector of 3 mode arrays computed from the mpo. For the first one the
 first dim is set according to the spoin to the left. For next, the physical dimesion
 is traced.
 """
-function set_spin_from_letf(mpo::Vector{Array{T,4}}, sol::Vector{Int}, s::Int) where T <: AbstractFloat
+function set_spin_from_letf(mpo::Vector{Array{T,4}}, sol::Vector{Int}, new_s::Int, s::Int) where T <: AbstractFloat
     l = length(sol)
     B = []
     if l == 0
         B = [mpo[1][1,:,:,:]]
     else
-        B = [mpo[1][sol[end],:,:,:]]
+        B = [mpo[1][new_s,:,:,:]]
     end
     if l < s
         B = vcat(B, [sum_over_last(el) for el in mpo[2:end]])
@@ -238,17 +238,18 @@ function set_spin_from_letf(mpo::Vector{Array{T,4}}, sol::Vector{Int}, s::Int) w
 end
 
 
-function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}}, s::Vector{Int} = Int[]) where T <: AbstractFloat
+function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}}, new_s::Int, s::Vector{Int} = Int[]) where T <: AbstractFloat
 
     l1 = length(lower_mps)
     l = length(s)
 
-    A = set_spin_from_letf(M[l+1:end], s, l1-1)
+    A = set_spin_from_letf(M[l+1:end], s, new_s, l1-1)
 
     D = 0
     if l > 0
         B = ones(T, 1)
         for i in 1:l
+
             B = transpose(B)*lower_mps[i][:,:,s[i]]
             B = B[1,:]
         end
@@ -330,6 +331,7 @@ function solve(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid}, grid::Matrix{
     s = size(grid)
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for row in 1:s[1]
+
         #this may need to ge cashed
         lower_mps = make_lower_mps(grid, ns, qubo, row + 1, β, χ, threshold)
 
@@ -342,7 +344,7 @@ function solve(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid}, grid::Matrix{
                 sol = ps.spins[1+(row-1)*s[2]:end]
 
                 objectives = [T(0.)]
-
+                new_s = 0
                 if length(ns[j].left) > 0
                     k = findall(x->x[1]==j, grid[row,:])[1]
                     l = grid[row,:][k-1]
@@ -350,13 +352,21 @@ function solve(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid}, grid::Matrix{
                     conecting = [e[2] for e in ns[j].left]
 
                     new_s = reindex(sol[end], all, conecting)
-                    #this need to be changed
-                    sol[end] = new_s
+                end
+
+                if  row < s[1]
+                    for i in 1:length(sol)
+                        k = grid[row,i]
+                        all = ns[k].spin_inds
+                        conecting = [e[1] for e in ns[k].down]
+                        sol[i] = reindex(sol[i], all, conecting)
+
+                    end
                 end
 
                 if row == 1
 
-                    objectives = conditional_probabs(upper_mpo, lower_mps, sol)
+                    objectives = conditional_probabs(upper_mpo, lower_mps, new_s, sol)
 
                 else
                     ind_above = [0 for _ in 1:s[2]]
@@ -374,13 +384,14 @@ function solve(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid}, grid::Matrix{
 
                     # set spins from above
                         upper_mps = [upper_mpo[k][:,:,ind_above[k],:,:] for k in 1:s[2]]
-                        objectives = conditional_probabs(upper_mps, lower_mps, sol)
+                        objectives = conditional_probabs(upper_mps, lower_mps, new_s, sol)
 
                     else
                         l = length(sol)
                         mps = [upper_mpo[k][:,:,ind_above[k],:] for k in l+1:s[2]]
 
-                        chain = set_spin_from_letf(mps, sol, s[2])
+
+                        chain = set_spin_from_letf(mps, sol, new_s, s[2])
                         objectives = conditional_probabs(chain)
                     end
                 end
@@ -393,7 +404,6 @@ function solve(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid}, grid::Matrix{
             partial_s = select_best_solutions(partial_s_temp, no_sols)
 
             if j == maximum(grid)
-                println(partial_s)
                 return return_solutions(partial_s, ns)
             end
         end
@@ -420,7 +430,8 @@ function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Vector{Node_of_
         ses = partial_s[i].spins
 
         for k in 1:length(ns)
-            ii = ind2spin(ses[k])
+
+            ii = ind2spin(ses[k], 2^length(ns[k].spin_inds))
             for j in 1:length(ii)
                 one_solution[ns[k].spin_inds[j]] = ii[j]
             end

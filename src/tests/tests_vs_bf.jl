@@ -114,7 +114,7 @@ for k in 1:examples
     end
 
     χ = 2
-    print("approx peps t")
+    print("approx peps  ")
     @time spins_a, objective_a = solve(qubo, ns, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
 
     count_a = copy(j)
@@ -136,6 +136,55 @@ for k in 1:examples
 
     if count_a != j
         println("xxxxxxxx peps approx No. matching energies = $(count_a), should be $j xxxxxxxx")
+    end
+    if true
+    count_a = 0
+    spins_a = 0
+
+    M = [1 2 3; 4 5 6; 7 8 9]
+    grid1 = Array{Array{Int}}(undef, (3,3))
+
+    grid1[1,1] = [1 2; 6 7]
+    grid1[1,2] = [3 4; 8 9]
+    grid1[1,3] = reshape([5; 10], (2,1))
+    grid1[2,1] = [11 12; 16 17]
+    grid1[2,2] = [13 14; 18 19]
+    grid1[2,3] = reshape([15; 20], (2,1))
+
+    grid1[3,1] = reshape([21; 22], (1,2))
+    grid1[3,2] = reshape([23; 24], (1,2))
+    grid1[3,3] = reshape([25], (1,1))
+
+    grid1 = Array{Array{Int}}(grid1)
+
+    ns_l = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+
+
+    χ = 2
+    print("peps larger T")
+
+    @time spins_l, objective_l = solve(qubo, ns_l, M, r*j; β = T(β), χ = χ, threshold = T(1e-10))
+
+    count_l = copy(j)
+    for i in 1:j
+
+        if !(v2energy(QM, spins_l[i]) ≈ -ens[i])
+            println("... pepse larger ...")
+            println("n.o. state = ", i)
+            println("energies (peps,bf)", (v2energy(QM, spins_l[i]), -ens[i]))
+            count_l = count_l - 1
+            try
+                println(Int.(states[i,:]))
+                println(spins_l[i])
+            catch
+                0
+            end
+        end
+    end
+
+    if count_l != j
+        println("xxxxxxxx peps larger_tensors matching energies = $(count_l), should be $j xxxxxxxx")
+    end
     end
 
     χ = 10
