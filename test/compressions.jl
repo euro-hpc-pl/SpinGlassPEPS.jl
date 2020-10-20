@@ -2,10 +2,13 @@ using TensorOperations
 
 @testset "Canonisation and Compression" begin
 
-D = 10
-Dcut = 5
+D = 20
+Dcut = 2
 
-d = 3
+tol = 1E-4
+max_sweeps = 5
+
+d = 2
 sites = 5
 
 T = Array{ComplexF64, 3}
@@ -13,6 +16,7 @@ T = Array{ComplexF64, 3}
 ψ = randn(MPS{T}, sites, D, d)
 ϕ = randn(MPS{T}, sites, D, d)
 χ = randn(MPS{T}, sites, D, d)
+Φ = randn(MPS{T}, sites, D, d)
 
 @testset "Canonisation (left)" begin
     canonise!(ψ, :left)  
@@ -64,6 +68,12 @@ end
     truncate!(ψ, :left, Dcut)  
     show(ψ)
     @test dot(ψ, ψ) ≈ 1     
+end
+
+@testset "Variational compression" begin
+    Ψ = compress(Φ, Dcut, tol, max_sweeps)  
+    show(Ψ)
+    @test dot(Ψ, Ψ) ≈ 1     
 end
 
 end

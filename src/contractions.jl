@@ -1,14 +1,22 @@
 
 export dot, norm, left_env
 
+# --------------------------- Conventions ------------------------ 
+#                                                                 
+#      MPS          MPS*         MPO       left env      left env
+#       1            1            1           - 0          1 -
+#   0 - A - 2    0 - B - 2    0 - W - 2      L               R
+#                                 3           - 1          0 -
+# ---------------------------------------------------------------
+#
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     C = ones(eltype(ψ), 1, 1)
 
     for i ∈ 1:length(ψ)
         M = ψ[i]
         M̃ = conj(ϕ[i])
-        @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ)
-    end
+        @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ) 
+end
     return C[1]
 end
 
@@ -41,7 +49,7 @@ function LinearAlgebra.dot(ϕ::MPS, O::Vector{S}, ψ::MPS) where {S <: AbstractM
         M̃ = conj(ϕ[i])
         Mat = O[i]
         @tensor C[x, y] := M̃[β, σ, x] * Mat[σ, η] * C[β, α] * M[α, η, y] order = (α, η, β, σ)
-    end
+end
     return C[1]
 end
 
