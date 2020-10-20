@@ -72,7 +72,7 @@ end
 end
 
 @testset "Variational compression" begin
-    Dcut = 2
+    Dcut = 3
     tol = 1E-4
     max_sweeps = 5
 
