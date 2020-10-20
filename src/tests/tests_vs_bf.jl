@@ -72,9 +72,10 @@ for k in 1:examples
     qubo = M2Qubbo_els(QM, T)
 
     grid = [1 2 3 4 5; 6 7 8 9 10; 11 12 13 14 15; 16 17 18 19 20; 21 22 23 24 25]
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 
     print("peps time  = ")
-    @time spins, objective = solve(qubo, grid, r*j; β = T(β), χ = 0, threshold = T(0.))
+    @time spins, objective = solve(qubo, ns, grid, r*j; β = T(β), χ = 0, threshold = T(0.))
 
     count = copy(j)
     for i in 1:j
@@ -114,7 +115,7 @@ for k in 1:examples
 
     χ = 2
     print("approx peps t")
-    @time spins_a, objective_a = solve(qubo, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
+    @time spins_a, objective_a = solve(qubo, ns, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
 
     count_a = copy(j)
     for i in 1:j

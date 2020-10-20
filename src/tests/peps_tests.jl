@@ -5,7 +5,7 @@ function make_qubo0()
     qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
-
+if false
 @testset "PEPS - axiliary functions" begin
 
 
@@ -57,7 +57,7 @@ end
     M = [1 2;3 4]
 
     q = make_qubo0()
-    β = 1.
+    β = 1.5
     ns = [Node_of_grid(i, M, grid) for i in 1:maximum(M)]
     T1 = compute_single_tensor(ns, q, 1, β)
     T2 = compute_single_tensor(ns, q, 2,  β)
@@ -86,7 +86,7 @@ end
 
 end
 
-if true
+
 function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
     d =  diag(M)
     M = M .- diagm(d)
@@ -290,10 +290,10 @@ end
 
     train_qubo = make_qubo()
 
-
     grid = [1 2 3; 4 5 6; 7 8 9]
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 
-    spins, objective = solve(train_qubo, grid, 4; β = 1., χ = 2)
+    spins, objective = solve(train_qubo, ns, grid, 4; β = 1., χ = 2)
 
     #first
     @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
@@ -313,8 +313,9 @@ end
     permuted_train_qubo = make_qubo1()
 
     grid = [1 2 3; 4 5 6; 7 8 9]
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 
-    spins, objective = solve(permuted_train_qubo, grid, 16; β = 1., threshold = 0.)
+    spins, objective = solve(permuted_train_qubo, ns, grid, 16; β = 1., threshold = 0.)
 
     spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
     objective[1] ≈ 0.12151449832031348
@@ -341,7 +342,8 @@ end
 
     @testset "svd approximatimation in solution" begin
 
-        spins_a, objective_a = solve(permuted_train_qubo, grid, 16; β = 1., χ = 2)
+        ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+        spins_a, objective_a = solve(permuted_train_qubo, ns, grid, 16; β = 1., χ = 2)
 
         spins_a[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
         objective_a[1] ≈ 0.12151449832031348
@@ -373,7 +375,8 @@ end
 
         grid = [1 2 3; 4 5 6; 7 8 9]
 
-        spins, objective = solve(train_qubo, grid, 4; β = T(2.), χ = 2, threshold = T(1e-6))
+        ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+        spins, objective = solve(train_qubo, ns, grid, 4; β = T(2.), χ = 2, threshold = T(1e-6))
 
         #ground
         @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
@@ -385,6 +388,7 @@ end
 
         @test typeof(objective[1]) == Float32
     end
+end
 end
 
 @testset "larger QUBO" begin
@@ -399,7 +403,27 @@ end
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    spins, objective = solve(l_qubo, grid, 2; β = 3., χ = 2, threshold = 1e-11)
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    spins, objective = solve(l_qubo, ns, grid, 10; β = 3., χ = 2, threshold = 1e-11)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
-end
+
+    M = [1 2;3 4]
+    grid1 = Array{Array{Int}}(undef, (2,2))
+    grid1[1,1] = [1 2; 5 6]
+    grid1[1,2] = [3 4; 7 8]
+    grid1[2,1] = [9 10; 13 14]
+    grid1[2,2] = [11 12; 15 16]
+    grid1 = Array{Array{Int}}(grid1)
+
+
+    ns_large = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+
+    if true
+    spins_l, objective_l = solve(l_qubo, ns_large, M, 10; β = 3., χ = 2, threshold = 1e-11)
+    for i in 1:10
+        println(objective[i] ≈ objective_l[i])
+        println(spins[i])
+        println(spins_l[i])
+    end
+    end
 end

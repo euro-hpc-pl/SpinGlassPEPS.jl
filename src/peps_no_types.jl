@@ -323,18 +323,13 @@ function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractF
 end
 
 
-function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β::T, χ::Int = 0, threshold::T = T(1e-14)) where T <: AbstractFloat
-    problem_size = maximum(grid)
+function solve(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid}, grid::Matrix{Int},
+                                        no_sols::Int = 2; β::T, χ::Int = 0,
+                                        threshold::T = T(1e-14)) where T <: AbstractFloat
 
-    # this will be moved outside
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
-
-    physical_dim = 2
     s = size(grid)
-
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for row in 1:s[1]
-
         #this may need to ge cashed
         lower_mps = make_lower_mps(grid, ns, qubo, row + 1, β, χ, threshold)
 
@@ -346,32 +341,59 @@ function solve(qubo::Vector{Qubo_el{T}}, grid::Matrix{Int}, no_sols::Int = 2; β
             for ps in partial_s
                 sol = ps.spins[1+(row-1)*s[2]:end]
 
-                objectives = [T(0.) for _ in 1:physical_dim]
+                objectives = [T(0.)]
 
-                if row == 1
-                    objectives = conditional_probabs(upper_mpo, lower_mps, sol)
+                if length(ns[j].left) > 0
+                    k = findall(x->x[1]==j, grid[row,:])[1]
+                    l = grid[row,:][k-1]
+                    all = ns[l].spin_inds
+                    conecting = [e[2] for e in ns[j].left]
 
-                elseif row < s[1]
-                    # set spins from above
-                    upper_mps = [upper_mpo[j][:,:,ps.spins[j+(row-2)*s[2]],:,:] for j in 1:s[2]]
-                    objectives = conditional_probabs(upper_mps, lower_mps, sol)
-
-                else
-                    l = length(sol)
-                    mps = [upper_mpo[j][:,:,ps.spins[j+(row-2)*s[2]],:] for j in l+1:s[2]]
-
-                    chain = set_spin_from_letf(mps, sol, s[2])
-                    objectives = conditional_probabs(chain)
+                    new_s = reindex(sol[end], all, conecting)
+                    #this need to be changed
+                    sol[end] = new_s
                 end
 
-                for l in 1:physical_dim
+                if row == 1
+
+                    objectives = conditional_probabs(upper_mpo, lower_mps, sol)
+
+                else
+                    ind_above = [0 for _ in 1:s[2]]
+                    for k in 1:s[2]
+                        l = grid[row-1,k]
+                        all = ns[l].spin_inds
+                        conecting = [e[1] for e in ns[l].down]
+
+                        index = ps.spins[k+(row-2)*s[2]]
+                        index = reindex(index, all, conecting)
+                        ind_above[k] = index
+                    end
+
+                    if row < s[1]
+
+                    # set spins from above
+                        upper_mps = [upper_mpo[k][:,:,ind_above[k],:,:] for k in 1:s[2]]
+                        objectives = conditional_probabs(upper_mps, lower_mps, sol)
+
+                    else
+                        l = length(sol)
+                        mps = [upper_mpo[k][:,:,ind_above[k],:] for k in l+1:s[2]]
+
+                        chain = set_spin_from_letf(mps, sol, s[2])
+                        objectives = conditional_probabs(chain)
+                    end
+                end
+
+                for l in 1:length(objectives)
                     push!(partial_s_temp, add_spin(ps, l, ps.objective*objectives[l]))
                 end
 
             end
             partial_s = select_best_solutions(partial_s_temp, no_sols)
 
-            if j == problem_size
+            if j == maximum(grid)
+                println(partial_s)
                 return return_solutions(partial_s, ns)
             end
         end

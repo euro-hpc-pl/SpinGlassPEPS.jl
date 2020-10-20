@@ -264,3 +264,10 @@ function spins2ind(s::Vector{Int})
     v = [2^i for i in 0:1:length(s)-1]
     transpose(s)*v+1
 end
+
+
+function reindex(i::Int, all_spins::Vector{Int}, subset_spins::Vector{Int})
+    s = ind2spin(i, 2^length(all_spins))
+    k = [findall(x->x==j, all_spins)[1] for j in subset_spins]
+    spins2ind(s[k])
+end

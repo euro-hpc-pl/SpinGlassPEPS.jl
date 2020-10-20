@@ -111,6 +111,10 @@
     @test n.down == Array{Int64,1}[]
     @test n.all_connections == [[25, 24], [25, 20]]
 
+    ns = [Node_of_grid(i, M, grid) for i in 1:maximum(M)]
+
+    println(get_system_size(ns))
+
 end
 
 
@@ -196,6 +200,14 @@ end
 
         s = ind2spin(12, 64)
         @test spins2ind(s) == 12
+
+        println(reindex(1, [1,2,3,4,5], [2,3]) == 1)
+        println(reindex(2, [1,2,3,4,5], [2,3]) == 1)
+        println(reindex(3, [1,2,3,4,5], [2,3]) == 2)
+        println(reindex(4, [1,2,3,4,5], [2,3]) == 2)
+        println(reindex(7, [1,2,3,4,5], [2,3]) == 4)
+        println(reindex(8, [1,2,3,4,5], [2,3]) == 4)
+        println(reindex(10, [1,2,3,4,5], [2,3]) == 1)
 
     end
 end
