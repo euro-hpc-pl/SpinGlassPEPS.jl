@@ -1,7 +1,7 @@
 
 function make_qubo0()
-    qubo = [(1,1) -0.; (1,2) 0.; (1,4) 0.; (2,2) 0.; (2,3) 0.; (2,5) 0.; (3,3) -0.2; (3,6) 1.5]
-    qubo = vcat(qubo, [(6,6) -2.2; (5,6) 0.; (6,9) -0.52; (5,5) 0.; (4,5) 0.0; (5,8) 0.0; (4,4) 0.; (4,7) 0.])
+    qubo = [(1,1) 0.; (1,2) 0.; (1,4) 0.; (2,2) 0.; (2,3) 0.; (2,5) 0.; (3,3) -0.2; (3,6) 1.5]
+    qubo = vcat(qubo, [(6,6) -2.2; (5,6) 0.; (6,9) -0.52; (5,5) 0.; (4,5) .0; (5,8) 0.0; (4,4) 0.; (4,7) 0.])
     qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
     [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
 end
@@ -40,6 +40,13 @@ end
     @test objectives == [1.0, 0.2]
 end
 
+function make_qubo0()
+    qubo = [(1,1) 1.; (1,2) 2.; (1,4) -1.; (2,2) 1.4; (2,3) 1.1; (2,5) -.75; (3,3) -0.2; (3,6) 1.5]
+    qubo = vcat(qubo, [(6,6) -2.2; (5,6) 2.1; (6,9) -0.52; (5,5) .2; (4,5) .5; (5,8) 0.12; (4,4) -1.; (4,7) -1.])
+    qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
+    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+end
+
 @testset "larger tensors" begin
     grid = Array{Array{Int}}(undef, (2,2))
     grid[1,1] = [1 2;4 5]
@@ -50,41 +57,36 @@ end
     M = [1 2;3 4]
 
     q = make_qubo0()
+    β = 1.
     ns = [Node_of_grid(i, M, grid) for i in 1:maximum(M)]
-    T1 = compute_single_tensor(ns, q, 1, 1.)
-    println(size(T1))
-    #T2 = compute_single_tensor(ns, q, 2, 1.)
-    #println(size(T2))
-    #T3 = compute_single_tensor(ns, q, 3, 1.)
-    #println(size(T3))
-    #T4 = compute_single_tensor(ns, q, 4, 1.)
-    #println(size(T4))
-    #println(T4)
+    T1 = compute_single_tensor(ns, q, 1, β)
+    T2 = compute_single_tensor(ns, q, 2,  β)
 
     M = [1 2 3; 4 5 6; 7 8 9]
     ns = [Node_of_grid(i, M) for i in 1:maximum(M)]
-    t1 = compute_single_tensor(ns, q, 1, 1.)
-    t2 = compute_single_tensor(ns, q, 2, 1.)
-    t4 = compute_single_tensor(ns, q, 4, 1.)
-    t5 = compute_single_tensor(ns, q, 5, 1.)
+    t1 = compute_single_tensor(ns, q, 1, β)
+    t2 = compute_single_tensor(ns, q, 2, β)
+    t3 = compute_single_tensor(ns, q, 3, β)
+    t4 = compute_single_tensor(ns, q, 4, β)
+    t5 = compute_single_tensor(ns, q, 5, β)
+    t6 = compute_single_tensor(ns, q, 6, β)
 
     tensors = [t1[1,:,:,:], t2, t4[1,:,:,:,:], t5]
-    modes = [[1,2,-10], [1, -1, 3, -11], [4, 2, -3, -12], [4, 3, -2, -4, -13]]
+    modes = [[1,2,-10], [1, -1, 3, -11], [4, 2, -3, -12], [4, -2, 3, -4, -13]]
 
-    println(T1[1,:,:,:])
-
-
-    println("..........")
     tcompare = ncon(tensors, modes)
-    println(reshape(tcompare, (4,4,16)))
+    @test T1[1,:,:,:] ≈ reshape(tcompare, (4,4,16))
 
-    println("........ SIZES .......")
-    println(size(T1))
-    println(size(tcompare))
+    tensors = [t3[:,1,:,:], t6[:,1,:,:,:]]
+    modes = [[-1,1,-10], [-2, 1, -3, -11]]
+
+    tcompare = ncon(tensors, modes)
+    @test T2[:,1,:,:] ≈ reshape(tcompare, (4,2,4))
+
 
 end
 
-if false
+if true
 function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
     d =  diag(M)
     M = M .- diagm(d)

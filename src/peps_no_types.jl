@@ -100,7 +100,6 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}
                 s1 = spins[5][a]
                 s2 = spins[5][b]
                 J = JfromQubo_el(qubo, pair[1], pair[2])
-                #println(2*β*J*s1*s2)
                 hh = hh + 2*β*J*s1*s2
             end
         end
