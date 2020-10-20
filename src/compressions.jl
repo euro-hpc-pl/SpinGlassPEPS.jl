@@ -1,5 +1,27 @@
 export truncate!, canonise!, compress
 
+function _qr_fix!(Q::AbstractMatrix, R::AbstractMatrix)
+    d = diag(R)
+    ph = d./abs.(d)
+    idim = size(R, 1)
+    q = Matrix(Q)[:, 1:idim]
+    return transpose(ph) .* q
+end
+
+function qr(M::AbstractMatrix, Dcut::Int) 
+    fact = pqrfact(M, rank=Dcut)
+    Q = fact[:Q]
+    R = fact[:R]
+    return _qr_fix!(Q, R)
+end     
+
+function rq(M::AbstractMatrix, Dcut::Int) 
+    fact = pqrfact(:c, conj(M), rank=Dcut)
+    Q = fact[:Q]
+    R = fact[:R]
+    return _qr_fix!(Q, R)'
+end   
+
 function canonise!(ψ::MPS)
     canonise!(ψ, :right)
     canonise!(ψ, :left)
@@ -110,10 +132,9 @@ function _left_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T 
         
         # right canonize it
         @cast MM[x, (σ, y)] |= M̃[x, σ, y]
-        QR_fact = pqrfact(:c, conj(MM), rank=Dcut)
+        Q = rq(MM, Dcut)
 
         d = size(M, 2)
-        Q = conj(QR_fact[:Q])'
         @cast B[x, σ, y] |= Q[x, (σ, y)] (σ:d)
 
         # update ϕ and right environment 
@@ -131,6 +152,7 @@ function _right_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T
     # overwrite the overlap
     env[1] = ones(S, 1, 1)
 
+    sgn = 1
     for i ∈ 1:length(ψ)
         L = env[i]
         R = env[i+1]
@@ -141,10 +163,9 @@ function _right_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T
                    
         # left canonize it
         @cast B[(x, σ), y] |= M̃[x, σ, y]
-        QR_fact = pqrfact(B, rank=Dcut)
+        Q = qr(B, Dcut)
 
         d = size(ϕ[i], 2)
-        Q = QR_fact[:Q]
         @cast A[x, σ, y] |= Q[(x, σ), y] (σ:d)
 
         # update ϕ and left environment 
@@ -153,11 +174,8 @@ function _right_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T
 
         @tensor LL[x, y] := conj(A[β, σ, x]) * L[β, α] * B[α, σ, y] order = (α, β, σ)
         env[i+1] = LL
-
-        if i == length(ψ)
-            println("OL (inside) ", env[end][1])
-        end
     end
+
     return real(env[end][1])
 end
 
