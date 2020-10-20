@@ -33,7 +33,7 @@ for (T, N) in ((:MPO, 4), (:MPS, 3))
     end
 end
 
-function MPO(ψ::MPS{T}) where {T <: AbstractArray{<:Number, 3}}
+function MPO(ψ::MPS{T}) where {T}
     _verify_square(ψ)
     L = length(ψ)
     O = MPO(T.name.wrapper, eltype(T), L)
@@ -48,7 +48,7 @@ function MPO(ψ::MPS{T}) where {T <: AbstractArray{<:Number, 3}}
     O
 end 
 
-function MPS(O::MPO{T}) where T <: AbstractArray{<:Number, 4}
+function MPS(O::MPO{T}) where {T}
     L = length(O)
     ψ = MPS(T.name.wrapper, eltype(T), L)
 
@@ -71,7 +71,7 @@ function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
     ψ
 end
 
-function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where T <: AbstractArray{<:Number, 4}
+function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
     S = newdim(T, 3)
     ψ = randn(MPS{S}, L, D, d^2) 
     MPO(ψ)
