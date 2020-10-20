@@ -58,6 +58,7 @@ end
  
 
 function compress(ψ::MPS{T}, Dcut::Int, tol::Number, max_sweeps::Int=4) where {T}
+
     # Initial guess - truncated ψ 
     ϕ = copy(ψ)
     truncate!(ϕ, :right, Dcut)
@@ -66,34 +67,32 @@ function compress(ψ::MPS{T}, Dcut::Int, tol::Number, max_sweeps::Int=4) where {
     env = left_env(ϕ, ψ)
 
     # Variational compression
-    sweep = 0
-    stuck = finish = false
-    dist = dist_befor = Inf
+    sweep = 1
+    overlap = 0 
+    overlap_befor = 1
      
-    println("Compressing down to: $Dcut")
+    println("Compressing down to: $Dcut") 
     
-    while !(stuck || finish)             
-               _left_sweep_var!(ϕ, ψ, env, Dcut)
-        dist = _right_sweep_var!(ϕ, ψ, env, Dcut)
+    for i ∈ 1:max_sweeps            
+                   _left_sweep_var!!(ϕ, env, ψ, Dcut)
+        overlap = _right_sweep_var!!(ϕ, env, ψ, Dcut)
 
-        sweep += 1
-        println("sweep:", sweep)
-        finish = sweep > max_sweeps 
+        diff = abs(overlap_befor - abs(overlap))
+        println("Convergence: ", diff)
 
-        println("diff:", abs(dist_befor - dist))
-        stuck = abs(dist_befor - dist) < tol
-
-        dist_befor = dist
+        if diff < tol
+            break
+        else
+            overlap_befor = overlap
+        end    
+        sweep = i
     end
 
     println("Finished in $sweep sweeps (of $max_sweeps).")
-    println("Distance between wave functions is $dist.")
-    println("Stuck:", stuck)
-
-    return ϕ    
+    return ϕ  
 end
 
-function _left_sweep_var!(ϕ::MPS, ψ::MPS, env::Vector{T}, Dcut::Int) where T <: AbstractMatrix
+function _left_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T <: AbstractMatrix
     S = eltype(ϕ)
     
     # overwrite the overlap
@@ -101,13 +100,12 @@ function _left_sweep_var!(ϕ::MPS, ψ::MPS, env::Vector{T}, Dcut::Int) where T <
 
     for i ∈ length(ψ):-1:1
 
-        # get environment (left: attach center, right: as is)
-        R = env[i+1]
+        # get environments 
         L = env[i]
+        R = env[i+1]
 
         # optimize site
         M = ψ[i]
-        #println( size(LR), size(M), size(RR) )
         @tensor M̃[x, σ, y] := L[x, β] * M[β, σ, α] * R[α, y] order = (α, β) 
         
         # right canonize it
@@ -116,19 +114,18 @@ function _left_sweep_var!(ϕ::MPS, ψ::MPS, env::Vector{T}, Dcut::Int) where T <
 
         d = size(M, 2)
         Q = conj(QR_fact[:Q])'
-        C = QR_fact[:R]'
         @cast B[x, σ, y] |= Q[x, (σ, y)] (σ:d)
 
         # update ϕ and right environment 
         ϕ[i] = B
         A = ψ[i]
 
-        @tensor r[x, y] := A[x, σ, α] * R[α, β] * conj(B[y, σ, β]) order = (β, α, σ)
-        env[i] = r
+        @tensor RR[x, y] := A[x, σ, α] * R[α, β] * conj(B[y, σ, β]) order = (β, α, σ)
+        env[i] = RR
     end    
 end
 
-function _right_sweep_var!(ϕ::MPS, ψ::MPS, env::Vector{T}, Dcut::Int) where T <: AbstractMatrix
+function _right_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T <: AbstractMatrix
     S = eltype(ϕ)
     
     # overwrite the overlap
@@ -156,8 +153,19 @@ function _right_sweep_var!(ϕ::MPS, ψ::MPS, env::Vector{T}, Dcut::Int) where T 
 
         @tensor LL[x, y] := conj(A[β, σ, x]) * L[β, α] * B[α, σ, y] order = (α, β, σ)
         env[i+1] = LL
-    end
 
-    # Calculate ||ψ-ϕ|| assuming ||ψ|| = ||ϕ|| = 1
-    return sqrt( 2 * (1 - real(env[end][1]) ) )
+        if i == length(ψ)
+            println("OL (inside) ", env[end][1])
+        end
+    end
+    return real(env[end][1])
 end
+
+"""
+function get_bond_dim(ψ::MPS)
+    bondDim = -inf  
+    for A ∈ ψ
+        if size(A)
+    end    
+end    
+"""
