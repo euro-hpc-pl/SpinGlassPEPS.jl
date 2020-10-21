@@ -38,8 +38,7 @@ function make_ones(T::Type = Float64)
     ret
 end
 
-function make_ones_inside(T::Type = Float64)
-    d = 2
+function make_ones_inside(d::Int, T::Type = Float64)
     ret = zeros(T, d,d,d,d)
     for i in 1:d
         for j in 1:d
@@ -69,50 +68,72 @@ function T_with_B(l::Bool = false, r::Bool = false, T::Type = Float64)
     return ret
 end
 
-function T_with_C(Jb::T, l::Bool = false, r::Bool = false) where T <: AbstractFloat
-    d = 2
+function T_with_C(J::Vector{T}, d::Int, left::Bool = false, right::Bool = false) where T <: AbstractFloat
+
     ret = zeros(T, d,d,d,d)
     for i in 1:d
         for j in 1:d
             for k in 1:d
                 for l in 1:d
-                    ret[i,j,k,l] = T(i==j)*T(k==l)*exp(Jb*ind2spin(i)[1]*ind2spin(k)[1])
+                    # TODO this need to be checked
+                    Jb = sum(J.*ind2spin(i).*ind2spin(k))
+                    ret[i,j,k,l] = T(i==j)*T(k==l)*exp(Jb)
                 end
             end
         end
     end
-    if l
+    if left
         return sum(ret, dims = 1)
-    elseif r
+    elseif right
         return sum(ret, dims = 2)
     end
     return ret
 end
 
-function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, i_n::Vector{Int}, qubo::Vector{Qubo_el{T}}, β::T) where T<: AbstractFloat
-    k = minimum([i, i_n...])
-    l = maximum([i, i_n...])
+function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vector{Node_of_grid},
+                                            qubo::Vector{Qubo_el{T}}, β::T) where T<: AbstractFloat
+
+    a = findall(x -> x == nodes[1], ns[i].connected_nodes)[1]
+    # TODO this may need to be checked
+    d = 2^size(ns[i].connected_spins[a],1)
+
+    k = minimum([i, nodes...])
+    l = maximum([i, nodes...])
     for j in k:l
-        mpo[j] = make_ones_inside(T)
+        mpo[j] = make_ones_inside(d, T)
     end
     mpo[i] = T_with_B(i==k, i==l, T)
-    for j in i_n
-        J = JfromQubo_el(qubo, i,j)
-        mpo[j] = T_with_C(J*β, j==k, j==l)
+    for j in nodes
+
+        J = T[]
+        a = findall(x -> x == j, ns[i].connected_nodes)[1]
+        spins = ns[i].connected_spins[a]
+        # TODO this needs to be checked
+        for r in 1:size(spins,1)
+            push!(J, JfromQubo_el(qubo, spins[r,1], spins[r,2]))
+        end
+
+        mpo[j] = T_with_C(J*β, d, j==k, j==l)
     end
     mpo
 end
 
-function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}}, β::T) where T<: AbstractFloat
+function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
+                    ns::Vector{Node_of_grid}, β::T) where T<: AbstractFloat
+
     d = size(mps[1], 3)
     for i in 1:length(mps)
-        # we have a twice from the scalar product
-        h = JfromQubo_el(qubo, i,i)/2
+
+        spins = ns[i].spin_inds
+        h1 = [JfromQubo_el(qubo, i,i)/2 for i in spins]
+
         for j in 1:d
-            mps[i][:,:,j] = mps[i][:,:,j]*exp(ind2spin(j)[1]*β*h)
+            y = sum(ind2spin(j).*h1)
+            mps[i][:,:,j] = mps[i][:,:,j]*exp(y*β)
         end
     end
 end
+
 
 function v_from_mps(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
     env = ones(T,1)
@@ -146,11 +167,12 @@ function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: 
 end
 
 function construct_mps_step(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
+                                                    ns::Vector{Node_of_grid},
                                                     β::T, is::Vector{Int},
                                                     js::Vector{Vector{Int}}) where T<: AbstractFloat
     mpo = [make_ones() for _ in 1:length(mps)]
     for k in 1:length(is)
-        add_MPO!(mpo, is[k], js[k] ,qubo, β)
+        add_MPO!(mpo, is[k], js[k], ns, qubo, β)
     end
     MPSxMPO(mps, mpo)
 end
@@ -159,14 +181,18 @@ function cluster_conncetions(all_is::Vector{Int}, all_js::Vector{Vector{Int}})
     l = length(all_is)
     mins = [0 for _ in 1:l]
     maxes = [0 for _ in 1:l]
+
     for i in 1:l
         temp = [all_is[i], all_js[i]...]
         mins[i] = minimum(temp)
         maxes[i] = maximum(temp)
+        #println(i)
     end
     is = Vector{Int}[]
     js = Vector{Vector{Int}}[]
-    i_chosen = Int[]
+
+    i2be_chosen = copy(all_is)
+
     for k in 1:100
         is_temp = Int[]
         js_temp = Vector{Int}[]
@@ -179,17 +205,20 @@ function cluster_conncetions(all_is::Vector{Int}, all_js::Vector{Vector{Int}})
 
             min_cond = (b > max) | (a < min)
 
-            if min_cond && !(all_is[i] in i_chosen)
+            if min_cond && i2be_chosen[i] != 0
                 push!(is_temp, all_is[i])
                 push!(js_temp, all_js[i])
-                push!(i_chosen, all_is[i])
+
+                i2be_chosen[i] = 0
                 max = maximum([a, max])
                 min = minimum([b, min])
             end
         end
         push!(is, is_temp)
         push!(js, js_temp)
-        if length(i_chosen) == l
+
+        if maximum(i2be_chosen) == 0
+
             return is, js
         end
     end
@@ -202,7 +231,7 @@ function connections_for_mps(ns::Vector{Node_of_grid})
 
     for i in [e.i for e in ns]
 
-        pairs = ns[i].all_connections
+        pairs = [[i, node] for node in ns[i].connected_nodes]
         pairs_not_accounted = Int[]
         for p in pairs
 
@@ -219,15 +248,46 @@ function connections_for_mps(ns::Vector{Node_of_grid})
     all_is, all_js
 end
 
-function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
+function split_if_differnt_spins(is::Vector{Int}, js::Vector{Vector{Int}}, ns::Vector{Node_of_grid})
+    is_new = Int[]
+    js_new = Vector{Int}[]
+    for i in 1:length(is)
+        el_i = is[i]
+        el_j = js[i]
+        n = ns[el_i].connected_nodes
+        a = findall(x -> x == el_j[1], n)[1]
+
+        spins = ns[el_i].connected_spins[a][:,1]
+        push!(is_new, el_i)
+        j_temp = Int[]
+        for j in el_j
+            a = findall(x -> x == j, n)[1]
+            spins_temp = ns[el_i].connected_spins[a][:,1]
+
+            if spins != spins_temp
+                push!(is_new, el_i)
+                push!(js_new, j_temp)
+                j_temp = Int[]
+                spins = spins_temp
+            end
+            push!(j_temp, j)
+        end
+        push!(js_new, j_temp)
+    end
+    is_new, js_new
+end
+
+
+
+function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, ns::Vector{Node_of_grid},
                                                 all_is::Vector{Vector{Int}},
                                                 all_js::Vector{Vector{Vector{Int}}},
                                                 χ::Int, threshold::T) where T<: AbstractFloat
-
+    l = length(ns)
     mps = initialize_mps(l)
     for _ in 1:β_step
         for k in 1:length(all_is)
-            mps = construct_mps_step(mps, qubo, β/β_step, all_is[k], all_js[k])
+            mps = construct_mps_step(mps, qubo, ns, β/β_step, all_is[k], all_js[k])
 
             s = maximum([size(e, 1) for e in mps])
             if ((threshold > 0) * (s > χ))
@@ -236,7 +296,7 @@ function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, l::Int,
             end
         end
     end
-    add_phase!(mps,qubo, β)
+    add_phase!(mps,qubo, ns, β)
     mps
 end
 
@@ -247,8 +307,9 @@ function solve_mps(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid},
 
     problem_size = length(ns)
     is, js = connections_for_mps(ns)
+    is,js = split_if_differnt_spins(is,js,ns)
     all_is, all_js = cluster_conncetions(is,js)
-    mps = construct_mps(qubo, β, β_step, problem_size, all_is, all_js, χ, threshold)
+    mps = construct_mps(qubo, β, β_step, ns, all_is, all_js, χ, threshold)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for j in 1:problem_size

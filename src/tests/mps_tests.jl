@@ -25,11 +25,43 @@ using TensorOperations
     @test i == [1, 2, 3, 4, 5, 6, 7, 8]
     @test j == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
 
+    is_new, js_new = split_if_differnt_spins(i, j, ns)
+    @test is_new == [1, 2, 3, 4, 5, 6, 7, 8]
+    @test js_new == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
+
     a,b = cluster_conncetions(i,j)
     @test a == [[1, 5], [2, 6], [3, 7], [4, 8]]
     @test b == [[[2, 4], [6, 8]], [[3, 5], [9]], [[6], [8]], [[5, 7], [9]]]
 end
 
+@testset begin "larger tensors"
+
+    M = [1 2;3 4]
+    grid1 = Array{Array{Int}}(undef, (2,2))
+    grid1[1,1] = [1 2; 5 6]
+    grid1[1,2] = [3 4; 7 8]
+    grid1[2,1] = [9 10; 13 14]
+    grid1[2,2] = [11 12; 15 16]
+    grid1 = Array{Array{Int}}(grid1)
+
+    ns_large = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+
+    is, js = connections_for_mps(ns_large)
+
+    @test is == [1, 2, 3]
+    @test js == [[2 ,3], [4], [4]]
+
+    is_new, js_new = split_if_differnt_spins(is, js, ns_large)
+
+    @test is_new == [1, 1, 2, 3]
+    @test js_new == [[2], [3], [4], [4]]
+
+    all_is, all_js = cluster_conncetions(is_new,js_new)
+    @test all_is == [[1, 3], [1], [2]]
+    @test all_js == [[[2], [4]], [[3]], [[4]]]
+end
+
+if true
 function make_qubo_x()
     qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
     qubo = vcat(qubo, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
@@ -99,7 +131,7 @@ end
     is, js = connections_for_mps(ns)
     all_is, all_js = cluster_conncetions(is,js)
 
-    mps = construct_mps(qubo, β, 2, 9, all_is, all_js, 4, 0.)
+    mps = construct_mps(qubo, β, 2, ns, all_is, all_js, 4, 0.)
 
     grid = [1 2 3 ; 4 5 6; 7 8 9]
 
@@ -138,7 +170,7 @@ end
 
     # approximation
 
-    mps_a = construct_mps(qubo, β, 3, 9, all_is, all_js, 2, 1.e-12)
+    mps_a = construct_mps(qubo, β, 3, ns, all_is, all_js, 2, 1.e-12)
     ps = sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
     pp = compute_probs(mps, [1,1])
 
@@ -386,4 +418,5 @@ end
         @test binary == [0,1,0,1,0,0]
     end
 
+end
 end

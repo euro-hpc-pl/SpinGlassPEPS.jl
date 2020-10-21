@@ -2,11 +2,6 @@
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
-    b = Bond_with_other_node(1, [2,10], [3,11])
-    @test b.node == 1
-    @test b.spins1 == [2,10]
-    @test b.spins2 == [3,11]
-
     n = Node_of_grid(3, grid)
     @test n.i == 3
     @test n.spin_inds == [3]
@@ -15,7 +10,8 @@
     @test n.right == Array{Int64,1}[]
     @test n.up == Array{Int64,1}[]
     @test n.down == [[3,6]]
-    @test n.all_connections == [[3, 2], [3, 6]]
+    @test n.connected_nodes == [2,6]
+    @test n.connected_spins == [[3 2], [3 6]]
 
     n = Node_of_grid(5, grid)
     @test n.i == 5
@@ -25,6 +21,7 @@
     @test n.right == [[5,6]]
     @test n.up == [[5,2]]
     @test n.down == [[5,8]]
+    @test n.connected_spins == [[5 4], [5 6], [5 2], [5 8]]
 
     grid1 = [1 2 3 4; 5 6 7 8; 9 10 11 12]
     n = Node_of_grid(4, grid1)
@@ -75,8 +72,8 @@
     @test n.right == [[2, 3], [6, 7]]
     @test n.up == Array{Int64,1}[]
     @test n.down == [[5, 9], [6, 10]]
-    @test n.all_connections == [[2, 3], [6, 7], [5, 9], [6, 10]]
-
+    @test n.connected_nodes == [2, 3]
+    @test n.connected_spins == [[2 3; 6 7], [5 9; 6 10]]
 
 
     nc = Node_of_grid(1,M, grid; chimera = true)
@@ -87,7 +84,7 @@
     @test nc.right == [[2, 4], [6, 8]]
     @test nc.up == Array{Int64,1}[]
     @test nc.down == [[1, 9], [5, 13]]
-    @test nc.all_connections == [[2, 4], [6, 8], [1, 9], [5, 13]]
+    @test nc.connected_nodes == [2,3]
 
     nc = Node_of_grid(2,M, grid; chimera = true)
     @test nc.intra_struct == [[3, 4], [3, 8], [7, 4], [7, 8]]
@@ -117,6 +114,9 @@
 
     @test nc_l.intra_struct == [[1, 2], [1, 6], [1, 10], [1, 14], [5, 2], [5, 6], [5, 10], [5, 14], [9, 2], [9, 6], [9, 10], [9, 14], [13, 2], [13, 6], [13, 10], [13, 14]]
     @test nc_l.right == [[2, 4], [6, 8], [10, 12], [14, 16]]
+
+    @test nc_l.connected_spins[1][:,1] == [2, 6, 10, 14]
+    @test nc_l.connected_spins[1][:,2] == [4, 8, 12, 16]
 
     # chimera node 2 x 2
 
@@ -159,7 +159,7 @@
     @test n.right == [[14, 15], [19, 20]]
     @test n.up == [[13, 8], [14, 9]]
     @test n.down == [[18, 23], [19, 24]]
-    @test n.all_connections == [[13, 12], [18, 17], [14, 15], [19, 20], [13, 8], [14, 9], [18, 23], [19, 24]]
+    @test n.connected_nodes == [4, 6, 2, 8]
 
     n = Node_of_grid(9,M, grid)
     @test n.i == 9
@@ -169,7 +169,7 @@
     @test n.right == Array{Int64,1}[]
     @test n.up == [[25, 20]]
     @test n.down == Array{Int64,1}[]
-    @test n.all_connections == [[25, 24], [25, 20]]
+    @test n.connected_nodes == [8,6]
 
     ns = [Node_of_grid(i, M, grid) for i in 1:maximum(M)]
 
@@ -188,13 +188,13 @@ end
 @testset "axiliary on qubo" begin
     qubo = make_qubo0()
     n = Node_of_grid(1, qubo)
-    @test n.all_connections == [[1,2],[1,4]]
+    @test n.connected_nodes == [2,4]
 
     n = Node_of_grid(5, qubo)
-    @test n.all_connections == [[5, 2], [5, 6], [5, 4], [5, 8]]
+    @test n.connected_nodes == [2,6,4,8]
 
     n = Node_of_grid(9, qubo)
-    @test n.all_connections == [[9, 6], [9, 8]]
+    @test n.connected_nodes == [6,8]
 
     @test get_system_size(qubo) == 9
 

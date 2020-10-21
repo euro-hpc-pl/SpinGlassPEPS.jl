@@ -23,11 +23,6 @@ function read_connecting_pairs(grid::Matrix{Int}, i::Int)
     enviroment(i,a[1],a[2], grid)
 end
 
-struct Bond_with_other_node
-    node::Int
-    spins1::Vector{Int}
-    spins2::Vector{Int}
-end
 
 struct Qubo_el{T<:AbstractFloat}
     ind::Tuple{Int, Int}
@@ -65,16 +60,24 @@ struct Node_of_grid
     right::Vector{Vector{Int}}
     up::Vector{Vector{Int}}
     down::Vector{Vector{Int}}
-    all_connections::Vector{Vector{Int}}
-    bonds::Vector{Bond_with_other_node}
+    connected_nodes::Vector{Int}
+    connected_spins::Vector{Matrix{Int}}
     #construction from the grid
     function(::Type{Node_of_grid})(i::Int, grid::Matrix{Int})
         s = size(grid)
         intra_struct = Vector{Int}[]
+        connected_nodes = Int[]
 
         left, right, up, down = read_connecting_pairs(grid, i)
-        all_connections = [left..., right..., up..., down...]
-        new(i, [i], intra_struct, left, right, up, down, all_connections)
+
+        connected_nodes = [left..., right..., up..., down...]
+        connected_nodes = [e[2] for e in connected_nodes]
+        connected_spins = [ones(Int, 1,2) for _ in connected_nodes]
+        for j in 1:length(connected_nodes)
+            connected_spins[j] = reshape([i, connected_nodes[j]], (1,2))
+        end
+
+        new(i, [i], intra_struct, left, right, up, down, connected_nodes, connected_spins)
     end
     #construction from matrix of matrices (a grid of many nodes)
     function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int},
@@ -85,6 +88,7 @@ struct Node_of_grid
         right = Vector{Int}[]
         up = Vector{Int}[]
         down = Vector{Int}[]
+        connected_nodes = Int[]
 
         a = findall(x->x==i, Mat)[1]
         j = a[1]
@@ -95,28 +99,30 @@ struct Node_of_grid
         intra_struct = Vector[]
         s = size(M)
         if ! chimera
-            for i in 1:s[1]
-                if length(M[i,:]) > 1
-                    push!(intra_struct, M[i,:])
+            for k in 1:s[1]
+                if length(M[k,:]) > 1
+                    push!(intra_struct, M[k,:])
                 end
             end
-            for i in 1:s[2]
-                if length(M[:,i]) > 1
-                    push!(intra_struct, M[:,i])
+            for k in 1:s[2]
+                if length(M[:,k]) > 1
+                    push!(intra_struct, M[:,k])
                 end
             end
         else
-            for i in 1:s[1]
+            for k in 1:s[1]
                 for j in 1:s[1]
-                    push!(intra_struct, [M[i, 1], M[j,end]])
+                    push!(intra_struct, [M[k, 1], M[j,end]])
                 end
             end
 
         end
         l,r,u,d = read_connecting_pairs(Mat, i)
+        connected_spins = Matrix{Int}[]
 
         if l != Array{Int64,1}[]
 
+            push!(connected_nodes, Mat[j, k-1])
             Mp = grid[j, k-1]
             v2 = Mp[:,end]
             v1 = 0
@@ -130,8 +136,12 @@ struct Node_of_grid
             for i in 1:length(v1)
                 push!(left, [v1[i], v2[i]])
             end
+            push!(connected_spins, hcat(v1, v2))
+
         end
         if r != Array{Int64,1}[]
+            push!(connected_nodes, Mat[j, k+1])
+
             v1 = M[:,end]
             v2 = 0
 
@@ -146,8 +156,11 @@ struct Node_of_grid
             for i in 1:length(v1)
                 push!(right, [v1[i], v2[i]])
             end
+            push!(connected_spins, hcat(v1, v2))
         end
         if u != Array{Int64,1}[]
+
+            push!(connected_nodes, Mat[j-1, k])
             v1 = 0
             v2 = 0
             Mp = grid[j-1, k]
@@ -161,8 +174,11 @@ struct Node_of_grid
             for i in 1:length(v1)
                 push!(up, [v1[i], v2[i]])
             end
+            push!(connected_spins, hcat(v1, v2))
         end
         if d != Array{Int64,1}[]
+            push!(connected_nodes, Mat[j+1, k])
+
             v1 = 0
             v2 =0
 
@@ -177,24 +193,28 @@ struct Node_of_grid
             for i in 1:length(v1)
                 push!(down, [v1[i], v2[i]])
             end
+            push!(connected_spins, hcat(v1, v2))
         end
-        #TODO this all_connections may need to be changed
-        all_connections = [left..., right..., up..., down...]
-        new(i, spin_inds, intra_struct, left, right, up, down, all_connections)
+
+        new(i, spin_inds, intra_struct, left, right, up, down, connected_nodes, connected_spins)
     end
     # construction from qubo directly, It will not check if qubo fits grid
     function(::Type{Node_of_grid})(i::Int, qubos::Vector{Qubo_el{T}}) where T <: AbstractFloat
         x = Vector{Int}[]
-        all_connections = Vector{Int}[]
+        connected_nodes = Int[]
         for q in qubos
             if (q.ind[1] == i && q.ind[2] != i)
-                push!(all_connections, [q.ind...])
+                push!(connected_nodes, q.ind[2])
             end
             if (q.ind[2] == i && q.ind[1] != i)
-                push!(all_connections, [q.ind[2], q.ind[1]])
+                push!(connected_nodes, q.ind[1])
             end
         end
-        new(i, [i], x, x, x, x, x, all_connections)
+        connected_spins = [ones(Int, 1,2) for _ in connected_nodes]
+        for j in 1:length(connected_nodes)
+            connected_spins[j] = reshape([i, connected_nodes[j]], (1,2))
+        end
+        new(i, [i], x, x, x, x, x, connected_nodes, connected_spins)
     end
 end
 
