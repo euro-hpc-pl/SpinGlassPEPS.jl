@@ -77,7 +77,9 @@ struct Node_of_grid
         new(i, [i], intra_struct, left, right, up, down, all_connections)
     end
     #construction from matrix of matrices (a grid of many nodes)
-    function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int}, grid::Array{Array{Int64,N} where N,2})
+    function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int},
+                                grid::Array{Array{Int64,N} where N,2};
+                                chimera::Bool = false)
 
         left = Vector{Int}[]
         right = Vector{Int}[]
@@ -88,51 +90,90 @@ struct Node_of_grid
         j = a[1]
         k = a[2]
         M = grid[j,k]
-        # this makes better ordering
+        # this transpose makes better ordering
         spin_inds = vec(transpose(M))
         intra_struct = Vector[]
         s = size(M)
-        for i in 1:s[1]
-            if length(M[i,:]) > 1
-                push!(intra_struct, M[i,:])
+        if ! chimera
+            for i in 1:s[1]
+                if length(M[i,:]) > 1
+                    push!(intra_struct, M[i,:])
+                end
             end
-        end
-        for i in 1:s[2]
-            if length(M[:,i]) > 1
-                push!(intra_struct, M[:,i])
+            for i in 1:s[2]
+                if length(M[:,i]) > 1
+                    push!(intra_struct, M[:,i])
+                end
             end
+        else
+            for i in 1:s[1]
+                for j in 1:s[1]
+                    push!(intra_struct, [M[i, 1], M[j,end]])
+                end
+            end
+
         end
         l,r,u,d = read_connecting_pairs(Mat, i)
 
         if l != Array{Int64,1}[]
-            v1 = M[:,1]
+
             Mp = grid[j, k-1]
             v2 = Mp[:,end]
+            v1 = 0
+
+            if chimera
+                v1 = M[:,end]
+            else
+                v1 = M[:,1]
+            end
+
             for i in 1:length(v1)
                 push!(left, [v1[i], v2[i]])
             end
         end
         if r != Array{Int64,1}[]
             v1 = M[:,end]
+            v2 = 0
+
             Mp = grid[j, k+1]
-            v2 = Mp[:,1]
+
+            if chimera
+                v2 = Mp[:,end]
+            else
+                v2 = Mp[:,1]
+            end
 
             for i in 1:length(v1)
                 push!(right, [v1[i], v2[i]])
             end
         end
         if u != Array{Int64,1}[]
-            v1 = M[1,:]
+            v1 = 0
+            v2 = 0
             Mp = grid[j-1, k]
-            v2 = Mp[end,:]
+            if chimera
+                v1 = M[:,1]
+                v2 = Mp[:,1]
+            else
+                v1 = M[1,:]
+                v2 = Mp[end,:]
+            end
             for i in 1:length(v1)
                 push!(up, [v1[i], v2[i]])
             end
         end
         if d != Array{Int64,1}[]
-            v1 = M[end,:]
+            v1 = 0
+            v2 =0
+
             Mp = grid[j+1, k]
-            v2 = Mp[1,:]
+            if chimera
+                v1 = M[:,1]
+                v2 = Mp[:,1]
+            else
+                v1 = M[end,:]
+                v2 = Mp[1,:]
+            end
             for i in 1:length(v1)
                 push!(down, [v1[i], v2[i]])
             end

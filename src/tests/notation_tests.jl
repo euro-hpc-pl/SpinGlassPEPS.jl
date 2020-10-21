@@ -77,6 +77,66 @@
     @test n.down == [[5, 9], [6, 10]]
     @test n.all_connections == [[2, 3], [6, 7], [5, 9], [6, 10]]
 
+
+
+    nc = Node_of_grid(1,M, grid; chimera = true)
+    @test nc.i == 1
+    @test nc.spin_inds == [1, 2, 5, 6]
+    @test nc.intra_struct == [[1, 2], [1, 6], [5, 2], [5, 6]]
+    @test nc.left == Array{Int64,1}[]
+    @test nc.right == [[2, 4], [6, 8]]
+    @test nc.up == Array{Int64,1}[]
+    @test nc.down == [[1, 9], [5, 13]]
+    @test nc.all_connections == [[2, 4], [6, 8], [1, 9], [5, 13]]
+
+    nc = Node_of_grid(2,M, grid; chimera = true)
+    @test nc.intra_struct == [[3, 4], [3, 8], [7, 4], [7, 8]]
+    @test nc.left == [[4, 2], [8, 6]]
+    @test nc.right == Array{Int64,1}[]
+    @test nc.up == Array{Int64,1}[]
+    @test nc.down == [[3, 11], [7, 15]]
+
+
+    nc = Node_of_grid(4,M, grid; chimera = true)
+    @test nc.intra_struct == [[11, 12], [11, 16], [15, 12], [15, 16]]
+    @test nc.left == [[12, 10], [16, 14]]
+    @test nc.right == Array{Int64,1}[]
+    @test nc.up == [[11, 3], [15, 7]]
+    @test nc.down == Array{Int64,1}[]
+
+
+    # larger chimera
+
+    grid = Array{Array{Int}}(undef, (1,2))
+    grid[1,1] = [1 2; 5 6 ; 9 10 ; 13 14]
+    grid[1,2] = [3 4; 7 8; 11 12; 15 16]
+    grid = Array{Array{Int}}(grid)
+    M = reshape([1 2], (1,2))
+
+    nc_l = Node_of_grid(1,M, grid; chimera = true)
+
+    @test nc_l.intra_struct == [[1, 2], [1, 6], [1, 10], [1, 14], [5, 2], [5, 6], [5, 10], [5, 14], [9, 2], [9, 6], [9, 10], [9, 14], [13, 2], [13, 6], [13, 10], [13, 14]]
+    @test nc_l.right == [[2, 4], [6, 8], [10, 12], [14, 16]]
+
+    # chimera node 2 x 2
+
+    grid = Array{Array{Int}}(undef, (1,1))
+    grid[1,1] = [1 2;3 4]
+    grid = Array{Array{Int}}(grid)
+    M = reshape([1], (1,1))
+    n = Node_of_grid(1,M, grid; chimera = true)
+    @test n.intra_struct == [[1, 2], [1, 4], [3, 2], [3, 4]]
+
+    # chimera node 2 x 8
+
+    grid1 = Array{Array{Int}}(undef, (1,1))
+    grid1[1,1] = [1 2;3 4; 5 6; 7 8]
+    grid1 = Array{Array{Int}}(grid1)
+    M = reshape([1], (1,1))
+    n = Node_of_grid(1,M, grid1; chimera = true)
+    @test n.intra_struct == [[1, 2], [1, 4], [1, 6], [1, 8], [3, 2], [3, 4], [3, 6], [3, 8], [5, 2], [5, 4], [5, 6], [5, 8], [7, 2], [7, 4], [7, 6], [7, 8]]
+
+
     grid = Array{Array{Int}}(undef, (3,3))
     grid[1,1] = [1 2;6 7]
     grid[1,2] = [3 4; 8 9]
