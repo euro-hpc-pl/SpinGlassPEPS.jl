@@ -1,5 +1,5 @@
 
-export left_env
+export left_env, right_env
 
 # --------------------------- Conventions ------------------------ 
 #                                                                 
@@ -13,7 +13,7 @@ export left_env
 # 1) right moving dot version
 # 2) write right_env analogous to left_env
 # 3) combine 1-2 into one function
-# 4)
+# 4) Add more general dots and envs (MPS, MPO, MPS)
 
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     C = ones(eltype(ψ), 1, 1)
@@ -22,7 +22,7 @@ function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
         M = ψ[i]
         M̃ = conj(ϕ[i])
         @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ) 
-end
+    end
     return C[1]
 end
 
@@ -42,6 +42,25 @@ function left_env(ϕ::MPS, ψ::MPS)
         L[i+1] = C
     end
     return L
+end
+
+# NOT tested yet
+function right_env(ϕ::MPS, ψ::MPS) 
+    size = length(ψ)
+    T = eltype(ψ)
+
+    R = Vector{AbstractMatrix{T}}(undef, size+1)
+    R[end] = ones(eltype(ψ), 1, 1)
+
+    for i ∈ size:-1:1
+        M = ψ[i]
+        M̃ = conj(ϕ[i])
+
+        D = R[i+1]
+        @tensor D[x, y] := M[x, σ, α] * D[α, β] * M̃[y, σ, β] order = (β, α, σ)
+        R[i] = D
+    end
+    return R
 end
 
 LinearAlgebra.norm(ψ::MPS) = sqrt(abs(dot(ψ, ψ)))
@@ -83,7 +102,7 @@ function LinearAlgebra.dot(O1::MPO{T}, O2::MPO{T}) where {T}
         W1 = O1[i]
         W2 = O2[i]
         
-        @reduce V[(x, a), (y, b), σ, η] := sum(γ) W1[x, y, σ, γ] * W2[a, b, γ, η]        
+        @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]        
         O[i] = V
     end
     MPO(tensors)

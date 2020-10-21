@@ -3,10 +3,15 @@ module SpinGlassPEPS
     using Requires
     using TensorOperations, TensorCast
     using LowRankApprox
+    using LightGraphs
+    using MetaGraphs
+    using DataFrames
+    using CSV
 
     include("base.jl")
     include("compressions.jl")
     include("contractions.jl")   
+    include("Ising.jl")
     include("graph.jl")
     include("PEPS.jl")
     include("utils.jl")
