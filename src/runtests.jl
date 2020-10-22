@@ -25,3 +25,4 @@ include("tests/compression_tests.jl")
 
 include("tests/mps_tests.jl")
 include("tests/peps_tests.jl")
+include("tests/tests_on_data.jl")
