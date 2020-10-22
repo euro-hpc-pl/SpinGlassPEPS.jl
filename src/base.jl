@@ -1,3 +1,5 @@
+export bond_dimension
+
 for (T, N) in ((:MPO, 4), (:MPS, 3))
     @eval begin
         export $T
@@ -30,6 +32,8 @@ for (T, N) in ((:MPO, 4), (:MPS, 3))
         Base.size(ψ::$T) = (length(ψ.tensors), )
 
         Base.copy(ψ::$T{T}) where {T} = $T{T}(copy(ψ.tensors))
+
+        bond_dimension(ψ::$T) = maixmum(size.(ψ.tensors, 3))
     end
 end
 
