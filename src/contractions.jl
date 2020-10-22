@@ -1,5 +1,5 @@
 
-export left_env, right_env
+export left_env, right_env, dot!
 
 # --------------------------- Conventions ------------------------ 
 #                                                                 
@@ -89,7 +89,20 @@ function LinearAlgebra.dot(O::MPO, ψ::MPS{T}) where {T}
         @reduce N[(x, a), (y, b), σ] := sum(η) W[x, σ, y, η] * M[a, η, b]      
         ϕ[i] = N
     end
-    ϕ
+    return ϕ
+end
+
+function dot!(O::MPO, ψ::MPS{T}) where {T}
+    L = length(ψ)
+
+    for i in 1:L
+        W = O[i]
+        M = ψ[i]
+
+        @reduce N[(x, a), (y, b), σ] := sum(η) W[x, σ, y, η] * M[a, η, b]      
+        ψ[i] = N
+    end
+    return ϕ
 end
 
 Base.:(*)(O::MPO, ψ::MPS) = return dot(O, ψ)
@@ -105,7 +118,7 @@ function LinearAlgebra.dot(O1::MPO{T}, O2::MPO{T}) where {T}
         @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]        
         O[i] = V
     end
-    MPO(tensors)
+    return MPO(tensors)
 end
 
 Base.:(*)(O1::MPO, O2::MPO) = dot(O1, O2)
