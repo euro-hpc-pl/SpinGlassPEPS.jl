@@ -10,6 +10,7 @@ function MPO(ig::MetaGraph, nbrs::Vector{Int}, σ::Int, β::T=1) where T <: Numb
     for n ∈ nbrs
         J = get_prop(ig, σ, n, :J)
         B = [ exp(-β * x * J * y) for x ∈ [-1, 1], y ∈ [-1, 1] ]
+
         @cast W[x, σ, y, η] := B[σ, x] * δ[σ, η] * δ[x, y]
     end   
 end
@@ -17,6 +18,7 @@ end
 function MPS(ig::MetaGraph, β::Number=1, Dcut::Number, tol::Number, max_sweeps::Int) 
 
     for σ ∈ vertices(ig)
+        
         nbrs = neighbors(ig, σ)
         O = MPO(nbrs, σ, β)
         dot!(O, r)

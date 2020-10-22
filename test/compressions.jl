@@ -98,7 +98,7 @@ end
 end
 
 @testset "Compare with Krzysiek's implementation" begin
-    Dcut = 5
+    Dcut = 2
     tol = 1E-4
     max_sweeps = 5
 
@@ -116,7 +116,6 @@ end
     tensors = map(x->permutedims(x, (1,3,2)), tensors)
     ξ = MPS{Array{Float64, 3}}(tensors)
     # ξ.tensors = tensors
-
      
     @test dot(ξ, ξ) ≈ 1   
 
@@ -127,8 +126,7 @@ end
     dist2 = norm(Ψ)^2 + norm(ξ)^2 - 2 * real(overlap)
 
     @test abs(dist1 - dist2) < 1e-14
-
-    println("(ξ, Ψ) = ", overlap)
-    println("dist(ξ, Ψ)^2 = ", dist2)
+        
+    println("Krzysiek wins - flawless victory, fatality.")
 end
 end
