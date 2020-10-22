@@ -139,10 +139,10 @@ function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
                     s2 = ind[b]
 
                     J = JfromQubo_el(qubo, pair[1], pair[2])
-                    y = y + 2*β*J*s1*s2
+                    y = y + β*J*s1*s2
                 end
             end
-            y = sum(ind.*h1)
+            y = y + sum(ind.*h1)
             mps[i][:,:,j] = mps[i][:,:,j]*exp(y*β)
         end
     end

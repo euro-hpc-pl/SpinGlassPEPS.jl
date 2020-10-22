@@ -247,6 +247,24 @@ end
     @test objective[8] ≈ 0.09323904360231824
 end
 
+if false
+@testset "on larger tensors" begin
+    β = 2.
+
+    M = [1 2;3 4]
+    grid1 = Array{Array{Int}}(undef, (2,2))
+    grid1[1,1] = [1 2; 4 5]
+    grid1[1,2] = reshape([3; 6], (2,1))
+    grid1[2,1] = reshape([7; 8], (1,2))
+    grid1[2,2] = reshape([9], (1,1))
+    grid1 = Array{Array{Int}}(grid1)
+
+    ns = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+    q = make_qubo()
+
+    solve_mps(q, ns, 2, β=β, β_step=2, χ = 10, threshold = 1e-12)
+end
+end
 
 @testset "MPS vs PEPS larger QUBO" begin
     function make_qubo_l()
