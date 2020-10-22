@@ -128,7 +128,21 @@ function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
         h1 = [JfromQubo_el(qubo, i,i)/2 for i in spins]
 
         for j in 1:d
-            y = sum(ind2spin(j).*h1)
+            ind = ind2spin(j)
+            y = T(0.)
+            if ns[i].intra_struct != Array{Int64,1}[]
+                for pair in ns[i].intra_struct
+                    a = findall(x->x==pair[1], n.spin_inds)[1]
+                    b = findall(x->x==pair[2], n.spin_inds)[1]
+
+                    s1 = ind[a]
+                    s2 = ind[b]
+
+                    J = JfromQubo_el(qubo, pair[1], pair[2])
+                    y = y + 2*β*J*s1*s2
+                end
+            end
+            y = sum(ind.*h1)
             mps[i][:,:,j] = mps[i][:,:,j]*exp(y*β)
         end
     end
