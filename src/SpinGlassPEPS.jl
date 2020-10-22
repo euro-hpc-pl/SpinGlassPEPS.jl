@@ -2,11 +2,16 @@ module SpinGlassPEPS
     using LinearAlgebra
     using Requires
     using TensorOperations, TensorCast
+    using LowRankApprox
+    using LightGraphs
+    using MetaGraphs
+    using CSV
 
-
+    include("base.jl")
+    include("compressions.jl")
+    include("contractions.jl")   
+    include("Ising.jl")
     include("graph.jl")
-    include("MPS.jl")
-    include("MPO.jl")
     include("PEPS.jl")
     include("utils.jl")
 
@@ -16,6 +21,8 @@ module SpinGlassPEPS
                 const CuArray = CUDA.CuArray
                 const CuVector = CUDA.CuVector
                 const CuMatrix = CUDA.CuMatrix
+                # scalar indexing is fine before 0.2
+                # CUDA.allowscalar(false)
                 include("cuda.jl") 
             end
         end
