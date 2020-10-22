@@ -22,6 +22,8 @@ module SpinGlassPEPS
                 const CuArray = CUDA.CuArray
                 const CuVector = CUDA.CuVector
                 const CuMatrix = CUDA.CuMatrix
+                # scalar indexing is fine before 0.2
+                # CUDA.allowscalar(false)
                 include("cuda.jl") 
             end
         end
