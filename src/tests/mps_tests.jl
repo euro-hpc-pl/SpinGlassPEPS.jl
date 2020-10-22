@@ -1,37 +1,65 @@
 using TensorOperations
 
+function make_qubo_full()
+    qubo = [(1,1) 0.; (1,2) 0.; (1,3) 2.; (1,4) 0.; (1,5) 2.; (2,2) 0.; (2,3) 0.; (2,4) 2.]
+    qubo = vcat(qubo, [(2,5) 0.; (3,3) 0.; (3,4) 2.; (3,5) 0.; (4,4) 0.; (4,5) 0.; (5,5) 0.])
+    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+end
 
-@testset "axiliary" begin
+@testset "axiliary, testing grouping of connections" begin
     b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
     @test b == 16.0*ones(1,1)
 
+    # a grid
     M = [1 2; 3 4]
+    #a vector of nodes, transpose for better indexing
     ns = [Node_of_grid(i, Array(transpose(M))) for i in 1:maximum(M)]
 
-    i,j = connections_for_mps(ns)
-    @test i == [1,2,3]
-    @test j == [[3, 2], [4], [4]]
-    a,b = cluster_conncetions(i,j)
+    b_node, c_nodes = connections_for_mps(ns)
+    @test b_node == [1,2,3]
+    @test c_nodes == [[3, 2], [4], [4]]
 
-    @test a == [[1], [2], [3]]
-    @test b == [[[3, 2]], [[4]], [[4]]]
+    all_b_nodes, all_c_nodes = cluster_conncetions(b_node, c_nodes)
+
+    @test all_b_nodes == [[1], [2], [3]]
+    @test all_c_nodes == [[[3, 2]], [[4]], [[4]]]
+    # 1 (B) with 3 and 2 (both C)
+    # another mps 2 with 4
+    # another mps 3 with 4
 
     grid = [1 2 3; 4 5 6; 7 8 9]
-    A = Array(transpose(grid))
+    #A = Array(transpose(grid))
 
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
-    i,j = connections_for_mps(ns)
+    b_node, c_nodes  = connections_for_mps(ns)
 
-    @test i == [1, 2, 3, 4, 5, 6, 7, 8]
-    @test j == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
+    @test b_node == [1, 2, 3, 4, 5, 6, 7, 8]
+    @test c_nodes == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
 
-    is_new, js_new = split_if_differnt_spins(i, j, ns)
-    @test is_new == [1, 2, 3, 4, 5, 6, 7, 8]
-    @test js_new == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
+    # this is only for larger elmentary cels
+    # takes into account that cals can be conected by different spins
+    b_node_new, c_nodes_new = split_if_differnt_spins(b_node, c_nodes, ns)
+    @test b_node_new == [1, 2, 3, 4, 5, 6, 7, 8]
+    @test c_nodes_new == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
 
-    a,b = cluster_conncetions(i,j)
-    @test a == [[1, 5], [2, 6], [3, 7], [4, 8]]
-    @test b == [[[2, 4], [6, 8]], [[3, 5], [9]], [[6], [8]], [[5, 7], [9]]]
+    all_b_nodes, all_c_nodes = cluster_conncetions(b_node, c_nodes)
+    @test all_b_nodes == [[1, 5], [2, 6], [3, 7], [4, 8]]
+    @test all_c_nodes == [[[2, 4], [6, 8]], [[3, 5], [9]], [[6], [8]], [[5, 7], [9]]]
+    # 1 mps 1 (B) conected with 2 and 4 (C); and 5 (B) conected with 6 and 8
+    # 2 mps 2 (B) conceted with 3 and 5; and 6 (B) conected with 9
+
+    q = make_qubo_full()
+
+    ns = [Node_of_grid(i, q) for i in 1:5]
+    b_node, c_nodes = connections_for_mps(ns)
+    @test b_node == [1,2,3,4]
+    @test c_nodes == [[2,3,4,5], [3,4,5], [4,5], [5]]
+    b_nodes_in_mpses, c_nodes_in_mpses = cluster_conncetions(b_node, c_nodes)
+    @test b_nodes_in_mpses == [[1], [2], [3], [4]]
+    @test c_nodes_in_mpses == [[[2, 3, 4, 5]], [[3, 4, 5]], [[4, 5]], [[5]]]
+    # 1 mps 1 (B) conceted with 2,3,4 and 5 (C)
+    # 2 mps 2 (B) conected with 3,4 and 5
+    # ....
 end
 
 @testset begin "larger tensors"
@@ -46,22 +74,22 @@ end
 
     ns_large = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
 
-    is, js = connections_for_mps(ns_large)
+    b_node, c_nodes = connections_for_mps(ns_large)
 
-    @test is == [1, 2, 3]
-    @test js == [[2 ,3], [4], [4]]
+    @test b_node == [1, 2, 3]
+    @test c_nodes == [[2 ,3], [4], [4]]
 
-    is_new, js_new = split_if_differnt_spins(is, js, ns_large)
+    b_node_new, c_nodes_new = split_if_differnt_spins(b_node, c_nodes, ns_large)
 
-    @test is_new == [1, 1, 2, 3]
-    @test js_new == [[2], [3], [4], [4]]
+    @test b_node_new == [1, 1, 2, 3]
+    @test c_nodes_new == [[2], [3], [4], [4]]
 
-    all_is, all_js = cluster_conncetions(is_new,js_new)
-    @test all_is == [[1, 3], [1], [2]]
-    @test all_js == [[[2], [4]], [[3]], [[4]]]
+    all_b_node, all_c_nodes = cluster_conncetions(b_node_new, c_nodes_new)
+    @test all_b_node == [[1, 3], [1], [2]]
+    @test all_c_nodes == [[[2], [4]], [[3]], [[4]]]
 end
 
-function make_qubo_x()
+function make_qubo()
     qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
     qubo = vcat(qubo, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
     qubo = vcat(qubo, [(7,7) 0.35; (7,8) 0.5; (8,8) -0.08; (8,9) -0.05; (9,9) 0.33])
@@ -69,12 +97,7 @@ function make_qubo_x()
 end
 
 
-function make_qubo_circ()
-    qubo = [(1,1) 0.; (1,2) 0.; (1,4) 2.; (2,2) 0.; (2,3) 2.; (2,5) 0.; (3,3) 0.; (3,6) 2.]
-    qubo = vcat(qubo, [(6,6) 0.; (5,6) 0.; (6,9) 2.; (5,5) 0.; (4,5) 0.; (5,8) 0.; (4,4) 0.; (4,7) 2.])
-    qubo = vcat(qubo, [(7,7) 0.; (7,8) 0.; (8,8) 0.; (8,9) .0; (9,9) 0.])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-end
+
 
 function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractFloat
     u1 = M[1,1][1,:,:,:]
@@ -115,7 +138,7 @@ end
 
 @testset "MPS computing" begin
 
-    qubo =  make_qubo_x()
+    qubo =  make_qubo()
 
     β = 2.
 

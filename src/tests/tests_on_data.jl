@@ -1,5 +1,6 @@
 using NPZ
-
+using Random
+using Statistics
 
 # TODO this needs by be specified, why 2v not v
 
@@ -33,7 +34,77 @@ function M2interactions(M::Matrix{Float64})
     qubo
 end
 
+"""
+    function brute_force_solve(M::Matrix{T}, sols::Int) where T <: AbstractFloat
 
+returns vector of solutions (Vector{Vector{Int}}) and vector of energies (Vector{T})
+
+First element is supposed to be a ground state
+"""
+function brute_force_solve(M::Matrix{T}, sols::Int) where T <: AbstractFloat
+    s = size(M,1)
+    all_spins = Vector{Int}[]
+    energies = Float64[]
+    for i in 1:2^s
+        spins = ind2spin(i, 2^s)
+        push!(all_spins, spins)
+        energy = -v2energy(M, spins)
+        push!(energies, energy)
+    end
+    p = sortperm(energies)
+    all_spins[p][1:sols], energies[p][1:sols]
+end
+
+@testset "test with brute force" begin
+
+    sols = 5
+    system_size = 15
+
+    # sampler of random symmetric matrix
+    Random.seed!(1234)
+    X = rand(system_size+2, system_size)
+    M = cov(X)
+
+    println("brute force, full L = $(system_size)")
+    @time spins_brute, energies_brute = brute_force_solve(M, sols)
+
+    # parametrising for mps
+    qubo = M2interactions(M)
+    ns = [Node_of_grid(i, qubo) for i in 1:system_size]
+    χ = 10
+    β_step = 2
+    β = 2.
+
+    println("mps full L = $(system_size)")
+    @time spins_mps, objective_mps = solve_mps(qubo, ns, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+
+    # sorting improve order of output that are a bit shufled
+    energies_mps = [-v2energy(M, spins) for spins in spins_mps]
+    p = sortperm(energies_mps)
+
+    # energies are computed from spins
+    @test energies_mps[p][1:4] ≈ energies_brute[1:4]
+
+    #large system full graph
+    system_large = 64
+    X = rand(system_large+2, system_large)
+    M = cov(X)
+
+    # these parameters are not optimal but will make
+    # computation faster
+    χ = 2
+    β_step = 1
+    β = 6.
+    qubo = M2interactions(M)
+    ns = [Node_of_grid(i, qubo) for i in 1:system_large]
+
+    println("mps time, Full graph L = 64")
+    @time spins_mps, objective_mps = solve_mps(qubo, ns, 3; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+
+    @test length(spins_mps[1]) == 64
+end
+
+if false
 @testset "grid including larger bloks" begin
 
     β = 3.
@@ -182,4 +253,5 @@ end
         binary = [Int(i > 0) for i in spins_mps[1]]
         @test binary == [0,1,0,1,0,0]
     end
+end
 end
