@@ -33,6 +33,14 @@ for (T, N) in ((:MPO, 4), (:MPS, 3))
     end
 end
 
+function MPS(vec::Vector{<:Number})
+    L = length(vec)
+    ψ = MPS{}(L)
+    for i ∈ 1:L
+        ψ[i] = reshape(copy(vec[i]), 1, :, 1)
+    end    
+end
+
 function MPO(ψ::MPS{T}) where {T}
     _verify_square(ψ)
     L = length(ψ)
