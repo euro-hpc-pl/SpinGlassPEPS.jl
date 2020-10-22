@@ -2,8 +2,7 @@ using SpinGlassPEPS
 
 using LinearAlgebra
 using CUDA
-# scalar indexing is fine before 0.2
-# CUDA.allowscalar(false)
+
 
 using Test
 
