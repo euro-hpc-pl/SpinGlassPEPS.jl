@@ -1,48 +1,41 @@
-export Ising_graph, energy
+export ising_graph, energy
 
-function energy(ising::MetaGraph)
+function energy(ig::MetaGraph, σ::Vector{<:Number})
     """
     Calculate the Ising energy as E = -sum_<i,j> s_i * J_ij * s_j - sum_j h_i * s_j.
     """
-
-    energy = 0.0
+    energy = 0
     # quadratic
-    for edge in edges(ising)
-        i, j = src(edge), dst(edge)   
-        s = get_prop(ising, i, :s)
-        r = get_prop(ising, j, :s)        
-        J = get_prop(ising, i, j, :J) 
-        energy += s*J*r   
+    for edge ∈ edges(ig)
+        i, j = src(edge), dst(edge)         
+        J = get_prop(ig, i, j, :J) 
+        energy += σ[i] * J * σ[j]   
     end 
 
     # linear
-    for i in vertices(ising)
-        s = get_prop(ising, i, :s)
-        h = get_prop(ising, i, :h)   
-        energy += s*h     
+    for i ∈ vertices(ig)
+        h = get_prop(ig, i, :h)   
+        energy += h * σ[i]     
     end    
     return -energy
 end
     
-function Ising_graph(instance::String, L::Int)
+function ising_graph(instance::String, L::Int)
     """
     Create a graph that represents the Ising Hamiltonian.
     """
 
-    # load
-    #df = CSV.read(instance, types=[Int, Int, Float64])
-    df = DataFrame!(CSV.File(instance, types=[Int, Int, Float64]))
-    g = MetaGraph(L^2, 0.0)
+    # load the Ising instance
+    ising = CSV.File(instance, types=[Int, Int, Float64])
+    g = MetaGraph(L, 0.0)
 
     set_prop!(g, :description, "The Ising model.")
 
     # setup the model (J_ij, h_i on the lattice)
-    for row in eachrow(df)
+    for row ∈ ising 
         i, j, v = row
-
         if i == j
             set_prop!(g, i, :h, v) || error("Node $i missing!")
-            set_prop!(g, i, :s, rand() < 0.5 ? -1 : 1) || error("Cannot set spin $i")
         else
             add_edge!(g, i, j) && 
             set_prop!(g, i, j, :J, v) || error("Cannot add Egde ($i, $j)") 
@@ -50,6 +43,7 @@ function Ising_graph(instance::String, L::Int)
     end   
 
     # energy
-    set_prop!(g, :energy, energy(g)) || error("Unable to calculate the Ising energy!")
+    state = [rand() < 0.5 ? -1 : 1 for _ ∈ 1:L]
+    set_prop!(g, :energy, energy(g, state)) || error("Unable to calculate the Ising energy!")
     return g
 end

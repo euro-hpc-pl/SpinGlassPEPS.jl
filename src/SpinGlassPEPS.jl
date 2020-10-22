@@ -5,7 +5,6 @@ module SpinGlassPEPS
     using LowRankApprox
     using LightGraphs
     using MetaGraphs
-    using DataFrames
     using CSV
 
     include("base.jl")

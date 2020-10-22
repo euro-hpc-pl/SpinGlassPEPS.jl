@@ -57,7 +57,7 @@ function MPS(O::MPO{T}) where {T}
         @cast A[x, (σ, η), y] := W[x, σ, y, η]
         ψ[i] = A     
     end 
-    ψ
+    return ψ
 end  
 
 function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
@@ -68,7 +68,7 @@ function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
         ψ[i] = randn(S, D, d, D)
     end
     ψ[end] = randn(S, D, d, 1)
-    ψ
+    return ψ
 end
 
 function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
