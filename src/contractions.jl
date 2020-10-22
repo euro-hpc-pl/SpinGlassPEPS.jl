@@ -16,7 +16,8 @@ export left_env, right_env, dot!
 # 4) Add more general dots and envs (MPS, MPO, MPS)
 
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
-    C = ones(eltype(ψ), 1, 1)
+    T = promote_type(eltype(ψ), eltype(ϕ))
+    C = ones(T, 1, 1)
 
     for i ∈ 1:length(ψ)
         M = ψ[i]
@@ -27,13 +28,13 @@ function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
 end
 
 function left_env(ϕ::MPS, ψ::MPS) 
-    size = length(ψ)
-    T = eltype(ψ)
+    l = length(ψ)
+    T = promote_type(eltype(ψ), eltype(ϕ))
 
-    L = Vector{AbstractMatrix{T}}(undef, size+1)
+    L = Vector{Matrix{T}}(undef, l+1)
     L[1] = ones(eltype(ψ), 1, 1)
 
-    for i ∈ 1:size
+    for i ∈ 1:l
         M = ψ[i]
         M̃ = conj(ϕ[i])
 
@@ -46,13 +47,13 @@ end
 
 # NOT tested yet
 function right_env(ϕ::MPS, ψ::MPS) 
-    size = length(ψ)
-    T = eltype(ψ)
+    L = length(ψ)
+    T = promote_type(eltype(ψ), eltype(ϕ))
 
-    R = Vector{AbstractMatrix{T}}(undef, size+1)
+    R = Vector{Matrix{T}}(undef, L+1)
     R[end] = ones(eltype(ψ), 1, 1)
 
-    for i ∈ size:-1:1
+    for i ∈ L:-1:1
         M = ψ[i]
         M̃ = conj(ϕ[i])
 
@@ -66,7 +67,7 @@ end
 LinearAlgebra.norm(ψ::MPS) = sqrt(abs(dot(ψ, ψ)))
 
 function LinearAlgebra.dot(ϕ::MPS, O::Vector{T}, ψ::MPS) where {T <: AbstractMatrix}
-    S = eltype(ψ)
+    S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
     C = ones(S, 1, 1)
 
     for i ∈ 1:length(ψ)
@@ -78,9 +79,10 @@ end
     return C[1]
 end
 
-function LinearAlgebra.dot(O::MPO, ψ::MPS{T}) where {T}
+function LinearAlgebra.dot(O::MPO, ψ::MPS)
     L = length(ψ)
-    ϕ = MPS{T}(L)
+    T = promote_type(eltype(ψ), eltype(ϕ))
+    ϕ = MPS(T, L)
 
     for i in 1:L
         W = O[i]
@@ -92,9 +94,8 @@ function LinearAlgebra.dot(O::MPO, ψ::MPS{T}) where {T}
     return ϕ
 end
 
-function dot!(O::MPO, ψ::MPS{T}) where {T}
+function dot!(O::MPO, ψ::MPS)
     L = length(ψ)
-
     for i in 1:L
         W = O[i]
         M = ψ[i]
@@ -102,14 +103,14 @@ function dot!(O::MPO, ψ::MPS{T}) where {T}
         @reduce N[(x, a), (y, b), σ] := sum(η) W[x, σ, y, η] * M[a, η, b]      
         ψ[i] = N
     end
-    return ϕ
 end
 
 Base.:(*)(O::MPO, ψ::MPS) = return dot(O, ψ)
 
-function LinearAlgebra.dot(O1::MPO{T}, O2::MPO{T}) where {T}
+function LinearAlgebra.dot(O1::MPO, O2::MPO)
     L = length(O1)
-    tensors = Vector{T}(undef, L)
+    T = promote_type(eltype(ψ), eltype(ϕ))
+    O = MPO(T, L)
 
     for i in 1:L
         W1 = O1[i]
@@ -118,7 +119,7 @@ function LinearAlgebra.dot(O1::MPO{T}, O2::MPO{T}) where {T}
         @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]        
         O[i] = V
     end
-    return MPO(tensors)
+    return O
 end
 
 Base.:(*)(O1::MPO, O2::MPO) = dot(O1, O2)

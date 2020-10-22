@@ -3,7 +3,7 @@
 D = 9
 d = 4
 sites = 5
-T = Array{ComplexF64, 4}
+T = ComplexF64
 
 @testset "Random MPO" begin
     O = randn(MPO{T}, sites, D, d)

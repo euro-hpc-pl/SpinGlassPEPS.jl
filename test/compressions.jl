@@ -8,7 +8,7 @@ Dcut = 5
 d = 2
 sites = 5
 
-T = Array{Float64, 3}
+T = Float64
 
 ψ = randn(MPS{T}, sites, D, d)
 ϕ = randn(MPS{T}, sites, D, d)
@@ -114,7 +114,7 @@ end
     # tensors = compress_mps_itterativelly(, Φ_trunc.tensors, Dcut, tol)
     tensors = compress_iter(permuted_mps, Dcut, tol)
     tensors = map(x->permutedims(x, (1,3,2)), tensors)
-    ξ = MPS{Array{Float64, 3}}(tensors)
+    ξ = MPS(tensors)
     # ξ.tensors = tensors
      
     @test dot(ξ, ξ) ≈ 1   

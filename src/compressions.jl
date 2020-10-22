@@ -3,16 +3,7 @@ export truncate!, canonise!, compress
 # TODO
 # 1) write two sites compress function
 
-
-function _qr_fix!(Q::AbstractMatrix, R::AbstractMatrix)
-    d = diag(R)
-    ph = d./abs.(d)
-    idim = size(R, 1)
-    q = Matrix(Q)[:, 1:idim]
-    return transpose(ph) .* q
-end
-
-function qr(M::AbstractMatrix, Dcut::Int) 
+function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int) 
     fact = pqrfact(M, rank=Dcut)
     Q = fact[:Q]
     R = fact[:R]
@@ -24,7 +15,15 @@ function rq(M::AbstractMatrix, Dcut::Int)
     Q = fact[:Q]
     R = fact[:R]
     return _qr_fix!(Q, R)'
-end   
+end  
+
+function _qr_fix!(Q::AbstractMatrix, R::AbstractMatrix)
+    d = diag(R)
+    ph = d./abs.(d)
+    idim = size(R, 1)
+    q = Matrix(Q)[:, 1:idim]
+    return transpose(ph) .* q
+end
 
 function canonise!(ψ::MPS)
     canonise!(ψ, :right)
@@ -32,7 +31,6 @@ function canonise!(ψ::MPS)
 end
 
 canonise!(ψ::MPS, s::Symbol) = canonise!(ψ, Val(s))
-
 canonise!(ψ::MPS, ::Val{:right}) = _left_sweep_SVD!(ψ)
 canonise!(ψ::MPS, ::Val{:left}) = _right_sweep_SVD!(ψ)
 
@@ -83,7 +81,7 @@ function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
 end
  
 
-function compress(ψ::MPS{T}, Dcut::Int, tol::Number, max_sweeps::Int=4) where {T}
+function compress(ψ::MPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
 
     # Initial guess - truncated ψ 
     ϕ = copy(ψ)
@@ -94,28 +92,28 @@ function compress(ψ::MPS{T}, Dcut::Int, tol::Number, max_sweeps::Int=4) where {
 
     # Variational compression
     overlap = 0 
-    overlap_befor = 1
+    overlap_before = 1
      
     println("Compressing down to: $Dcut") 
     
     for sweep ∈ 1:max_sweeps            
-                   _left_sweep_var!!(ϕ, env, ψ, Dcut)
+        _left_sweep_var!!(ϕ, env, ψ, Dcut)
         overlap = _right_sweep_var!!(ϕ, env, ψ, Dcut)
 
-        diff = abs(overlap_befor - abs(overlap))
+        diff = abs(overlap_before - abs(overlap))
         println("Convergence: ", diff)
 
         if diff < tol
             println("Finished in $sweep sweeps (of $max_sweeps).")
             break
         else
-            overlap_befor = overlap
+            overlap_before = overlap
         end    
     end
     return ϕ  
 end
 
-function _left_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T <: AbstractMatrix
+function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
     S = eltype(ϕ)
     
     # overwrite the overlap
@@ -145,7 +143,7 @@ function _left_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T 
     end    
 end
 
-function _right_sweep_var!!(ϕ::MPS, env::Vector{T}, ψ::MPS, Dcut::Int) where T <: AbstractMatrix
+function _right_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
     S = eltype(ϕ)
     
     # overwrite the overlap
