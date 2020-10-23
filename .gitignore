@@ -1,0 +1,6 @@
+.vscode
+.ipynb_checkpoints
+*.npz
+*.npy
+*.pdf
+results
