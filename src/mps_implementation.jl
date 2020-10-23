@@ -91,7 +91,7 @@ function T_with_C(J::Vector{T}, d::Int, left::Bool = false, right::Bool = false)
 end
 
 function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vector{Node_of_grid},
-                                            qubo::Vector{Qubo_el{T}}, β::T) where T<: AbstractFloat
+                                            interactions::Vector{Interaction{T}}, β::T) where T<: AbstractFloat
 
     a = findall(x -> x == nodes[1], ns[i].connected_nodes)[1]
     # TODO this may need to be checked
@@ -110,7 +110,7 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vect
         spins = ns[i].connected_spins[a]
         # TODO this needs to be checked
         for r in 1:size(spins,1)
-            push!(J, JfromQubo_el(qubo, spins[r,1], spins[r,2]))
+            push!(J, getJ(interactions, spins[r,1], spins[r,2]))
         end
 
         mpo[j] = T_with_C(J*β, d, j==k, j==l)
@@ -118,14 +118,14 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vect
     mpo
 end
 
-function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
+function add_phase!(mps::Vector{Array{T, 3}}, interactions::Vector{Interaction{T}},
                     ns::Vector{Node_of_grid}, β::T) where T<: AbstractFloat
 
     d = size(mps[1], 3)
     for i in 1:length(mps)
 
         spins = ns[i].spin_inds
-        h1 = [JfromQubo_el(qubo, i,i)/2 for i in spins]
+        h1 = [getJ(interactions, i,i)/2 for i in spins]
 
         for j in 1:d
             ind = ind2spin(j)
@@ -138,7 +138,7 @@ function add_phase!(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
                     s1 = ind[a]
                     s2 = ind[b]
 
-                    J = JfromQubo_el(qubo, pair[1], pair[2])
+                    J = getJ(interactions, pair[1], pair[2])
                     y = y + β*J*s1*s2
                 end
             end
@@ -180,13 +180,13 @@ function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: 
     return(diag(probs_at_k))
 end
 
-function construct_mps_step(mps::Vector{Array{T, 3}}, qubo::Vector{Qubo_el{T}},
+function construct_mps_step(mps::Vector{Array{T, 3}}, interactions::Vector{Interaction{T}},
                                                     ns::Vector{Node_of_grid},
                                                     β::T, is::Vector{Int},
                                                     js::Vector{Vector{Int}}) where T<: AbstractFloat
     mpo = [make_ones() for _ in 1:length(mps)]
     for k in 1:length(is)
-        add_MPO!(mpo, is[k], js[k], ns, qubo, β)
+        add_MPO!(mpo, is[k], js[k], ns, interactions, β)
     end
     MPSxMPO(mps, mpo)
 end
@@ -293,7 +293,7 @@ end
 
 
 
-function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, ns::Vector{Node_of_grid},
+function construct_mps(interactions::Vector{Interaction{T}}, β::T, β_step::Int, ns::Vector{Node_of_grid},
                                                 all_is::Vector{Vector{Int}},
                                                 all_js::Vector{Vector{Vector{Int}}},
                                                 χ::Int, threshold::T) where T<: AbstractFloat
@@ -301,7 +301,7 @@ function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, ns::Vector
     mps = initialize_mps(l)
     for _ in 1:β_step
         for k in 1:length(all_is)
-            mps = construct_mps_step(mps, qubo, ns, β/β_step, all_is[k], all_js[k])
+            mps = construct_mps_step(mps, interactions, ns, β/β_step, all_is[k], all_js[k])
 
             s = maximum([size(e, 1) for e in mps])
             if ((threshold > 0) * (s > χ))
@@ -310,12 +310,12 @@ function construct_mps(qubo::Vector{Qubo_el{T}}, β::T, β_step::Int, ns::Vector
             end
         end
     end
-    add_phase!(mps,qubo, ns, β)
+    add_phase!(mps,interactions, ns, β)
     mps
 end
 
 
-function solve_mps(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid},
+function solve_mps(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid},
                 no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
 
 
@@ -323,7 +323,7 @@ function solve_mps(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid},
     is, js = connections_for_mps(ns)
     is,js = split_if_differnt_spins(is,js,ns)
     all_is, all_js = cluster_conncetions(is,js)
-    mps = construct_mps(qubo, β, β_step, ns, all_is, all_js, χ, threshold)
+    mps = construct_mps(interactions, β, β_step, ns, all_is, all_js, χ, threshold)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for j in 1:problem_size

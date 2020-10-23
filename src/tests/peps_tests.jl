@@ -1,9 +1,9 @@
 
-function make_qubo0()
-    qubo = [(1,1) 0.; (1,2) 0.; (1,4) 0.; (2,2) 0.; (2,3) 0.; (2,5) 0.; (3,3) -0.2; (3,6) 1.5]
-    qubo = vcat(qubo, [(6,6) -2.2; (5,6) 0.; (6,9) -0.52; (5,5) 0.; (4,5) .0; (5,8) 0.0; (4,4) 0.; (4,7) 0.])
-    qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+function make_interactions_case1()
+    J_h = [(1,1) 0.; (1,2) 0.; (1,4) 0.; (2,2) 0.; (2,3) 0.; (2,5) 0.; (3,3) -0.2; (3,6) 1.5]
+    J_h = vcat(J_h, [(6,6) -2.2; (5,6) 0.; (6,9) -0.52; (5,5) 0.; (4,5) .0; (5,8) 0.0; (4,4) 0.; (4,7) 0.])
+    J_h = vcat(J_h, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
 
 @testset "PEPS - axiliary functions" begin
@@ -40,11 +40,11 @@ end
     @test objectives == [1.0, 0.2]
 end
 
-function make_qubo0()
-    qubo = [(1,1) 1.; (1,2) 2.; (1,4) -1.; (2,2) 1.4; (2,3) 1.1; (2,5) -.75; (3,3) -0.2; (3,6) 1.5]
-    qubo = vcat(qubo, [(6,6) -2.2; (5,6) 2.1; (6,9) -0.52; (5,5) .2; (4,5) .5; (5,8) 0.12; (4,4) -1.; (4,7) -1.])
-    qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+function make_interactions()
+    J_h = [(1,1) 1.; (1,2) 2.; (1,4) -1.; (2,2) 1.4; (2,3) 1.1; (2,5) -.75; (3,3) -0.2; (3,6) 1.5]
+    J_h = vcat(J_h, [(6,6) -2.2; (5,6) 2.1; (6,9) -0.52; (5,5) .2; (4,5) .5; (5,8) 0.12; (4,4) -1.; (4,7) -1.])
+    J_h = vcat(J_h, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
 
 @testset "larger tensors" begin
@@ -56,7 +56,7 @@ end
     grid = Array{Array{Int}}(grid)
     M = [1 2;3 4]
 
-    q = make_qubo0()
+    q = make_interactions()
     β = 1.5
     ns = [Node_of_grid(i, M, grid) for i in 1:maximum(M)]
     T1 = compute_single_tensor(ns, q, 1, β)
@@ -84,19 +84,20 @@ end
     @test T2[:,1,:,:] ≈ reshape(tcompare, (4,2,4))
 end
 
-
+# chimera cells, tha small one 2x2
 function make_c2()
-    qubo = [(1,1) 1.; (2,2) 1.4; (3,3) 0.5; (4,4) -1.; (1,2) 1.1; (1,4) -0.5; (2,3) 3.1; (3,4) -2.]
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    J_h = [(1,1) 1.; (2,2) 1.4; (3,3) 0.5; (4,4) -1.; (1,2) 1.1; (1,4) -0.5; (2,3) 3.1; (3,4) -2.]
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
 
+#normal chimera cell 8x2
 function make_c8()
     h = [(1,1) 1.; (2,2) 1.; (3,3) 1.; (4,4) 1.; (5,5) 1.; (6,6) 1.; (7,7) 1.; (8,8) 1.]
     J = vcat(h, [(1,2) 0.1; (1,4) 0.1; (1,6) 0.1; (1,8) 0.1])
     J = vcat(J, [(3,2) 0.1; (3,4) 0.1; (3,6) 0.1; (3,8) 0.1])
     J = vcat(J, [(5,2) 0.1; (5,4) 0.1; (5,6) 0.1; (5,8) 0.1])
     J = vcat(J, [(7,2) 0.1; (7,4) 0.1; (7,6) 0.1; (7,8) 0.1])
-    [Qubo_el(J[i,1], J[i,2]) for i in 1:size(J, 1)]
+    [Interaction(J[i,1], J[i,2]) for i in 1:size(J, 1)]
 end
 
 @testset "chimera cel" begin
@@ -137,18 +138,6 @@ end
     @test ten8[1,1,1,1] ≈ exp(β*(-8+16*2*0.1))
     @test ten8[1,1,1,256] ≈ exp(β*(8+16*2*0.1))
     @test ten8[1,1,1,2] ≈ exp(β*(-6+8*2*0.1))
-
-
-
-
-end
-
-
-function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
-    d =  diag(M)
-    M = M .- diagm(d)
-
-    transpose(v)*M*v + transpose(v)*d
 end
 
 function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractFloat
@@ -188,18 +177,11 @@ function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractF
 end
 
 @testset "PEPS network vs encon" begin
-    qubo = make_qubo0()
-
+    ints = make_interactions()
     grid = [1 2 3 ; 4 5 6 ; 7 8 9]
-
     @test v2energy(ones(2,2), [1,1]) == 4
 
-    Mat = zeros(9,9)
-    for q in qubo
-        (i,j) = q.ind
-        Mat[i,j] = Mat[j,i] = q.coupling
-    end
-
+    Mat = interactions2M(ints)
     ns = [Node_of_grid(i, grid) for i in 1:9]
     β = 3.
     M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
@@ -207,7 +189,7 @@ end
     for i in 1:3
         for j in 1:3
             k = k+1
-            M[i,j] = compute_single_tensor(ns, qubo, k, β)
+            M[i,j] = compute_single_tensor(ns, ints, k, β)
         end
     end
     M = Matrix{Array{Float64, N} where N}(M)
@@ -223,12 +205,9 @@ end
 
     v = [1, -1, 1, -1, 1, -1, 1, -1, 1]
     @test exp.(β*v2energy(Mat, v)) ≈ cc[2,1,2,1,2,1,2,1,2]
-
 end
 
-
 @testset "testing marginal/conditional probabilities" begin
-
 
     ####   conditional probability implementation
 
@@ -249,7 +228,7 @@ end
     a = conditional_probabs([ones(2,2), ones(2,2), ones(2,1)])
     @test a == [0.5, 0.5]
 
-    qubo = make_qubo0()
+    interactions = make_interactions()
     grid = [1 2 3; 4 5 6; 7 8 9]
     β = 3.
 
@@ -259,12 +238,12 @@ end
     for i in 1:3
         for j in 1:3
             k = k+1
-            M[i,j] = compute_single_tensor(ns, qubo, k, β)
+            M[i,j] = compute_single_tensor(ns, interactions, k, β)
         end
     end
     M = Matrix{Array{Float64, N} where N}(M)
 
-    #M = make_pepsTN(grid, qubo, β)
+    #M = make_pepsTN(grid, interactions, β)
     cc = contract3x3by_ncon(M)
     su = sum(cc)
 
@@ -286,7 +265,7 @@ end
     # probabilities
 
     A = Vector{Array{Float64, 4}}(M[1,:])
-    lower_mps = make_lower_mps(grid, ns, qubo, 2, β, 0, 0.)
+    lower_mps = make_lower_mps(grid, ns, interactions, 2, β, 0, 0.)
     # marginal prob
     sol = Int[]
     objective = conditional_probabs(A, lower_mps, 0, sol)
@@ -310,21 +289,21 @@ end
 
     sol2 = Int[1,2,1,2]
 
-    lower_mps = make_lower_mps(grid, ns, qubo, 3, β ,0, 0.)
+    lower_mps = make_lower_mps(grid, ns, interactions, 3, β ,0, 0.)
     M_temp = [M[2,i][:,:,sol2[i],:,:] for i in 1:3]
     obj2 = conditional_probabs(M_temp, lower_mps, sol2[end], sol2[4:4])
     # this is exact
     @test [cond1, cond2] ≈ obj2
 
     # with approximation marginal
-    lower_mps_a = make_lower_mps(grid, ns, qubo, 2, β, 2, 1e-6)
+    lower_mps_a = make_lower_mps(grid, ns, interactions, 2, β, 2, 1e-6)
     objective = conditional_probabs(A, lower_mps_a, 0, sol)
     @test objective ≈ [p1, p2]
 
     objective1 = conditional_probabs(A, lower_mps_a, sol1[end], sol1)
     @test objective1 ≈ [p11/p1, p12/p1]
 
-    lower_mps_a = make_lower_mps(grid, ns, qubo, 3, β, 2, 1.e-6)
+    lower_mps_a = make_lower_mps(grid, ns, interactions, 3, β, 2, 1.e-6)
     obj2_a = conditional_probabs(M_temp, lower_mps_a, sol2[end], sol2[4:4])
     # this is approx
     @test [cond1, cond2] ≈ obj2_a
@@ -332,25 +311,30 @@ end
 end
 
 
-function make_qubo(T::Type = Float64)
+function interactions_case2(T::Type = Float64)
     css = 2.
-    qubo = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
-    qubo = vcat(qubo, [(6,6) 0.; (6,5) -1.75; (6,9) 0.; (5,5) 0.75; (5,4) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
-    qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
-    [Qubo_el{T}(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    J_h = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
+    J_h = vcat(J_h, [(6,6) 0.; (6,5) -1.75; (6,9) 0.; (5,5) 0.75; (5,4) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
+    J_h = vcat(J_h, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
+    [Interaction{T}(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+end
+
+function make_interactions_case3()
+    css = 2.
+    J_h = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
+    J_h = vcat(J_h, [(6,6) 0.; (5,6) -1.75; (6,9) 0.; (5,5) 0.75; (4,5) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
+    J_h = vcat(J_h, [(7,7) 0.1; (7,8) 0.; (8,8) 0.1; (8,9) 0.; (9,9) 0.1])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
 
 @testset "PEPS - solving simple train problem" begin
-    # simplest train problem, small example in the train paper
-    #two trains approaching the single segment in opposite directions
 
-
-    train_qubo = make_qubo()
+    inter = interactions_case2()
 
     grid = [1 2 3; 4 5 6; 7 8 9]
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 
-    spins, objective = solve(train_qubo, ns, grid, 4; β = 1., χ = 2)
+    spins, objective = solve(inter, ns, grid, 4; β = 1., χ = 2)
 
     #first
     @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
@@ -359,15 +343,7 @@ end
 
     # here we give a little Jii to 7,8,9 q-bits to allow there for 8 additional
     # combinations and degeneracy
-
-    function make_qubo1()
-        css = 2.
-        qubo = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
-        qubo = vcat(qubo, [(6,6) 0.; (5,6) -1.75; (6,9) 0.; (5,5) 0.75; (4,5) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
-        qubo = vcat(qubo, [(7,7) 0.1; (7,8) 0.; (8,8) 0.1; (8,9) 0.; (9,9) 0.1])
-        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-    end
-    permuted_train_qubo = make_qubo1()
+    permuted_ints = make_interactions_case3()
 
     grid = [1 2 3; 4 5 6; 7 8 9]
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
@@ -382,8 +358,8 @@ end
 
     ns_large = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
 
-    spins, objective = solve(permuted_train_qubo, ns, grid, 16; β = 1., threshold = 0.)
-    spins_l, objective_l = solve(permuted_train_qubo, ns_large, M, 16; β = 1., threshold = 0.)
+    spins, objective = solve(permuted_ints, ns, grid, 16; β = 1., threshold = 0.)
+    spins_l, objective_l = solve(permuted_ints, ns_large, M, 16; β = 1., threshold = 0.)
 
 
     @test spins_l[1] == spins[1]
@@ -428,7 +404,7 @@ end
     @testset "itterative approximatimation in solution" begin
 
         ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
-        spins_a, objective_a = solve(permuted_train_qubo, ns, grid, 16; β = 1., χ = 2)
+        spins_a, objective_a = solve(permuted_ints, ns, grid, 16; β = 1., χ = 2)
 
         spins_a[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
         objective_a[1] ≈ 0.12151449832031348
@@ -456,12 +432,12 @@ end
     @testset "PEPS  - solving it on Float32" begin
         T = Float32
 
-        train_qubo = make_qubo(T)
+        ints = interactions_case2(T)
 
         grid = [1 2 3; 4 5 6; 7 8 9]
 
         ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
-        spins, objective = solve(train_qubo, ns, grid, 4; β = T(2.), χ = 2, threshold = T(1e-6))
+        spins, objective = solve(ints, ns, grid, 4; β = T(2.), χ = 2, threshold = T(1e-6))
 
         #ground
         @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
@@ -469,26 +445,25 @@ end
         #first
         @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
 
-
-
         @test typeof(objective[1]) == Float32
     end
 end
+function make_interactions_large()
+    J_h = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
+    J_h = vcat(J_h, [(5,5) 2.4; (5,6) -0.15; (5,9) -0.211; (6,6) -2.3; (6,7) -0.2; (6,10) -0.15; (7,7) 2.2; (7,8) -0.11; (7,11) -0.35; (8,8) -2.1; (8,12) -0.19])
+    J_h = vcat(J_h, [(9,9) 2.; (9,10) -0.222; (9,13) -0.15; (10,10) -1.9; (10,11) -0.28; (10,14) -0.21; (11,11) 1.8; (11,12) -0.19; (11,15) -0.18; (12,12) -1.7; (12,16) -0.27])
+    J_h = vcat(J_h, [(13,13) 1.6; (13,14) -0.32; (14,14) -1.5; (14,15) -0.19; (15,15) 1.4; (15,16) -0.21; (16,16) -1.3])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+end
 
-@testset "larger QUBO" begin
-    function make_qubo_l()
-        qubo = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
-        qubo = vcat(qubo, [(5,5) 2.4; (5,6) -0.15; (5,9) -0.211; (6,6) -2.3; (6,7) -0.2; (6,10) -0.15; (7,7) 2.2; (7,8) -0.11; (7,11) -0.35; (8,8) -2.1; (8,12) -0.19])
-        qubo = vcat(qubo, [(9,9) 2.; (9,10) -0.222; (9,13) -0.15; (10,10) -1.9; (10,11) -0.28; (10,14) -0.21; (11,11) 1.8; (11,12) -0.19; (11,15) -0.18; (12,12) -1.7; (12,16) -0.27])
-        qubo = vcat(qubo, [(13,13) 1.6; (13,14) -0.32; (14,14) -1.5; (14,15) -0.19; (15,15) 1.4; (15,16) -0.21; (16,16) -1.3])
-        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-    end
-    l_qubo = make_qubo_l()
+@testset "larger system " begin
+
+    int_larger = make_interactions_large()
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
-    spins, objective = solve(l_qubo, ns, grid, 10; β = 3., χ = 2, threshold = 1e-11)
+    spins, objective = solve(int_larger, ns, grid, 10; β = 3., χ = 2, threshold = 1e-11)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
     M = [1 2;3 4]
@@ -501,21 +476,21 @@ end
 
     ns_large = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
 
-    spins_l, objective_l = solve(l_qubo, ns_large, M, 10; β = 3., χ = 2, threshold = 1e-11)
+    spins_l, objective_l = solve(int_larger, ns_large, M, 10; β = 3., χ = 2, threshold = 1e-11)
     for i in 1:10
         @test objective[i] ≈ objective_l[i]
         @test spins[i] == spins_l[i]
     end
 end
+function make_c2()
+    h = [(1,1) .0; (2,2) 1.; (3,3) 1.; (4,4) 1.; (5,5) 1.; (6,6) 1.; (7,7) 1.; (8,8) 1.]
+    J = vcat(h, [(1,2) 0.1; (1,4) 0.1; (2,3) 0.1; (3,4) 0.1])
+    J = vcat(J, [(5,6) 0.1; (5,8) 0.1; (6,7) 0.1; (7,8) 0.1])
+    J = vcat(J, [(1,5) 0.1; (3,7) 0.1])
+    [Interaction(J[i,1], J[i,2]) for i in 1:size(J, 1)]
+end
 
 @testset "solving simple chimera cell" begin
-    function make_c()
-        h = [(1,1) .0; (2,2) 1.; (3,3) 1.; (4,4) 1.; (5,5) 1.; (6,6) 1.; (7,7) 1.; (8,8) 1.]
-        J = vcat(h, [(1,2) 0.1; (1,4) 0.1; (2,3) 0.1; (3,4) 0.1])
-        J = vcat(J, [(5,6) 0.1; (5,8) 0.1; (6,7) 0.1; (7,8) 0.1])
-        J = vcat(J, [(1,5) 0.1; (3,7) 0.1])
-        [Qubo_el(J[i,1], J[i,2]) for i in 1:size(J, 1)]
-    end
 
     grid2 = Array{Array{Int}}(undef, (2,1))
     grid2[1,1] = [1 2;3 4]
@@ -523,7 +498,7 @@ end
     grid2 = Array{Array{Int}}(grid2)
     M = reshape([1;2], (2,1))
     ns = [Node_of_grid(i,M, grid2; chimera = true) for i in 1:2]
-    q = make_c()
+    q = make_c2()
 
     β = 1.
     ten = compute_single_tensor(ns, q, 1, β)

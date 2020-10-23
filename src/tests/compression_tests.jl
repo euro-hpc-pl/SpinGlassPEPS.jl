@@ -131,13 +131,13 @@
     mps_lc = left_canonical_approx([T1, T2, T3], 0)
     println("chi = 1")
     mps_anzatz = left_canonical_approx([T1, T2, T3], 1)
-    v1 = compress_mps_itterativelly(mps_lc, mps_anzatz, 1, 1e-14)
+    v1 = compress_mps_itterativelly(mps_lc, mps_anzatz, 1e-14)
     println("chi = 2")
     mps_anzatz = left_canonical_approx([T1, T2, T3], 2)
-    v2 = compress_mps_itterativelly(mps_lc, mps_anzatz, 2, 1e-14)
+    v2 = compress_mps_itterativelly(mps_lc, mps_anzatz, 1e-14)
     println("chi = 3")
     mps_anzatz = left_canonical_approx([T1, T2, T3], 3)
-    v3 = compress_mps_itterativelly(mps_lc, mps_anzatz, 3, 1e-14)
+    v3 = compress_mps_itterativelly(mps_lc, mps_anzatz, 1e-14)
 
     @test size(v3[2]) == (3,3,4)
     @test size(v2[2]) == (2,2,4)
@@ -184,7 +184,7 @@
 
         @time mps_anzatz = left_canonical_approx([T1, T2, T3], 3)
 
-        @time v3 = compress_mps_itterativelly(mps_lc, mps_anzatz, 3, tol)
+        @time v3 = compress_mps_itterativelly(mps_lc, mps_anzatz, tol)
 
         println("......")
 

@@ -16,6 +16,7 @@ catch
 end
 
 include("notation.jl")
+include("brute_force.jl")
 include("compression.jl")
 include("peps_no_types.jl")
 include("mps_implementation.jl")
@@ -26,3 +27,4 @@ include("tests/compression_tests.jl")
 include("tests/mps_tests.jl")
 include("tests/peps_tests.jl")
 include("tests/tests_on_data.jl")
+include("tests/tests_of_solvers.jl")

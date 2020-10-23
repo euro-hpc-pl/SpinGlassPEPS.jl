@@ -9,7 +9,6 @@ function get_connection_if_exists(i::Int, j::Int, k::Int, grid::Matrix{Int})
 end
 
 
-
 function enviroment(i::Int,j::Int,k::Int,grid)
     left = get_connection_if_exists(i, j, k-1, grid)
     right = get_connection_if_exists(i, j, k+1, grid)
@@ -24,26 +23,60 @@ function read_connecting_pairs(grid::Matrix{Int}, i::Int)
 end
 
 
-struct Qubo_el{T<:AbstractFloat}
+struct Interaction{T<:AbstractFloat}
     ind::Tuple{Int, Int}
     coupling::T
-    function(::Type{Qubo_el{T}})(ind::Tuple{Int, Int}, coupling::T1) where {T <: AbstractFloat, T1 <: AbstractFloat}
+    function(::Type{Interaction{T}})(ind::Tuple{Int, Int}, coupling::T1) where {T <: AbstractFloat, T1 <: AbstractFloat}
         new{T}(ind, T(coupling))
     end
-    function(::Type{Qubo_el})(ind::Tuple{Int, Int}, coupling::Float64)
+    function(::Type{Interaction})(ind::Tuple{Int, Int}, coupling::Float64)
         new{Float64}(ind, coupling)
     end
 end
 
-function matrix2qubo_vec(M::Matrix{T}) where T <:AbstractFloat
+function get_system_size(interactions::Vector{Interaction{T}}) where T <: AbstractFloat
+    size = 0
+    for q in interactions
+        size = maximum([size, q.ind[1], q.ind[2]])
+    end
+    size
+end
+
+"""
+    M2interactions(M::Matrix{T}) where T <:AbstractFloat
+
+Convert the interaction matrix (must be symmetric) to the vector
+of Interaction Type
+"""
+function M2interactions(M::Matrix{T}) where T <:AbstractFloat
+    interactions = Interaction{T}[]
     s = size(M)
-    q_vec = Qubo_el{T}[]
     for i in 1:s[1]
-        for j in 1:i
-            push!(q_vec, Qubo_el((i,j), M[i,j]))
+        for j in i:s[2]
+            if (M[i,j] != 0.) | (i == j)
+                x = M[i,j]
+                interaction = Interaction{T}((i,j), x)
+                push!(interactions, interaction)
+            end
         end
     end
-    q_vec
+    interactions
+end
+
+"""
+    interactions2M(ints::Vector{Interaction{T}}) where T <: AbstractFloat
+
+inverse to M2interactions(M::Matrix{T})
+"""
+
+function interactions2M(ints::Vector{Interaction{T}}) where T <: AbstractFloat
+    s = get_system_size(ints)
+    Mat = zeros(T,s,s)
+    for q in ints
+        (i,j) = q.ind
+        Mat[i,j] = Mat[j,i] = q.coupling
+    end
+    Mat
 end
 
 """
@@ -198,11 +231,11 @@ struct Node_of_grid
 
         new(i, spin_inds, intra_struct, left, right, up, down, connected_nodes, connected_spins)
     end
-    # construction from qubo directly, It will not check if qubo fits grid
-    function(::Type{Node_of_grid})(i::Int, qubos::Vector{Qubo_el{T}}) where T <: AbstractFloat
+    # construction from interactions directly, It will not check if interactions fits grid
+    function(::Type{Node_of_grid})(i::Int, interactionss::Vector{Interaction{T}}) where T <: AbstractFloat
         x = Vector{Int}[]
         connected_nodes = Int[]
-        for q in qubos
+        for q in interactionss
             if (q.ind[1] == i && q.ind[2] != i)
                 push!(connected_nodes, q.ind[2])
             end
@@ -218,13 +251,6 @@ struct Node_of_grid
     end
 end
 
-function get_system_size(qubo::Vector{Qubo_el{T}}) where T <: AbstractFloat
-    size = 0
-    for q in qubo
-        size = maximum([size, q.ind[1], q.ind[2]])
-    end
-    size
-end
 
 function get_system_size(ns::Vector{Node_of_grid})
     mapreduce(x -> length(x.spin_inds), +, ns)
@@ -290,15 +316,15 @@ function last_m_els(vector::Vector{Int}, m::Int)
 end
 
 """
-    JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
+    getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
 
-reades the coupling from the qubo, returns the number
+reades the coupling from the interactions, returns the number
 """
-function JfromQubo_el(qubo::Vector{Qubo_el{T}}, i::Int, j::Int) where T <: AbstractFloat
+function getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
     try
-        return filter(x->x.ind==(i,j), qubo)[1].coupling
+        return filter(x->x.ind==(i,j), interactions)[1].coupling
     catch
-        return filter(x->x.ind==(j,i), qubo)[1].coupling
+        return filter(x->x.ind==(j,i), interactions)[1].coupling
     end
 end
 

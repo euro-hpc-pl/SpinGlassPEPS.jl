@@ -1,9 +1,9 @@
 using TensorOperations
 
-function make_qubo_full()
-    qubo = [(1,1) 0.; (1,2) 0.; (1,3) 2.; (1,4) 0.; (1,5) 2.; (2,2) 0.; (2,3) 0.; (2,4) 2.]
-    qubo = vcat(qubo, [(2,5) 0.; (3,3) 0.; (3,4) 2.; (3,5) 0.; (4,4) 0.; (4,5) 0.; (5,5) 0.])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+function make_interactions_full()
+    J_h = [(1,1) 0.; (1,2) 0.; (1,3) 2.; (1,4) 0.; (1,5) 2.; (2,2) 0.; (2,3) 0.; (2,4) 2.]
+    J_h = vcat(J_h, [(2,5) 0.; (3,3) 0.; (3,4) 2.; (3,5) 0.; (4,4) 0.; (4,5) 0.; (5,5) 0.])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
 
 @testset "axiliary, testing grouping of connections" begin
@@ -48,9 +48,9 @@ end
     # 1 mps 1 (B) conected with 2 and 4 (C); and 5 (B) conected with 6 and 8
     # 2 mps 2 (B) conceted with 3 and 5; and 6 (B) conected with 9
 
-    q = make_qubo_full()
+    ints = make_interactions_full()
 
-    ns = [Node_of_grid(i, q) for i in 1:5]
+    ns = [Node_of_grid(i, ints) for i in 1:5]
     b_node, c_nodes = connections_for_mps(ns)
     @test b_node == [1,2,3,4]
     @test c_nodes == [[2,3,4,5], [3,4,5], [4,5], [5]]
@@ -89,14 +89,12 @@ end
     @test all_c_nodes == [[[2], [4]], [[3]], [[4]]]
 end
 
-function make_qubo()
-    qubo = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
-    qubo = vcat(qubo, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
-    qubo = vcat(qubo, [(7,7) 0.35; (7,8) 0.5; (8,8) -0.08; (8,9) -0.05; (9,9) 0.33])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+function make_interactions_case1()
+    J_h = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
+    J_h = vcat(J_h, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
+    J_h = vcat(J_h, [(7,7) 0.35; (7,8) 0.5; (8,8) -0.08; (8,9) -0.05; (9,9) 0.33])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
-
-
 
 
 function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractFloat
@@ -138,7 +136,7 @@ end
 
 @testset "MPS computing" begin
 
-    qubo =  make_qubo()
+    interactions =  make_interactions_case1()
 
     β = 2.
 
@@ -153,7 +151,7 @@ end
     is, js = connections_for_mps(ns)
     all_is, all_js = cluster_conncetions(is,js)
 
-    mps = construct_mps(qubo, β, 2, ns, all_is, all_js, 4, 0.)
+    mps = construct_mps(interactions, β, 2, ns, all_is, all_js, 4, 0.)
 
     grid = [1 2 3 ; 4 5 6; 7 8 9]
 
@@ -164,7 +162,7 @@ end
     for i in 1:3
         for j in 1:3
             k = k+1
-            M[i,j] = compute_single_tensor(ns, qubo, k, β)
+            M[i,j] = compute_single_tensor(ns, interactions, k, β)
         end
     end
     M = Matrix{Array{Float64, N} where N}(M)
@@ -192,7 +190,7 @@ end
 
     # approximation
 
-    mps_a = construct_mps(qubo, β, 3, ns, all_is, all_js, 2, 1.e-12)
+    mps_a = construct_mps(interactions, β, 3, ns, all_is, all_js, 2, 1.e-12)
     ps = sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
     pp = compute_probs(mps, [1,1])
 
@@ -210,23 +208,31 @@ end
 end
 
 
-function make_qubo(T::Type = Float64)
+function make_interactions_case2(T::Type = Float64)
     css = 2.
-    qubo = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
-    qubo = vcat(qubo, [(6,6) 0.; (6,5) -1.75; (6,9) 0.; (5,5) 0.75; (5,4) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
-    qubo = vcat(qubo, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
-    [Qubo_el{T}(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+    J_h = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
+    J_h = vcat(J_h, [(6,6) 0.; (6,5) -1.75; (6,9) 0.; (5,5) 0.75; (5,4) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
+    J_h = vcat(J_h, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
+    [Interaction{T}(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
 
-@testset "MPS - solving simple train problem" begin
+function make_interactions_case3()
+    css = 2.
+    J_h = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
+    J_h = vcat(J_h, [(6,6) 0.; (5,6) -1.75; (6,9) 0.; (5,5) 0.75; (4,5) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
+    J_h = vcat(J_h, [(7,7) 0.1; (7,8) 0.; (8,8) 0.1; (8,9) 0.; (9,9) 0.1])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+end
 
-    train_qubo = make_qubo()
+@testset "MPS - solving simple problem" begin
+
+    ints = make_interactions_case2()
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
-    ns = [Node_of_grid(i, train_qubo) for i in 1:get_system_size(train_qubo)]
+    ns = [Node_of_grid(i, ints) for i in 1:get_system_size(ints)]
 
-    spins, _ = solve_mps(train_qubo, ns, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
+    spins, _ = solve_mps(ints, ns, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     #ground
     @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
@@ -234,18 +240,11 @@ end
     #first
     @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
 
-    function make_qubo1()
-        css = 2.
-        qubo = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
-        qubo = vcat(qubo, [(6,6) 0.; (5,6) -1.75; (6,9) 0.; (5,5) 0.75; (4,5) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
-        qubo = vcat(qubo, [(7,7) 0.1; (7,8) 0.; (8,8) 0.1; (8,9) 0.; (9,9) 0.1])
-        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-    end
-    permuted_train_qubo = make_qubo1()
+    permuted_int = make_interactions_case3()
 
-    ns = [Node_of_grid(i, permuted_train_qubo) for i in 1:get_system_size(permuted_train_qubo)]
+    ns = [Node_of_grid(i, permuted_int) for i in 1:get_system_size(permuted_int)]
 
-    spins, objective = solve_mps(permuted_train_qubo, ns, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
+    spins, objective = solve_mps(permuted_int, ns, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
     @test objective[1] ≈ 0.30956452652382055
@@ -270,6 +269,7 @@ end
     @test objective[8] ≈ 0.09323904360231824
 end
 
+# it will be a test for larger cell tensors no mps when implemented
 if false
 @testset "on larger tensors" begin
     β = 2.
@@ -283,21 +283,23 @@ if false
     grid1 = Array{Array{Int}}(grid1)
 
     ns = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
-    q = make_qubo()
+    q = make_interactions_case2()
 
     solve_mps(q, ns, 2, β=β, β_step=2, χ = 10, threshold = 1e-12)
 end
 end
 
-@testset "MPS vs PEPS larger QUBO" begin
-    function make_qubo_l()
-        qubo = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
-        qubo = vcat(qubo, [(5,5) 2.4; (5,6) -0.15; (5,9) -0.211; (6,6) -2.3; (6,7) -0.2; (6,10) -0.15; (7,7) 2.2; (7,8) -0.11; (7,11) -0.35; (8,8) -2.1; (8,12) -0.19])
-        qubo = vcat(qubo, [(9,9) 2.; (9,10) -0.222; (9,13) -0.15; (10,10) -1.9; (10,11) -0.28; (10,14) -0.21; (11,11) 1.8; (11,12) -0.19; (11,15) -0.18; (12,12) -1.7; (12,16) -0.27])
-        qubo = vcat(qubo, [(13,13) 1.6; (13,14) -0.32; (14,14) -1.5; (14,15) -0.19; (15,15) 1.4; (15,16) -0.21; (16,16) -1.3])
-        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-    end
-    l_qubo = make_qubo_l()
+function make_interactions_larger()
+    J_h = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
+    J_h = vcat(J_h, [(5,5) 2.4; (5,6) -0.15; (5,9) -0.211; (6,6) -2.3; (6,7) -0.2; (6,10) -0.15; (7,7) 2.2; (7,8) -0.11; (7,11) -0.35; (8,8) -2.1; (8,12) -0.19])
+    J_h = vcat(J_h, [(9,9) 2.; (9,10) -0.222; (9,13) -0.15; (10,10) -1.9; (10,11) -0.28; (10,14) -0.21; (11,11) 1.8; (11,12) -0.19; (11,15) -0.18; (12,12) -1.7; (12,16) -0.27])
+    J_h = vcat(J_h, [(13,13) 1.6; (13,14) -0.32; (14,14) -1.5; (14,15) -0.19; (15,15) 1.4; (15,16) -0.21; (16,16) -1.3])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+end
+
+@testset "MPS vs PEPS larger system" begin
+
+    ints_larger = make_interactions_larger()
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
@@ -306,16 +308,16 @@ end
 
     println("number of β steps = ", β_step)
 
-    ns = [Node_of_grid(i, l_qubo) for i in 1:get_system_size(l_qubo)]
+    ns = [Node_of_grid(i, ints_larger) for i in 1:get_system_size(ints_larger)]
 
-    spins, _ = solve_mps(l_qubo, ns, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    spins, _ = solve_mps(ints_larger, ns, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_exact, _ = solve_mps(l_qubo, ns, 10; β=β, β_step=1, χ=12, threshold = 0.)
+    spins_exact, _ = solve_mps(ints_larger, ns, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
-    spins_peps, _ = solve(l_qubo, ns, grid, 10; β = β, χ = 2, threshold = 1e-12)
+    spins_peps, _ = solve(ints_larger, ns, grid, 10; β = β, χ = 2, threshold = 1e-12)
 
     for k in 1:10
         #testing exact
@@ -325,35 +327,34 @@ end
     end
 end
 
-@testset "MPS on fill graph" begin
-    function make_qubo_full()
-        qubo = [(1,1) 0.1; (1,2) 1.; (1,3) 1.; (1,4) 0.2; (2,2) -0.1; (2,3) 1.0; (2,4) 0.2]
-        qubo = vcat(qubo, [(3,3) 0.2; (3,4) 0.2; (4,4) -0.2])
-        [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
-    end
-    l_qubo = make_qubo_full()
+function make_interactions_full()
+    J_h = [(1,1) 0.1; (1,2) 1.; (1,3) 1.; (1,4) 0.2; (2,2) -0.1; (2,3) 1.0; (2,4) 0.2]
+    J_h = vcat(J_h, [(3,3) 0.2; (3,4) 0.2; (4,4) -0.2])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+end
+
+@testset "MPS on full graph" begin
+
+    ints_full = make_interactions_full()
 
     β = 0.5
     β_step = 2
 
     println("number of β steps = ", β_step)
 
-    ns = [Node_of_grid(i, l_qubo) for i in 1:get_system_size(l_qubo)]
+    ns = [Node_of_grid(i, ints_full) for i in 1:get_system_size(ints_full)]
 
-    spins, _ = solve_mps(l_qubo, ns, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    spins, _ = solve_mps(ints_full, ns, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @test spins == [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
 
+    #test if if just works on large graph 64 x 64
+    Random.seed!(1234)
     M = rand([-1.,-0.5,0.,0.5,1.], 64,64)
     M = M*(M')
-
-    q = matrix2qubo_vec(M)
-
+    q = M2interactions(M)
     ns = [Node_of_grid(i, q) for i in 1:get_system_size(q)]
 
-    @time s, _ = solve_mps(q, ns, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
-    println(s[1])
-    println(s[2])
-    println(s[3])
-    println(s[4])
+    @time s, _ = solve_mps(q, ns, 4; β=1., β_step=1, χ=6, threshold = 1.e-6)
+    @test length(s[1]) == 64
 end

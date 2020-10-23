@@ -4,7 +4,7 @@ using GenericLinearAlgebra
 
 
 """
-compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}}, i::Int, β::T)
+compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{Interaction{T}}, i::Int, β::T)
 
 Returns an tensor form which mpses and mpos are build, initialy tensor is 5 mode:
 
@@ -24,7 +24,7 @@ If tensor is expected to be on the bottom of the peps mode 4 is trivial and is r
 f(i::Int) = div((i-1), 2)+1
 
 
-function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}},
+function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{Interaction{T}},
                                                         i::Int, β::T) where T <: AbstractFloat
 
 
@@ -47,12 +47,12 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}
 
     for j in n.spin_inds
 
-        push!(h, JfromQubo_el(qubo, j,j))
+        push!(h, getJ(interactions, j,j))
 
         if j in [e[1] for e in n.left]
             #this [1] has to be changed for pegasus
             a = findall(x->x[1]==j, n.left)[1]
-            push!(Jil, JfromQubo_el(qubo, n.left[a]...))
+            push!(Jil, getJ(interactions, n.left[a]...))
 
             b = findall(x->x[1]==j, n.spin_inds)[1]
             push!(left, b)
@@ -70,7 +70,7 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}
 
         if j in [e[1] for e in n.up]
             a = findall(x->x[1]==j, n.up)[1]
-            push!(Jiu, JfromQubo_el(qubo, n.up[a]...))
+            push!(Jiu, getJ(interactions, n.up[a]...))
             b = findall(x->x[1]==j, n.spin_inds)[1]
             push!(up, b)
         end
@@ -99,7 +99,7 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, qubo::Vector{Qubo_el{T}
 
                 s1 = spins[5][a]
                 s2 = spins[5][b]
-                J = JfromQubo_el(qubo, pair[1], pair[2])
+                J = getJ(interactions, pair[1], pair[2])
                 hh = hh + 2*β*J*s1*s2
             end
         end
@@ -278,13 +278,13 @@ end
 
 
 function make_lower_mps(grid::Matrix{Int}, ns::Vector{Node_of_grid},
-                                           qubo::Vector{Qubo_el{T}}, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
+                                           interactions::Vector{Interaction{T}}, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
     s = size(grid,1)
     if k <= s
-        mps = [sum_over_last(compute_single_tensor(ns, qubo, j, β)) for j in grid[s,:]]
+        mps = [sum_over_last(compute_single_tensor(ns, interactions, j, β)) for j in grid[s,:]]
         for i in s-1:-1:k
 
-            mpo = [sum_over_last(compute_single_tensor(ns, qubo, j, β)) for j in grid[i,:]]
+            mpo = [sum_over_last(compute_single_tensor(ns, interactions, j, β)) for j in grid[i,:]]
             mps = MPSxMPO(mps, mpo)
         end
         if threshold == 0.
@@ -324,7 +324,7 @@ function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractF
 end
 
 
-function solve(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid}, grid::Matrix{Int},
+function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, grid::Matrix{Int},
                                         no_sols::Int = 2; β::T, χ::Int = 0,
                                         threshold::T = T(1e-14)) where T <: AbstractFloat
 
@@ -333,9 +333,9 @@ function solve(qubo::Vector{Qubo_el{T}}, ns::Vector{Node_of_grid}, grid::Matrix{
     for row in 1:s[1]
 
         #this may need to ge cashed
-        lower_mps = make_lower_mps(grid, ns, qubo, row + 1, β, χ, threshold)
+        lower_mps = make_lower_mps(grid, ns, interactions, row + 1, β, χ, threshold)
 
-        upper_mpo = [compute_single_tensor(ns, qubo, j, β) for j in grid[row,:]]
+        upper_mpo = [compute_single_tensor(ns, interactions, j, β) for j in grid[row,:]]
 
         for j in grid[row,:]
 

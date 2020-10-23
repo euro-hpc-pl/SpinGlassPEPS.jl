@@ -3,6 +3,7 @@ using Plots
 using Test
 
 include("../notation.jl")
+include("../brute_force.jl")
 include("../compression.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
@@ -27,22 +28,16 @@ file = "energies_and_matrix_only.npz"
     examples = 1
 end
 
+# the type can be changed if someone wishes
 T = Float64
 
 data = npzread("./data/"*file)
 println(file)
 
-function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
-    d =  diag(M)
-    M = M .- diagm(d)
-
-    transpose(v)*M*v + transpose(v)*d
-end
-
 
 for k in 1:examples
     println(" ..................... SAMPLE =  ", k, "  ...................")
-    QM = data["Js"][k,:,:]
+    QM = T.(data["Js"][k,:,:])
 
     states = 0
     try
@@ -52,30 +47,13 @@ for k in 1:examples
     end
     ens = data["energies"][k,:,:]
 
-    # TODO replace the function
-
-    function M2Qubbo_els(M::Matrix{Float64}, T::Type = Float64)
-        qubo = Qubo_el{T}[]
-        s = size(M)
-        for i in 1:s[1]
-            for j in i:s[2]
-                if (M[i,j] != 0.) | (i == j)
-                    x = T(M[i,j])
-                    q = Qubo_el{T}((i,j), x)
-                    push!(qubo, q)
-                end
-            end
-        end
-        qubo
-    end
-
-    qubo = M2Qubbo_els(QM, T)
+    interactions = M2interactions(QM)
 
     grid = [1 2 3 4 5; 6 7 8 9 10; 11 12 13 14 15; 16 17 18 19 20; 21 22 23 24 25]
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 
     print("peps time  = ")
-    @time spins, objective = solve(qubo, ns, grid, r*j; β = T(β), χ = 0, threshold = T(0.))
+    @time spins, objective = solve(interactions, ns, grid, r*j; β = T(β), χ = 0, threshold = T(0.))
 
     count = copy(j)
     for i in 1:j
@@ -99,7 +77,10 @@ for k in 1:examples
         println(" xxxxxxx Peps exact No. matching energies $(count), should be $j xxxxxxxx")
     end
 
-    if k == 1
+    # plotting spectrum if requires
+    plot_spectrum = false
+
+    if (k == 1) && plot_spectrum
         energies_exact = ens
 
         ps = exp.(-energies_exact*β)
@@ -115,7 +96,7 @@ for k in 1:examples
 
     χ = 2
     print("approx peps  ")
-    @time spins_a, objective_a = solve(qubo, ns, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
+    @time spins_a, objective_a = solve(interactions, ns, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
 
     count_a = copy(j)
     for i in 1:j
@@ -163,7 +144,7 @@ for k in 1:examples
     χ = 2
     print("peps larger T")
 
-    @time spins_l, objective_l = solve(qubo, ns_l, M, r*j; β = T(β), χ = χ, threshold = T(1e-10))
+    @time spins_l, objective_l = solve(interactions, ns_l, M, r*j; β = T(β), χ = χ, threshold = T(1e-10))
 
     count_l = copy(j)
     for i in 1:j
@@ -191,8 +172,8 @@ for k in 1:examples
     β_step = 2
 
     print("mps time  =  ")
-    ns = [Node_of_grid(i, qubo) for i in 1:get_system_size(qubo)]
-    @time spins_mps, objective_mps = solve_mps(qubo, ns, r*j; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
+    ns = [Node_of_grid(i, interactions) for i in 1:get_system_size(interactions)]
+    @time spins_mps, objective_mps = solve_mps(interactions, ns, r*j; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
 
     count_mps = copy(j)
     for i in 1:j

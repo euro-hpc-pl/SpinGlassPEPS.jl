@@ -178,47 +178,51 @@
 end
 
 
-function make_qubo0()
-    qubo = [(1,1) -0.2; (1,2) -0.5; (1,4) -1.5; (2,2) -0.6; (2,3) -1.5; (2,5) -0.5; (3,3) -0.2; (3,6) 1.5]
-    qubo = vcat(qubo, [(6,6) -2.2; (5,6) -0.25; (6,9) -0.52; (5,5) 0.2; (4,5) 0.5; (5,8) 0.5; (4,4) -2.2; (4,7) -0.01])
-    qubo = vcat(qubo, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
-    [Qubo_el(qubo[i,1], qubo[i,2]) for i in 1:size(qubo, 1)]
+function make_interactions()
+    J_h = [(1,1) -0.2; (1,2) -0.5; (1,4) -1.5; (2,2) -0.6; (2,3) -1.5; (2,5) -0.5; (3,3) -0.2; (3,6) 1.5]
+    J_h = vcat(J_h, [(6,6) -2.2; (5,6) -0.25; (6,9) -0.52; (5,5) 0.2; (4,5) 0.5; (5,8) 0.5; (4,4) -2.2; (4,7) -0.01])
+    J_h = vcat(J_h, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
+    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
 
-@testset "axiliary on qubo" begin
-    qubo = make_qubo0()
-    n = Node_of_grid(1, qubo)
+
+@testset "axiliary on interactions" begin
+    M = ones(2,2)
+    interactions = M2interactions(M)
+    @test interactions == Interaction{Float64}[Interaction{Float64}((1, 1), 1.0), Interaction{Float64}((1, 2), 1.0), Interaction{Float64}((2, 2), 1.0)]
+    @test interactions2M(interactions) == ones(2,2)
+
+    interactions = make_interactions()
+
+    n = Node_of_grid(1, interactions)
     @test n.connected_nodes == [2,4]
 
-    n = Node_of_grid(5, qubo)
+    n = Node_of_grid(5, interactions)
     @test n.connected_nodes == [2,6,4,8]
 
-    n = Node_of_grid(9, qubo)
+    n = Node_of_grid(9, interactions)
     @test n.connected_nodes == [6,8]
 
-    @test get_system_size(qubo) == 9
-
-    M = rand(10,10)
-    m = matrix2qubo_vec(M)
+    @test get_system_size(interactions) == 9
 
 end
 
 @testset "test notation" begin
 
-    @testset "Qubo_el type" begin
-        el = Qubo_el((1,2), 1.1)
+    @testset "Interaction type" begin
+        el = Interaction((1,2), 1.1)
         @test el.ind == (1,2)
         @test el.coupling == 1.1
 
-        el = Qubo_el{BigFloat}((1,2), 1.1)
+        el = Interaction{BigFloat}((1,2), 1.1)
         @test el.coupling == 1.1
         @test typeof(el.coupling) == BigFloat
 
-        qubo = make_qubo0()
+        interactions = make_interactions()
 
-        @test JfromQubo_el(qubo, 1,2) == -0.5
-        @test JfromQubo_el(qubo, 2,1) == -0.5
-        @test_throws BoundsError JfromQubo_el(qubo, 1,3)
+        @test getJ(interactions, 1,2) == -0.5
+        @test getJ(interactions, 2,1) == -0.5
+        @test_throws BoundsError getJ(interactions, 1,3)
     end
 
     @testset "operations on tensors" begin
@@ -268,6 +272,29 @@ end
         @test reindex(7, [1,2,3,4,5], [2,3]) == 4
         @test reindex(8, [1,2,3,4,5], [2,3]) == 4
         @test reindex(10, [1,2,3,4,5], [2,3]) == 1
-
     end
+end
+
+@testset "brute force testing" begin
+    M = ones(3,3)
+
+    v = [1,1,1]
+    @test -v2energy(M,v) == -9.
+
+    v = [-1,-1,-1]
+    @test -v2energy(M,v) == -3.
+
+    spins, energies = brute_force_solve(M, 2)
+    @test spins == [[1, 1, 1], [-1, -1, -1]]
+    @test energies == [-9.0, -3.0]
+
+    # first 2 spins must be 1 and others are tho noice
+    R = rand(9,9)
+    M = 0.01*R*transpose(R)
+    M[1,1] = M[1,2] = M[2,1] = M[2,2] = 2
+    spins, _ = brute_force_solve(M, 10)
+    for i in 1:10
+        @test spins[i][1:2] == [1,1]
+    end
+
 end
