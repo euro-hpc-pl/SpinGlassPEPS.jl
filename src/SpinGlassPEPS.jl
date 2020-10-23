@@ -25,6 +25,7 @@ module SpinGlassPEPS
                 # CUDA.allowscalar(false)
                 include("cuda/base.jl") 
                 include("cuda/contractions.jl")
+                include("cuda/compressions.jl")
             end
         end
     end

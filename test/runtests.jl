@@ -1,7 +1,7 @@
 using CUDA
 using SpinGlassPEPS
 using LinearAlgebra
-
+using TensorOperations
 
 using Test
 
@@ -9,7 +9,8 @@ my_tests = []
 if CUDA.functional() && CUDA.has_cutensor()# && false
     push!(my_tests,
     "cuda/base.jl",
-    "cuda/contractions.jl"
+    "cuda/contractions.jl",
+    "cuda/compressions.jl"
     )
 end
 

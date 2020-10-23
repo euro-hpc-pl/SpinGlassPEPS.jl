@@ -6,12 +6,12 @@ Dcut = 5
 d = 2
 sites = 5
 
-T = Float64
+T = Float32
 
-ψ = randn(MPS{T}, sites, D, d)
-ϕ = randn(MPS{T}, sites, D, d)
-χ = randn(MPS{T}, sites, D, d)
-Φ = randn(MPS{T}, sites, D, d)
+ψ = CUDA.randn(CuMPS{T}, sites, D, d)
+ϕ = CUDA.randn(CuMPS{T}, sites, D, d)
+χ = CUDA.randn(CuMPS{T}, sites, D, d)
+Φ = CUDA.randn(CuMPS{T}, sites, D, d)
 
 @testset "Canonisation (left)" begin
     canonise!(ψ, :left)  
@@ -22,7 +22,7 @@ T = Float64
         A = ψ[i]
         DD = size(A, 3)
 
-        @tensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
+        @cutensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
         is_left_normalized *= I(DD) ≈ Id
     end 
 
@@ -39,7 +39,7 @@ end
         B = ϕ[i]
         DD = size(B, 1)
 
-        @tensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
+        @cutensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
         is_right_normalized *= I(DD) ≈ Id
     end 
 
@@ -95,36 +95,4 @@ end
     println("dist(Φ, Ψ)^2 = ", dist2)
 end
 
-@testset "Compare with Krzysiek's implementation" begin
-    Dcut = 2
-    tol = 1E-4
-    max_sweeps = 5
-
-    canonise!(Φ, :right)
-    @test dot(Φ, Φ) ≈ 1 
-
-    Ψ = compress(Φ, Dcut, tol, max_sweeps)  
-
-    Φ_trunc = copy(Φ)
-    truncate!(Φ_trunc, :right, Dcut)
-
-    permuted_mps = map(x->permutedims(x, (1,3,2)), Φ.tensors)
-    # tensors = compress_mps_itterativelly(, Φ_trunc.tensors, Dcut, tol)
-    tensors = compress_iter(permuted_mps, Dcut, tol)
-    tensors = map(x->permutedims(x, (1,3,2)), tensors)
-    ξ = MPS(tensors)
-    # ξ.tensors = tensors
-     
-    @test dot(ξ, ξ) ≈ 1   
-
-    println("(ξ, ξ) = ", dot(ξ, ξ))
-
-    overlap = dot(Ψ, ξ)
-    dist1 = 2 - 2 * real(overlap)
-    dist2 = norm(Ψ)^2 + norm(ξ)^2 - 2 * real(overlap)
-
-    @test abs(dist1 - dist2) < 1e-14
-        
-    println("Krzysiek wins - flawless victory, fatality.")
-end
 end
