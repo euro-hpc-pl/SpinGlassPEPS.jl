@@ -3,7 +3,7 @@
 D = 10
 d = 3
 sites = 5
-T = Array{ComplexF64, 3}
+T = ComplexF64
 
 ψ = randn(MPS{T}, sites, D, d)
 ϕ = randn(MPS{T}, sites, D, d)

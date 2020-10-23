@@ -1,56 +1,53 @@
 using Base
 export bond_dimension
-
 for (T, N) in ((:MPO, 4), (:MPS, 3))
     @eval begin
         export $T
-
-        struct $T{T <: AbstractArray{<:Number, $N}}
-            tensors::Vector{T}
+        abstract type $(Symbol(:Abstract, T)) end
+        struct $T{T <: Number} <: $(Symbol(:Abstract, T))
+            tensors::Vector{Array{T, $N}}
         
-            function $T{T}(L::Int) where {T}
-                new(Vector{T}(undef, L))
-            end
-        
-            $T{T}(v::Vector{T}) where {T} = new(v)
+            # $T{T}(v::Vector{Array{T, 3}}) where {T} = new(v)
         end
         
         # consturctors
-        $T(::Type{T}, ::Type{S}, L::Int) where {T<:AbstractArray, S<:Number} = $T{T{S, $N}}(L)
+        # $T{T}(L::Int) where {T} = $T(Vector{Array{T, 3}}(undef, L))
+        $T(::Type{T}, L::Int) where {T} = $T(Vector{Array{T, $N}}(undef, L))
+        $T(L::Int) = $T(Float64, L)
 
-        Base.:(==)(ϕ::$T, ψ::$T) = ψ.tensors == ϕ.tensors
-        Base.:(≈)(ϕ::$T, ψ::$T)  = ψ.tensors ≈ ϕ.tensors
+        Base.:(==)(a::$T, b::$T) = a.tensors == b.tensors
+        Base.:(≈)(a::$T, b::$T)  = a.tensors ≈ b.tensors
 
-        Base.eltype(::Type{$T{T}}) where {T} = eltype(T)
+        Base.eltype(::Type{$T{T}}) where {T} = T
 
-        Base.getindex(ψ::$T, i::Int) = getindex(ψ.tensors, i)
-        Base.setindex!(ψ::$T, A::AbstractArray{<:Number, $N}, i::Int) = ψ.tensors[i] = A
-        Base.iterate(ψ::$T) = iterate(ψ.tensors)
-        Base.iterate(ψ::$T, state) = iterate(ψ.tensors, state)
-        Base.lastindex(ψ::$T) = lastindex(ψ.tensors)
+        Base.getindex(a::$T, i::Int) = getindex(a.tensors, i)
+        Base.setindex!(a::$T, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
+        Base.iterate(a::$T) = iterate(a.tensors)
+        Base.iterate(a::$T, state) = iterate(a.tensors, state)
+        Base.lastindex(a::$T) = lastindex(a.tensors)
 
-        Base.length(mps::$T) = length(mps.tensors)
-        Base.size(ψ::$T) = (length(ψ.tensors), )
+        Base.length(a::$T) = length(a.tensors)
+        Base.size(a::$T) = (length(a.tensors), )
 
-        Base.copy(ψ::$T{T}) where {T} = $T{T}(copy(ψ.tensors))
+        Base.copy(a::$T{T}) where {T} = $T{T}(copy(a.tensors))
 
-        bond_dimension(ψ::$T) = maixmum(size.(ψ.tensors, 3))
+        bond_dimension(a::$T) = maixmum(size.(a.tensors, $N))
     end
 end
 
 function MPS(vec::Vector{T}) where {T <: Number}
     L = length(vec)
-    ψ = MPS{T}(L)
+    ψ = MPS(L)
     for i ∈ 1:L
            A = reshape(vec[i], 1, :, 1)
         ψ[i] = copy(A)
     end    
 end
 
-function MPO(ψ::MPS{T}) where {T}
+function MPO(ψ::MPS)
     _verify_square(ψ)
     L = length(ψ)
-    O = MPO(T.name.wrapper, eltype(T), L)
+    O = MPO(eltype(ψ), L)
 
     for i ∈ 1:L
         A = ψ[i]
@@ -62,9 +59,9 @@ function MPO(ψ::MPS{T}) where {T}
     O
 end 
 
-function MPS(O::MPO{T}) where {T}
+function MPS(O::MPO)
     L = length(O)
-    ψ = MPS(T.name.wrapper, eltype(T), L)
+    ψ = MPS(eltype(O), L)
 
     for i ∈ 1:L
         W = O[i]
@@ -75,19 +72,17 @@ function MPS(O::MPO{T}) where {T}
 end  
 
 function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
-    ψ = MPS{T}(L)
-    S = eltype(T)
-    ψ[1] = randn(S, 1, d, D)
+    ψ = MPS(T, L)
+    ψ[1] = randn(T, 1, d, D)
     for i ∈ 2:(L-1)
-        ψ[i] = randn(S, D, d, D)
+        ψ[i] = randn(T, D, d, D)
     end
-    ψ[end] = randn(S, D, d, 1)
+    ψ[end] = randn(T, D, d, 1)
     return ψ
 end
 
 function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
-    S = newdim(T, 3)
-    ψ = randn(MPS{S}, L, D, d^2) 
+    ψ = randn(MPS{T}, L, D, d^2) 
     MPO(ψ)
 end
 

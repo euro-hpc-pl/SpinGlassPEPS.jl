@@ -23,7 +23,7 @@ using GraphPlot
         @test has_vertex(ig, i)
     end    
 
-    A = Matrix(Adjacency_matrix(ig))
+    A = Matrix{Float64}(adjacency_matrix(ig))
     println(A)
     #gplot(ig, nodelabel=1:L^2)
 end

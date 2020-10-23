@@ -4,7 +4,7 @@ using Test
 
 include("../notation.jl")
 include("../compression.jl")
-include("../peps.jl")
+include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 
 
@@ -52,6 +52,8 @@ for k in 1:examples
     end
     ens = data["energies"][k,:,:]
 
+    # TODO replace the function
+
     function M2Qubbo_els(M::Matrix{Float64}, T::Type = Float64)
         qubo = Qubo_el{T}[]
         s = size(M)
@@ -70,9 +72,10 @@ for k in 1:examples
     qubo = M2Qubbo_els(QM, T)
 
     grid = [1 2 3 4 5; 6 7 8 9 10; 11 12 13 14 15; 16 17 18 19 20; 21 22 23 24 25]
+    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 
     print("peps time  = ")
-    @time spins, objective = solve(qubo, grid, r*j; β = T(β), χ = 0, threshold = T(0.))
+    @time spins, objective = solve(qubo, ns, grid, r*j; β = T(β), χ = 0, threshold = T(0.))
 
     count = copy(j)
     for i in 1:j
@@ -111,8 +114,8 @@ for k in 1:examples
     end
 
     χ = 2
-    print("approx peps t")
-    @time spins_a, objective_a = solve(qubo, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
+    print("approx peps  ")
+    @time spins_a, objective_a = solve(qubo, ns, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
 
     count_a = copy(j)
     for i in 1:j
@@ -134,20 +137,62 @@ for k in 1:examples
     if count_a != j
         println("xxxxxxxx peps approx No. matching energies = $(count_a), should be $j xxxxxxxx")
     end
+    if true
+    count_a = 0
+    spins_a = 0
+
+    M = [1 2 3; 4 5 6; 7 8 9]
+    grid1 = Array{Array{Int}}(undef, (3,3))
+
+    grid1[1,1] = [1 2; 6 7]
+    grid1[1,2] = [3 4; 8 9]
+    grid1[1,3] = reshape([5; 10], (2,1))
+    grid1[2,1] = [11 12; 16 17]
+    grid1[2,2] = [13 14; 18 19]
+    grid1[2,3] = reshape([15; 20], (2,1))
+
+    grid1[3,1] = reshape([21; 22], (1,2))
+    grid1[3,2] = reshape([23; 24], (1,2))
+    grid1[3,3] = reshape([25], (1,1))
+
+    grid1 = Array{Array{Int}}(grid1)
+
+    ns_l = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+
+
+    χ = 2
+    print("peps larger T")
+
+    @time spins_l, objective_l = solve(qubo, ns_l, M, r*j; β = T(β), χ = χ, threshold = T(1e-10))
+
+    count_l = copy(j)
+    for i in 1:j
+
+        if !(v2energy(QM, spins_l[i]) ≈ -ens[i])
+            println("... pepse larger ...")
+            println("n.o. state = ", i)
+            println("energies (peps,bf)", (v2energy(QM, spins_l[i]), -ens[i]))
+            count_l = count_l - 1
+            try
+                println(Int.(states[i,:]))
+                println(spins_l[i])
+            catch
+                0
+            end
+        end
+    end
+
+    if count_l != j
+        println("xxxxxxxx peps larger_tensors matching energies = $(count_l), should be $j xxxxxxxx")
+    end
+    end
 
     χ = 10
     β_step = 2
 
-    is,js = connections_for_mps(Array(transpose(grid)))
-    all_is, all_js = cluster_conncetions(is,js)
-
-    #all_is = [[1,8,20], [3,10,17], [5,13], [2, 14], [4, 12, 18], [6, 22], [7,21], [11, 24]]
-
-    #all_js = [[[2,6],[7,9,13],[15,19,25]],[[2,4,8], [9,15], [16,18,22]], [[4,10],[12,14,18]]]
-    #all_js = vcat(all_js, [[[7], [9,15,19]], [[9], [11,17], [19,23]], [[7,11], [23]], [[12], [16,22]], [[16], [19,23,25]]])
-
     print("mps time  =  ")
-    @time spins_mps, objective_mps = solve_mps(qubo, grid, 25, r*j; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
+    ns = [Node_of_grid(i, qubo) for i in 1:get_system_size(qubo)]
+    @time spins_mps, objective_mps = solve_mps(qubo, ns, r*j; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
 
     count_mps = copy(j)
     for i in 1:j

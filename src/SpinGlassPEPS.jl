@@ -10,7 +10,7 @@ module SpinGlassPEPS
     include("base.jl")
     include("compressions.jl")
     include("contractions.jl")   
-    include("Ising.jl")
+    include("ising.jl")
     include("graph.jl")
     include("PEPS.jl")
     include("utils.jl")
