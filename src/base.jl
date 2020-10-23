@@ -1,3 +1,4 @@
+using Base
 export bond_dimension
 
 for (T, N) in ((:MPO, 4), (:MPS, 3))
@@ -37,11 +38,12 @@ for (T, N) in ((:MPO, 4), (:MPS, 3))
     end
 end
 
-function MPS(vec::Vector{<:Number})
+function MPS(vec::Vector{T}) where {T <: Number}
     L = length(vec)
-    ψ = MPS{}(L)
+    ψ = MPS{T}(L)
     for i ∈ 1:L
-        ψ[i] = reshape(copy(vec[i]), 1, :, 1)
+           A = reshape(vec[i], 1, :, 1)
+        ψ[i] = copy(A)
     end    
 end
 
