@@ -23,7 +23,8 @@ module SpinGlassPEPS
                 const CuMatrix = CUDA.CuMatrix
                 # scalar indexing is fine before 0.2
                 # CUDA.allowscalar(false)
-                include("cuda.jl") 
+                include("cuda/base.jl") 
+                include("cuda/contractions.jl")
             end
         end
     end

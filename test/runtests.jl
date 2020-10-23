@@ -1,22 +1,24 @@
-using SpinGlassPEPS
-
-using LinearAlgebra
 using CUDA
+using SpinGlassPEPS
+using LinearAlgebra
 
 
 using Test
 
-if CUDA.functional() && CUDA.has_cutensor() && false
-    include("cuda.jl")
+my_tests = []
+if CUDA.functional() && CUDA.has_cutensor()# && false
+    push!(my_tests,
+    "cuda/base.jl",
+    "cuda/contractions.jl"
+    )
 end
 
-my_tests = [
-    "MPS.jl",
-    "MPO.jl",
+push!(my_tests,
+    "base.jl",
     "contractions.jl",
     "compressions.jl",
     "ising.jl"
-            ]
+)
 for my_test in my_tests
     include(my_test)
 end
