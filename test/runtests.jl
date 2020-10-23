@@ -6,7 +6,7 @@ using TensorOperations
 using Test
 
 my_tests = []
-if CUDA.functional() && CUDA.has_cutensor()# && false
+if CUDA.functional() && CUDA.has_cutensor()
     push!(my_tests,
     "cuda/base.jl",
     "cuda/contractions.jl",

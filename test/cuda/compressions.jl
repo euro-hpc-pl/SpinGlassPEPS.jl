@@ -69,30 +69,30 @@ end
     @test dot(ψ, ψ) ≈ 1     
 end
 
-@testset "Variational compression" begin
-    Dcut = 5
-    tol = 1E-4
-    max_sweeps = 5
+# @testset "Variational compression" begin
+#     Dcut = 5
+#     tol = 1E-4
+#     max_sweeps = 5
 
-    canonise!(Φ, :right)
-    @test dot(Φ, Φ) ≈ 1 
+#     canonise!(Φ, :right)
+#     @test dot(Φ, Φ) ≈ 1 
 
-    Ψ = compress(Φ, Dcut, tol, max_sweeps)  
+#     Ψ = compress(Φ, Dcut, tol, max_sweeps)  
 
-    show(Ψ)
-    @test dot(Ψ, Ψ) ≈ 1    
+#     show(Ψ)
+#     @test dot(Ψ, Ψ) ≈ 1    
     
-    println("(Ψ, Ψ) = ", dot(Ψ, Ψ))
-    println("(Φ, Φ) = ", dot(Φ, Φ))
+#     println("(Ψ, Ψ) = ", dot(Ψ, Ψ))
+#     println("(Φ, Φ) = ", dot(Φ, Φ))
 
-    overlap = dot(Ψ, Φ)
-    dist1 = 2 - 2 * real(overlap)
-    dist2 = norm(Ψ)^2 + norm(Φ)^2 - 2 * real(overlap)
+#     overlap = dot(Ψ, Φ)
+#     dist1 = 2 - 2 * real(overlap)
+#     dist2 = norm(Ψ)^2 + norm(Φ)^2 - 2 * real(overlap)
 
-    @test abs(dist1 - dist2) < 1e-14
+#     @test abs(dist1 - dist2) < 1e-14
 
-    println("(Φ, Ψ) = ", overlap)
-    println("dist(Φ, Ψ)^2 = ", dist2)
-end
+#     println("(Φ, Ψ) = ", overlap)
+#     println("dist(Φ, Ψ)^2 = ", dist2)
+# end
 
 end

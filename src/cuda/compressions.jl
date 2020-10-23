@@ -3,18 +3,15 @@ function _right_sweep_SVD!(ψ::CuMPS, Dcut::Int=typemax(Int))
 
     for i ∈ 1:length(ψ)
         A = ψ[i]
-        C = Σ * V'
+        C = Diagonal(Σ) * V'
 
         # attach
         @cutensor M[x, σ, y] := C[x, α] * A[α, σ, y]
         @cast   M̃[(x, σ), y] |= M[x, σ, y]
         
         # decompose
-        U, Σ, V = CUDA.svd(M̃)
-        c = min(Dcut, size(U, 2))
-        U = U[:, 1:c]
-        Σ = Σ[1:c]
-        V = V'[:, 1:c]
+        U, Σ, V = _truncate_svd(CUDA.svd(M̃), Dcut)
+
         # create new    
         d = size(ψ[i], 2)
         @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
@@ -27,23 +24,29 @@ function _left_sweep_SVD!(ψ::CuMPS, Dcut::Int=typemax(Int))
 
     for i ∈ length(ψ):-1:1
         B = ψ[i]
-        C = U * Σ
+        C = U * Diagonal(Σ)
 
         # attach
         @cutensor M[x, σ, y]   := B[x, σ, α] * C[α, y]
         @cast   M̃[x, (σ, y)] |= M[x, σ, y]
 
         # decompose
-        U, Σ, V = CUDA.svd(M̃)
-        c = min(Dcut, size(U, 2))
-        U = U[:, 1:c]
-        Σ = Σ[1:c]
-        V = V'[:, 1:c]
+        U, Σ, V = _truncate_svd(CUDA.svd(M̃), Dcut)
+
         # create new 
         d = size(ψ[i], 2)
         @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
+end
+
+function _truncate_svd(F::CuSVD, Dcut::Int)
+    U, Σ, V = F
+    c = min(Dcut, size(U, 2))
+    U = U[:, 1:c]
+    Σ = Σ[1:c]
+    V = V[:, 1:c]
+    U, Σ, V
 end
 
 function _left_sweep_var!!(ϕ::CuMPS, env::Vector{<:CuMatrix}, ψ::CuMPS, Dcut::Int)
