@@ -11,7 +11,7 @@ function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int)
 end     
 
 function rq(M::AbstractMatrix, Dcut::Int) 
-    fact = pqrfact(:c, conj(M), rank=Dcut)
+    fact = pqrfact(:c, conj.(M), rank=Dcut)
     Q = fact[:Q]
     R = fact[:R]
     return _qr_fix!(Q, R)'
@@ -51,7 +51,7 @@ function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
         
         # decompose
         U, Σ, V = psvd(M̃, rank=Dcut)
-        
+
         # create new    
         d = size(ψ[i], 2)
         @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)

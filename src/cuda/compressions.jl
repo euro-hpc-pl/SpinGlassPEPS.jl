@@ -65,7 +65,7 @@ function _left_sweep_var!!(ϕ::CuMPS, env::Vector{<:CuMatrix}, ψ::CuMPS, Dcut::
         
         # right canonize it
         @cast MM[x, (σ, y)] |= M̃[x, σ, y]
-        Q = rq(MM, Dcut)
+        Q = _truncate_qr(CUDA.qr(MM'), Dcut)'
 
         d = size(M, 2)
         @cast B[x, σ, y] |= Q[x, (σ, y)] (σ:d)
@@ -95,7 +95,7 @@ function _right_sweep_var!!(ϕ::CuMPS, env::Vector{<:CuMatrix}, ψ::CuMPS, Dcut:
                    
         # left canonize it
         @cast B[(x, σ), y] |= M̃[x, σ, y]
-        Q = qr(B, Dcut)
+        Q = _truncate_qr(CUDA.qr(B), Dcut)
 
         d = size(ϕ[i], 2)
         @cast A[x, σ, y] |= Q[(x, σ), y] (σ:d)
@@ -108,4 +108,26 @@ function _right_sweep_var!!(ϕ::CuMPS, env::Vector{<:CuMatrix}, ψ::CuMPS, Dcut:
         env[i+1] = LL
     end
     return real(env[end][1])
+end
+
+function _truncate_qr(F::CuQR, Dcut::Int)
+    Q, R = F
+    Q = CuMatrix(Q)
+    @show typeof(Q)
+    @show typeof(R)
+    c = min(Dcut, size(Q, 2))
+    Q = Q[:, 1:c]
+    R = R[1:c, :]
+    @show typeof(Q)
+    @show typeof(R)
+    _qr_fix!(Q, R)
+end
+
+function _qr_fix!(Q::CuMatrix, R::CuMatrix)
+    d = diag(R)
+    ph = d./abs.(d)
+    for i = 1:length(ph)
+        Q[:, i] .*= ph[i]
+    end
+    Q
 end
