@@ -1,7 +1,6 @@
 using Random
 using Statistics
 
-if true
 @testset "mps on full graphs" begin
 
     @testset "L = 15 testing with brute force" begin
@@ -118,7 +117,7 @@ if true
         end
     end
 end
-end
+
 
 @testset "grid vs. brute force, testing wide spectrum" begin
 
@@ -143,7 +142,7 @@ end
         end
     end
 
-    sols = 50
+    sols = 10
     system_size = 24
     # sampler of random symmetric matrix
     Random.seed!(12)
@@ -159,13 +158,10 @@ end
     χ = 12
     β = 2.
 
-    spins_exact, objectives_exact = solve(interactions, ns, grid, sols; β=β, χ=0, threshold = 0.)
-    #println(spins_exact)
+    spins_exact, objectives_exact = solve(interactions, ns, grid, sols+10; β=β, χ=0, threshold = 0.)
 
-    spins_approx, objectives_approx = solve(interactions, ns, grid, sols; β=β, χ=χ, threshold = 1.e-12)
-    #println(spins_approx)
-
-    Mat = [1 2 3; 4 5 6]
+    spins_approx, objectives_approx = solve(interactions, ns, grid, sols+10; β=β, χ=χ, threshold = 1.e-12)
+    indexing = [1 2 3; 4 5 6]
     grid1 = Array{Array{Int}}(undef, (2,3))
 
     grid1[1,1] = [1 2; 7 8]
@@ -175,12 +171,12 @@ end
     grid1[2,2] = [15 16; 21 22]
     grid1[2,3] = [17 18; 23 24]
     grid1 = Array{Array{Int}}(grid1)
-    ns_l = [Node_of_grid(i, Mat, grid1) for i in 1:maximum(Mat)]
+    ns_l = [Node_of_grid(i, indexing, grid1) for i in 1:maximum(indexing)]
 
-    spins_l, objectives_l = solve(interactions, ns_l, Mat, sols; β=β, χ=χ, threshold = 1.e-12)
+    spins_l, objectives_l = solve(interactions, ns_l, indexing, sols+10; β=β, χ=χ, threshold = 1.e-12)
 
-    β_step = 2
-    spins_mps, objectives_mps = solve_mps(interactions, ns, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+    β_step = 4
+    spins_mps, objectives_mps = solve_mps(interactions, ns, sols+25; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     # sorting according to energies improve outcome
     energies_mps = [-v2energy(M, spins) for spins in spins_mps]
@@ -189,9 +185,9 @@ end
 
     spins_brute, energies_brute = brute_force_solve(M, sols)
 
-    @test spins_exact[1:40] == spins_approx[1:40]
-    @test spins_approx[1:40] == spins_l[1:40]
-    @test spins_l[1:40] == spins_mps[1:40]
-    @test spins_mps[1:40] == spins_brute[1:40]
+    @test spins_exact[1:sols] == spins_approx[1:sols]
+    @test spins_approx[1:sols] == spins_l[1:sols]
+    @test spins_l[1:sols] == spins_mps[1:sols]
+    @test spins_mps[1:sols] == spins_brute[1:sols]
 
 end
