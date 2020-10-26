@@ -1,6 +1,7 @@
 using NPZ
 using Plots
 using Test
+using ArgParse
 
 include("../notation.jl")
 include("../brute_force.jl")
@@ -9,200 +10,193 @@ include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 
 
+s = ArgParseSettings("description")
+  @add_arg_table! s begin
+    "file"
+    help = "the file name"
+    arg_type = String
+  end
+file = parse_args(s)["file"]
+println(file)
+
+data = npzread(file)
+number_of_all_states = length(data["energies"][1,:])
+examples = length(data["energies"][:,1])
+println("examples = ", examples)
+
+
 β = 3.
-file = "examples.npz"
-j = 10
-examples = 100
-# calculates r-times more solutions to avoid the droplet problem
-r=2
+
+number_of_states = 10
+#examples = 100
+more_states_for_mps = 2
+#degeneracy = false
+if number_of_all_states > 150
+    number_of_states = 150
+    more_states_for_mps = 20
+end
 
 if false
-    file = "examples2.npz"
-    j = 10
+if occursin("examples.npz", file)
+    number_of_states = 10
+    more_states_for_mps = 0
+    examples = 100
+    # here only energies will be tested
+    println("degeneracy")
+    #degeneracy = true
+end
+
+
+if occursin("examples2.npz", file)
+    number_of_states = 10
+    more_states_for_mps = 0
     examples = 100
 end
 
-if false
-file = "energies_and_matrix_only.npz"
-    j = 25
+if occursin("energies_and_matrix_only.npz", file)
+    number_of_states = 150
+    more_states_for_mps = 20
     examples = 1
 end
 
-if true
-file = "examples_full_L=6.npz"
-    j = 25
+if occursin("examples_full_L=6.npz", file)
+    number_of_states = 150
+    more_states_for_mps = 20
     examples = 1
 end
+end
 
-# the type can be changed if someone wishes
+# the type of data can be changed if someone wishes
 T = Float64
 
-data = npzread("./data/"*file)
-println(file)
-
-
 for k in 1:examples
+
     println(" ..................... SAMPLE =  ", k, "  ...................")
     QM = T.(data["Js"][k,:,:])
+    degeneracy = (0. in diag(QM))
+    println(degeneracy)
 
-    states = 0
+    states_given = 0
     try
-        states = data["states"][k,:,:]
+        if !degeneracy
+            states_given = data["states"][k,:,:]
+        end
     catch
         0
     end
-    ens = data["energies"][k,:,:]
+
+
+    energies_given = data["energies"][k,:,:]
 
     interactions = M2interactions(QM)
 
-    grid = [1 2 3 4 5; 6 7 8 9 10; 11 12 13 14 15; 16 17 18 19 20; 21 22 23 24 25]
+    grid = nxmgrid(5,5)
+    if size(QM, 1) == 36
+        grid = nxmgrid(6,6)
+    end
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 
+    ################ exact method ###################
+
     print("peps time  = ")
-    @time spins, objective = solve(interactions, ns, grid, r*j; β = T(β), χ = 0, threshold = T(0.))
+    @time spins, objective = solve(interactions, ns, grid, number_of_states ; β = T(β), χ = 0, threshold = T(0.))
 
-    count = copy(j)
-    for i in 1:j
+    for i in 1:number_of_states
 
-        if !(v2energy(QM, spins[i]) ≈ -ens[i])
-            println("... peps exact ...")
-            println("n.o. state = ", i)
-            println("energies (peps, bf)", (v2energy(QM, spins[i]), -ens[i]))
-            count = count - 1
+        @test v2energy(QM, spins[i]) ≈ -energies_given[i]
 
-            try
-                println(Int.(states[i,:]))
-                println(spins[i])
-            catch
-                0
-            end
+        if states_given != 0
+            @test states_given[i,:] == spins[i]
         end
     end
 
-    if count != j
-        println(" xxxxxxx Peps exact No. matching energies $(count), should be $j xxxxxxxx")
-    end
-
-    # plotting spectrum if requires
-    plot_spectrum = false
-
-    if (k == 1) && plot_spectrum
-        energies_exact = ens
-
-        ps = exp.(-energies_exact*β)
-
-        y = [v2energy(QM, spins[i]) for i in 1:j]
-        y = exp.(y*β)
-        p_theoretical = ps./sum(ps)
-        A = [p_theoretical, y./sum(y), objective]
-
-        plot(A, label = ["bf" "peps M" "peps"], yaxis = :log)
-        savefig("./pics/$(file)_$(k)_myplot.pdf")
-    end
-
+    ############### approximated methods  ################
     χ = 2
     print("approx peps  ")
-    @time spins_a, objective_a = solve(interactions, ns, grid, r*j; β = T(β), χ = χ, threshold = T(1e-10))
 
-    count_a = copy(j)
-    for i in 1:j
+    @time spins_approx, objective_approx = solve(interactions, ns, grid, number_of_states; β = T(β), χ = χ, threshold = T(1e-12))
 
-        if !(v2energy(QM, spins_a[i]) ≈ -ens[i])
-            println("... pepse approx ...")
-            println("n.o. state = ", i)
-            println("energies (peps,bf)", (v2energy(QM, spins_a[i]), -ens[i]))
-            count_a = count_a - 1
-            try
-                println(Int.(states[i,:]))
-                println(spins_a[i])
-            catch
-                0
-            end
+    for i in 1:number_of_states
+
+        @test v2energy(QM, spins_approx[i]) ≈ -energies_given[i]
+
+        if states_given != 0
+            @test states_given[i,:] == spins_approx[i]
         end
     end
 
-    if count_a != j
-        println("xxxxxxxx peps approx No. matching energies = $(count_a), should be $j xxxxxxxx")
+    @test objective ≈ objective_approx atol = 1.e-10
+
+    nodes_numbers = nxmgrid(3,3)
+
+    grid = Array{Array{Int}}(undef, (3,3))
+    grid[1,1] = [1 2; 6 7]
+    grid[1,2] = [3 4; 8 9]
+    grid[1,3] = reshape([5; 10], (2,1))
+    grid[2,1] = [11 12; 16 17]
+    grid[2,2] = [13 14; 18 19]
+    grid[2,3] = reshape([15; 20], (2,1))
+    grid[3,1] = reshape([21; 22], (1,2))
+    grid[3,2] = reshape([23; 24], (1,2))
+    grid[3,3] = reshape([25], (1,1))
+
+    if size(QM, 1) == 36
+        grid[1,1] = [1 2; 7 8]
+        grid[1,2] = [3 4; 9 10]
+        grid[1,3] = [5 6; 11 12]
+        grid[2,1] = [13 14; 19 20]
+        grid[2,2] = [15 16; 21 22]
+        grid[2,3] = [17 18; 23 24]
+        grid[3,1] = [25 26; 31 32]
+        grid[3,2] = [27 28; 33 34]
+        grid[3,3] = [29 30; 35 36]
     end
-    if true
-    count_a = 0
-    spins_a = 0
 
-    M = [1 2 3; 4 5 6; 7 8 9]
-    grid1 = Array{Array{Int}}(undef, (3,3))
+    grid = Array{Array{Int}}(grid)
 
-    grid1[1,1] = [1 2; 6 7]
-    grid1[1,2] = [3 4; 8 9]
-    grid1[1,3] = reshape([5; 10], (2,1))
-    grid1[2,1] = [11 12; 16 17]
-    grid1[2,2] = [13 14; 18 19]
-    grid1[2,3] = reshape([15; 20], (2,1))
+    ns_l = [Node_of_grid(i, nodes_numbers, grid) for i in 1:9]
 
-    grid1[3,1] = reshape([21; 22], (1,2))
-    grid1[3,2] = reshape([23; 24], (1,2))
-    grid1[3,3] = reshape([25], (1,1))
-
-    grid1 = Array{Array{Int}}(grid1)
-
-    ns_l = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
-
-
-    χ = 2
     print("peps larger T")
 
-    @time spins_l, objective_l = solve(interactions, ns_l, M, r*j; β = T(β), χ = χ, threshold = T(1e-10))
+    @time spins_larger_nodes, objective_larger_nodes = solve(interactions, ns_l, nodes_numbers, number_of_states; β = T(β), χ = χ, threshold = T(1e-12))
 
-    count_l = copy(j)
-    for i in 1:j
+    for i in 1:number_of_states
 
-        if !(v2energy(QM, spins_l[i]) ≈ -ens[i])
-            println("... pepse larger ...")
-            println("n.o. state = ", i)
-            println("energies (peps,bf)", (v2energy(QM, spins_l[i]), -ens[i]))
-            count_l = count_l - 1
-            try
-                println(Int.(states[i,:]))
-                println(spins_l[i])
-            catch
-                0
-            end
+        @test v2energy(QM, spins_larger_nodes[i]) ≈ -energies_given[i]
+
+        if states_given != 0
+            @test states_given[i,:] == spins_larger_nodes[i]
         end
     end
 
-    if count_l != j
-        println("xxxxxxxx peps larger_tensors matching energies = $(count_l), should be $j xxxxxxxx")
-    end
-    end
+    @test objective ≈ objective_larger_nodes atol = 1.e-10
 
-    χ = 10
-    β_step = 2
+    ############ MPO - MPS #########
+    χ = 14
+
+    β_step = 4
 
     print("mps time  =  ")
     ns = [Node_of_grid(i, interactions) for i in 1:get_system_size(interactions)]
-    @time spins_mps, objective_mps = solve_mps(interactions, ns, r*j; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
 
-    count_mps = copy(j)
-    for i in 1:j
+    number = number_of_states + more_states_for_mps
+    @time spins_mps, objective_mps = solve_mps(interactions, ns, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
-        if !(v2energy(QM, spins_mps[i]) ≈ -ens[i])
-            println(".... mps .....")
-            println("n.o. state = ", i)
-            println("energies (mps,bf)", (v2energy(QM, spins_mps[i]), -ens[i]))
-            count_mps = count_mps - 1
-            try
-                println( Int.(states[i,:]))
-                println(spins_mps[i])
-            catch
-                0
-            end
+    # sorting improves the oputput
+    energies_mps = [-v2energy(QM, spins) for spins in spins_mps]
+    p = sortperm(energies_mps)
+
+    spins_mps = spins_mps[p]
+    energies_mps = energies_mps[p]
+
+    for i in 1:number_of_states
+
+        @test v2energy(QM, spins_mps[i]) ≈ -energies_given[i]
+
+        if states_given != 0
+            @test states_given[i,:] == spins_mps[i]
         end
     end
-
-    if count_mps != j
-        println("xxxxxxxxx  mps No. matching energies = $(count_mps), should be $j xxxxxxxxxxx")
-    end
-
-    println("peps, approx error = ", maximum(abs.(objective .- objective_a)))
 
 
 end

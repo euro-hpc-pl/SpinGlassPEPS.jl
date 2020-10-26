@@ -2,6 +2,8 @@
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
+    @test nxmgrid(3,3) == grid
+
     n = Node_of_grid(3, grid)
     @test n.i == 3
     @test n.spin_inds == [3]

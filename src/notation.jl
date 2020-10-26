@@ -1,5 +1,15 @@
 using TensorOperations
 
+function nxmgrid(n::Int, m::Int)
+    grid = zeros(Int, n, m)
+    for i in 1:m
+       for j in 1:n
+           grid[j,i] = i+m*(j-1)
+       end
+   end
+   grid
+end
+
 function get_connection_if_exists(i::Int, j::Int, k::Int, grid::Matrix{Int})
     try
         return [[i, grid[j, k]]]
