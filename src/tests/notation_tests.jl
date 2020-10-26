@@ -122,6 +122,10 @@
 
     # chimera node 2 x 2
 
+    @test chimera_cell(1,1,512) == [1 5; 2 6; 3 7; 4 8]
+    @test chimera_cell(1,2,512) == [9 13; 10 14; 11 15; 12 16]
+    @test chimera_cell(2,1,512) == [65 69; 66 70; 67 71; 68 72]
+
     grid = Array{Array{Int}}(undef, (1,1))
     grid[1,1] = [1 2;3 4]
     grid = Array{Array{Int}}(grid)

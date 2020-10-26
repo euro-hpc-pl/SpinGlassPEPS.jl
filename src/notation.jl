@@ -10,6 +10,15 @@ function nxmgrid(n::Int, m::Int)
    grid
 end
 
+function chimera_cell(i::Int, j::Int, size::Int)
+    size = Int(sqrt(size/8))
+    ofset = 8*(j-1)+8*size*(i-1)
+    cel = zeros(Int, 4, 2)
+    cel[:,1] = [k+ofset for k in 1:4]
+    cel[:,2] = [k+ofset for k in 5:8]
+    cel
+end
+
 function get_connection_if_exists(i::Int, j::Int, k::Int, grid::Matrix{Int})
     try
         return [[i, grid[j, k]]]

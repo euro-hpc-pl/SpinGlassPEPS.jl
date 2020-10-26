@@ -25,46 +25,18 @@ examples = length(data["energies"][:,1])
 println("examples = ", examples)
 
 
-β = 3.
+β = 4.
 
 number_of_states = 10
-#examples = 100
-more_states_for_mps = 2
-#degeneracy = false
+
+more_states_for_peps = 2
+more_states_for_mps = 10
+
 if number_of_all_states > 150
     number_of_states = 150
     more_states_for_mps = 20
 end
 
-if false
-if occursin("examples.npz", file)
-    number_of_states = 10
-    more_states_for_mps = 0
-    examples = 100
-    # here only energies will be tested
-    println("degeneracy")
-    #degeneracy = true
-end
-
-
-if occursin("examples2.npz", file)
-    number_of_states = 10
-    more_states_for_mps = 0
-    examples = 100
-end
-
-if occursin("energies_and_matrix_only.npz", file)
-    number_of_states = 150
-    more_states_for_mps = 20
-    examples = 1
-end
-
-if occursin("examples_full_L=6.npz", file)
-    number_of_states = 150
-    more_states_for_mps = 20
-    examples = 1
-end
-end
 
 # the type of data can be changed if someone wishes
 T = Float64
@@ -72,9 +44,8 @@ T = Float64
 for k in 1:examples
 
     println(" ..................... SAMPLE =  ", k, "  ...................")
-    QM = T.(data["Js"][k,:,:])
-    degeneracy = (0. in diag(QM))
-    println(degeneracy)
+    Mat_of_interactions = T.(data["Js"][k,:,:])
+    degeneracy = (0. in diag(Mat_of_interactions))
 
     states_given = 0
     try
@@ -88,22 +59,21 @@ for k in 1:examples
 
     energies_given = data["energies"][k,:,:]
 
-    interactions = M2interactions(QM)
+    interactions = M2interactions(Mat_of_interactions)
 
-    grid = nxmgrid(5,5)
-    if size(QM, 1) == 36
-        grid = nxmgrid(6,6)
-    end
+    s = Int(sqrt(size(Mat_of_interactions, 1)))
+    grid = nxmgrid(s,s)
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 
     ################ exact method ###################
 
     print("peps time  = ")
-    @time spins, objective = solve(interactions, ns, grid, number_of_states ; β = T(β), χ = 0, threshold = T(0.))
+    number = number_of_states + more_states_for_peps
+    @time spins, objective = solve(interactions, ns, grid, number ; β = T(β), χ = 0, threshold = T(0.))
 
     for i in 1:number_of_states
 
-        @test v2energy(QM, spins[i]) ≈ -energies_given[i]
+        @test v2energy(Mat_of_interactions, spins[i]) ≈ -energies_given[i]
 
         if states_given != 0
             @test states_given[i,:] == spins[i]
@@ -114,18 +84,19 @@ for k in 1:examples
     χ = 2
     print("approx peps  ")
 
-    @time spins_approx, objective_approx = solve(interactions, ns, grid, number_of_states; β = T(β), χ = χ, threshold = T(1e-12))
+    number = number_of_states + more_states_for_peps
+    @time spins_approx, objective_approx = solve(interactions, ns, grid, number; β = T(β), χ = χ, threshold = T(1e-12))
 
     for i in 1:number_of_states
 
-        @test v2energy(QM, spins_approx[i]) ≈ -energies_given[i]
+        @test v2energy(Mat_of_interactions, spins_approx[i]) ≈ -energies_given[i]
 
         if states_given != 0
             @test states_given[i,:] == spins_approx[i]
         end
     end
 
-    @test objective ≈ objective_approx atol = 1.e-10
+    @test objective ≈ objective_approx atol = 1.e-7
 
     nodes_numbers = nxmgrid(3,3)
 
@@ -140,7 +111,7 @@ for k in 1:examples
     grid[3,2] = reshape([23; 24], (1,2))
     grid[3,3] = reshape([25], (1,1))
 
-    if size(QM, 1) == 36
+    if size(Mat_of_interactions, 1) == 36
         grid[1,1] = [1 2; 7 8]
         grid[1,2] = [3 4; 9 10]
         grid[1,3] = [5 6; 11 12]
@@ -157,19 +128,19 @@ for k in 1:examples
     ns_l = [Node_of_grid(i, nodes_numbers, grid) for i in 1:9]
 
     print("peps larger T")
-
-    @time spins_larger_nodes, objective_larger_nodes = solve(interactions, ns_l, nodes_numbers, number_of_states; β = T(β), χ = χ, threshold = T(1e-12))
+    number = number_of_states + more_states_for_peps
+    @time spins_larger_nodes, objective_larger_nodes = solve(interactions, ns_l, nodes_numbers, number; β = T(β), χ = χ, threshold = T(1e-12))
 
     for i in 1:number_of_states
 
-        @test v2energy(QM, spins_larger_nodes[i]) ≈ -energies_given[i]
+        @test v2energy(Mat_of_interactions, spins_larger_nodes[i]) ≈ -energies_given[i]
 
         if states_given != 0
             @test states_given[i,:] == spins_larger_nodes[i]
         end
     end
 
-    @test objective ≈ objective_larger_nodes atol = 1.e-10
+    @test objective ≈ objective_larger_nodes atol = 1.e-7
 
     ############ MPO - MPS #########
     χ = 14
@@ -183,7 +154,7 @@ for k in 1:examples
     @time spins_mps, objective_mps = solve_mps(interactions, ns, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     # sorting improves the oputput
-    energies_mps = [-v2energy(QM, spins) for spins in spins_mps]
+    energies_mps = [-v2energy(Mat_of_interactions, spins) for spins in spins_mps]
     p = sortperm(energies_mps)
 
     spins_mps = spins_mps[p]
@@ -191,7 +162,7 @@ for k in 1:examples
 
     for i in 1:number_of_states
 
-        @test v2energy(QM, spins_mps[i]) ≈ -energies_given[i]
+        @test v2energy(Mat_of_interactions, spins_mps[i]) ≈ -energies_given[i]
 
         if states_given != 0
             @test states_given[i,:] == spins_mps[i]
