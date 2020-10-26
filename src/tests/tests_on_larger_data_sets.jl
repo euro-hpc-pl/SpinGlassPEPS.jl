@@ -28,6 +28,12 @@ file = "energies_and_matrix_only.npz"
     examples = 1
 end
 
+if true
+file = "examples_full_L=6.npz"
+    j = 25
+    examples = 1
+end
+
 # the type can be changed if someone wishes
 T = Float64
 
