@@ -1,4 +1,4 @@
-.cov
+*.cov
 .vscode
 .ipynb_checkpoints
 *.npz
