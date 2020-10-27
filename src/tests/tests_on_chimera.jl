@@ -8,10 +8,10 @@ include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 
 
-folder = "./data/chimera512_spinglass_power/"
-file = "001.txt"
+folder = "./data/chimera128_spinglass_power/"
+file = "002.txt"
 file = folder*file
-problem_size = 512
+problem_size = 128
 
 head = split.(readlines(open(file))[1:1])
 println(head)

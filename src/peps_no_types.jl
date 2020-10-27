@@ -117,17 +117,20 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
             end
         end
 
-        r = 1.
+        # dirac delta implementation
+        r = true
         if length(right) > 0
-            r = T(spins[2] == all_spins[right])
+            r = (spins[2] == all_spins[right])
         end
 
-        d = 1.
+        d = true
         if length(down) > 0
-            d = T(spins[4] == all_spins[down])
+            d = (spins[4] == all_spins[down])
         end
 
-        @inbounds tensor[k] = r*d*exp(β*2*(J1+J2)+hh)
+        if (d && r)
+            @inbounds tensor[k] = exp(β*2*(J1+J2)+hh)
+        end
 
     end
 
