@@ -11,7 +11,7 @@ function brute_force_solve(M::Matrix{T}, sols::Int) where T <: AbstractFloat
     all_spins = Vector{Int}[]
     energies = Float64[]
     for i in 1:2^s
-        spins = ind2spin(i, 2^s)
+        spins = ind2spin(i, s)
         push!(all_spins, spins)
         energy = -v2energy(M, spins)
         push!(energies, energy)

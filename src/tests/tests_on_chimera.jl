@@ -1,3 +1,6 @@
+using Distributed
+#addprocs(1)
+
 include("../notation.jl")
 include("../brute_force.jl")
 include("../compression.jl")
@@ -14,6 +17,7 @@ head = split.(readlines(open(file))[1:1])
 println(head)
 # reading data from txt
 data = (x-> Array{Any}([parse(Int, x[1]), parse(Int, x[2]), parse(Float64, x[3])])).(split.(readlines(open(file))[2:end]))
+
 
 function make_interactions(data::Array{Array{Any,1},1})
     interactions = Interaction{Float64}[]
@@ -42,11 +46,14 @@ end
 ns = [Node_of_grid(i,nodes_numbers, grid; chimera = true) for i in 1:(n*n)]
 
 β = 2.
-χ = 5
+χ = 50
 
-spins, objective = solve(interactions, ns, nodes_numbers, 2; β=β, χ = χ, threshold = 1e-12)
+spins, objective = solve(interactions, ns, nodes_numbers, 2; β=β, χ = χ, threshold = 1e-8)
+
+energies = [v2energy(M, s) for s in spins]
 
 println(objective)
+println(spins)
+println(energies)
 
-println(spins[1])
-println(spins[2])
+npzwrite(folder*file[1:3]*"output.npz", Dict("spins" => spins, "objective" => objective, "energies" => energies))

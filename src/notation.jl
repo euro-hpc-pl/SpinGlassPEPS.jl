@@ -352,12 +352,11 @@ end
 
 return a spin from the physical index, if size is 1, returns zero.
 """
-function ind2spin(i::Int, size::Int = 2)
-    if size == 1
+function ind2spin(i::Int, size::Int = 1)
+    if size == 0
         return [0]
     else
-        s = [2^i for i in 1:ceil(Int, log(2, size))]
-
+        s = [2^i for i in 1:size]
         return [1-2*Int((i-1)%j < j/2) for j in s]
     end
 end

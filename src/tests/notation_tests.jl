@@ -247,28 +247,28 @@ end
     @testset "axiliary" begin
         @test last_m_els([1,2,3,4], 2) == [3,4]
         @test last_m_els([1,2,3,4], 5) == [1,2,3,4]
-        @test ind2spin(1,2) == [-1]
-        @test ind2spin(2,2) == [1]
-        @test ind2spin(1,1)[1] == 0
+        @test ind2spin(1,1) == [-1]
+        @test ind2spin(2,1) == [1]
+        @test ind2spin(1,0)[1] == 0
 
-        @test ind2spin(1, 16) == [-1,-1,-1,-1]
-        @test ind2spin(2, 16) == [1,-1,-1,-1]
-        @test ind2spin(3, 16) == [-1,1,-1,-1]
+        @test ind2spin(1, 4) == [-1,-1,-1,-1]
+        @test ind2spin(2, 4) == [1,-1,-1,-1]
+        @test ind2spin(3, 4) == [-1,1,-1,-1]
 
         @test spins2ind([-1,-1,-1,-1]) == 1
         @test spins2ind([1,-1,-1,-1]) == 2
         @test spins2ind([-1,1,-1,-1]) == 3
 
-        s = ind2spin(7, 16)
+        s = ind2spin(7, 4)
         @test spins2ind(s) == 7
 
-        s = ind2spin(9, 16)
+        s = ind2spin(9, 4)
         @test spins2ind(s) == 9
 
-        s = ind2spin(12, 16)
+        s = ind2spin(12, 4)
         @test spins2ind(s) == 12
 
-        s = ind2spin(12, 64)
+        s = ind2spin(12, 8)
         @test spins2ind(s) == 12
 
         @test reindex(1, [1,2,3,4,5], [2,3]) == 1

@@ -254,6 +254,16 @@ function compress_iter(mps::Vector{Array{T,3}}, χ::Int, threshold::T) where T <
     compress_mps_itterativelly(mps_lc, mps_anzatz, threshold)
 end
 
+function compress_iter(mpo::Vector{Array{T,4}}, χ::Int, threshold::T) where T <: AbstractFloat
+    s = [size(el) for el in mpo]
+    mps = [reshape(mpo[i], (s[i][1], s[i][2], s[i][3]*s[i][4])) for i in 1:length(mpo)]
+    mps = compress_iter(mps, χ, threshold)
+
+    s1 =  [size(el) for el in mps]
+    mps = [reshape(mps[i], (s1[i][1], s1[i][2], s[i][3], s[i][4])) for i in 1:length(mps)]
+    return mps
+end
+
 
 function compress_svd(mps::Vector{Array{T,3}}, χ::Int) where T <: AbstractFloat
     left_canonical_approx(mps, χ)
