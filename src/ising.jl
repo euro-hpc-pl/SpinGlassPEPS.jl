@@ -1,4 +1,19 @@
 export ising_graph, energy
+export Gibbs_tensor
+
+function Gibbs_tensor(ig::MetaGraph, opts::Gibbs_control)
+    L = nv(ig)
+    β = opts.β
+
+    all_states = Iterators.product([[-1, 1] for _ ∈ 1:L]...)
+    rank = [2 for i ∈ 1:L]
+  
+    r = [exp(-β * energy(ig, collect(σ))) for σ ∈ all_states]
+    ρ = reshape(r, rank...)
+
+    Z = sum(ρ)
+    return ρ / Z
+end
 
 function energy(ig::MetaGraph, σ::Vector{<:Number})
     """
