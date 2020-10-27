@@ -1,5 +1,6 @@
 export MPS_from_gates, unique_neighbors
 
+
 function unique_neighbors(ig::MetaGraph, i::Int)
     nbrs = neighbors(ig::MetaGraph, i::Int)
     return filter(j -> j > i, nbrs)
@@ -56,36 +57,47 @@ function _apply_nothing!(ψ::MPS, i::Int)
     ψ[i] = M̃    
 end
 
-function MPS_from_gates(ig::MetaGraph, dβ::T, Dcut::Int=32, var_tol::T=1E-8) where T <: Number 
+function MPS_from_gates(ig::MetaGraph, mps::MPS_control, gibbs::Gibbs_control)
     L = nv(ig)
-    all = 1:L
 
-    # prepare Hadamard state as MPS
-    prod_state = [[1, 1] / sqrt(2) for _ ∈ 1:nv(ig)]
+    # control for MPS
+    Dcut = mps.max_bond
+    var_tol = mps.var_ϵ
+    max_sweeps = mps.var_max_sweeps
+
+    # control for Gibbs state
+    β = gibbs.β
+    schedule = gibbs.β_schedule
+
+    @assert β ≈ sum(schedule) "Incorrect β schedule."
+
+    # prepare ~ Hadamard state as MPS
+    prod_state = [[1., 1.] for _ ∈ 1:nv(ig)]
     ρ = MPS(prod_state)
-   
-    # apply gates
-    for i ∈ 1:L
-        _apply_bias!(ρ, ig, dβ, i) 
 
-        nbrs = unique_neighbors(ig, i)
-        if !isempty(nbrs)
-            for j ∈ nbrs 
-                _apply_exponent!(ρ, ig, dβ, i, j) 
+    for dβ ∈ schedule
+        # apply gates
+        for i ∈ 1:L
+            _apply_bias!(ρ, ig, dβ, i) 
+
+            nbrs = unique_neighbors(ig, i)
+            if !isempty(nbrs)
+                for j ∈ nbrs 
+                    _apply_exponent!(ρ, ig, dβ, i, j) 
+                end
+
+                _apply_projector!(ρ, i)
+
+                for l ∈ setdiff(1:L, union(i, nbrs)) 
+                    _apply_nothing!(ρ, l) 
+                end
             end
 
-            _apply_projector!(ρ, i)
-            rest = setdiff(all, union(i, nbrs))
-        else 
-            rest = all
-        end    
-
-        for l ∈ rest 
-            _apply_nothing!(ρ, l) 
+            # reduce bond dimension
+            if bond_dimension(ρ) > Dcut
+                ρ = compress(ρ, Dcut, var_tol, max_sweeps) 
+            end
         end
-
-        # reduce bond dimension
-        #if bond_dimension(ρ) > Dcut compress!(ρ, Dcut, var_tol) end
     end
     return ρ
 end

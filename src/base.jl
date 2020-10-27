@@ -1,6 +1,18 @@
 using Base
 export bond_dimension
+export MPS_control, Gibbs_control
 export _verify_bonds
+
+struct MPS_control 
+    max_bond::Int
+    var_ϵ::Number
+    var_max_sweeps::Int
+end
+
+struct Gibbs_control 
+    β::Number
+    β_schedule::Vector{<:Number}
+end
 
 for (T, N) in ((:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
