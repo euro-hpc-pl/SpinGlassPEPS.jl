@@ -1,47 +1,52 @@
 using Base
 export bond_dimension
+export _verify_bonds
+
 for (T, N) in ((:MPO, 4), (:MPS, 3))
+    AT = Symbol(:Abstract, T)
     @eval begin
+        export $AT
         export $T
-        abstract type $(Symbol(:Abstract, T)) end
-        struct $T{T <: Number} <: $(Symbol(:Abstract, T))
+
+        abstract type $AT{T} end
+
+        struct $T{T <: Number} <: $AT{T}
             tensors::Vector{Array{T, $N}}
-        
-            # $T{T}(v::Vector{Array{T, 3}}) where {T} = new(v)
         end
         
         # consturctors
-        # $T{T}(L::Int) where {T} = $T(Vector{Array{T, 3}}(undef, L))
         $T(::Type{T}, L::Int) where {T} = $T(Vector{Array{T, $N}}(undef, L))
         $T(L::Int) = $T(Float64, L)
 
-        Base.:(==)(a::$T, b::$T) = a.tensors == b.tensors
-        Base.:(≈)(a::$T, b::$T)  = a.tensors ≈ b.tensors
-
-        Base.eltype(::Type{$T{T}}) where {T} = T
-
-        Base.getindex(a::$T, i::Int) = getindex(a.tensors, i)
-        Base.setindex!(a::$T, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
-        Base.iterate(a::$T) = iterate(a.tensors)
-        Base.iterate(a::$T, state) = iterate(a.tensors, state)
-        Base.lastindex(a::$T) = lastindex(a.tensors)
-
-        Base.length(a::$T) = length(a.tensors)
-        Base.size(a::$T) = (length(a.tensors), )
-
-        Base.copy(a::$T{T}) where {T} = $T{T}(copy(a.tensors))
-
-        bond_dimension(a::$T) = maixmum(size.(a.tensors, $N))
+        Base.setindex!(a::$AT, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
+        bond_dimension(a::$AT) = maximum(size.(a.tensors, $N))
+        Base.copy(a::$T) = $T(copy(a.tensors))
+        Base.eltype(::$AT{T}) where {T} = T
     end
 end
 
-function MPS(vec::Vector{T}) where {T <: Number}
+const AbstractMPSorMPO = Union{AbstractMPS, AbstractMPO}
+const MPSorMPO = Union{MPS, MPO}
+
+Base.:(==)(a::AbstractMPSorMPO, b::AbstractMPSorMPO) = a.tensors == b.tensors
+Base.:(≈)(a::AbstractMPSorMPO, b::AbstractMPSorMPO)  = a.tensors ≈ b.tensors
+
+Base.getindex(a::AbstractMPSorMPO, i::Int) = getindex(a.tensors, i)
+Base.iterate(a::AbstractMPSorMPO) = iterate(a.tensors)
+Base.iterate(a::AbstractMPSorMPO, state) = iterate(a.tensors, state)
+Base.lastindex(a::AbstractMPSorMPO) = lastindex(a.tensors)
+Base.length(a::AbstractMPSorMPO) = length(a.tensors)
+Base.size(a::AbstractMPSorMPO) = (length(a.tensors), )
+
+
+function MPS(vec::Vector{Vector{T}}) where  {T <: Number}
     L = length(vec)
-    ψ = MPS(L)
+    ψ = MPS(T, L)
     for i ∈ 1:L
            A = reshape(vec[i], 1, :, 1)
         ψ[i] = copy(A)
     end    
+    return ψ
 end
 
 function MPO(ψ::MPS)
@@ -86,12 +91,24 @@ function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
     MPO(ψ)
 end
 
-function _verify_square(ψ::MPS)
+function _verify_square(ψ::AbstractMPS)
     arr = [size(A, 2) for A ∈ ψ]
     @assert isqrt.(arr) .^ 2 == arr "Incorrect MPS dimensions"
 end
 
-function Base.show(::IO, ψ::MPS)
+function _verify_bonds(ψ::AbstractMPS)
+    L = length(ψ)
+
+    @assert size(ψ[1], 1) == 1 "Incorrect size on the left boundary." 
+    @assert size(ψ[end], 3) == 1 "Incorrect size on the right boundary." 
+
+    for i ∈ 1:L-1
+        @assert size(ψ[i], 3) == size(ψ[i+1], 1) "Incorrect link between $i and $(i+1)." 
+    end     
+    return true
+end     
+
+function Base.show(::IO, ψ::AbstractMPS)
     L = length(ψ)
     σ_list = [size(ψ[i], 2) for i ∈ 1:L] 
     χ_list = [size(ψ[i][:, 1, :]) for i ∈ 1:L]
@@ -99,6 +116,7 @@ function Base.show(::IO, ψ::MPS)
     println("Matrix product state on $L sites:")
     println("Physical dimensions: ")
     _show_sizes(σ_list)
+    println("   ")
     println("Bond dimensions:   ")
     _show_sizes(χ_list)
 end

@@ -13,6 +13,7 @@ module SpinGlassPEPS
     include("ising.jl")
     include("graph.jl")
     include("PEPS.jl")
+    include("search.jl")
     include("utils.jl")
 
     function __init__()
