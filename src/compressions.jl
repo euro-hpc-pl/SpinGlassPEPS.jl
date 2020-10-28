@@ -1,7 +1,4 @@
-export truncate!, canonise!, compress
-
-# TODO
-# 1) write two sites compress function
+ export truncate!, canonise!, compress, compress!
 
 function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int) 
     fact = pqrfact(M, rank=Dcut)
@@ -112,6 +109,11 @@ function compress(ψ::AbstractMPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
     end
     return ϕ  
 end
+
+function compress!(ψ::MPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
+    ϕ = compress(ψ, Dcut, tol, max_sweeps)
+    ψ = copy(ϕ)
+end 
 
 function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
     S = eltype(ϕ)

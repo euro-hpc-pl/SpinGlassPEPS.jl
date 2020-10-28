@@ -6,6 +6,7 @@ module SpinGlassPEPS
     using LightGraphs
     using MetaGraphs
     using CSV
+    const product = Iterators.product
 
     include("base.jl")
     include("compressions.jl")
@@ -13,6 +14,7 @@ module SpinGlassPEPS
     include("ising.jl")
     include("graph.jl")
     include("PEPS.jl")
+    include("search.jl")
     include("utils.jl")
 
     function __init__()

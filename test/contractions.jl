@@ -28,4 +28,5 @@ end
 @testset "Cauchy-Schwarz inequality" begin
     @test abs(dot(ϕ, ψ)) <= norm(ϕ) * norm(ψ)
 end
+
 end

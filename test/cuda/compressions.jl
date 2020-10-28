@@ -89,7 +89,7 @@ end
     dist1 = 2 - 2 * real(overlap)
     dist2 = norm(Ψ)^2 + norm(Φ)^2 - 2 * real(overlap)
 
-    @test abs(dist1 - dist2) < 1e-14
+    @test abs(dist1 - dist2) < 1e-5
 
     println("(Φ, Ψ) = ", overlap)
     println("dist(Φ, Ψ)^2 = ", dist2)

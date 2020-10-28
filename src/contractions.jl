@@ -1,4 +1,4 @@
-
+using Base 
 export left_env, right_env, dot!
 
 # --------------------------- Conventions ------------------------ 
@@ -9,11 +9,6 @@ export left_env, right_env, dot!
 #                                 3           - 1          0 -
 # ---------------------------------------------------------------
 #
-# TODO
-# 1) right moving dot version
-# 2) write right_env analogous to left_env
-# 3) combine 1-2 into one function
-# 4) Add more general dots and envs (MPS, MPO, MPS)
 
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     T = promote_type(eltype(ψ), eltype(ϕ))

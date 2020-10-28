@@ -1,4 +1,6 @@
 export bond_dimension
+export _verify_bonds
+
 for (T, N) in ((:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
     @eval begin
@@ -16,7 +18,7 @@ for (T, N) in ((:MPO, 4), (:MPS, 3))
         $T(L::Int) = $T(Float64, L)
 
         Base.setindex!(a::$AT, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
-        bond_dimension(a::$AT) = maixmum(size.(a.tensors, $N))
+        bond_dimension(a::$AT) = maximum(size.(a.tensors, $N))
         Base.copy(a::$T) = $T(copy(a.tensors))
         Base.eltype(::$AT{T}) where {T} = T
     end
@@ -36,12 +38,14 @@ Base.length(a::AbstractMPSorMPO) = length(a.tensors)
 Base.size(a::AbstractMPSorMPO) = (length(a.tensors), )
 
 
-function MPS(vec::Vector{<:Number})
+function MPS(vec::Vector{Vector{T}}) where  {T <: Number}
     L = length(vec)
-    ψ = MPS(L)
+    ψ = MPS(T, L)
     for i ∈ 1:L
-        ψ[i] = reshape(copy(vec[i]), 1, :, 1)
+           A = reshape(vec[i], 1, :, 1)
+        ψ[i] = copy(A)
     end    
+    return ψ
 end
 
 function MPO(ψ::MPS)
@@ -91,6 +95,17 @@ function _verify_square(ψ::AbstractMPS)
     @assert isqrt.(arr) .^ 2 == arr "Incorrect MPS dimensions"
 end
 
+function _verify_bonds(ψ::AbstractMPS)
+    L = length(ψ)
+
+    @assert size(ψ[1], 1) == 1 "Incorrect size on the left boundary." 
+    @assert size(ψ[end], 3) == 1 "Incorrect size on the right boundary." 
+
+    for i ∈ 1:L-1
+        @assert size(ψ[i], 3) == size(ψ[i+1], 1) "Incorrect link between $i and $(i+1)." 
+    end     
+end     
+
 function Base.show(::IO, ψ::AbstractMPS)
     L = length(ψ)
     σ_list = [size(ψ[i], 2) for i ∈ 1:L] 
@@ -99,6 +114,7 @@ function Base.show(::IO, ψ::AbstractMPS)
     println("Matrix product state on $L sites:")
     println("Physical dimensions: ")
     _show_sizes(σ_list)
+    println("   ")
     println("Bond dimensions:   ")
     _show_sizes(χ_list)
 end
