@@ -3,8 +3,31 @@ export MPSControl
 
 struct MPSControl 
     max_bond::Int
-    ϵ::Number
+    var_ϵ::Number
     max_sweeps::Int
+end
+
+
+function _spectrum(ρ::MPS, k::Int) 
+    # ρ needs to be in the right canonical form
+    l = length(ρ)
+
+    T = eltype(ρ)
+    L = ones(T, 1, 1)
+
+    spec = Dict()
+    left_env = Dict()
+
+    for i ∈ 1:l
+        M = ψ[i]
+        
+        for state ∈ spec  
+            @tensor L[x, y, σ] := M[γ, σ, x] * L[γ, α] * M[α, σ, y] order = (α, γ) 
+            @cast p[σ] := sum(x) LL[x, x, σ]
+        end
+    end
+
+    pdo
 end
 
 function unique_neighbors(ig::MetaGraph, i::Int)
@@ -68,7 +91,7 @@ function MPS_from_gates(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
 
     # control for MPS
     Dcut = mps.max_bond
-    tol = mps.ϵ
+    tol = mps.var_ϵ
     max_sweeps = mps.max_sweeps
 
     # control for Gibbs state

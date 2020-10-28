@@ -4,7 +4,7 @@ using GraphPlot
 
 L = 3
 N = L^2
-instance = "./lattice_$L.txt"    
+instance = "./instnaces/lattice_$L.txt"    
 ig = ising_graph(instance, N)
 
 @testset "MPS from gates" begin

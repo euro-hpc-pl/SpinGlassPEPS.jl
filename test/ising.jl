@@ -7,7 +7,7 @@ using Base
 
     L = 3
     N = L^2
-    instance = "./lattice_$L.txt"    
+    instance = "./instances/lattice_$L.txt"    
     ig = ising_graph(instance, N)
 
     E = get_prop(ig, :energy)
