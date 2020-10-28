@@ -7,7 +7,7 @@ T = ComplexF64
 
 @testset "Random MPS" begin
     ψ = randn(MPS{T}, sites, D, d)
-    @test _verify_bonds(ψ)
+    @test _verify_bonds(ψ) == nothing
 
     @test ψ == ψ
     @test ψ ≈ ψ
@@ -40,6 +40,8 @@ end
     ϕ = MPS(prod_state)
 
     show(ϕ)
+end
+
 @testset "Random MPO" begin
     O = randn(MPO{T}, sites, D, d)
 

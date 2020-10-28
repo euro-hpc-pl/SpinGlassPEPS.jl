@@ -1,12 +1,18 @@
 export MPS_from_gates, unique_neighbors
+export MPSControl
 
+struct MPSControl 
+    max_bond::Int
+    ϵ::Number
+    max_sweeps::Int
+end
 
 function unique_neighbors(ig::MetaGraph, i::Int)
     nbrs = neighbors(ig::MetaGraph, i::Int)
-    return filter(j -> j > i, nbrs)
+    filter(j -> j > i, nbrs)
 end
 
-function _apply_bias!(ψ::MPS, ig::MetaGraph, dβ::T, i::Int) where {T <: Number}
+function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     M = ψ[i]
     if has_prop(ig, i, :h)
         h = get_prop(ig, i, :h)
@@ -16,7 +22,7 @@ function _apply_bias!(ψ::MPS, ig::MetaGraph, dβ::T, i::Int) where {T <: Number
     ψ[i] = M
 end
 
-function _apply_exponent!(ψ::MPS, ig::MetaGraph, dβ::T, i::Int, j::Int) where {T <: Number}
+function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j::Int)
     δ = I(2)
     M = ψ[j]
 
@@ -31,7 +37,7 @@ function _apply_exponent!(ψ::MPS, ig::MetaGraph, dβ::T, i::Int, j::Int) where 
     ψ[j] = M̃
 end
 
-function _apply_projector!(ψ::MPS, i::Int)
+function _apply_projector!(ψ::AbstractMPS, i::Int)
     δ = I(2)
     M = ψ[i]
 
@@ -43,7 +49,7 @@ function _apply_projector!(ψ::MPS, i::Int)
     ψ[i] = M̃
 end
 
-function _apply_nothing!(ψ::MPS, i::Int)    
+function _apply_nothing!(ψ::AbstractMPS, i::Int)    
     δ = I(2)       
     M = ψ[i] 
 
@@ -57,13 +63,13 @@ function _apply_nothing!(ψ::MPS, i::Int)
     ψ[i] = M̃    
 end
 
-function MPS_from_gates(ig::MetaGraph, mps::MPS_control, gibbs::Gibbs_control)
+function MPS_from_gates(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
     L = nv(ig)
 
     # control for MPS
     Dcut = mps.max_bond
-    var_tol = mps.var_ϵ
-    max_sweeps = mps.var_max_sweeps
+    tol = mps.ϵ
+    max_sweeps = mps.max_sweeps
 
     # control for Gibbs state
     β = gibbs.β
@@ -72,32 +78,29 @@ function MPS_from_gates(ig::MetaGraph, mps::MPS_control, gibbs::Gibbs_control)
     @assert β ≈ sum(schedule) "Incorrect β schedule."
 
     # prepare ~ Hadamard state as MPS
-    prod_state = [[1., 1.] for _ ∈ 1:nv(ig)]
+    prod_state = fill([1., 1.], nv(ig))
     ρ = MPS(prod_state)
 
-    for dβ ∈ schedule
-        # apply gates
-        for i ∈ 1:L
-            _apply_bias!(ρ, ig, dβ, i) 
+    for dβ ∈ schedule, i ∈ 1:L
+        _apply_bias!(ρ, ig, dβ, i) 
 
-            nbrs = unique_neighbors(ig, i)
-            if !isempty(nbrs)
-                for j ∈ nbrs 
-                    _apply_exponent!(ρ, ig, dβ, i, j) 
-                end
-
-                _apply_projector!(ρ, i)
-
-                for l ∈ setdiff(1:L, union(i, nbrs)) 
-                    _apply_nothing!(ρ, l) 
-                end
+        nbrs = unique_neighbors(ig, i)
+        if !isempty(nbrs)
+            for j ∈ nbrs 
+                _apply_exponent!(ρ, ig, dβ, i, j) 
             end
 
-            # reduce bond dimension
-            if bond_dimension(ρ) > Dcut
-                ρ = compress(ρ, Dcut, var_tol, max_sweeps) 
+            _apply_projector!(ρ, i)
+
+            for l ∈ setdiff(1:L, union(i, nbrs)) 
+                _apply_nothing!(ρ, l) 
             end
         end
+
+        # reduce bond dimension
+        if bond_dimension(ρ) > Dcut
+            ρ = compress(ρ, Dcut, tol, max_sweeps) 
+        end
     end
-    return ρ
+    ρ
 end

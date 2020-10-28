@@ -1,18 +1,5 @@
-using Base
 export bond_dimension
-export MPS_control, Gibbs_control
 export _verify_bonds
-
-struct MPS_control 
-    max_bond::Int
-    var_ϵ::Number
-    var_max_sweeps::Int
-end
-
-struct Gibbs_control 
-    β::Number
-    β_schedule::Vector{<:Number}
-end
 
 for (T, N) in ((:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
@@ -117,7 +104,6 @@ function _verify_bonds(ψ::AbstractMPS)
     for i ∈ 1:L-1
         @assert size(ψ[i], 3) == size(ψ[i+1], 1) "Incorrect link between $i and $(i+1)." 
     end     
-    return true
 end     
 
 function Base.show(::IO, ψ::AbstractMPS)

@@ -17,21 +17,21 @@ ig = ising_graph(instance, N)
     dβ = 0.25
     β_schedule = [dβ for _ ∈ 1:4]
 
-    gibbs_param = Gibbs_control(β, β_schedule)
-    mps_param = MPS_control(Dcut, var_tol, max_sweeps) 
+    gibbs_param = GibbsControl(β, β_schedule)
+    mps_param = MPSControl(Dcut, var_tol, max_sweeps) 
 
     @testset "Generate ρ" begin
         ρ = MPS_from_gates(ig, mps_param, gibbs_param) 
 
         show(ρ)
-        @test _verify_bonds(ρ)
+        @test_nowarn _verify_bonds(ρ)
 
         canonise!(ρ)
         @test dot(ρ, ρ) ≈ 1
     end
 
     @testset "Generate Gibbs state exactly" begin
-        r = Gibbs_tensor(ig, gibbs_param)
+        r = gibbs_tensor(ig, gibbs_param)
         @test sum(r) ≈ 1
     end
 end
