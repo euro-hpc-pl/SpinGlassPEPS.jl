@@ -1,0 +1,24 @@
+kdomino@squeak:~/Dokumenty/badania/peps/src/tests$ julia tests_on_chimera.jl -c 5 --file data/chimera2048_spinglass_power/001.txt -s 2048 
+001.txt
+data/chimera2048_spinglass_power/
+row of peps = 1
+ERROR: LoadError: LAPACKException(15)
+Stacktrace:
+ [1] chklapackerror at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.4/LinearAlgebra/src/lapack.jl:38 [inlined]
+ [2] gesdd!(::Char, ::Array{Float64,2}) at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.4/LinearAlgebra/src/lapack.jl:1667
+ [3] _svd! at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.4/LinearAlgebra/src/svd.jl:105 [inlined]
+ [4] svd!(::Array{Float64,2}; full::Bool, alg::LinearAlgebra.DivideAndConquer) at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.4/LinearAlgebra/src/svd.jl:98
+ [5] #svd#93 at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.4/LinearAlgebra/src/svd.jl:158 [inlined]
+ [6] svd at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.4/LinearAlgebra/src/svd.jl:158 [inlined]
+ [7] make_left_canonical(::Array{Float64,3}, ::Array{Float64,3}) at /home/kdomino/Dokumenty/badania/peps/src/compression.jl:9
+ [8] vec_of_left_canonical(::Array{Array{Float64,3},1}) at /home/kdomino/Dokumenty/badania/peps/src/compression.jl:54
+ [9] left_canonical_approx(::Array{Array{Float64,3},1}, ::Int64) at /home/kdomino/Dokumenty/badania/peps/src/compression.jl:61
+ [10] compress_iter at /home/kdomino/Dokumenty/badania/peps/src/compression.jl:252 [inlined]
+ [11] make_lower_mps(::Array{Int64,2}, ::Array{Node_of_grid,1}, ::Array{Interaction{Float64},1}, ::Int64, ::Float64, ::Int64, ::Float64) at /home/kdomino/Dokumenty/badania/peps/src/peps_no_types.jl:304
+ [12] solve(::Array{Interaction{Float64},1}, ::Array{Node_of_grid,1}, ::Array{Int64,2}, ::Int64; β::Float64, χ::Int64, threshold::Float64) at /home/kdomino/Dokumenty/badania/peps/src/peps_no_types.jl:359
+ [13] top-level scope at ./util.jl:175 [inlined]
+ [14] top-level scope at /home/kdomino/Dokumenty/badania/peps/src/tests/tests_on_chimera.jl:0
+ [15] include(::Module, ::String) at ./Base.jl:377
+ [16] exec_options(::Base.JLOptions) at ./client.jl:288
+ [17] _start() at ./client.jl:484
+in expression starting at /home/kdomino/Dokumenty/badania/peps/src/tests/tests_on_chimera.jl:97

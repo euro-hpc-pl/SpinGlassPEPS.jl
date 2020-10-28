@@ -5,7 +5,9 @@ function make_left_canonical(t1::Array{T, 3}, t2::Array{T, 3}) where T <: Abstra
     p1 = [1,3,2]
     A1 = permutedims(t1, p1)
     A1 = reshape(A1, (s[1]*s[3], s[2]))
-
+    # TODO this need to be secured for singular matrix case
+    # or a case as if does not converge, LAPACKException(15)
+    #probabile solution use svd(  ; alg = ...)
     U,Σ,V = svd(A1)
     T2 = diagm(Σ)*transpose(V)
     k = length(Σ)
