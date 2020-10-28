@@ -357,7 +357,7 @@ function ind2spin(i::Int, size::Int = 1)
         return [0]
     else
         s = [2^i for i in 1:size]
-        return [1-2*Int((i-1)%j < j/2) for j in s]
+        return [1-2*Int((i-1)%j < div(j,2)) for j in s]
     end
 end
 
@@ -372,7 +372,8 @@ end
 
 
 function reindex(i::Int, all_spins::Vector{Int}, subset_spins::Vector{Int})
-    s = ind2spin(i, 2^length(all_spins))
+    #s = ind2spin(i, 2^length(all_spins))
+    s = ind2spin(i, length(all_spins))
     k = [findall(x->x==j, all_spins)[1] for j in subset_spins]
     spins2ind(s[k])
 end

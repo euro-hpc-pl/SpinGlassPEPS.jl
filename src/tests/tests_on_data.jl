@@ -95,7 +95,7 @@ using NPZ
 end
 
 
-function M2qubo(Q::Matrix{T}) where T <: AbstractFloat
+function Qubo2M(Q::Matrix{T}) where T <: AbstractFloat
     # TODO this needs by be specified, why 2v not v
     J = (Q - diagm(diag(Q)))/4
     v = dropdims(sum(J; dims=1); dims = 1)
@@ -113,7 +113,7 @@ spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
     X = rand(10,10)
     X = X*X'
 
-    J = M2qubo(X)
+    J = Qubo2M(X)
 
     Delta = 4J - X
     @test maximum(abs.(Delta - diagm(diag(Delta)))) ≈ 0. atol = 1e-12
@@ -142,7 +142,7 @@ spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
     end
 
     #-1 this for the model
-    J = -1*M2qubo(M)
+    J = -1*Qubo2M(M)
     q_vec = M2interactions(J)
 
     # parameters of the solver

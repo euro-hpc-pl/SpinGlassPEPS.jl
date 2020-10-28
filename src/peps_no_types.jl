@@ -91,32 +91,6 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
         spins = [ind2spin(k[i], siz[i]) for i in 1:5]
         all_spins = spins[5]
 
-        J1 = 0.
-        if length(Jil) > 0
-            J1 = sum(Jil.*spins[1].*all_spins[left])
-        end
-
-        J2 = 0.
-        if length(Jiu) > 0
-            J2 = sum(Jiu.*spins[3].*all_spins[up])
-        end
-
-        hh = β*sum(h.*all_spins)
-
-        if n.intra_struct != Array{Int64,1}[]
-            i = 1
-            for pair in n.intra_struct
-                #a = findall(x->x==pair[1], n.spin_inds)[1]
-                #b = findall(x->x==pair[2], n.spin_inds)[1]
-
-                s1 = all_spins[ind_a[i]]
-                s2 = all_spins[ind_b[i]]
-                i = i+1
-                J = getJ(interactions, pair[1], pair[2])
-                hh = hh + 2*β*J*s1*s2
-            end
-        end
-
         # dirac delta implementation
         r = true
         if length(right) > 0
@@ -127,11 +101,38 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
         if length(down) > 0
             d = (spins[4] == all_spins[down])
         end
-
+        # if any is false further is not necessary
+        #if false
         if (d && r)
+
+            J1 = 0.
+            if length(Jil) > 0
+                J1 = sum(Jil.*spins[1].*all_spins[left])
+            end
+
+            J2 = 0.
+            if length(Jiu) > 0
+                J2 = sum(Jiu.*spins[3].*all_spins[up])
+            end
+
+            hh = β*sum(h.*all_spins)
+
+            if n.intra_struct != Array{Int64,1}[]
+                i = 1
+                for pair in n.intra_struct
+                    #a = findall(x->x==pair[1], n.spin_inds)[1]
+                    #b = findall(x->x==pair[2], n.spin_inds)[1]
+
+                    s1 = all_spins[ind_a[i]]
+                    s2 = all_spins[ind_b[i]]
+                    i = i+1
+                    J = getJ(interactions, pair[1], pair[2])
+                    hh = hh + 2*β*J*s1*s2
+                end
+            end
+
             @inbounds tensor[k] = exp(β*2*(J1+J2)+hh)
         end
-
     end
 
     if length(n.down) == 0
@@ -139,7 +140,6 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
     elseif length(n.up) == 0
         return dropdims(tensor, dims = 3)
     end
-    println("tensor done")
     return tensor
 end
 
@@ -300,31 +300,22 @@ function make_lower_mps(grid::Matrix{Int}, ns::Vector{Node_of_grid},
     s = size(grid,1)
     if k <= s
         mps = [sum_over_last(compute_single_tensor(ns, interactions, j, β)) for j in grid[s,:]]
-        println("first mps")
         if threshold > 0.
             mps = compress_iter(mps, χ, threshold)
-            println("compressed")
         end
         for i in s-1:-1:k
 
             mpo = [sum_over_last(compute_single_tensor(ns, interactions, j, β)) for j in grid[i,:]]
             if threshold > 0.
                 mpo = compress_iter(mpo, χ, threshold)
-                println("compress mpo")
             end
             mps = MPSxMPO(mps, mpo)
             if threshold > 0.
                 mps = compress_iter(mps, χ, threshold)
-                println("compressed again")
             end
         end
         return mps
-        if threshold == 0.
-            return mps
         end
-        return compress_iter(mps, χ, threshold)
-        #return compress_svd(mps, χ)
-    end
     [zeros(T,1)]
 end
 
@@ -361,15 +352,14 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                                         threshold::T = T(1e-14)) where T <: AbstractFloat
 
     s = size(grid)
-    println("solve")
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for row in 1:s[1]
-
+        println("row of peps = ", row)
         #this may need to ge cashed
         lower_mps = make_lower_mps(grid, ns, interactions, row + 1, β, χ, threshold)
-        println("lower mps")
+
         upper_mpo = [compute_single_tensor(ns, interactions, j, β) for j in grid[row,:]]
-        println("upper mps")
+
         for j in grid[row,:]
 
             partial_s_temp = Partial_sol{T}[]
