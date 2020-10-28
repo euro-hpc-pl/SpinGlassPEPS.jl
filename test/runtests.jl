@@ -1,13 +1,17 @@
-using SpinGlassPEPS
-
-using LinearAlgebra
 using CUDA
-
+using SpinGlassPEPS
+using LinearAlgebra
+using TensorOperations
 
 using Test
 
-if CUDA.functional() && CUDA.has_cutensor() && false
-    include("cuda.jl")
+my_tests = []
+if CUDA.functional() && CUDA.has_cutensor()
+    push!(my_tests,
+    "cuda/base.jl",
+    "cuda/contractions.jl",
+    "cuda/compressions.jl"
+    )
 end
 
 my_tests = [

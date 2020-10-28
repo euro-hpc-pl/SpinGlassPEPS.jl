@@ -31,7 +31,7 @@ function left_env(ϕ::MPS, ψ::MPS)
 
     for i ∈ 1:l
         M = ψ[i]
-        M̃ = conj(ϕ[i])
+        M̃ = conj.(ϕ[i])
 
         C = L[i]
         @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ)
@@ -50,7 +50,7 @@ function right_env(ϕ::MPS, ψ::MPS)
 
     for i ∈ L:-1:1
         M = ψ[i]
-        M̃ = conj(ϕ[i])
+        M̃ = conj.(ϕ[i])
 
         D = R[i+1]
         @tensor D[x, y] := M[x, σ, α] * D[α, β] * M̃[y, σ, β] order = (β, α, σ)
@@ -59,7 +59,7 @@ function right_env(ϕ::MPS, ψ::MPS)
     return R
 end
 
-LinearAlgebra.norm(ψ::MPS) = sqrt(abs(dot(ψ, ψ)))
+LinearAlgebra.norm(ψ::AbstractMPS) = sqrt(abs(dot(ψ, ψ)))
 
 function LinearAlgebra.dot(ϕ::MPS, O::Vector{T}, ψ::MPS) where {T <: AbstractMatrix}
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
@@ -67,17 +67,17 @@ function LinearAlgebra.dot(ϕ::MPS, O::Vector{T}, ψ::MPS) where {T <: AbstractM
 
     for i ∈ 1:length(ψ)
         M = ψ[i]
-        M̃ = conj(ϕ[i])
+        M̃ = conj.(ϕ[i])
         Mat = O[i]
         @tensor C[x, y] := M̃[β, σ, x] * Mat[σ, η] * C[β, α] * M[α, η, y] order = (α, η, β, σ)
 end
     return C[1]
 end
 
-function LinearAlgebra.dot(O::MPO, ψ::MPS)
+function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}
     L = length(ψ)
-    T = promote_type(eltype(ψ), eltype(ϕ))
-    ϕ = MPS(T, L)
+    S = promote_type(eltype(ψ), eltype(O))
+    ϕ = T.name.wrapper(S, L)
 
     for i in 1:L
         W = O[i]
@@ -89,7 +89,7 @@ function LinearAlgebra.dot(O::MPO, ψ::MPS)
     return ϕ
 end
 
-function dot!(O::MPO, ψ::MPS)
+function dot!(O::AbstractMPO, ψ::AbstractMPS)
     L = length(ψ)
     for i in 1:L
         W = O[i]
@@ -100,9 +100,9 @@ function dot!(O::MPO, ψ::MPS)
     end
 end
 
-Base.:(*)(O::MPO, ψ::MPS) = return dot(O, ψ)
+Base.:(*)(O::AbstractMPO, ψ::AbstractMPS) = return dot(O, ψ)
 
-function LinearAlgebra.dot(O1::MPO, O2::MPO)
+function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
     L = length(O1)
     T = promote_type(eltype(ψ), eltype(ϕ))
     O = MPO(T, L)
@@ -117,4 +117,4 @@ function LinearAlgebra.dot(O1::MPO, O2::MPO)
     return O
 end
 
-Base.:(*)(O1::MPO, O2::MPO) = dot(O1, O2)
+Base.:(*)(O1::AbstractMPO, O2::AbstractMPO) = dot(O1, O2)
