@@ -1,7 +1,4 @@
-export truncate!, canonise!, compress
-
-# TODO
-# 1) write two sites compress function
+ export truncate!, canonise!, compress, compress!
 
 function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int) 
     fact = pqrfact(M, rank=Dcut)
@@ -11,7 +8,7 @@ function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int)
 end     
 
 function rq(M::AbstractMatrix, Dcut::Int) 
-    fact = pqrfact(:c, conj(M), rank=Dcut)
+    fact = pqrfact(:c, conj.(M), rank=Dcut)
     Q = fact[:Q]
     R = fact[:R]
     return _qr_fix!(Q, R)'
@@ -25,18 +22,18 @@ function _qr_fix!(Q::AbstractMatrix, R::AbstractMatrix)
     return transpose(ph) .* q
 end
 
-function canonise!(ψ::MPS)
+function canonise!(ψ::AbstractMPS)
     canonise!(ψ, :right)
     canonise!(ψ, :left)
 end
 
-canonise!(ψ::MPS, s::Symbol) = canonise!(ψ, Val(s))
-canonise!(ψ::MPS, ::Val{:right}) = _left_sweep_SVD!(ψ)
-canonise!(ψ::MPS, ::Val{:left}) = _right_sweep_SVD!(ψ)
+canonise!(ψ::AbstractMPS, s::Symbol) = canonise!(ψ, Val(s))
+canonise!(ψ::AbstractMPS, ::Val{:right}) = _left_sweep_SVD!(ψ)
+canonise!(ψ::AbstractMPS, ::Val{:left}) = _right_sweep_SVD!(ψ)
 
-truncate!(ψ::MPS, s::Symbol, Dcut::Int) = truncate!(ψ, Val(s), Dcut)
-truncate!(ψ::MPS, ::Val{:right}, Dcut::Int) = _left_sweep_SVD!(ψ, Dcut)
-truncate!(ψ::MPS, ::Val{:left}, Dcut::Int) = _right_sweep_SVD!(ψ, Dcut)
+truncate!(ψ::AbstractMPS, s::Symbol, Dcut::Int) = truncate!(ψ, Val(s), Dcut)
+truncate!(ψ::AbstractMPS, ::Val{:right}, Dcut::Int) = _left_sweep_SVD!(ψ, Dcut)
+truncate!(ψ::AbstractMPS, ::Val{:left}, Dcut::Int) = _right_sweep_SVD!(ψ, Dcut)
 
 function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
     Σ = V = ones(eltype(ψ), 1, 1)
@@ -81,7 +78,7 @@ function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
 end
  
 
-function compress(ψ::MPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
+function compress(ψ::AbstractMPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
 
     # Initial guess - truncated ψ 
     ϕ = copy(ψ)
@@ -112,6 +109,11 @@ function compress(ψ::MPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
     end
     return ϕ  
 end
+
+function compress!(ψ::MPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
+    ϕ = compress(ψ, Dcut, tol, max_sweeps)
+    ψ = copy(ϕ)
+end 
 
 function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
     S = eltype(ϕ)

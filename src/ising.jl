@@ -1,9 +1,29 @@
 export ising_graph, energy
+export gibbs_tensor
+export GibbsControl
 
-function energy(ig::MetaGraph, σ::Vector{<:Number})
-    """
-    Calculate the Ising energy as E = -sum_<i,j> s_i * J_ij * s_j - sum_j h_i * s_j.
-    """
+struct GibbsControl 
+    β::Number
+    β_schedule::Vector{<:Number}
+end
+
+function gibbs_tensor(ig::MetaGraph, opts::GibbsControl)
+    L = nv(ig)
+    β = opts.β
+
+    all_states = product(fill([-1, 1], L)...)
+    rank = fill(2, L)
+
+    r = exp.(-β * energy.(all_states, Ref(ig)))
+    ρ = reshape(r, rank...)
+    ρ / sum(ρ)
+end
+
+
+"""
+Calculate the Ising energy as E = -sum_<i,j> s_i * J_ij * s_j - sum_j h_i * s_j.
+"""
+function energy(σ::Union{Vector, NTuple}, ig::MetaGraph)
 
     energy = 0
     # quadratic
@@ -18,17 +38,17 @@ function energy(ig::MetaGraph, σ::Vector{<:Number})
         h = get_prop(ig, i, :h)   
         energy += h * σ[i]     
     end    
-    return -energy
+    -energy
 end
     
+"""
+Create a graph that represents the Ising Hamiltonian.
+"""
 function ising_graph(instance::String, L::Int, β::Number=1)
-    """
-    Create a graph that represents the Ising Hamiltonian.
-    """
 
     # load the Ising instance
     ising = CSV.File(instance, types=[Int, Int, Float64])
-       ig = MetaGraph(L, 0.0)
+    ig = MetaGraph(L, 0.0)
 
     set_prop!(ig, :description, "The Ising model.")
 
@@ -44,13 +64,13 @@ function ising_graph(instance::String, L::Int, β::Number=1)
     end   
 
     # state and corresponding energy
-    state = [rand() < 0.5 ? -1 : 1 for _ ∈ 1:L]
+    state = 2(rand(L) .< 0.5) .- 1
 
     set_prop!(ig, :state, state)
-    set_prop!(ig, :energy, energy(ig, state)) || error("Unable to calculate the Ising energy!")
+    set_prop!(ig, :energy, energy(state, ig)) || error("Unable to calculate the Ising energy!")
 
     # store extra information
     set_prop!(ig, :β, β)
     
-    return ig
+    ig
 end
