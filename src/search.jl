@@ -63,7 +63,7 @@ function _apply_nothing!(ψ::AbstractMPS, i::Int)
     ψ[i] = M̃    
 end
 
-function MPS_from_gates(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
+function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
     L = nv(ig)
 
     # control for MPS

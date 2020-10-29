@@ -15,7 +15,6 @@ function gibbs_tensor(ig::MetaGraph, opts::GibbsControl)
     rank = fill(2, L)
 
     r = exp.(-β * energy.(all_states, Ref(ig)))
-    # r = [exp(-β * energy(ig, collect(σ))) for σ ∈ all_states]
     ρ = reshape(r, rank...)
     ρ / sum(ρ)
 end

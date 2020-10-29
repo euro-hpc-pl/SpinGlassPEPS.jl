@@ -21,7 +21,7 @@ ig = ising_graph(instance, N)
     mps_param = MPSControl(Dcut, var_tol, max_sweeps) 
 
     @testset "Generate ρ" begin
-        ρ = MPS_from_gates(ig, mps_param, gibbs_param) 
+        ρ = MPS(ig, mps_param, gibbs_param) 
 
         show(ρ)
         @test_nowarn _verify_bonds(ρ)
