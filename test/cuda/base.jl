@@ -4,9 +4,9 @@ Dcut = 5
 d = 2
 sites = 5
 
-T = Float16
+T = Float32
 @testset "creation of random MPS on cuda" begin
-    ψ = randn(MPS{T}, sites, D, d)
+    ψ = CUDA.randn(CuMPS{T}, sites, D, d)
 
     @test length(ψ) == sites
     @test ψ == ψ
@@ -18,13 +18,13 @@ end
 
 
 @testset "random MPO on cuda" begin
-    H = randn(MPO{T}, sites, D, d)
+    H = CUDA.randn(CuMPO{T}, sites, D, d)
     @test typeof(H.tensors[1]) <: CuArray
 end
 
 @testset "contraction on cuda" begin
-    ψ = randn(MPS{T}, sites, D, d)
-    H = randn(MPO{T}, sites, D, d)
+    ψ = CUDA.randn(CuMPS{T}, sites, D, d)
+    H = CUDA.randn(CuMPO{T}, sites, D, d)
 
     @test typeof((H*ψ).tensors[1]) <: CuArray
 end

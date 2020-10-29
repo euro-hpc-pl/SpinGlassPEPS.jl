@@ -6,6 +6,7 @@ module SpinGlassPEPS
     using LightGraphs
     using MetaGraphs
     using CSV
+    const product = Iterators.product
 
     include("base.jl")
     include("compressions.jl")
@@ -13,6 +14,7 @@ module SpinGlassPEPS
     include("ising.jl")
     include("graph.jl")
     include("PEPS.jl")
+    include("search.jl")
     include("utils.jl")
 
     function __init__()
@@ -21,9 +23,13 @@ module SpinGlassPEPS
                 const CuArray = CUDA.CuArray
                 const CuVector = CUDA.CuVector
                 const CuMatrix = CUDA.CuMatrix
+                const CuSVD = CUDA.CUSOLVER.CuSVD
+                const CuQR = CUDA.CUSOLVER.CuQR
                 # scalar indexing is fine before 0.2
                 # CUDA.allowscalar(false)
-                include("cuda.jl") 
+                include("cuda/base.jl") 
+                include("cuda/contractions.jl")
+                include("cuda/compressions.jl")
             end
         end
     end

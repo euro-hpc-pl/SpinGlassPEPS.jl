@@ -3,12 +3,12 @@
 D = 10
 d = 3
 sites = 5
-T = ComplexF64
+T = Float32
 
-ψ = randn(MPS{T}, sites, D, d)
-ϕ = randn(MPS{T}, sites, D, d)
+ψ = CUDA.randn(CuMPS{T}, sites, D, d)
+ϕ = CUDA.randn(CuMPS{T}, sites, D, d)
 
-Id = [I(d) for _ ∈ 1:length(ϕ)]
+Id = [CuMatrix{T}(I(d)) for _ ∈ 1:length(ϕ)]
 
 @testset "dot products" begin
     @test dot(ψ, ψ) ≈ dot(ψ, ψ)  
@@ -28,5 +28,4 @@ end
 @testset "Cauchy-Schwarz inequality" begin
     @test abs(dot(ϕ, ψ)) <= norm(ϕ) * norm(ψ)
 end
-
 end
