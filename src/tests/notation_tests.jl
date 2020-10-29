@@ -200,7 +200,6 @@ end
 
     M = rand(10,10)
     m = matrix2qubo_vec(M)
-
 end
 
 @testset "test notation" begin

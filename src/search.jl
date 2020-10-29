@@ -15,16 +15,33 @@ function _spectrum(ρ::MPS, k::Int)
     T = eltype(ρ)
     L = ones(T, 1, 1)
 
-    spec = Dict()
-    left_env = Dict()
+    idx = Dict(1 => -1, 2 => 1)
+    left_env = Vector{Matrix{T}}(undef, 2*k)
+    
+    marginal_pdo = Vector{Number}(undef, 2*k)
+    partial_states = Vector{Vector{Int}}(undef, 2*k)
 
     for i ∈ 1:l
         M = ψ[i]
         
-        for state ∈ spec  
-            @tensor L[x, y, σ] := M[γ, σ, x] * L[γ, α] * M[α, σ, y] order = (α, γ) 
-            @cast p[σ] := sum(x) LL[x, x, σ]
+        for (j, (state, L)) ∈ enumerate(partial_config)
+
+            @tensor LL[x, y, σ] := M[γ, σ, x] * L[γ, α] * M[α, σ, y] order = (α, γ) 
+            @cast P[σ] := sum(x) LL[x, x, σ]
+
+            marginal_pdo[i] = p[1]
+            marginal_pdo[k+i] = p[2]
+
+            for (m, p) ∈ enumerate(P)
+
+                #partial_states[n] = push!()
+                marginal_pdo[i] = p
+            end    
+
+            perm = sortperm(marginal_pdo) 
+            partial_config = partial_config[perm[1:k]]
         end
+
     end
 
     pdo
