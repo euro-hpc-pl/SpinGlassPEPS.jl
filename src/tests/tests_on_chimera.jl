@@ -66,17 +66,6 @@ function M2Qubo(M::Matrix{T}) where T <: AbstractFloat
     a+b
 end
 
-spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
-binary2spins(spins::Vector{Int}) = [2*i-1 for i in spins]
-
-function vecvec2matrix(v::Vector{Vector{Int}})
-    M = v[1]
-    for i in 2:length(v)
-        M = hcat(M, v[i])
-    end
-    M
-end
-
 interactions = make_interactions(data)
 
 M = -1*interactions2M(interactions)

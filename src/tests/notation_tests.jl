@@ -278,6 +278,12 @@ end
         @test reindex(7, [1,2,3,4,5], [2,3]) == 4
         @test reindex(8, [1,2,3,4,5], [2,3]) == 4
         @test reindex(10, [1,2,3,4,5], [2,3]) == 1
+
+        @test spins2binary([1,1,-1]) == [1,1,0]
+        @test binary2spins([0,0,1]) == [-1,-1,1]
+
+        vecvec = [[1,1,-1],[1,-1,1]]
+        @test vecvec2matrix(vecvec) == [1 1; 1 -1; -1 1]
     end
 end
 

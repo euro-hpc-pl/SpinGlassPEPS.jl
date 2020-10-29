@@ -1,7 +1,7 @@
 using NPZ
 
 
-@testset "testing peps and mps on grid" begin
+@testset "testing peps and mpo-mps on grid, random instance" begin
 
     β = 3.
     file = "example4tests.npz"
@@ -43,7 +43,7 @@ using NPZ
 
     end
 
-    @testset "peps on larger nodes" begin
+    @testset "peps multispin nodes" begin
 
         # forming a grid
 
@@ -77,7 +77,7 @@ using NPZ
 
     end
 
-    @testset "mps mps on one spin nodes" begin
+    @testset "mpo-mps one spin nodes" begin
 
         # MPS MPO treates as a graph without the structure
         ns = [Node_of_grid(i, qubo) for i in 1:get_system_size(qubo)]
@@ -105,7 +105,7 @@ end
 
 spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
 
-@testset "mps graph of real dispratching problem given by QUBO" begin
+@testset "mpo-mps small instance of rail dispratching problem" begin
 
     # testing converts
     @test spins2binary([-1,-1,1,1]) == [0,0,1,1]
