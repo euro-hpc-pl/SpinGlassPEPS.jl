@@ -1,46 +1,8 @@
 using TensorOperations
 
-function nxmgrid(n::Int, m::Int)
-    grid = zeros(Int, n, m)
-    for i in 1:m
-       for j in 1:n
-           grid[j,i] = i+m*(j-1)
-       end
-   end
-   grid
-end
-
-function chimera_cell(i::Int, j::Int, size::Int)
-    size = Int(sqrt(size/8))
-    ofset = 8*(j-1)+8*size*(i-1)
-    cel = zeros(Int, 4, 2)
-    cel[:,1] = [k+ofset for k in 1:4]
-    cel[:,2] = [k+ofset for k in 5:8]
-    cel
-end
-
-function get_connection_if_exists(i::Int, j::Int, k::Int, grid::Matrix{Int})
-    try
-        return [[i, grid[j, k]]]
-    catch
-        return Vector{Int}[]
-    end
-end
-
-
-function enviroment(i::Int,j::Int,k::Int,grid)
-    left = get_connection_if_exists(i, j, k-1, grid)
-    right = get_connection_if_exists(i, j, k+1, grid)
-    up = get_connection_if_exists(i, j-1, k, grid)
-    down = get_connection_if_exists(i, j+1, k, grid)
-    return left, right, up, down
-end
-
-function read_connecting_pairs(grid::Matrix{Int}, i::Int)
-    a = findall(x->x==i, grid)[1]
-    enviroment(i,a[1],a[2], grid)
-end
-
+### the following are used to write and stopre J an h
+# Interaction type are used to distinguish zero interactions
+# strength and no interactions
 
 struct Interaction{T<:AbstractFloat}
     ind::Tuple{Int, Int}
@@ -98,16 +60,62 @@ function interactions2M(ints::Vector{Interaction{T}}) where T <: AbstractFloat
     Mat
 end
 
-spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
 
-binary2spins(spins::Vector{Int}) = [2*i-1 for i in spins]
+"""
+    getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
 
-function vecvec2matrix(v::Vector{Vector{Int}})
-    M = v[1]
-    for i in 2:length(v)
-        M = hcat(M, v[i])
+reades the coupling from the interactions, returns the number
+"""
+function getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
+    try
+        return filter(x->x.ind==(i,j), interactions)[1].coupling
+    catch
+        return filter(x->x.ind==(j,i), interactions)[1].coupling
     end
-    M
+end
+
+# TODO following are used to form a grid,
+# they should be compleated and incorporated into the solver
+
+function nxmgrid(n::Int, m::Int)
+    grid = zeros(Int, n, m)
+    for i in 1:m
+       for j in 1:n
+           grid[j,i] = i+m*(j-1)
+       end
+   end
+   grid
+end
+
+function chimera_cell(i::Int, j::Int, size::Int)
+    size = Int(sqrt(size/8))
+    ofset = 8*(j-1)+8*size*(i-1)
+    cel = zeros(Int, 4, 2)
+    cel[:,1] = [k+ofset for k in 1:4]
+    cel[:,2] = [k+ofset for k in 5:8]
+    cel
+end
+
+function get_connection_if_exists(i::Int, j::Int, k::Int, grid::Matrix{Int})
+    try
+        return [[i, grid[j, k]]]
+    catch
+        return Vector{Int}[]
+    end
+end
+
+
+function enviroment(i::Int,j::Int,k::Int,grid)
+    left = get_connection_if_exists(i, j, k-1, grid)
+    right = get_connection_if_exists(i, j, k+1, grid)
+    up = get_connection_if_exists(i, j-1, k, grid)
+    down = get_connection_if_exists(i, j+1, k, grid)
+    return left, right, up, down
+end
+
+function read_connecting_pairs(grid::Matrix{Int}, i::Int)
+    a = findall(x->x==i, grid)[1]
+    enviroment(i,a[1],a[2], grid)
 end
 
 """
@@ -116,6 +124,10 @@ end
 this structure is supposed to include all information about nodes on the grid.
 necessary to crearte the corresponding tensor (e.g. the element of the peps).
 """
+# TODO this for sure need to be clarified, however I would leave such
+# approach. It allows for easy creation of various grids of interactions
+# (e.g. Pegasusu) and its modification during computation (if necessary).
+
 struct Node_of_grid
     i::Int
     spin_inds::Vector{Int}
@@ -282,44 +294,11 @@ struct Node_of_grid
     end
 end
 
+###################### Axiliary functions mainly for the solver ########
 
 function get_system_size(ns::Vector{Node_of_grid})
     mapreduce(x -> length(x.spin_inds), +, ns)
 end
-
-
-# generation of tensors
-
-"""
-    delta(a::Int, b::Int)
-
-Dirac delta, additionally return 1 if first arguments is zero for
-implementation cause
-"""
-function delta(γ::Int, s::Int)
-    if γ != 0
-        return Int(γ == s)
-    end
-    1
-end
-
-"""
-    c(γ::Int, J::T, s::Int, β::T) where T <: AbstractFloat
-
-c building block
-"""
-c(γ::Int, J::T, s::Int, β::T) where T <: AbstractFloat =  exp(β*2*J*γ*s)
-
-"""
-    function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jir::T, Jid::T, Jii::T , β::T) where T <: AbstractFloat
-
-returns the element of the tensor, l, r, u, d represents the link with another tensor in the grid.
-If some of these are zero there is no link and the corresponding boulding block returns 1.
-"""
-function Tgen(l::Int, r::Int, u::Int, d::Int, s::Int, Jil::T, Jiu::T, Jii::T, β::T) where T <: AbstractFloat
-    delta(r, s)*delta(d, s)*c(l, Jil, s, β)*c(u, Jiu, s, β)*exp(β*Jii*s)
-end
-
 
 """
     function sum_over_last(T::Array{T, N}) where N
@@ -343,19 +322,6 @@ function last_m_els(vector::Vector{Int}, m::Int)
         return vector
     else
         return vector[end-m+1:end]
-    end
-end
-
-"""
-    getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
-
-reades the coupling from the interactions, returns the number
-"""
-function getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
-    try
-        return filter(x->x.ind==(i,j), interactions)[1].coupling
-    catch
-        return filter(x->x.ind==(j,i), interactions)[1].coupling
     end
 end
 
@@ -388,4 +354,20 @@ function reindex(i::Int, all_spins::Vector{Int}, subset_spins::Vector{Int})
     s = ind2spin(i, length(all_spins))
     k = [findall(x->x==j, all_spins)[1] for j in subset_spins]
     spins2ind(s[k])
+end
+
+
+spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
+
+binary2spins(spins::Vector{Int}) = [2*i-1 for i in spins]
+
+
+# this is axiliary function for npz write
+
+function vecvec2matrix(v::Vector{Vector{Int}})
+    M = v[1]
+    for i in 2:length(v)
+        M = hcat(M, v[i])
+    end
+    M
 end

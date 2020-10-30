@@ -33,9 +33,10 @@ using Statistics
         @test energies_mps[1:8] ≈ energies_brute[1:8]
     end
 
+
     @testset "L = 20 testing with brute force" begin
 
-        sols = 10
+        sols = 15
         system_size = 20
 
         # sampler of random symmetric matrix

@@ -6,7 +6,12 @@ returns vector of solutions (Vector{Vector{Int}}) and vector of energies (Vector
 
 First element is supposed to be a ground state
 """
-function brute_force_solve(M::Matrix{T}, sols::Int) where T <: AbstractFloat
+
+#TODO this will be exported as well
+#TODO input Interactions, M .... and solution parameters
+
+
+function brute_force_solve(M::Matrix{Float64}, sols::Int)
     s = size(M,1)
     all_spins = Vector{Int}[]
     energies = Float64[]
@@ -23,8 +28,9 @@ end
 """
     function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
 
-returne energy Float given a matrix of interacrions and vector of spins
+return energy Float given a matrix of interacrions and vector of spins
 """
+# a minus sign should be incorporated to energy
 function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
     d =  diag(M)
     M = M .- diagm(d)

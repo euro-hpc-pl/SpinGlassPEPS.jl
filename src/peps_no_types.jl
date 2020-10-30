@@ -4,6 +4,7 @@ using GenericLinearAlgebra
 using SharedArrays
 using Distributed
 
+# TODO β and interactions should be as Float64, if typechange, make it inside a solver
 
 """
 compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{Interaction{T}}, i::Int, β::T)
@@ -23,8 +24,10 @@ If tensor is expected to be on the top of the peps mode 3 is trivial and is remo
 If tensor is expected to be on the bottom of the peps mode 4 is trivial and is removed
 """
 
-f(i::Int) = div((i-1), 2)+1
+# TODO this function needs to be clearer (split into a few) and perhaps spead up
+# many repeating code inside
 
+#TODO searching functions outside
 
 function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{Interaction{T}},
                                                         i::Int, β::T) where T <: AbstractFloat
@@ -73,8 +76,6 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
         end
     end
 
-    #tensor = SharedArray{T}((tensor_size...))
-
     tensor = zeros(T, (tensor_size...))
     # following are done outside the loop
     siz = [ceil(Int, log(2, size)) for size in tensor_size]
@@ -102,7 +103,6 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
             d = (spins[4] == all_spins[down])
         end
         # if any is false further is not necessary
-        #if false
         if (d && r)
 
             J1 = 0.
@@ -120,8 +120,6 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
             if n.intra_struct != Array{Int64,1}[]
                 i = 1
                 for pair in n.intra_struct
-                    #a = findall(x->x==pair[1], n.spin_inds)[1]
-                    #b = findall(x->x==pair[2], n.spin_inds)[1]
 
                     s1 = all_spins[ind_a[i]]
                     s2 = all_spins[ind_b[i]]
@@ -148,6 +146,7 @@ end
 
 returns an mps, the product of the mpo and mps
 """
+# TODO Take from LP+BG code, or at lest simplify, remove reshape
 function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
         mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
         for i in 1:length(mps_down)
@@ -173,6 +172,7 @@ is supposed to be a matrix, as its first mode is set due to the spin to the left
 The first elemnt of mps_up has two virtual modes and one physical. Ather elements have
 all virtual modes.
 """
+# this is Type dependent, leave it as it is
 function compute_scalar_prod(mps_down::Vector{Array{T, N} where N}, mps_up::Vector{Array{T, 3}}) where T <: AbstractFloat
     env = ones(T, 1,1)
     for i in length(mps_up):-1:1
@@ -255,7 +255,8 @@ function set_spin_from_letf(mpo::Vector{Array{T,4}}, sol::Vector{Int}, new_s::In
     return B
 end
 
-
+# TODO, rename and explain s, s_new it was done temporarly
+# explain tensors B,C,D
 function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}}, new_s::Int, s::Vector{Int} = Int[]) where T <: AbstractFloat
 
     l1 = length(lower_mps)
@@ -285,11 +286,15 @@ function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}
     unnorm_prob./sum(unnorm_prob)
 end
 
+"""
+    function conditional_probabs(mps::Vector{Array{T, 2}}) where T <: AbstractFloat
 
-function conditional_probabs(chain::Vector{Array{T, 2}}) where T <: AbstractFloat
+Copmutes a conditional probability of the single mps (a last step)
+"""
+function conditional_probabs(mps::Vector{Array{T, 2}}) where T <: AbstractFloat
     env = ones(T, 1)
-    for i in length(chain):-1:1
-        env = chain[i]*env
+    for i in length(mps):-1:1
+        env = mps[i]*env
     end
     env./sum(env)
 end
@@ -337,15 +342,16 @@ end
 
 
 """
-    add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
+    update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
 
 Add a spin and replace an objective function to Partial_sol{T} type
 """
-
-function add_spin(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
+# TODO move particular type to solver
+function update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
     Partial_sol{T}(vcat(ps.spins, [s]), objective)
 end
 
+# TODO this will be the exported function
 
 function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, grid::Matrix{Int},
                                         no_sols::Int = 2; β::T, χ::Int = 0,
@@ -414,13 +420,13 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                         mps = [upper_mpo[k][:,:,ind_above[k],:] for k in l+1:s[2]]
 
 
-                        chain = set_spin_from_letf(mps, sol, new_s, s[2])
-                        objectives = conditional_probabs(chain)
+                        mps = set_spin_from_letf(mps, sol, new_s, s[2])
+                        objectives = conditional_probabs(mps)
                     end
                 end
 
                 for l in 1:length(objectives)
-                    push!(partial_s_temp, add_spin(ps, l, ps.objective*objectives[l]))
+                    push!(partial_s_temp, update_partial_solution(ps, l, ps.objective*objectives[l]))
                 end
 
             end

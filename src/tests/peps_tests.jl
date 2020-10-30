@@ -18,7 +18,7 @@ end
     @test ps1.spins == [1,1]
     @test ps1.objective == 1.
 
-    ps2 = add_spin(ps1, 2, 1.)
+    ps2 = update_partial_solution(ps1, 2, 1.)
     @test ps2.spins == [1,1,2]
     @test ps2.objective == 1.
 
@@ -48,6 +48,7 @@ function make_interactions()
 end
 
 @testset "larger tensors" begin
+    # TODO this will be done by the function
     grid = Array{Array{Int}}(undef, (2,2))
     grid[1,1] = [1 2;4 5]
     grid[1,2] = reshape([3, 6], (2,1))
@@ -101,6 +102,7 @@ function make_c8()
 end
 
 @testset "chimera cel" begin
+    # TODO this will be done by the function as well
     grid = Array{Array{Int}}(undef, (1,1))
     grid[1,1] = [1 2;3 4]
     grid = Array{Array{Int}}(grid)
@@ -140,6 +142,8 @@ end
     @test ten8[1,1,1,2] ≈ exp(β*(-6+8*2*0.1))
 end
 
+# TODO we may not want to have the large dims tensor output,
+# some set_spins may be heelpfull
 function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractFloat
     u1 = M[1,1][1,:,:,:]
     v1 = [2,31, -1]
@@ -243,7 +247,7 @@ end
     end
     M = Matrix{Array{Float64, N} where N}(M)
 
-    #M = make_pepsTN(grid, interactions, β)
+    #TODO make something with dimensionality
     cc = contract3x3by_ncon(M)
     su = sum(cc)
 
@@ -330,7 +334,7 @@ end
 @testset "PEPS - solving simple train problem" begin
 
     inter = interactions_case2()
-
+    # TODO forming a frid inside a solver
     grid = [1 2 3; 4 5 6; 7 8 9]
     ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
 

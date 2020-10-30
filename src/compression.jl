@@ -1,3 +1,11 @@
+import LinearAlgebra: QRIteration
+import LinearAlgebra: DivideAndConquer
+using LowRankApprox
+using Random
+
+# TODO some of functions from LP-BG can be used there                                         |
+#                                             |
+# TODO permute dimetnions to ---viatual - physical - virtual---
 
 function make_left_canonical(t1::Array{T, 3}, t2::Array{T, 3}) where T <: AbstractFloat
     s = size(t1)
@@ -7,8 +15,17 @@ function make_left_canonical(t1::Array{T, 3}, t2::Array{T, 3}) where T <: Abstra
     A1 = reshape(A1, (s[1]*s[3], s[2]))
     # TODO this need to be secured for singular matrix case
     # or a case as if does not converge, LAPACKException(15)
-    #probabile solution use svd(  ; alg = ...)
-    U,Σ,V = svd(A1)
+    #nor temporary solution noised the matrix
+    U = 0.
+    Σ = 0.
+    V = 0.
+    try
+        U,Σ,V = svd(A1; alg = QRIteration())
+    catch
+        println("save problematic matrix")
+        npzwrite("problematic_matrix.npz", A1)
+        U,Σ,V = svd(A1; alg = QRIteration())
+    end
     T2 = diagm(Σ)*transpose(V)
     k = length(Σ)
 
@@ -22,7 +39,7 @@ function make_left_canonical(t1::Array{T, 3}, t2::Array{T, 3}) where T <: Abstra
 end
 
 
-
+# TODO perhaps some reshapes can be reduced
 function make_right_canonical(t1::Array{T, 3}, t2::Array{T, 3}) where T <: AbstractFloat
 
     s = size(t2)
@@ -58,6 +75,7 @@ function vec_of_left_canonical(mps::Vector{Array{T, 3}}) where T <: AbstractFloa
     mps
 end
 
+# TODO χ may be leveraged up to the svd()
 function left_canonical_approx(mps::Vector{Array{T, 3}}, χ::Int) where T <: AbstractFloat
 
     mps = vec_of_left_canonical(copy(mps))
@@ -75,6 +93,8 @@ function left_canonical_approx(mps::Vector{Array{T, 3}}, χ::Int) where T <: Abs
     mps
 end
 
+
+# TODO it is noe used right now
 function right_canonical_approx(mps::Vector{Array{T, 3}}, χ::Int) where T <: AbstractFloat
 
     mps = vec_of_right_canonical(copy(mps))
@@ -111,6 +131,8 @@ function QR_make_right_canonical(t2::Array{T, 3}) where T <: AbstractFloat
     Bnew, R
 end
 
+# TODO if we permute dimentions on the start the permutation here would not
+# be necessary
 function QR_make_left_canonical(t2::Array{T, 3}) where T <: AbstractFloat
 
     s = size(t2)
@@ -256,6 +278,9 @@ function compress_iter(mps::Vector{Array{T,3}}, χ::Int, threshold::T) where T <
     compress_mps_itterativelly(mps_lc, mps_anzatz, threshold)
 end
 
+
+# TODO I made this simple implementation for the intra-step compression
+
 function compress_iter(mpo::Vector{Array{T,4}}, χ::Int, threshold::T) where T <: AbstractFloat
     s = [size(el) for el in mpo]
     mps = [reshape(mpo[i], (s[i][1], s[i][2], s[i][3]*s[i][4])) for i in 1:length(mpo)]
@@ -266,7 +291,7 @@ function compress_iter(mpo::Vector{Array{T,4}}, χ::Int, threshold::T) where T <
     return mps
 end
 
-
+# TODO for testing - comparison only
 function compress_svd(mps::Vector{Array{T,3}}, χ::Int) where T <: AbstractFloat
     left_canonical_approx(mps, χ)
 end

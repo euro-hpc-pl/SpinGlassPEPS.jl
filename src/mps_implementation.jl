@@ -25,12 +25,17 @@ function initialize_mps(l::Int, physical_dims::Int =  2, T::Type = Float64)
 end
 
 function initialize_mpo(l::Int, physical_dims::Int =  2, T::Type = Float64)
-    [make_ones(T) for _ in 1:l]
+    [make_ones_between_not_interactiong(physical_dims, T) for _ in 1:l]
 end
 
 
-function make_ones(T::Type = Float64)
-    d = 2
+####
+
+
+# TODO this two below perhaps can be simplified
+
+
+function make_ones_between_not_interactiong(d::Int, T::Type = Float64)
     ret = zeros(T, 1,1,d,d)
     for j in 1:d
         ret[1,1,j,j] = T(1.)
@@ -38,7 +43,7 @@ function make_ones(T::Type = Float64)
     ret
 end
 
-function make_ones_inside(d::Int, T::Type = Float64)
+function make_ones_between_interacting_nodes(d::Int, T::Type = Float64)
     ret = zeros(T, d,d,d,d)
     for i in 1:d
         for j in 1:d
@@ -48,8 +53,10 @@ function make_ones_inside(d::Int, T::Type = Float64)
     ret
 end
 
-function T_with_B(l::Bool = false, r::Bool = false, T::Type = Float64)
-    d = 2
+### below the constriction of B-tensors and C-tensors
+### TODO these should be tested directly in unit tests
+
+function Btensor(d::Int, l::Bool = false, r::Bool = false, T::Type = Float64)
     ret = zeros(T, d,d,d,d)
     for i in 1:d
         for j in 1:d
@@ -68,7 +75,7 @@ function T_with_B(l::Bool = false, r::Bool = false, T::Type = Float64)
     return ret
 end
 
-function T_with_C(J::Vector{T}, d::Int, left::Bool = false, right::Bool = false) where T <: AbstractFloat
+function Ctensor(J::Vector{T}, d::Int, left::Bool = false, right::Bool = false) where T <: AbstractFloat
 
     ret = zeros(T, d,d,d,d)
     for i in 1:d
@@ -100,9 +107,9 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vect
     k = minimum([i, nodes...])
     l = maximum([i, nodes...])
     for j in k:l
-        mpo[j] = make_ones_inside(d, T)
+        mpo[j] = make_ones_between_interacting_nodes(d, T)
     end
-    mpo[i] = T_with_B(i==k, i==l, T)
+    mpo[i] = Btensor(d, i==k, i==l, T)
     for j in nodes
 
         J = T[]
@@ -113,7 +120,7 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vect
             push!(J, getJ(interactions, spins[r,1], spins[r,2]))
         end
 
-        mpo[j] = T_with_C(J*β, d, j==k, j==l)
+        mpo[j] = Ctensor(J*β, d, j==k, j==l)
     end
     mpo
 end
@@ -149,7 +156,7 @@ function add_phase!(mps::Vector{Array{T, 3}}, interactions::Vector{Interaction{T
 end
 
 
-function v_from_mps(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
+function partial_spin_set(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
     env = ones(T,1)
     for i in 1:length(spins)
         env = env*mps[i][:,:,spins[i]]
@@ -160,7 +167,7 @@ end
 function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
     d = size(mps[1], 3)
     k = length(spins)+1
-    left_v = v_from_mps(mps, spins)
+    left_v = partial_spin_set(mps, spins)
 
     A = mps[k]
     probs_at_k = zeros(T, d,d)
@@ -184,7 +191,9 @@ function construct_mps_step(mps::Vector{Array{T, 3}}, interactions::Vector{Inter
                                                     ns::Vector{Node_of_grid},
                                                     β::T, is::Vector{Int},
                                                     js::Vector{Vector{Int}}) where T<: AbstractFloat
-    mpo = [make_ones() for _ in 1:length(mps)]
+    ##TODO physical dimention may be differet
+    phys_dim = 2
+    mpo = [make_ones_between_not_interactiong(phys_dim) for _ in 1:length(mps)]
     for k in 1:length(is)
         add_MPO!(mpo, is[k], js[k], ns, interactions, β)
     end
@@ -314,7 +323,7 @@ function construct_mps(interactions::Vector{Interaction{T}}, β::T, β_step::Int
     mps
 end
 
-
+### TODO should be reintegrated with the solve
 function solve_mps(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid},
                 no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
 
@@ -333,7 +342,7 @@ function solve_mps(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid
             objectives = compute_probs(mps, ps.spins)
 
             for l in 1:length(objectives)
-                push!(partial_s_temp, add_spin(ps, l, objectives[l]))
+                push!(partial_s_temp, update_partial_solution(ps, l, objectives[l]))
             end
         end
 

@@ -231,20 +231,10 @@ end
         @test_throws BoundsError getJ(interactions, 1,3)
     end
 
-    @testset "operations on tensors" begin
+    @testset "axiliary" begin
         A = ones(2,2,2,2)
         @test sum_over_last(A) == 2*ones(2,2,2)
 
-        @test delta(0,-1) == 1
-        @test delta(-1,1) == 0
-        @test delta(1,1) == 1
-        @test c(0, 1., 20, 1.) == 1
-        @test Tgen(0,0,0,0,-1,0.,0.,1., 1.) == exp(-1.)
-        @test Tgen(0,0,0,0,-1,0.,0.,1., 2.) == exp(-2.)
-        @test Tgen(0,0,0,0,-1,0.,0.,-1., 2.) == exp(2.)
-    end
-
-    @testset "axiliary" begin
         @test last_m_els([1,2,3,4], 2) == [3,4]
         @test last_m_els([1,2,3,4], 5) == [1,2,3,4]
         @test ind2spin(1,1) == [-1]
