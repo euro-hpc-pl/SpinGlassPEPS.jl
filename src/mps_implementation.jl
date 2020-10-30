@@ -192,8 +192,8 @@ function construct_mps_step(mps::Vector{Array{T, 3}}, interactions::Vector{Inter
                                                     β::T, is::Vector{Int},
                                                     js::Vector{Vector{Int}}) where T<: AbstractFloat
     ##TODO physical dimention may be differet
-    phys_dim = 2
-    mpo = [make_ones_between_not_interactiong(phys_dim) for _ in 1:length(mps)]
+    phys_dims = [size(el, 3) for el in mps]
+    mpo = [make_ones_between_not_interactiong(phys_dims[i]) for i in 1:length(mps)]
     for k in 1:length(is)
         add_MPO!(mpo, is[k], js[k], ns, interactions, β)
     end
