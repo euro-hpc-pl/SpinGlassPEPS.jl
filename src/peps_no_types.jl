@@ -66,6 +66,7 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
     # following are done outside the loop
     siz = [ceil(Int, log(2, size)) for size in tensor_size]
 
+    # this will go to compute internal energy
     ind_a = Int[]
     ind_b = Int[]
     for pair in n.intra_struct
