@@ -18,34 +18,14 @@ T = Float64
 @testset "Canonisation (left)" begin
     canonise!(ψ, :left)  
     show(ψ)  
- 
-    is_left_normalized = true
-    for i ∈ 1:length(ψ)
-        A = ψ[i]
-        DD = size(A, 3)
-
-        @tensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
-        is_left_normalized *= I(DD) ≈ Id
-    end 
-
-    @test is_left_normalized 
+    @test _is_left_normalized(ψ) 
     @test dot(ψ, ψ) ≈ 1  
 end
 
 @testset "Canonisation (right)" begin
     canonise!(ϕ, :right)  
     show(ϕ)
-
-    is_right_normalized = true
-    for i ∈ 1:length(ϕ)
-        B = ϕ[i]
-        DD = size(B, 1)
-
-        @tensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
-        is_right_normalized *= I(DD) ≈ Id
-    end 
-
-    @test is_right_normalized 
+    @test _is_right_normalized(ϕ) 
     @test dot(ϕ, ϕ) ≈ 1      
 end
 

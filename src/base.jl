@@ -1,6 +1,8 @@
 using Base
 export bond_dimension
 export _verify_bonds
+export _is_left_normalized
+export _is_right_normalized
 
 for (T, N) in ((:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
@@ -118,6 +120,7 @@ function Base.show(::IO, ψ::AbstractMPS)
     println("   ")
     println("Bond dimensions:   ")
     _show_sizes(χ_list)
+    println("   ")
 end
 
 function _show_sizes(dims::Vector, sep::String=" x ", Lcut::Int=8)
@@ -134,3 +137,27 @@ function _show_sizes(dims::Vector, sep::String=" x ", Lcut::Int=8)
         println(dims[end])
     end
 end   
+
+function _is_left_normalized(ψ::MPS)
+    yesNo = true
+    for i ∈ 1:length(ψ)
+        A = ψ[i]
+        DD = size(A, 3)
+    
+        @tensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
+        yesNo *= I(DD) ≈ Id
+    end  
+    yesNo   
+end
+
+function  _is_right_normalized(ϕ::MPS)   
+    yesNo = true
+    for i ∈ 1:length(ϕ)
+        B = ϕ[i]
+        DD = size(B, 1)
+
+        @tensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
+        yesNo *= I(DD) ≈ Id
+    end 
+    yesNo
+end

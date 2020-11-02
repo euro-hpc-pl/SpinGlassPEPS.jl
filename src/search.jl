@@ -1,5 +1,6 @@
 export MPS_from_gates, unique_neighbors
 export MPSControl
+export _spectrum
 
 struct MPSControl 
     max_bond::Int
@@ -7,44 +8,50 @@ struct MPSControl
     max_sweeps::Int
 end
 
-
 function _spectrum(ρ::MPS, k::Int) 
     # ρ needs to be in the right canonical form
     l = length(ρ)
-
     T = eltype(ρ)
-    L = ones(T, 1, 1)
 
-    idx = Dict(1 => -1, 2 => 1)
-    left_env = Vector{Matrix{T}}(undef, 2*k)
-    
-    marginal_pdo = Vector{Number}(undef, 2*k)
-    partial_states = Vector{Vector{Int}}(undef, 2*k)
+    @assert k > 0 "Number of states has to be > 0."
+    @assert _is_right_normalized(ρ)
+
+    left_env = fill(ones(T, 1, 1), 2*k)  
+    marginal_pdo = fill(0., 2*k)
+    partial_states = fill([], 2*k) 
+
+    pCutMax = 0.
 
     for i ∈ 1:l
-        M = ψ[i]
-        
-        for (j, (state, L)) ∈ enumerate(partial_config)
+        M = ρ[i]
 
-            @tensor LL[x, y, σ] := M[γ, σ, x] * L[γ, α] * M[α, σ, y] order = (α, γ) 
-            @cast P[σ] := sum(x) LL[x, x, σ]
+        for (j, (state, L)) ∈ enumerate(zip(partial_states[1:k], left_env[1:k]))
+            for σ ∈ [-1, 1]
+                m = _idx[σ]
+                n = j + (m - 1) * k
 
-            marginal_pdo[i] = p[1]
-            marginal_pdo[k+i] = p[2]
-
-            for (m, p) ∈ enumerate(P)
-
-                #partial_states[n] = push!()
-                marginal_pdo[i] = p
-            end    
-
-            perm = sortperm(marginal_pdo) 
-            partial_config = partial_config[perm[1:k]]
+                println("pdo: ", M[:, m, :]' * (L * M[:, m, :]))
+                left_env[n] = M[:, m, :]' * (L * M[:, m, :])
+                marginal_pdo[n] = tr(left_env[n])
+                partial_states[n] = push!(state, σ)
+            end  
         end
 
-    end
+        println(i, " ", marginal_pdo)
+        perm = sortperm(marginal_pdo, rev=true) 
+        marginal_pdo = marginal_pdo[perm]
 
-    pdo
+        pCut = marginal_pdo[k+1]
+
+        println(pCut, " ", pCutMax)
+        println(i, " ", marginal_pdo)
+
+        if pCutMax < pCut pCutMax = pCut end 
+
+        partial_states = partial_states[perm]
+        left_env = left_env[perm]
+    end
+    partial_states[1:k], marginal_pdo[1:k], pCutMax
 end
 
 function unique_neighbors(ig::MetaGraph, i::Int)
