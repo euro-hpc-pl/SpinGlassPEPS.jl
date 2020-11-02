@@ -32,11 +32,15 @@ ig = ising_graph(instance, N)
         canonise!(ρ, :right)
         @test dot(ρ, ρ) ≈ 1
 
+
+
+
+        
         max_states = 4
-        states, probab, pcut = _spectrum(ρ, max_states)
+        states, probab, pCut = _spectrum(ρ, max_states)
         states_bf, energies = _brute_force(ig, max_states)
         
-        println("The largest discarded probability: ", pcut)
+        @info "The largest discarded probability" pCut
         @test energy.(states, Ref(ig)) ≈ energies
         #@test states == states_bf
     end

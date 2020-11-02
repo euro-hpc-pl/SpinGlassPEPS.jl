@@ -91,17 +91,17 @@ function compress(ψ::AbstractMPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
     overlap = 0 
     overlap_before = 1
      
-    println("Compressing down to: $Dcut") 
+    @info "Compressing down to" Dcut
     
     for sweep ∈ 1:max_sweeps            
         _left_sweep_var!!(ϕ, env, ψ, Dcut)
         overlap = _right_sweep_var!!(ϕ, env, ψ, Dcut)
 
         diff = abs(overlap_before - abs(overlap))
-        println("Convergence: ", diff)
+        @info "Convergence" diff
 
         if diff < tol
-            println("Finished in $sweep sweeps (of $max_sweeps).")
+            @info "Finished in $sweep sweeps of $(max_sweeps)."
             break
         else
             overlap_before = overlap

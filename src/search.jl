@@ -29,28 +29,26 @@ function _spectrum(ρ::MPS, k::Int)
             for σ ∈ [-1, 1]
                 m = _idx[σ]
                 n = j + (m - 1) * k
-
-                println("pdo: ", M[:, m, :]' * (L * M[:, m, :]))
                 left_env[n] = M[:, m, :]' * (L * M[:, m, :])
                 marginal_pdo[n] = tr(left_env[n])
                 partial_states[n] = push!(state, σ)
             end  
+            
+            @debug begin 
+                @info "Probability of spin being up, down" i marginal_pdo[j] marginal_pdo[k+j]
+                @assert marginal_pdo[j] + marginal_pdo[k+j] ≈ 1
+            end
         end
 
-        println(i, " ", marginal_pdo)
         perm = sortperm(marginal_pdo, rev=true) 
         marginal_pdo = marginal_pdo[perm]
 
-        pCut = marginal_pdo[k+1]
-
-        println(pCut, " ", pCutMax)
-        println(i, " ", marginal_pdo)
-
-        if pCutMax < pCut pCutMax = pCut end 
+        if pCutMax < marginal_pdo[k+1] pCutMax = marginal_pdo[k+1] end 
 
         partial_states = partial_states[perm]
         left_env = left_env[perm]
     end
+
     partial_states[1:k], marginal_pdo[1:k], pCutMax
 end
 

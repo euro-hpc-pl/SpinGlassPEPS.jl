@@ -6,6 +6,7 @@ module SpinGlassPEPS
     using LightGraphs
     using MetaGraphs
     using CSV
+
     const product = Iterators.product
 
     include("base.jl")
