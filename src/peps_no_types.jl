@@ -29,6 +29,16 @@ If tensor is expected to be on the bottom of the peps mode 4 is trivial and is r
 
 #TODO searching functions outside
 
+function index_of_interacting_spins(n::Node_of_grid, pairs::Vector{Vector{Int}})
+    spins = Int[]
+
+    for el in pairs
+        index = findall(x->x==el[1], n.spin_inds)[1]
+        push!(spins, index)
+    end
+    spins
+end
+
 function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{Interaction{T}},
                                                         i::Int, β::T) where T <: AbstractFloat
 
@@ -38,43 +48,19 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
 
     tensor_size = map(x -> 2^length(x), [n.left, n.right, n.up, n.down, n.spin_inds])
 
-    Jil = T[]
-    Jiu = T[]
-    h = T[]
+    # these 2 are used to compute external energy
+    Jil = [getJ(interactions, l...) for l in n.left]
+    Jiu = [getJ(interactions, u...) for u in n.up]
 
-    left = Int[]
-    right = Int[]
-    up = Int[]
-    down = Int[]
-    for j in n.spin_inds
-        push!(h, getJ(interactions, j,j))
+    # these 2 are used to compute internal energy
+    # compute log - energy here
+    J_intra = [getJ(interactions, pair[1], pair[2]) for pair in n.intra_struct]
+    h = [getJ(interactions, j,j) for j in n.spin_inds]
 
-        if j in [e[1] for e in n.left]
-            #this [1] has to be changed for pegasus
-            a = findall(x->x[1]==j, n.left)[1]
-            push!(Jil, getJ(interactions, n.left[a]...))
-
-            b = findall(x->x[1]==j, n.spin_inds)[1]
-            push!(left, b)
-        end
-
-        if j in [e[1] for e in n.right]
-            a = findall(x->x[1]==j, n.spin_inds)[1]
-            push!(right, a)
-        end
-
-        if j in [e[1] for e in n.down]
-            a = findall(x->x[1]==j, n.spin_inds)[1]
-            push!(down, a)
-        end
-
-        if j in [e[1] for e in n.up]
-            a = findall(x->x[1]==j, n.up)[1]
-            push!(Jiu, getJ(interactions, n.up[a]...))
-            b = findall(x->x[1]==j, n.spin_inds)[1]
-            push!(up, b)
-        end
-    end
+    left = index_of_interacting_spins(n, n.left)
+    right = index_of_interacting_spins(n, n.right)
+    up = index_of_interacting_spins(n, n.up)
+    down = index_of_interacting_spins(n, n.down)
 
     tensor = zeros(T, (tensor_size...))
     # following are done outside the loop
@@ -115,6 +101,7 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
                 J2 = sum(Jiu.*spins[3].*all_spins[up])
             end
 
+            # this should be a function compute internal energy
             hh = β*sum(h.*all_spins)
 
             if n.intra_struct != Array{Int64,1}[]
@@ -123,9 +110,9 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
 
                     s1 = all_spins[ind_a[i]]
                     s2 = all_spins[ind_b[i]]
-                    i = i+1
-                    J = getJ(interactions, pair[1], pair[2])
-                    hh = hh + 2*β*J*s1*s2
+
+                    hh = hh + 2*β*J_intra[i]*s1*s2
+                    i = i + 1
                 end
             end
 
