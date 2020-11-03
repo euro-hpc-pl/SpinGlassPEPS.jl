@@ -1,15 +1,15 @@
 export ising_graph, energy
 export gibbs_tensor
 export GibbsControl
-export _brute_force
-export _brute_force_lazy
+export brute_force
+export brute_force_lazy
 
 struct GibbsControl 
     β::Number
     β_schedule::Vector{<:Number}
 end
 
-function _brute_force_lazy(ig::MetaGraph, k::Int=1)
+function brute_force_lazy(ig::MetaGraph, k::Int=1)
     L = nv(ig)
     states = product(fill([-1, 1], L)...)
     energies = vec(energy.(states, Ref(ig)))
@@ -17,9 +17,9 @@ function _brute_force_lazy(ig::MetaGraph, k::Int=1)
     collect.(states)[perm][1:k], energies[perm][1:k]
 end    
 
-function _brute_force(ig::MetaGraph, k::Int=1)
+function brute_force(ig::MetaGraph, k::Int=1)
     L = nv(ig)
-    states = _toIsing.(digits.(0:2^L-1, base=2, pad=L))
+    states = to_ising.(digits.(0:2^L-1, base=2, pad=L))
     energies = energy.(states, Ref(ig))
     perm = sortperm(energies)
     states[perm][1:k], energies[perm][1:k]
@@ -95,4 +95,9 @@ function ising_graph(instance::String, L::Int, β::Number=1)
     set_prop!(ig, :β, β)
     
     ig
+end
+
+function unique_neighbors(ig::MetaGraph, i::Int)
+    nbrs = neighbors(ig::MetaGraph, i::Int)
+    filter(j -> j > i, nbrs)
 end

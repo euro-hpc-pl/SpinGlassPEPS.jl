@@ -63,4 +63,26 @@ function CuMPS(O::CuMPO)
         ψ[i] = A     
     end 
     return ψ
-end  
+end
+
+function is_left_normalized(ψ::CuMPS)
+    for i ∈ 1:length(ψ)
+        A = ψ[i]
+        DD = size(A, 3)
+    
+        @cutensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
+        I(DD) ≈ Id ? () : return false
+    end  
+    true
+end
+
+function is_right_normalized(ϕ::CuMPS)   
+    for i ∈ 1:length(ϕ)
+        B = ϕ[i]
+        DD = size(B, 1)
+
+        @cutensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
+        I(DD) ≈ Id ? () : return false
+    end 
+    true
+end

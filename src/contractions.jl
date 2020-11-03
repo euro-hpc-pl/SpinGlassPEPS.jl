@@ -1,4 +1,3 @@
-using Base 
 export left_env, right_env, dot!
 
 # --------------------------- Conventions ------------------------ 

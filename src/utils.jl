@@ -1,18 +1,7 @@
-export _toIdx, _idx, _toIsing
-# export newdim
+export idx, to_ising
 
-# newdim(::Type{T}, dims) where {T<:AbstractArray} = T.name.wrapper{eltype(T), dims}
+to_ising(state) = 2 .* state .- 1
 
-_toIsing(state::Vector{Int}) = 2 .* state .- 1
-
-const _idx = Dict(-1 => 1, 1 => 2)
-
-function _toIdx(s::Int) 
-    if s == -1 
-        return 1
-    elseif s == 1
-        return 2  
-    else
-        error("Wrong value $(s).")
-    end          
-end 
+idx(s::Int) = idx(Val(s))
+idx(::Val{-1}) = 1
+idx(::Val{1}) = 2

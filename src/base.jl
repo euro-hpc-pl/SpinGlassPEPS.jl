@@ -1,8 +1,4 @@
-using Base
-export bond_dimension
-export _verify_bonds
-export _is_left_normalized
-export _is_right_normalized
+export bond_dimension, is_left_normalized, is_right_normalized
 
 for (T, N) in ((:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
@@ -91,6 +87,28 @@ end
 function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
     ψ = randn(MPS{T}, L, D, d^2) 
     MPO(ψ)
+end  
+
+function is_left_normalized(ψ::MPS)
+    for i ∈ 1:length(ψ)
+        A = ψ[i]
+        DD = size(A, 3)
+    
+        @tensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
+        I(DD) ≈ Id ? () : return false
+    end  
+    true
+end
+
+function is_right_normalized(ϕ::MPS)   
+    for i ∈ 1:length(ϕ)
+        B = ϕ[i]
+        DD = size(B, 1)
+
+        @tensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
+        I(DD) ≈ Id ? () : return false
+    end 
+    true
 end
 
 function _verify_square(ψ::AbstractMPS)
@@ -107,7 +125,7 @@ function _verify_bonds(ψ::AbstractMPS)
     for i ∈ 1:L-1
         @assert size(ψ[i], 3) == size(ψ[i+1], 1) "Incorrect link between $i and $(i+1)." 
     end     
-end     
+end  
 
 function Base.show(::IO, ψ::AbstractMPS)
     L = length(ψ)
@@ -136,28 +154,4 @@ function _show_sizes(dims::Vector, sep::String=" x ", Lcut::Int=8)
         end
         println(dims[end])
     end
-end   
-
-function _is_left_normalized(ψ::MPS)
-    yesNo = true
-    for i ∈ 1:length(ψ)
-        A = ψ[i]
-        DD = size(A, 3)
-    
-        @tensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
-        yesNo *= I(DD) ≈ Id
-    end  
-    yesNo   
-end
-
-function  _is_right_normalized(ϕ::MPS)   
-    yesNo = true
-    for i ∈ 1:length(ϕ)
-        B = ϕ[i]
-        DD = size(B, 1)
-
-        @tensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
-        yesNo *= I(DD) ≈ Id
-    end 
-    yesNo
 end

@@ -113,13 +113,9 @@ end
 function _truncate_qr(F::CuQR, Dcut::Int)
     Q, R = F
     Q = CuMatrix(Q)
-    @show typeof(Q)
-    @show typeof(R)
     c = min(Dcut, size(Q, 2))
     Q = Q[:, 1:c]
     R = R[1:c, :]
-    @show typeof(Q)
-    @show typeof(R)
     _qr_fix!(Q, R)
 end
 
