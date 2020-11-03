@@ -1,7 +1,6 @@
-export _toIdx, _idx, _toIsing, _projector
-# export newdim
+export idx, to_ising
 
-# newdim(::Type{T}, dims) where {T<:AbstractArray} = T.name.wrapper{eltype(T), dims}
+to_ising(state) = 2 .* state .- 1
 
 const Pu = [[1., 0.] [0., 0.]]
 const Pd = [[0., 0.] [0., 1.]]
@@ -14,6 +13,8 @@ function _projector(state::Vector{Int})
     P
 end 
 
-_toIsing(state::Vector{Int}) = 2 .* state .- 1
-_toIdx(σ::Int) = _idx[σ]
+toIsing(state::Vector{Int}) = 2 .* state .- 1
 
+idx(s::Int) = idx(Val(s))
+idx(::Val{-1}) = 1
+idx(::Val{1}) = 2

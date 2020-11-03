@@ -1,13 +1,12 @@
 using MetaGraphs
 using LightGraphs
 using GraphPlot
-using Base
 
 @testset "Ising" begin
 
     L = 4
     N = L^2 
-    instance = "./instances/$(N)_001.txt"  
+    instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 
     ig = ising_graph(instance, N)
 
@@ -45,7 +44,7 @@ using Base
     @testset "Naive brute force" begin
         k = 2^N
 
-        states, energies = _brute_force(ig, k)
+        states, energies = brute_force(ig, k)
 
         display(states[1:5])
         println("   ")
@@ -54,7 +53,7 @@ using Base
 
         @test energies ≈ energy.(states, Ref(ig))
 
-        states_lazy, energies_lazy = _brute_force_lazy(ig, k)
+        states_lazy, energies_lazy = brute_force_lazy(ig, k)
 
         @test energies_lazy ≈ energies
         @test states_lazy == states

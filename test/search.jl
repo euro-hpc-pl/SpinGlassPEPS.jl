@@ -5,8 +5,8 @@ using GraphPlot
 L = 3
 N = L^2
 
-#instance = "./instances/$(N)_001.txt"  
-instance = "./instances/lattice_$L.txt" 
+instance = "$(@__DIR__)/instances/$(N)_001.txt"  
+#instance = "$(@__DIR__)/instances/lattice_$L.txt" 
 
 ig = ising_graph(instance, N)
 verify_ρ = false
@@ -26,10 +26,10 @@ verify_spectrum = false
     mps_param = MPSControl(Dcut, var_tol, max_sweeps) 
 
     @testset "Low energy spectrum from ρ" begin
-        ρ = MPS_from_gates(ig, mps_param, gibbs_param) 
+        ρ = MPS(ig, mps_param, gibbs_param) 
 
         show(ρ)
-        @test_nowarn _verify_bonds(ρ)
+        @test_nowarn SpinGlassPEPS._verify_bonds(ρ)
 
         max_states = 1
         states_bf, energies = _brute_force(ig, max_states)
