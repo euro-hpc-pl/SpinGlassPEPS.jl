@@ -2,13 +2,15 @@ using MetaGraphs
 using LightGraphs
 using GraphPlot
 
-L = 4
+L = 3
 N = L^2
 
-instance = "./instances/$(N)_001.txt"  
-#instance = "./instances/lattice_$L.txt" 
+#instance = "./instances/$(N)_001.txt"  
+instance = "./instances/lattice_$L.txt" 
 
 ig = ising_graph(instance, N)
+verify_ρ = false
+verify_spectrum = false
 
 @testset "MPS from gates" begin
 
@@ -29,20 +31,40 @@ ig = ising_graph(instance, N)
         show(ρ)
         @test_nowarn _verify_bonds(ρ)
 
-        canonise!(ρ, :right)
-        @test dot(ρ, ρ) ≈ 1
-
-
-
-
-        
-        max_states = 4
-        states, probab, pCut = _spectrum(ρ, max_states)
+        max_states = 1
         states_bf, energies = _brute_force(ig, max_states)
-        
-        @info "The largest discarded probability" pCut
-        @test energy.(states, Ref(ig)) ≈ energies
-        #@test states == states_bf
+
+        if verify_ρ
+            @info "Verifying ρ MPS"
+
+            #all_states = _toIsing.(digits.(0:2^N-1, base=2, pad=N))
+            #states = all_states[1:10]
+            states = states_bf
+
+            r = gibbs_tensor(ig, gibbs_param)
+
+            for (i, σ) ∈ enumerate(states)
+                p = dot(ρ, σ)
+                @info "pdo" i p
+                @test p ≈ dot(ρ, _projector(σ), ρ)
+                
+                @test p <= 1.
+                @test p >= 0.
+    
+                #@test r[_toIdx.(σ)...] ≈ p
+            end   
+        end
+
+        if verify_spectrum
+            canonise!(ρ, :right)
+            @test dot(ρ, ρ) ≈ 1
+
+            @info "Verifying spectrum"
+            states, probab, pCut = _spectrum(ρ, max_states)
+            @info "The largest discarded probability" pCut
+            @test energy.(states, Ref(ig)) ≈ energies
+            #@test states == states_bf
+        end 
     end
 
     #@testset "Generate Gibbs state exactly" begin

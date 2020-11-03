@@ -13,9 +13,11 @@ function _spectrum(ρ::MPS, k::Int)
     l = length(ρ)
     T = eltype(ρ)
 
-    @assert k > 0 "Number of states has to be > 0."
-    @assert _is_right_normalized(ρ)
-
+    @debug begin 
+        @assert k > 0 "Number of states has to be > 0."
+        @assert _is_right_normalized(ρ)
+    end     
+    
     left_env = fill(ones(T, 1, 1), 2*k)  
     marginal_pdo = fill(0., 2*k)
     partial_states = fill([], 2*k) 
@@ -35,7 +37,8 @@ function _spectrum(ρ::MPS, k::Int)
             end  
             
             @debug begin 
-                @info "Probability of spin being up, down" i marginal_pdo[j] marginal_pdo[k+j]
+                @info "Probability of spin being up, down" i j k marginal_pdo[j] marginal_pdo[k+j]
+                @info "Left environment" left_env[j] left_env[j+k]
                 @assert marginal_pdo[j] + marginal_pdo[k+j] ≈ 1
             end
         end
