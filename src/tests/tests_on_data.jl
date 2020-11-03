@@ -12,17 +12,17 @@ using NPZ
     ens = data["energies"]
     states = data["states"]
 
-    qubo = M2interactions(QM)
+    ints = M2interactions(QM)
 
     grid = [1 2 3 4 5; 6 7 8 9 10; 11 12 13 14 15; 16 17 18 19 20; 21 22 23 24 25]
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    ns = [Node_of_grid(i, grid, ints) for i in 1:maximum(grid)]
 
     # PEPS exact
     objective_exact = 0.
 
     @testset "peps exact and approximated one spin nodes" begin
 
-        spins_exact, objective_exact = solve(qubo, ns, grid, 10; β = β, χ = 0, threshold = 0.)
+        spins_exact, objective_exact = solve(ints, ns, grid, 10; β = β, χ = 0, threshold = 0.)
 
         for i in 1:10
             @test v2energy(QM, spins_exact[i]) ≈ -ens[i]
@@ -32,7 +32,7 @@ using NPZ
         # PEPS approx
 
         χ = 2
-        spins_approx, objective_approx = solve(qubo, ns, grid, 10; β = β, χ = χ, threshold = 1e-10)
+        spins_approx, objective_approx = solve(ints, ns, grid, 10; β = β, χ = χ, threshold = 1e-10)
 
         for i in 1:10
             @test v2energy(QM, spins_approx[i]) ≈ -ens[i]
@@ -62,11 +62,11 @@ using NPZ
 
         grid1 = Array{Array{Int}}(grid1)
 
-        ns_l = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+        ns_l = [Node_of_grid(i, M, grid1, ints) for i in 1:maximum(M)]
 
         χ = 2
 
-        spins_l, objective_l = solve(qubo, ns_l, M, 10; β = β, χ = χ, threshold = 1e-10)
+        spins_l, objective_l = solve(ints, ns_l, M, 10; β = β, χ = χ, threshold = 1e-10)
 
         for i in 1:10
             @test v2energy(QM, spins_l[i]) ≈ -ens[i]
@@ -80,12 +80,12 @@ using NPZ
     @testset "mpo-mps one spin nodes" begin
 
         # MPS MPO treates as a graph without the structure
-        ns = [Node_of_grid(i, qubo) for i in 1:get_system_size(qubo)]
+        ns = [Node_of_grid(i, ints) for i in 1:get_system_size(ints)]
 
         χ = 10
         β_step = 2
 
-        spins_mps, objective_mps = solve_mps(qubo, ns, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
+        spins_mps, objective_mps = solve_mps(ints, ns, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
 
         for i in 1:10
             @test v2energy(QM, spins_mps[i]) ≈ -ens[i]

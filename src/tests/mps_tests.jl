@@ -10,10 +10,11 @@ end
     b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
     @test b == 16.0*ones(1,1)
 
+    ints = make_interactions_full()
     # a grid
     M = [1 2; 3 4]
     #a vector of nodes, transpose for better indexing
-    ns = [Node_of_grid(i, Array(transpose(M))) for i in 1:maximum(M)]
+    ns = [Node_of_grid(i, Array(transpose(M)), ints) for i in 1:maximum(M)]
 
     b_node, c_nodes = connections_for_mps(ns)
     @test b_node == [1,2,3]
@@ -27,10 +28,22 @@ end
     # another mps 2 with 4
     # another mps 3 with 4
 
-    grid = [1 2 3; 4 5 6; 7 8 9]
-    #A = Array(transpose(grid))
+    ns = [Node_of_grid(i, ints) for i in 1:5]
+    b_node, c_nodes = connections_for_mps(ns)
+    @test b_node == [1,2,3,4]
+    @test c_nodes == [[2,3,4,5], [3,4,5], [4,5], [5]]
+    b_nodes_in_mpses, c_nodes_in_mpses = cluster_conncetions(b_node, c_nodes)
+    @test b_nodes_in_mpses == [[1], [2], [3], [4]]
+    @test c_nodes_in_mpses == [[[2, 3, 4, 5]], [[3, 4, 5]], [[4, 5]], [[5]]]
+    # 1 mps 1 (B) conceted with 2,3,4 and 5 (C)
+    # 2 mps 2 (B) conected with 3,4 and 5
+    # ....
 
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    grid = [1 2 3; 4 5 6; 7 8 9]
+    M = ones(9,9)
+    ints1 = M2interactions(M)
+
+    ns = [Node_of_grid(i, grid, ints1) for i in 1:maximum(grid)]
     b_node, c_nodes  = connections_for_mps(ns)
 
     @test b_node == [1, 2, 3, 4, 5, 6, 7, 8]
@@ -47,19 +60,6 @@ end
     @test all_c_nodes == [[[2, 4], [6, 8]], [[3, 5], [9]], [[6], [8]], [[5, 7], [9]]]
     # 1 mps 1 (B) conected with 2 and 4 (C); and 5 (B) conected with 6 and 8
     # 2 mps 2 (B) conceted with 3 and 5; and 6 (B) conected with 9
-
-    ints = make_interactions_full()
-
-    ns = [Node_of_grid(i, ints) for i in 1:5]
-    b_node, c_nodes = connections_for_mps(ns)
-    @test b_node == [1,2,3,4]
-    @test c_nodes == [[2,3,4,5], [3,4,5], [4,5], [5]]
-    b_nodes_in_mpses, c_nodes_in_mpses = cluster_conncetions(b_node, c_nodes)
-    @test b_nodes_in_mpses == [[1], [2], [3], [4]]
-    @test c_nodes_in_mpses == [[[2, 3, 4, 5]], [[3, 4, 5]], [[4, 5]], [[5]]]
-    # 1 mps 1 (B) conceted with 2,3,4 and 5 (C)
-    # 2 mps 2 (B) conected with 3,4 and 5
-    # ....
 end
 
 @testset begin "larger tensors"
@@ -71,8 +71,9 @@ end
     grid1[2,1] = [9 10; 13 14]
     grid1[2,2] = [11 12; 15 16]
     grid1 = Array{Array{Int}}(grid1)
+    ints1 = M2interactions(ones(16,16))
 
-    ns_large = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+    ns_large = [Node_of_grid(i, M, grid1, ints1) for i in 1:maximum(M)]
 
     b_node, c_nodes = connections_for_mps(ns_large)
 
@@ -146,7 +147,7 @@ end
     @test mps[3] == ones(1,1,2)
 
     grid = [1 2 3; 4 5 6; 7 8 9]
-    ns = [Node_of_grid(i,grid) for i in 1:maximum(grid)]
+    ns = [Node_of_grid(i,grid, interactions) for i in 1:maximum(grid)]
 
     is, js = connections_for_mps(ns)
     all_is, all_js = cluster_conncetions(is,js)
@@ -155,7 +156,7 @@ end
 
     grid = [1 2 3 ; 4 5 6; 7 8 9]
 
-    ns = [Node_of_grid(i, grid) for i in 1:9]
+    ns = [Node_of_grid(i, grid, interactions) for i in 1:9]
 
     M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
     k = 0
@@ -282,8 +283,9 @@ if false
     grid1[2,2] = reshape([9], (1,1))
     grid1 = Array{Array{Int}}(grid1)
 
-    ns = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
     q = make_interactions_case2()
+
+    ns = [Node_of_grid(i, M, grid1, q) for i in 1:maximum(M)]
 
     solve_mps(q, ns, 2, β=β, β_step=2, χ = 10, threshold = 1e-12)
 end
@@ -316,7 +318,7 @@ end
 
     spins_exact, _ = solve_mps(ints_larger, ns, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    ns = [Node_of_grid(i, grid, ints_larger) for i in 1:maximum(grid)]
     spins_peps, _ = solve(ints_larger, ns, grid, 10; β = β, χ = 2, threshold = 1e-12)
 
     for k in 1:10

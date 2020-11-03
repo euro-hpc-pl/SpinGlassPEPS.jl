@@ -81,7 +81,7 @@ for i in 1:n
     end
 end
 
-ns = [Node_of_grid(i,nodes_numbers, grid; chimera = true) for i in 1:(n*n)]
+ns = [Node_of_grid(i,nodes_numbers, grid, interactions; chimera = true) for i in 1:(n*n)]
 
 @time spins, objective = solve(interactions, ns, nodes_numbers, 10; β=β, χ = χ, threshold = 1e-8)
 

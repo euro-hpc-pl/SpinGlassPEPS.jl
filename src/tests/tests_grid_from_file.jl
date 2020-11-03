@@ -63,7 +63,7 @@ for k in 1:examples
 
     s = Int(sqrt(size(Mat_of_interactions, 1)))
     grid = nxmgrid(s,s)
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    ns = [Node_of_grid(i, grid, interactions) for i in 1:maximum(grid)]
 
     ################ exact method ###################
 
@@ -125,7 +125,7 @@ for k in 1:examples
 
     grid = Array{Array{Int}}(grid)
 
-    ns_l = [Node_of_grid(i, nodes_numbers, grid) for i in 1:9]
+    ns_l = [Node_of_grid(i, nodes_numbers, grid, interactions) for i in 1:9]
 
     print("peps larger T")
     number = number_of_states + more_states_for_peps

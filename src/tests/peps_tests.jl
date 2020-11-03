@@ -1,8 +1,6 @@
 
 function make_interactions_case1()
-    J_h = [(1,1) 0.; (1,2) 0.; (1,4) 0.; (2,2) 0.; (2,3) 0.; (2,5) 0.; (3,3) -0.2; (3,6) 1.5]
-    J_h = vcat(J_h, [(6,6) -2.2; (5,6) 0.; (6,9) -0.52; (5,5) 0.; (4,5) .0; (5,8) 0.0; (4,4) 0.; (4,7) 0.])
-    J_h = vcat(J_h, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
+    J_h = [(1,1) 1.; (1,2) 1.; (1,3) 1.; (2,2) 1.; (2,4) 1.; (3,3) 1.; (3,4) 1.; (4,4) 1.]
     [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
 end
 
@@ -33,7 +31,9 @@ end
     a =  Partial_sol{Float64}([1,1,1,2], 0.2)
     b = Partial_sol{Float64}([1,1,2,2], 1.)
 
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    interactions = make_interactions_case1()
+
+    ns = [Node_of_grid(i, grid, interactions) for i in 1:maximum(grid)]
 
     spins, objectives = return_solutions([a,b], ns)
     @test spins == [[-1, -1, 1, 1],[-1, -1, -1, 1]]
@@ -59,12 +59,12 @@ end
 
     q = make_interactions()
     β = 1.5
-    ns = [Node_of_grid(i, M, grid) for i in 1:maximum(M)]
+    ns = [Node_of_grid(i, M, grid, q) for i in 1:maximum(M)]
     T1 = compute_single_tensor(ns, q, 1, β)
     T2 = compute_single_tensor(ns, q, 2,  β)
 
     M = [1 2 3; 4 5 6; 7 8 9]
-    ns = [Node_of_grid(i, M) for i in 1:maximum(M)]
+    ns = [Node_of_grid(i, M, q) for i in 1:maximum(M)]
     t1 = compute_single_tensor(ns, q, 1, β)
     t2 = compute_single_tensor(ns, q, 2, β)
     t3 = compute_single_tensor(ns, q, 3, β)
@@ -107,13 +107,15 @@ end
     grid[1,1] = [1 2;3 4]
     grid = Array{Array{Int}}(grid)
     M = reshape([1], (1,1))
-    ns = [Node_of_grid(1,M, grid; chimera = true)]
+
     q = make_c2()
+
+    ns = [Node_of_grid(1,M, grid, q; chimera = true)]
 
     grid1 = Array{Array{Int}}(undef, (1,1))
     grid1[1,1] = [1 2;4 3]
     grid1 = Array{Array{Int}}(grid1)
-    ns_1 = [Node_of_grid(1,M, grid1)]
+    ns_1 = [Node_of_grid(1,M, grid1, q)]
 
     β = 1.
     ten = compute_single_tensor(ns, q, 1, β)
@@ -130,8 +132,10 @@ end
     grid2[1,1] = [1 2;3 4;5 6;7 8]
     grid2 = Array{Array{Int}}(grid2)
     M = reshape([1], (1,1))
-    ns8 = [Node_of_grid(1,M, grid2; chimera = true)]
     q8 = make_c8()
+
+    ns8 = [Node_of_grid(1,M, grid2, q8; chimera = true)]
+
 
     β = 1.
     ten8 = compute_single_tensor(ns8, q8, 1, β)
@@ -186,7 +190,7 @@ end
     @test v2energy(ones(2,2), [1,1]) == 4
 
     Mat = interactions2M(ints)
-    ns = [Node_of_grid(i, grid) for i in 1:9]
+    ns = [Node_of_grid(i, grid, ints) for i in 1:9]
     β = 3.
     M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
     k = 0
@@ -236,7 +240,7 @@ end
     grid = [1 2 3; 4 5 6; 7 8 9]
     β = 3.
 
-    ns = [Node_of_grid(i, grid) for i in 1:9]
+    ns = [Node_of_grid(i, grid, interactions) for i in 1:9]
     M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
     k = 0
     for i in 1:3
@@ -336,7 +340,7 @@ end
     inter = interactions_case2()
     # TODO forming a frid inside a solver
     grid = [1 2 3; 4 5 6; 7 8 9]
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    ns = [Node_of_grid(i, grid, inter) for i in 1:maximum(grid)]
 
     spins, objective = solve(inter, ns, grid, 4; β = 1., χ = 2)
 
@@ -350,7 +354,7 @@ end
     permuted_ints = make_interactions_case3()
 
     grid = [1 2 3; 4 5 6; 7 8 9]
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    ns = [Node_of_grid(i, grid, permuted_ints) for i in 1:maximum(grid)]
 
     M = [1 2;3 4]
     grid1 = Array{Array{Int}}(undef, (2,2))
@@ -360,7 +364,7 @@ end
     grid1[2,2] = reshape([9], (1,1))
     grid1 = Array{Array{Int}}(grid1)
 
-    ns_large = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+    ns_large = [Node_of_grid(i, M, grid1, permuted_ints) for i in 1:maximum(M)]
 
     spins, objective = solve(permuted_ints, ns, grid, 16; β = 1., threshold = 0.)
     spins_l, objective_l = solve(permuted_ints, ns_large, M, 16; β = 1., threshold = 0.)
@@ -407,7 +411,7 @@ end
 
     @testset "itterative approximatimation in solution" begin
 
-        ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+        ns = [Node_of_grid(i, grid, permuted_ints) for i in 1:maximum(grid)]
         spins_a, objective_a = solve(permuted_ints, ns, grid, 16; β = 1., χ = 2)
 
         spins_a[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
@@ -440,7 +444,7 @@ end
 
         grid = [1 2 3; 4 5 6; 7 8 9]
 
-        ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+        ns = [Node_of_grid(i, grid, ints) for i in 1:maximum(grid)]
         spins, objective = solve(ints, ns, grid, 4; β = T(2.), χ = 2, threshold = T(1e-6))
 
         #ground
@@ -466,7 +470,7 @@ end
 
     grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    ns = [Node_of_grid(i, grid, int_larger) for i in 1:maximum(grid)]
     spins, objective = solve(int_larger, ns, grid, 10; β = 3., χ = 2, threshold = 1e-11)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
@@ -478,7 +482,7 @@ end
     grid1[2,2] = [11 12; 15 16]
     grid1 = Array{Array{Int}}(grid1)
 
-    ns_large = [Node_of_grid(i, M, grid1) for i in 1:maximum(M)]
+    ns_large = [Node_of_grid(i, M, grid1, int_larger) for i in 1:maximum(M)]
 
     spins_l, objective_l = solve(int_larger, ns_large, M, 10; β = 3., χ = 2, threshold = 1e-11)
     for i in 1:10
@@ -501,8 +505,9 @@ end
     grid2[2,1] = [5 6;7 8]
     grid2 = Array{Array{Int}}(grid2)
     M = reshape([1;2], (2,1))
-    ns = [Node_of_grid(i,M, grid2; chimera = true) for i in 1:2]
     q = make_c2()
+
+    ns = [Node_of_grid(i,M, grid2, q; chimera = true) for i in 1:2]
 
     β = 1.
     ten = compute_single_tensor(ns, q, 1, β)

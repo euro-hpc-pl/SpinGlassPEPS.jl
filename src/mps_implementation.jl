@@ -125,32 +125,14 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vect
     mpo
 end
 
+# TODO interactions are not necessary
 function add_phase!(mps::Vector{Array{T, 3}}, interactions::Vector{Interaction{T}},
                     ns::Vector{Node_of_grid}, β::T) where T<: AbstractFloat
 
     d = size(mps[1], 3)
     for i in 1:length(mps)
-
-        spins = ns[i].spin_inds
-        h1 = [getJ(interactions, i,i)/2 for i in spins]
-
         for j in 1:d
-            ind = ind2spin(j)
-            y = T(0.)
-            if ns[i].intra_struct != Array{Int64,1}[]
-                for pair in ns[i].intra_struct
-                    a = findall(x->x==pair[1], n.spin_inds)[1]
-                    b = findall(x->x==pair[2], n.spin_inds)[1]
-
-                    s1 = ind[a]
-                    s2 = ind[b]
-
-                    J = getJ(interactions, pair[1], pair[2])
-                    y = y + β*J*s1*s2
-                end
-            end
-            y = y + sum(ind.*h1)
-            mps[i][:,:,j] = mps[i][:,:,j]*exp(y*β)
+            mps[i][:,:,j] = mps[i][:,:,j]*exp(ns[i].energy[j]*β/2)
         end
     end
 end

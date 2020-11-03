@@ -154,7 +154,7 @@ end
 
     interactions = M2interactions(M)
     grid = [1 2 3 4 5 6; 7 8 9 10 11 12; 13 14 15 16 17 18; 19 20 21 22 23 24]
-    ns = [Node_of_grid(i, grid) for i in 1:maximum(grid)]
+    ns = [Node_of_grid(i, grid, interactions) for i in 1:maximum(grid)]
 
     χ = 12
     β = 2.
@@ -172,7 +172,7 @@ end
     grid1[2,2] = [15 16; 21 22]
     grid1[2,3] = [17 18; 23 24]
     grid1 = Array{Array{Int}}(grid1)
-    ns_l = [Node_of_grid(i, indexing, grid1) for i in 1:maximum(indexing)]
+    ns_l = [Node_of_grid(i, indexing, grid1, interactions) for i in 1:maximum(indexing)]
 
     spins_l, objectives_l = solve(interactions, ns_l, indexing, sols+10; β=β, χ=χ, threshold = 1.e-12)
 

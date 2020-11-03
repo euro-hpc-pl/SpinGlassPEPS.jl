@@ -29,16 +29,17 @@ If tensor is expected to be on the bottom of the peps mode 4 is trivial and is r
 
 #TODO searching functions outside
 
-function index_of_interacting_spins(n::Node_of_grid, pairs::Vector{Vector{Int}})
-    spins = Int[]
+#function index_of_interacting_spins(n::Node_of_grid, pairs::Vector{Vector{Int}})
+#    spins = Int[]
 
-    for el in pairs
-        index = findall(x->x==el[1], n.spin_inds)[1]
-        push!(spins, index)
-    end
-    spins
-end
+#    for el in pairs
+#        index = findall(x->x==el[1], n.spin_inds)[1]
+#        push!(spins, index)
+#    end
+#    spins
+#end
 
+# TODO interactions are not necessary
 function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{Interaction{T}},
                                                         i::Int, β::T) where T <: AbstractFloat
 
@@ -49,30 +50,30 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
     tensor_size = map(x -> 2^length(x), [n.left, n.right, n.up, n.down, n.spin_inds])
 
     # these 2 are used to compute external energy
-    Jil = [getJ(interactions, l...) for l in n.left]
-    Jiu = [getJ(interactions, u...) for u in n.up]
+    Jil = n.left_J
+    Jiu = n.up_J
 
     # these 2 are used to compute internal energy
     # compute log - energy here
-    J_intra = [getJ(interactions, pair[1], pair[2]) for pair in n.intra_struct]
-    h = [getJ(interactions, j,j) for j in n.spin_inds]
+    #J_intra = [getJ(interactions, pair[1], pair[2]) for pair in n.intra_struct]
+    #h = [getJ(interactions, j,j) for j in n.spin_inds]
 
-    left = index_of_interacting_spins(n, n.left)
-    right = index_of_interacting_spins(n, n.right)
-    up = index_of_interacting_spins(n, n.up)
-    down = index_of_interacting_spins(n, n.down)
+    left = n.left
+    right = n.right
+    up = n.up
+    down = n.down
 
     tensor = zeros(T, (tensor_size...))
     # following are done outside the loop
     siz = [ceil(Int, log(2, size)) for size in tensor_size]
 
     # this will go to compute internal energy
-    ind_a = Int[]
-    ind_b = Int[]
-    for pair in n.intra_struct
-        push!(ind_a, findall(x->x==pair[1], n.spin_inds)[1])
-        push!(ind_b, findall(x->x==pair[2], n.spin_inds)[1])
-    end
+    #ind_a = Int[]
+    #ind_b = Int[]
+    #for pair in n.intra_struct
+    #    push!(ind_a, findall(x->x==pair[1], n.spin_inds)[1])
+    #    push!(ind_b, findall(x->x==pair[2], n.spin_inds)[1])
+    #end
 
     for k in CartesianIndices(tuple(tensor_size...))
 
@@ -103,21 +104,20 @@ function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{In
             end
 
             # this should be a function compute internal energy
-            hh = β*sum(h.*all_spins)
+            #hh = β*sum(h.*all_spins)
 
-            if n.intra_struct != Array{Int64,1}[]
-                i = 1
-                for pair in n.intra_struct
+            #if n.intra_struct != Array{Int64,1}[]
+            #    i = 1
+            #    for pair in n.intra_struct
 
-                    s1 = all_spins[ind_a[i]]
-                    s2 = all_spins[ind_b[i]]
+            #        s1 = all_spins[ind_a[i]]
+            #        s2 = all_spins[ind_b[i]]
 
-                    hh = hh + 2*β*J_intra[i]*s1*s2
-                    i = i + 1
-                end
-            end
-
-            @inbounds tensor[k] = exp(β*2*(J1+J2)+hh)
+            #        hh = hh + 2*β*J_intra[i]*s1*s2
+            #        i = i + 1
+            #    end
+            #end
+            @inbounds tensor[k] = exp(β*2*(J1+J2)+β*n.energy[k[5]])
         end
     end
 
@@ -205,18 +205,18 @@ mode set to the value correspodning to the spin of the element to the left.
 Following matrices are computed from mps by tracing out physical mode
 
 """
-function set_spin_from_letf(mps::Vector{Array{T,3}}, sol::Vector{Int}, new_s::Int, s::Int) where T <: AbstractFloat
+function set_spin_from_letf(mps::Vector{Array{T,3}}, l::Int, new_s::Int, max_l::Int) where T <: AbstractFloat
 
     Ms = []
     # no element to the left
-    if length(sol) == 0
+    if l == 0
         # transposition is to make a simple matrix multiplication for computing a probability
         Ms = [Array(transpose(mps[1][1,:,:]))]
     else
         Ms = [Array(transpose(mps[1][new_s,:,:]))]
     end
     # otherwise no elements to the right
-    if length(sol) < s
+    if l < max_l
         Ms = vcat(Ms, [sum_over_last(el) for el in mps[2:end]])
     end
     return Ms
@@ -229,15 +229,15 @@ Returns a vector of 3 mode arrays computed from the mpo. For the first one the
 first dim is set according to the spoin to the left. For next, the physical dimesion
 is traced.
 """
-function set_spin_from_letf(mpo::Vector{Array{T,4}}, sol::Vector{Int}, new_s::Int, s::Int) where T <: AbstractFloat
-    l = length(sol)
+function set_spin_from_letf(mpo::Vector{Array{T,4}}, l::Int, new_s::Int, max_l::Int) where T <: AbstractFloat
+    #l = length(sol)
     B = []
     if l == 0
         B = [mpo[1][1,:,:,:]]
     else
         B = [mpo[1][new_s,:,:,:]]
     end
-    if l < s
+    if l < max_l
         B = vcat(B, [sum_over_last(el) for el in mpo[2:end]])
     end
     return B
@@ -250,7 +250,7 @@ function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::Vector{Array{T,3}
     l1 = length(lower_mps)
     l = length(s)
 
-    A = set_spin_from_letf(M[l+1:end], s, new_s, l1-1)
+    A = set_spin_from_letf(M[l+1:end], l, new_s, l1-1)
 
     D = 0
     if l > 0
@@ -345,6 +345,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                                         no_sols::Int = 2; β::T, χ::Int = 0,
                                         threshold::T = T(1e-14)) where T <: AbstractFloat
 
+    # grid follows the iiteration
     s = size(grid)
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for row in 1:s[1]
@@ -361,23 +362,23 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                 sol = ps.spins[1+(row-1)*s[2]:end]
 
                 objectives = [T(0.)]
+                # left cutoff
                 new_s = 0
                 if length(ns[j].left) > 0
-                    k = findall(x->x[1]==j, grid[row,:])[1]
-                    l = grid[row,:][k-1]
-                    all = ns[l].spin_inds
-                    conecting = [e[2] for e in ns[j].left]
+                    all = ns[j-1].spin_inds
+                    ind = ns[j-1].right
+                    new_s = reindex1(sol[end], length(all), ind)
 
-                    new_s = reindex(sol[end], all, conecting)
                 end
 
-                if  row < s[1]
+                # reindex to contrtact with belowe
+                if row < s[1]
                     for i in 1:length(sol)
                         k = grid[row,i]
                         all = ns[k].spin_inds
-                        conecting = [e[1] for e in ns[k].down]
-                        sol[i] = reindex(sol[i], all, conecting)
 
+                        ind = ns[k].down
+                        sol[i] = reindex1(sol[i], length(all), ind)
                     end
                 end
 
@@ -386,29 +387,26 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                     objectives = conditional_probabs(upper_mpo, lower_mps, new_s, sol)
 
                 else
+                    # upper cutoff
                     ind_above = [0 for _ in 1:s[2]]
                     for k in 1:s[2]
                         l = grid[row-1,k]
                         all = ns[l].spin_inds
-                        conecting = [e[1] for e in ns[l].down]
 
                         index = ps.spins[k+(row-2)*s[2]]
-                        index = reindex(index, all, conecting)
-                        ind_above[k] = index
+                        ind = ns[l].down
+                        ind_above[k] = reindex1(index, length(all), ind)
                     end
 
                     if row < s[1]
 
-                    # set spins from above
                         upper_mps = [upper_mpo[k][:,:,ind_above[k],:,:] for k in 1:s[2]]
                         objectives = conditional_probabs(upper_mps, lower_mps, new_s, sol)
 
                     else
                         l = length(sol)
                         mps = [upper_mpo[k][:,:,ind_above[k],:] for k in l+1:s[2]]
-
-
-                        mps = set_spin_from_letf(mps, sol, new_s, s[2])
+                        mps = set_spin_from_letf(mps, l, new_s, s[2])
                         objectives = conditional_probabs(mps)
                     end
                 end
