@@ -36,11 +36,11 @@ end
 
 
 function make_ones_between_not_interactiong(d::Int, T::Type = Float64)
-    ret = zeros(T, 1,1,d,d)
+    ret = zeros(T, d,d)
     for j in 1:d
-        ret[1,1,j,j] = T(1.)
+        ret[j,j] = T(1.)
     end
-    ret
+    reshape(ret, (1,1,d,d))
 end
 
 function make_ones_between_interacting_nodes(d::Int, T::Type = Float64)
@@ -56,49 +56,39 @@ end
 ### below the constriction of B-tensors and C-tensors
 ### TODO these should be tested directly in unit tests
 
-function Btensor(d::Int, l::Bool = false, r::Bool = false, T::Type = Float64)
+function Btensor(d::Int, most_left::Bool = false, most_right::Bool = false, T::Type = Float64)
+    B_tensor = zeros(T, d,d,d,d)
+    for i in 1:d
+        @inbounds B_tensor[i,i,i,i] = T(1.)
+    end
+    if most_left
+        return sum(B_tensor, dims = 1)
+    elseif most_right
+        return sum(B_tensor, dims = 2)
+    end
+    return B_tensor
+end
+
+function Ctensor(J::Vector{T}, d::Int, most_left::Bool = false, most_right::Bool = false) where T <: AbstractFloat
+
     ret = zeros(T, d,d,d,d)
     for i in 1:d
-        for j in 1:d
-            for k in 1:d
-                for l in 1:d
-                    ret[i,j,k,l] = T(i==j)*T(k==l)*T(j==l)
-                end
-            end
+        for k in 1:d
+            # TODO this need to be checked
+            Jb = sum(J.*ind2spin(i).*ind2spin(k))
+            ret[i,i,k,k] = exp(Jb)
         end
     end
-    if l
+    if most_left
         return sum(ret, dims = 1)
-    elseif r
+    elseif most_right
         return sum(ret, dims = 2)
     end
     return ret
 end
 
-function Ctensor(J::Vector{T}, d::Int, left::Bool = false, right::Bool = false) where T <: AbstractFloat
-
-    ret = zeros(T, d,d,d,d)
-    for i in 1:d
-        for j in 1:d
-            for k in 1:d
-                for l in 1:d
-                    # TODO this need to be checked
-                    Jb = sum(J.*ind2spin(i).*ind2spin(k))
-                    ret[i,j,k,l] = T(i==j)*T(k==l)*exp(Jb)
-                end
-            end
-        end
-    end
-    if left
-        return sum(ret, dims = 1)
-    elseif right
-        return sum(ret, dims = 2)
-    end
-    return ret
-end
-
-function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vector{Node_of_grid},
-                                            interactions::Vector{Interaction{T}}, β::T) where T<: AbstractFloat
+function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
+                    ns::Vector{Node_of_grid}, β::T) where T<: AbstractFloat
 
     a = findall(x -> x == nodes[1], ns[i].connected_nodes)[1]
     # TODO this may need to be checked
@@ -112,13 +102,16 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vect
     mpo[i] = Btensor(d, i==k, i==l, T)
     for j in nodes
 
-        J = T[]
         a = findall(x -> x == j, ns[i].connected_nodes)[1]
-        spins = ns[i].connected_spins[a]
+        #spins = ns[i].connected_spins[a]
         # TODO this needs to be checked
-        for r in 1:size(spins,1)
-            push!(J, getJ(interactions, spins[r,1], spins[r,2]))
-        end
+        #for r in 1:size(spins,1)
+        #    push!(J, getJ(interactions, spins[r,1], spins[r,2]))
+        #end
+        #println("vvvvvvvvvvvvvvvvv")
+        J = [ns[i].connected_J[a]]
+
+        #println("^^^^^^^^^^^^^^^^^^^^^^")
 
         mpo[j] = Ctensor(J*β, d, j==k, j==l)
     end
@@ -126,7 +119,7 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int}, ns::Vect
 end
 
 # TODO interactions are not necessary
-function add_phase!(mps::Vector{Array{T, 3}}, interactions::Vector{Interaction{T}},
+function add_phase!(mps::Vector{Array{T, 3}},
                     ns::Vector{Node_of_grid}, β::T) where T<: AbstractFloat
 
     d = size(mps[1], 3)
@@ -169,15 +162,14 @@ function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: 
     return(diag(probs_at_k))
 end
 
-function construct_mps_step(mps::Vector{Array{T, 3}}, interactions::Vector{Interaction{T}},
-                                                    ns::Vector{Node_of_grid},
+function construct_mps_step(mps::Vector{Array{T, 3}}, ns::Vector{Node_of_grid},
                                                     β::T, is::Vector{Int},
                                                     js::Vector{Vector{Int}}) where T<: AbstractFloat
     ##TODO physical dimention may be differet
     phys_dims = [size(el, 3) for el in mps]
     mpo = [make_ones_between_not_interactiong(phys_dims[i]) for i in 1:length(mps)]
     for k in 1:length(is)
-        add_MPO!(mpo, is[k], js[k], ns, interactions, β)
+        add_MPO!(mpo, is[k], js[k], ns, β)
     end
     MPSxMPO(mps, mpo)
 end
@@ -283,16 +275,24 @@ function split_if_differnt_spins(is::Vector{Int}, js::Vector{Vector{Int}}, ns::V
 end
 
 
+function construct_mps(M::Matrix{T}, β::T, β_step::Int, χ::Int, threshold::T) where T<: AbstractFloat
+    ints = M2interactions(M)
+    ns = [Node_of_grid(i, ints) for i in 1:size(M,1)]
+    construct_mps(ns, β, β_step, χ, threshold)
+end
 
-function construct_mps(interactions::Vector{Interaction{T}}, β::T, β_step::Int, ns::Vector{Node_of_grid},
-                                                all_is::Vector{Vector{Int}},
-                                                all_js::Vector{Vector{Vector{Int}}},
-                                                χ::Int, threshold::T) where T<: AbstractFloat
+function construct_mps(ns::Vector{Node_of_grid}, β::T, β_step::Int,
+                       χ::Int, threshold::T) where T<: AbstractFloat
+
+    is, js = connections_for_mps(ns)
+    is,js = split_if_differnt_spins(is,js,ns)
+    all_is, all_js = cluster_conncetions(is,js)
+
     l = length(ns)
     mps = initialize_mps(l)
     for _ in 1:β_step
         for k in 1:length(all_is)
-            mps = construct_mps_step(mps, interactions, ns, β/β_step, all_is[k], all_js[k])
+            mps = construct_mps_step(mps, ns, β/β_step, all_is[k], all_js[k])
 
             s = maximum([size(e, 1) for e in mps])
             if ((threshold > 0) * (s > χ))
@@ -301,7 +301,7 @@ function construct_mps(interactions::Vector{Interaction{T}}, β::T, β_step::Int
             end
         end
     end
-    add_phase!(mps,interactions, ns, β)
+    add_phase!(mps, ns, β)
     mps
 end
 
@@ -311,10 +311,8 @@ function solve_mps(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid
 
 
     problem_size = length(ns)
-    is, js = connections_for_mps(ns)
-    is,js = split_if_differnt_spins(is,js,ns)
-    all_is, all_js = cluster_conncetions(is,js)
-    mps = construct_mps(interactions, β, β_step, ns, all_is, all_js, χ, threshold)
+
+    mps = construct_mps(ns, β, β_step, χ, threshold)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for j in 1:problem_size

@@ -137,6 +137,34 @@ end
 
 @testset "MPS computing" begin
 
+    #interactions matrix
+    M = [1. 1. 1.; 1. 1. 0.; 1. 0. 1.]
+    # construct MPS form tha matrix of interacion
+    mps1 = construct_mps(M, 1., 1, 2, 1e-8)
+    #mps modes 1 - left, 2 - right, 3 - physical
+
+    @test length(mps1) == 3
+    # this is B type tensor, only internal energy (± h/2)
+    @test mps1[1][1,:,:] ≈ [exp(-1/2) 0.0; 0.0 exp(1/2)]
+    # type C tensor input from internale enegy and interaction
+    #±(h/2 + J) -- J is twice due to the symmetry of M
+    @test mps1[2][1,:,:] ≈ [exp(1/2) exp(-1/2); 0.0 0.0]
+    @test mps1[2][2,:,:] ≈ [0. 0.; exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
+    @test mps1[3][:,1,:] ≈ [exp(1/2) exp(-1/2); exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
+
+    # the same, detailed
+
+    # changed to Vector{Node_of_grid}
+    ints = M2interactions(M)
+    ns = [Node_of_grid(i, ints) for i in 1:3]
+
+    # computed mps, β = 1., β_step = 1   χ = 2, threshold = 1e-8
+    mps = construct_mps(ns, 1., 1, 2, 1e-8)
+    @test mps ≈ mps1
+
+
+
+
     interactions =  make_interactions_case1()
 
     β = 2.
@@ -146,28 +174,25 @@ end
     @test mps[2] == ones(1,1,2)
     @test mps[3] == ones(1,1,2)
 
-    grid = [1 2 3; 4 5 6; 7 8 9]
-    ns = [Node_of_grid(i,grid, interactions) for i in 1:maximum(grid)]
+    # construct form mpo-mps
+    ns = [Node_of_grid(i, interactions) for i in 1:9]
+    #is, js = connections_for_mps(ns)
+    #all_is, all_js = cluster_conncetions(is,js)
+    mps = construct_mps(ns, β, 2, 4, 0.)
 
-    is, js = connections_for_mps(ns)
-    all_is, all_js = cluster_conncetions(is,js)
-
-    mps = construct_mps(interactions, β, 2, ns, all_is, all_js, 4, 0.)
-
+    # construct form psps for comparison
     grid = [1 2 3 ; 4 5 6; 7 8 9]
-
-    ns = [Node_of_grid(i, grid, interactions) for i in 1:9]
-
+    ns_peps = [Node_of_grid(i, grid, interactions) for i in 1:9]
     M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
     k = 0
     for i in 1:3
         for j in 1:3
             k = k+1
-            M[i,j] = compute_single_tensor(ns, interactions, k, β)
+            M[i,j] = compute_single_tensor(ns_peps, interactions, k, β)
         end
     end
     M = Matrix{Array{Float64, N} where N}(M)
-
+    # compute probabilities by n-con
     cc = contract3x3by_ncon(M)
 
     v = ones(1)*mps[1][:,:,1]*mps[2][:,:,1]
@@ -191,7 +216,7 @@ end
 
     # approximation
 
-    mps_a = construct_mps(interactions, β, 3, ns, all_is, all_js, 2, 1.e-12)
+    mps_a = construct_mps(ns, β, 3, 2, 1.e-12)
     ps = sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
     pp = compute_probs(mps, [1,1])
 

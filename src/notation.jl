@@ -38,8 +38,6 @@ function ind2spin(i::Int, size::Int = 1)
     end
 end
 
-#spins2ind(s::Int) = spins2ind([s])
-
 
 function spins2ind(s::Vector{Int})
     s = [Int(el == 1) for el in s]
@@ -48,11 +46,6 @@ function spins2ind(s::Vector{Int})
 end
 
 
-#function reindex(i::Int, all_spins::Vector{Int}, subset_spins::Vector{Int})
-#    s = ind2spin(i, length(all_spins))
-#    k = [findall(x->x==j, all_spins)[1] for j in subset_spins]
-#    spins2ind(s[k])
-#end
 
 function reindex1(i::Int, n::Int, subset_ind::Vector{Int})
     s = ind2spin(i, n)
@@ -177,6 +170,8 @@ struct Node_of_grid
     energy::Vector{Float64}
     connected_nodes::Vector{Int}
     connected_spins::Vector{Matrix{Int}}
+    connected_J::Vector{Float64}
+
     #construction from the grid
     function(::Type{Node_of_grid})(i::Int, grid::Matrix{Int}, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
         s = size(grid)
@@ -189,6 +184,7 @@ struct Node_of_grid
         d = Int[]
         left_J = Float64[]
         up_J = Float64[]
+        connected_J = Float64[]
 
         a = findall(x->x==i, grid)[1]
         j = a[1]
@@ -199,20 +195,26 @@ struct Node_of_grid
             ip = grid[j, k-1]
             left_J = [getJ(interactions, i, ip)]
             push!(connected_nodes, ip)
+            push!(connected_J, getJ(interactions, i, ip))
         end
         if is_node(j, k+1, grid)
             r = [1]
-            push!(connected_nodes, grid[j, k+1])
+            ip = grid[j, k+1]
+            push!(connected_nodes, ip)
+            push!(connected_J, getJ(interactions, i, ip))
         end
         if is_node(j-1, k, grid)
             u = [1]
             ip = grid[j-1, k]
             up_J = [getJ(interactions, i, ip)]
             push!(connected_nodes, ip)
+            push!(connected_J, getJ(interactions, i, ip))
         end
         if is_node(j+1, k, grid)
             d = [1]
-            push!(connected_nodes, grid[j+1, k])
+            ip = grid[j+1, k]
+            push!(connected_nodes, ip)
+            push!(connected_J, getJ(interactions, i, ip))
         end
 
         connected_spins = [ones(Int, 1,2) for _ in connected_nodes]
@@ -223,7 +225,7 @@ struct Node_of_grid
         h = getJ(interactions, i, i)
         log_energy = [-h, h]
 
-        new(i, [i], intra_struct, l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins)
+        new(i, [i], intra_struct, l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins, connected_J)
     end
     #construction from matrix of matrices (a grid of many nodes)
     function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int},
@@ -303,6 +305,7 @@ struct Node_of_grid
         d = Int[]
         left_J = Float64[]
         up_J = Float64[]
+        connected_J = Float64[]
 
         if is_node(j, k-1, Mat)
             push!(connected_nodes, Mat[j, k-1])
@@ -320,7 +323,9 @@ struct Node_of_grid
 
             for i in 1:length(v1)
                 push!(left_J, getJ(interactions, v1[i], v2[i]))
+                push!(connected_J, getJ(interactions, v1[i], v2[i]))
             end
+
 
             push!(connected_spins, hcat(v1, v2))
 
@@ -339,6 +344,9 @@ struct Node_of_grid
                 v2 = Mp[:,1]
             end
 
+            for i in 1:length(v1)
+                push!(connected_J, getJ(interactions, v1[i], v2[i]))
+            end
             push!(connected_spins, hcat(v1, v2))
         end
 
@@ -359,6 +367,7 @@ struct Node_of_grid
 
             for i in 1:length(v1)
                 push!(up_J, getJ(interactions, v1[i], v2[i]))
+                push!(connected_J, getJ(interactions, v1[i], v2[i]))
             end
 
             push!(connected_spins, hcat(v1, v2))
@@ -379,21 +388,29 @@ struct Node_of_grid
             end
             d = index_of_interacting_spins(spin_inds, v1)
 
+            for i in 1:length(v1)
+                push!(connected_J, getJ(interactions, v1[i], v2[i]))
+            end
+
             push!(connected_spins, hcat(v1, v2))
         end
 
-        new(i, spin_inds, intra_struct, l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins)
+        new(i, spin_inds, intra_struct, l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins, connected_J)
     end
     # construction from interactions directly, It will not check if interactions fits grid
     function(::Type{Node_of_grid})(i::Int, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
         x = Vector{Int}[]
         connected_nodes = Int[]
+        connected_J = Float64[]
+
         for q in interactions
             if (q.ind[1] == i && q.ind[2] != i)
                 push!(connected_nodes, q.ind[2])
+                push!(connected_J, q.coupling)
             end
             if (q.ind[2] == i && q.ind[1] != i)
                 push!(connected_nodes, q.ind[1])
+                push!(connected_J, q.coupling)
             end
         end
         connected_spins = [ones(Int, 1,2) for _ in connected_nodes]
@@ -404,7 +421,7 @@ struct Node_of_grid
         h = getJ(interactions, i, i)
         log_energy = [-h, h]
 
-        new(i, [i], x, Int[], Float64[], Int[], Int[], Float64[], Int[], log_energy, connected_nodes, connected_spins)
+        new(i, [i], x, Int[], Float64[], Int[], Int[], Float64[], Int[], log_energy, connected_nodes, connected_spins, connected_J)
     end
 end
 
