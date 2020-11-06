@@ -188,7 +188,7 @@ end
     for i in 1:3
         for j in 1:3
             k = k+1
-            M[i,j] = compute_single_tensor(ns_peps, interactions, k, β)
+            M[i,j] = compute_single_tensor(ns_peps[k], β)
         end
     end
     M = Matrix{Array{Float64, N} where N}(M)

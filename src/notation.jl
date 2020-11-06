@@ -127,23 +127,160 @@ function chimera_cell(i::Int, j::Int, size::Int)
 end
 
 
-function is_node(j::Int, k::Int, grid::Matrix{Int})
+function is_element(i::Int, j::Int, grid::Matrix{Int})
     try
-        grid[j, k]
+        grid[i, j]
         return true
     catch
         return false
     end
 end
 
-function index_of_interacting_spins(all::Vector{Int}, part::Vector{Int})
-    spins = Int[]
+function position_in_cluster(cluster::Vector{Int}, i::Int)
+    # cluster is assumed to be unique
+    return findall(x->x==i, cluster)[1]
+end
 
-    for el in part
-        index = findall(x->x==el, all)[1]
-        push!(spins, index)
+function index_of_interacting_spins(all::Vector{Int}, part::Vector{Int})
+    [position_in_cluster(all, i) for i in part]
+end
+
+
+struct Element_of_square_grid
+    i::Int
+    row::Int
+    column::Int
+    spins_inds::Vector{Int}
+    intra_struct::Vector{Tuple{Int, Int}}
+    left::Vector{Int}
+    right::Vector{Int}
+    up::Vector{Int}
+    down::Vector{Int}
+
+    #construction from the grid
+    function(::Type{Element_of_square_grid})(i::Int, grid::Matrix{Int}, spins_inds::Matrix{Int})
+        s = size(grid)
+        intra_struct = Tuple{Int, Int}[]
+        left = Int[]
+        right = Int[]
+        up = Int[]
+        down = Int[]
+
+        r = findall(x->x==i, grid)[1]
+        row = r[1]
+        column = r[2]
+
+        internal_size = size(spins_inds)
+
+        for k in 1:internal_size[1]
+            for l in 2:internal_size[2]
+                push!(intra_struct, (spins_inds[k,l-1], spins_inds[k,l]))
+            end
+        end
+        for l in 1:internal_size[2]
+            for k in 2:internal_size[1]
+                push!(intra_struct, (spins_inds[k-1,l], spins_inds[k,l]))
+            end
+        end
+        #if the node exist
+
+        if is_element(row, column-1, grid)
+            left = spins_inds[:, 1]
+        end
+        if is_element(row, column+1, grid)
+            right = spins_inds[:, end]
+        end
+        if is_element(row-1, column, grid)
+            up = spins_inds[1, :]
+        end
+        if is_element(row+1, column, grid)
+            down = spins_inds[end,:]
+        end
+
+        #TODO this representation will be changes
+        #spins_inds = sort(vec(spins_inds))
+        spins_inds = Vector{Int}(vec(transpose(spins_inds)))
+
+        new(i, row, column, spins_inds, intra_struct, left, right, up, down)
     end
-    spins
+end
+
+
+struct Element_of_chimera_grid
+    i::Int
+    row::Int
+    column::Int
+    spins_inds::Vector{Int}
+    intra_struct::Vector{Tuple{Int, Int}}
+    left::Vector{Int}
+    right::Vector{Int}
+    up::Vector{Int}
+    down::Vector{Int}
+
+    #construction from the grid
+    function(::Type{Element_of_chimera_grid})(i::Int, grid::Matrix{Int}, spins_inds::Matrix{Int})
+        s = size(grid)
+        intra_struct = Tuple{Int, Int}[]
+        left = Int[]
+        right = Int[]
+        up = Int[]
+        down = Int[]
+
+        r = findall(x->x==i, grid)[1]
+        row = r[1]
+        column = r[2]
+
+        internal_size = size(spins_inds)
+        internal_size == (4,2) || error("size $(internal_size) does not fit chimera cell")
+
+        for k1 in 1:4
+            for k2 in 1:4
+                push!(intra_struct, (spins_inds[k1,1], spins_inds[k2,2]))
+            end
+        end
+        #if the node exist
+
+        if is_element(row, column-1, grid)
+            left = spins_inds[:, 2]
+        end
+        if is_element(row, column+1, grid)
+            right = spins_inds[:, 2]
+        end
+        if is_element(row-1, column, grid)
+            up = spins_inds[:, 1]
+        end
+        if is_element(row+1, column, grid)
+            down = spins_inds[:, 1]
+        end
+
+        #spins_inds = sort(vec(spins_inds))
+        spins_inds = Vector{Int}(vec(transpose(spins_inds)))
+
+        new(i, row, column, spins_inds, intra_struct, left, right, up, down)
+    end
+end
+
+function compute_log_energy(g::Union{Element_of_square_grid, Element_of_chimera_grid},
+                            interactions::Vector{Interaction{T}}) where T <: AbstractFloat
+
+    # TODO h and J this will be tead from a grid
+    hs = [getJ(interactions, i, i) for i in g.spins_inds]
+    no_spins = length(g.spins_inds)
+    #g.intra_struct
+    log_energy = zeros(T, 2^no_spins)
+
+    for i in 1:2^no_spins
+        σs = ind2spin(i, no_spins)
+        e = sum(σs.*hs)
+        for pair in g.intra_struct
+            J = getJ(interactions, pair...)
+            i1 = position_in_cluster(g.spins_inds, pair[1])
+            i2 = position_in_cluster(g.spins_inds, pair[2])
+            e = e + 2*σs[i1]*σs[i2]*J
+        end
+        log_energy[i] = e
+    end
+    log_energy
 end
 
 
@@ -159,8 +296,8 @@ necessary to crearte the corresponding tensor (e.g. the element of the peps).
 
 struct Node_of_grid
     i::Int
-    spin_inds::Vector{Int}
-    intra_struct::Vector{Vector{Int}}
+    spins_inds::Vector{Int}
+    #intra_struct::Vector{Vector{Int}}
     left::Vector{Int}
     left_J::Vector{Float64}
     right::Vector{Int}
@@ -190,27 +327,27 @@ struct Node_of_grid
         j = a[1]
         k = a[2]
 
-        if is_node(j, k-1, grid)
+        if is_element(j, k-1, grid)
             l = [1]
             ip = grid[j, k-1]
             left_J = [getJ(interactions, i, ip)]
             push!(connected_nodes, ip)
             push!(connected_J, getJ(interactions, i, ip))
         end
-        if is_node(j, k+1, grid)
+        if is_element(j, k+1, grid)
             r = [1]
             ip = grid[j, k+1]
             push!(connected_nodes, ip)
             push!(connected_J, getJ(interactions, i, ip))
         end
-        if is_node(j-1, k, grid)
+        if is_element(j-1, k, grid)
             u = [1]
             ip = grid[j-1, k]
             up_J = [getJ(interactions, i, ip)]
             push!(connected_nodes, ip)
             push!(connected_J, getJ(interactions, i, ip))
         end
-        if is_node(j+1, k, grid)
+        if is_element(j+1, k, grid)
             d = [1]
             ip = grid[j+1, k]
             push!(connected_nodes, ip)
@@ -225,7 +362,7 @@ struct Node_of_grid
         h = getJ(interactions, i, i)
         log_energy = [-h, h]
 
-        new(i, [i], intra_struct, l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins, connected_J)
+        new(i, [i], l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins, connected_J)
     end
     #construction from matrix of matrices (a grid of many nodes)
     function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int},
@@ -236,166 +373,119 @@ struct Node_of_grid
 
         connected_nodes = Int[]
 
+        # TODO to below 10 lines is the working by-pass will be changed to graphs
         a = findall(x->x==i, Mat)[1]
         j = a[1]
         k = a[2]
         M = grid[j,k]
-        # this transpose makes better ordering
-        spin_inds = Vector{Int}(vec(transpose(M)))
-        intra_struct = Vector[]
-        s = size(M)
-        no_spins = length(spin_inds)
-        log_energy = zeros(T, 2^no_spins)
 
-        first_spin_index = Int[]
-        second_spin_index = Int[]
-        Js = T[]
-
-        if ! chimera
-            for k in 1:s[1]
-                if length(M[k,:]) > 1
-                    push!(intra_struct, M[k,:])
-                    for j in 2:s[2]
-                        push!(first_spin_index, M[k, j-1])
-                        push!(second_spin_index, M[k, j])
-                        push!(Js, getJ(interactions, M[k, j-1], M[k, j]))
-                    end
-                end
-            end
-            for k in 1:s[2]
-                if length(M[:,k]) > 1
-                    push!(intra_struct, M[:,k])
-                    for j in 2:s[1]
-                        push!(first_spin_index, M[j-1, k])
-                        push!(second_spin_index, M[j, k])
-                        push!(Js, getJ(interactions, M[j-1, k], M[j, k]))
-                    end
-                end
-            end
+        g = 0.
+        if chimera
+            g = Element_of_chimera_grid(i, Mat, M)
         else
-            for k in 1:s[1]
-                for j in 1:s[1]
-                    push!(intra_struct, [M[k, 1], M[j,end]])
-                    push!(first_spin_index, M[k,1])
-                    push!(second_spin_index, M[j,end])
-                    push!(Js, getJ(interactions, M[k,1], M[j,end]))
-                end
-            end
+            g = Element_of_square_grid(i, Mat, M)
         end
 
-        i1 = index_of_interacting_spins(spin_inds, first_spin_index)
-        i2 = index_of_interacting_spins(spin_inds, second_spin_index)
-        hs = [getJ(interactions, a, a) for a in spin_inds]
 
-        for i in 1:2^no_spins
-            s = ind2spin(i, no_spins)
-            e = sum(s.*hs)
-            for j in 1:length(i1)
-                e = e + 2*s[i1[j]]*s[i2[j]]*Js[j]
-            end
-            log_energy[i] = e
-        end
-
-        #l,r,u,d = read_connecting_pairs(Mat, i)
+        # TODO below will be done on a graph
         connected_spins = Matrix{Int}[]
-
-        l = Int[]
-        r = Int[]
-        u = Int[]
-        d = Int[]
         left_J = Float64[]
         up_J = Float64[]
         connected_J = Float64[]
 
-        if is_node(j, k-1, Mat)
-            push!(connected_nodes, Mat[j, k-1])
+        if is_element(j, k-1, Mat)
+            ip = Mat[j, k-1]
+            Mp = grid[j,k-1]
 
-            v1 = 0
+            push!(connected_nodes, ip)
+
+            g1 = 0.
             if chimera
-                v1 = M[:,end]
+                g1 = Element_of_chimera_grid(ip, Mat, Mp)
             else
-                v1 = M[:,1]
-            end
-            l = index_of_interacting_spins(spin_inds, v1)
-
-            Mp = grid[j, k-1]
-            v2 = Mp[:,end]
-
-            for i in 1:length(v1)
-                push!(left_J, getJ(interactions, v1[i], v2[i]))
-                push!(connected_J, getJ(interactions, v1[i], v2[i]))
+                g1 = Element_of_square_grid(ip, Mat, Mp)
             end
 
-
-            push!(connected_spins, hcat(v1, v2))
+            for i in 1:length(g.left)
+                J = getJ(interactions, g.left[i], g1.right[i])
+                push!(left_J, J)
+                push!(connected_J, J)
+            end
+            push!(connected_spins, hcat(g.left, g1.right))
 
         end
-        if is_node(j, k+1, Mat)
-            push!(connected_nodes, Mat[j, k+1])
+        if is_element(j, k+1, Mat)
 
-            v1 = M[:,end]
-            r = index_of_interacting_spins(spin_inds, v1)
+            ip = Mat[j, k+1]
+            Mp = grid[j,k+1]
 
-            v2 = 0
-            Mp = grid[j, k+1]
+            push!(connected_nodes, ip)
+
+            g1 = 0.
             if chimera
-                v2 = Mp[:,end]
+                g1 = Element_of_chimera_grid(ip, Mat, Mp)
             else
-                v2 = Mp[:,1]
+                g1 = Element_of_square_grid(ip, Mat, Mp)
             end
 
-            for i in 1:length(v1)
-                push!(connected_J, getJ(interactions, v1[i], v2[i]))
+            for i in 1:length(g.right)
+                J = getJ(interactions, g.right[i], g1.left[i])
+                push!(connected_J, J)
             end
-            push!(connected_spins, hcat(v1, v2))
+            push!(connected_spins, hcat(g.right, g1.left))
         end
 
-        if is_node(j-1, k, Mat)
+        if is_element(j-1, k, Mat)
 
-            push!(connected_nodes, Mat[j-1, k])
-            v1 = 0
-            v2 = 0
-            Mp = grid[j-1, k]
+            ip = Mat[j-1, k]
+            Mp = grid[j-1,k]
+
+            push!(connected_nodes, ip)
+
+            g1 = 0.
             if chimera
-                v1 = M[:,1]
-                v2 = Mp[:,1]
+                g1 = Element_of_chimera_grid(ip, Mat, Mp)
             else
-                v1 = M[1,:]
-                v2 = Mp[end,:]
-            end
-            u = index_of_interacting_spins(spin_inds, v1)
-
-            for i in 1:length(v1)
-                push!(up_J, getJ(interactions, v1[i], v2[i]))
-                push!(connected_J, getJ(interactions, v1[i], v2[i]))
+                g1 = Element_of_square_grid(ip, Mat, Mp)
             end
 
-            push!(connected_spins, hcat(v1, v2))
+            for i in 1:length(g.up)
+                J = getJ(interactions, g.up[i], g1.down[i])
+                push!(connected_J, J)
+                push!(up_J, J)
+            end
+            push!(connected_spins, hcat(g.up, g1.down))
+
         end
-        if is_node(j+1, k, Mat)
-            push!(connected_nodes, Mat[j+1, k])
+        if is_element(j+1, k, Mat)
 
-            v1 = 0
-            v2 = 0
+            ip = Mat[j+1, k]
+            Mp = grid[j+1,k]
 
-            Mp = grid[j+1, k]
+            push!(connected_nodes, ip)
+
+            g1 = 0.
             if chimera
-                v1 = M[:,1]
-                v2 = Mp[:,1]
+                g1 = Element_of_chimera_grid(ip, Mat, Mp)
             else
-                v1 = M[end,:]
-                v2 = Mp[1,:]
-            end
-            d = index_of_interacting_spins(spin_inds, v1)
-
-            for i in 1:length(v1)
-                push!(connected_J, getJ(interactions, v1[i], v2[i]))
+                g1 = Element_of_square_grid(ip, Mat, Mp)
             end
 
-            push!(connected_spins, hcat(v1, v2))
+            for i in 1:length(g.down)
+                J = getJ(interactions, g.down[i], g1.up[i])
+                push!(connected_J, J)
+            end
+            push!(connected_spins, hcat(g.down, g1.up))
         end
 
-        new(i, spin_inds, intra_struct, l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins, connected_J)
+        l = index_of_interacting_spins(g.spins_inds, g.left)
+        r = index_of_interacting_spins(g.spins_inds, g.right)
+        u = index_of_interacting_spins(g.spins_inds, g.up)
+        d = index_of_interacting_spins(g.spins_inds, g.down)
+
+        log_energy = compute_log_energy(g, interactions)
+
+        new(i, g.spins_inds, l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins, connected_J)
     end
     # construction from interactions directly, It will not check if interactions fits grid
     function(::Type{Node_of_grid})(i::Int, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
@@ -421,14 +511,14 @@ struct Node_of_grid
         h = getJ(interactions, i, i)
         log_energy = [-h, h]
 
-        new(i, [i], x, Int[], Float64[], Int[], Int[], Float64[], Int[], log_energy, connected_nodes, connected_spins, connected_J)
+        new(i, [i], Int[], Float64[], Int[], Int[], Float64[], Int[], log_energy, connected_nodes, connected_spins, connected_J)
     end
 end
 
 ###################### Axiliary functions mainly for the solver ########
 
 function get_system_size(ns::Vector{Node_of_grid})
-    mapreduce(x -> length(x.spin_inds), +, ns)
+    mapreduce(x -> length(x.spins_inds), +, ns)
 end
 
 """

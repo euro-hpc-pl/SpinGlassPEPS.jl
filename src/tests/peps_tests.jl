@@ -60,17 +60,17 @@ end
     q = make_interactions()
     β = 1.5
     ns = [Node_of_grid(i, M, grid, q) for i in 1:maximum(M)]
-    T1 = compute_single_tensor(ns, q, 1, β)
-    T2 = compute_single_tensor(ns, q, 2,  β)
+    T1 = compute_single_tensor(ns[1], β)
+    T2 = compute_single_tensor(ns[2],  β)
 
     M = [1 2 3; 4 5 6; 7 8 9]
     ns = [Node_of_grid(i, M, q) for i in 1:maximum(M)]
-    t1 = compute_single_tensor(ns, q, 1, β)
-    t2 = compute_single_tensor(ns, q, 2, β)
-    t3 = compute_single_tensor(ns, q, 3, β)
-    t4 = compute_single_tensor(ns, q, 4, β)
-    t5 = compute_single_tensor(ns, q, 5, β)
-    t6 = compute_single_tensor(ns, q, 6, β)
+    t1 = compute_single_tensor(ns[1], β)
+    t2 = compute_single_tensor(ns[2], β)
+    t3 = compute_single_tensor(ns[3], β)
+    t4 = compute_single_tensor(ns[4], β)
+    t5 = compute_single_tensor(ns[5], β)
+    t6 = compute_single_tensor(ns[6], β)
 
     tensors = [t1[1,:,:,:], t2, t4[1,:,:,:,:], t5]
     modes = [[1,2,-10], [1, -1, 3, -11], [4, 2, -3, -12], [4, -2, 3, -4, -13]]
@@ -85,11 +85,6 @@ end
     @test T2[:,1,:,:] ≈ reshape(tcompare, (4,2,4))
 end
 
-# chimera cells, tha small one 2x2
-function make_c2()
-    J_h = [(1,1) 1.; (2,2) 1.4; (3,3) 0.5; (4,4) -1.; (1,2) 1.1; (1,4) -0.5; (2,3) 3.1; (3,4) -2.]
-    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
-end
 
 #normal chimera cell 8x2
 function make_c8()
@@ -103,30 +98,6 @@ end
 
 @testset "chimera cel" begin
     # TODO this will be done by the function as well
-    grid = Array{Array{Int}}(undef, (1,1))
-    grid[1,1] = [1 2;3 4]
-    grid = Array{Array{Int}}(grid)
-    M = reshape([1], (1,1))
-
-    q = make_c2()
-
-    ns = [Node_of_grid(1,M, grid, q; chimera = true)]
-
-    grid1 = Array{Array{Int}}(undef, (1,1))
-    grid1[1,1] = [1 2;4 3]
-    grid1 = Array{Array{Int}}(grid1)
-    ns_1 = [Node_of_grid(1,M, grid1, q)]
-
-    β = 1.
-    ten = compute_single_tensor(ns, q, 1, β)
-
-    ten1 = compute_single_tensor(ns_1, q, 1, β)
-
-    # spins are reshufled
-    @test ten[1,1,1,1:4] ≈ ten1[1,1,1,1:4]
-    @test ten[1,1,1,13:16] ≈ ten1[1,1,1,13:16]
-    @test ten[1,1,1,5:8] ≈ ten1[1,1,1,9:12]
-    @test ten[1,1,1,9:12] ≈ ten1[1,1,1,5:8]
 
     grid2 = Array{Array{Int}}(undef, (1,1))
     grid2[1,1] = [1 2;3 4;5 6;7 8]
@@ -138,7 +109,7 @@ end
 
 
     β = 1.
-    ten8 = compute_single_tensor(ns8, q8, 1, β)
+    ten8 = compute_single_tensor(ns8[1], β)
 
     @test size(ten8) == (1, 1, 1, 256)
     @test ten8[1,1,1,1] ≈ exp(β*(-8+16*2*0.1))
@@ -197,7 +168,7 @@ end
     for i in 1:3
         for j in 1:3
             k = k+1
-            M[i,j] = compute_single_tensor(ns, ints, k, β)
+            M[i,j] = compute_single_tensor(ns[k], β)
         end
     end
     M = Matrix{Array{Float64, N} where N}(M)
@@ -246,7 +217,7 @@ end
     for i in 1:3
         for j in 1:3
             k = k+1
-            M[i,j] = compute_single_tensor(ns, interactions, k, β)
+            M[i,j] = compute_single_tensor(ns[k], β)
         end
     end
     M = Matrix{Array{Float64, N} where N}(M)
@@ -489,31 +460,4 @@ end
         @test objective[i] ≈ objective_l[i]
         @test spins[i] == spins_l[i]
     end
-end
-function make_c2()
-    h = [(1,1) .0; (2,2) 1.; (3,3) 1.; (4,4) 1.; (5,5) 1.; (6,6) 1.; (7,7) 1.; (8,8) 1.]
-    J = vcat(h, [(1,2) 0.1; (1,4) 0.1; (2,3) 0.1; (3,4) 0.1])
-    J = vcat(J, [(5,6) 0.1; (5,8) 0.1; (6,7) 0.1; (7,8) 0.1])
-    J = vcat(J, [(1,5) 0.1; (3,7) 0.1])
-    [Interaction(J[i,1], J[i,2]) for i in 1:size(J, 1)]
-end
-
-@testset "solving simple chimera cell" begin
-
-    grid2 = Array{Array{Int}}(undef, (2,1))
-    grid2[1,1] = [1 2;3 4]
-    grid2[2,1] = [5 6;7 8]
-    grid2 = Array{Array{Int}}(grid2)
-    M = reshape([1;2], (2,1))
-    q = make_c2()
-
-    ns = [Node_of_grid(i,M, grid2, q; chimera = true) for i in 1:2]
-
-    β = 1.
-    ten = compute_single_tensor(ns, q, 1, β)
-
-    spins, _ = solve(q, ns, M, 2; β=β)
-    @test spins[1] == [1, 1, 1, 1, 1, 1, 1, 1]
-    @test spins[2] == [-1, 1, 1, 1, 1, 1, 1, 1]
-
 end

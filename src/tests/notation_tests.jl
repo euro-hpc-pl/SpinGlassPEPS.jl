@@ -27,6 +27,68 @@ end
 
 end
 
+@testset "grid formation" begin
+    grid = [1 2 3; 4 5 6; 7 8 9]
+
+    @test is_element(1,1, grid) == true
+    @test is_element(1,5, grid) == false
+    @test is_element(0,1, grid) == false
+
+
+    spins_inds = [7 8 9; 10 11 12; 13 14 15]
+    i = 2
+    v = Element_of_square_grid(i, grid, spins_inds)
+    @test v.i == 2
+    @test v.row == 1
+    @test v.column == 2
+    @test sort(v.spins_inds) == [7,8,9,10,11,12,13,14,15]
+    @test v.intra_struct == [(7,8), (8,9), (10,11), (11,12), (13,14), (14,15), (7, 10), (10,13), (8,11), (11,14), (9,12), (12,15)]
+    @test v.left == [7,10,13]
+    @test v.right == [9,12,15]
+    @test v.up == Int[]
+    @test v.down == [13,14,15]
+
+    spins_inds = [17 18 19; 20 21 22; 23 24 25]
+    i = 5
+    v = Element_of_square_grid(i, grid, spins_inds)
+
+    @test v.row == 2
+    @test v.column == 2
+
+    @test v.left == [17, 20, 23]
+    @test v.right == [19, 22, 25]
+    @test v.up == [17, 18, 19]
+    @test v.down == [23, 24, 25]
+
+
+    spins_inds = [21 25; 22 26; 23 27; 24 28]
+    i = 5
+    v = Element_of_chimera_grid(i, grid, spins_inds)
+    @test v.i == 5
+    @test v.row == 2
+    @test v.column == 2
+    @test sort(v.spins_inds) == [i for i in 21:28]
+    @test length(v.intra_struct) == 16
+    @test v.intra_struct[1:4] == [(21,25), (21,26), (21,27), (21,28)]
+    @test v.left == [25,26,27,28]
+    @test v.right == [25,26,27,28]
+    @test v.up == [21,22,23,24]
+    @test v.down == [21,22,23,24]
+end
+
+@testset "axiliary functions for making nodes" begin
+    cluster = [2,5,6,7,11]
+    @test position_in_cluster(cluster, 6) == 3
+    @test position_in_cluster(cluster, 2) == 1
+
+    interactions = make_interactions()
+    grid = [1 2;3 4]
+    spins_inds = [1 2; 4 5]
+    # 1,1 elements of grid with spins [1 2; 4 5]
+    v = Element_of_square_grid(1, grid, spins_inds)
+    println(compute_log_energy(v, interactions))
+end
+
 @testset "node type, connections on the graph" begin
 
     M = ones(9,9)
@@ -38,8 +100,8 @@ end
 
     n = Node_of_grid(3, grid, inter)
     @test n.i == 3
-    @test n.spin_inds == [3]
-    @test n.intra_struct == Array{Int64,1}[]
+    @test n.spins_inds == [3]
+    #@test n.intra_struct == Array{Int64,1}[]
     @test n.left == [1]
     @test n.right == Int[]
     @test n.up == Int[]
@@ -49,8 +111,8 @@ end
 
     n = Node_of_grid(5, grid, inter)
     @test n.i == 5
-    @test n.spin_inds == [5]
-    @test n.intra_struct == Array{Int64,1}[]
+    @test n.spins_inds == [5]
+    #@test n.intra_struct == Array{Int64,1}[]
     @test n.left == [1]
     @test n.right == [1]
     @test n.up == [1]
@@ -62,8 +124,8 @@ end
     grid1 = [1 2 3 4; 5 6 7 8; 9 10 11 12]
     n = Node_of_grid(4, grid1, inter)
     @test n.i == 4
-    @test n.spin_inds == [4]
-    @test n.intra_struct == Array{Int64,1}[]
+    @test n.spins_inds == [4]
+    #@test n.intra_struct == Array{Int64,1}[]
     @test n.left == [1]
     @test n.right == Int[]
     @test n.up == Int[]
@@ -72,8 +134,8 @@ end
 
     n = Node_of_grid(9, grid1, inter)
     @test n.i == 9
-    @test n.spin_inds == [9]
-    @test n.intra_struct == Array{Int64,1}[]
+    @test n.spins_inds == [9]
+    #@test n.intra_struct == Array{Int64,1}[]
     @test n.left == Int[]
     @test n.right == [1]
     @test n.up == [1]
@@ -81,8 +143,8 @@ end
 
     n = Node_of_grid(12, grid1, inter)
     @test n.i == 12
-    @test n.spin_inds == [12]
-    @test n.intra_struct == Array{Int64,1}[]
+    @test n.spins_inds == [12]
+    #@test n.intra_struct == Array{Int64,1}[]
     @test n.left == [1]
     @test n.right == Int[]
     @test n.up == [1]
@@ -99,39 +161,8 @@ end
     grid[2,2] = [11 12;15 16]
     grid = Array{Array{Int}}(grid)
 
-    M = [1 2;3 4]
-    # TODO change indexing to fit chmera cell?
-    n = Node_of_grid(1,M, grid, inter)
-    @test n.i == 1
-    @test n.spin_inds == [1, 2, 5, 6]
-    @test n.intra_struct == [[1, 2], [5, 6], [1, 5], [2, 6]]
-    @test n.left == Int[]
-    @test n.right == [2,4]
-    @test n.up == Int[]
-    @test n.down == [3,4]
-    @test n.connected_nodes == [2, 3]
-    @test n.connected_spins == [[2 3; 6 7], [5 9; 6 10]]
 
-
-    nc = Node_of_grid(1,M, grid, inter; chimera = true)
-    @test nc.i == 1
-    @test nc.spin_inds == [1, 2, 5, 6]
-    @test nc.intra_struct == [[1, 2], [1, 6], [5, 2], [5, 6]]
-    @test nc.left == Int[]
-    @test nc.right == [2,4]
-    @test nc.up == Int[]
-    @test nc.down == [1,3]
-    @test nc.connected_nodes == [2,3]
-
-    nc = Node_of_grid(2,M, grid, inter; chimera = true)
-    @test nc.spin_inds == [3,4,7,8]
-    @test nc.intra_struct == [[3, 4], [3, 8], [7, 4], [7, 8]]
-    @test nc.left == [2,4]
-    @test nc.right == Int[]
-    @test nc.up == Int[]
-    @test nc.down == [1,3]
-
-    # larger chimera
+    # chimera
 
     grid = Array{Array{Int}}(undef, (1,2))
     grid[1,1] = [1 5; 2 6; 3 7; 4 8]
@@ -141,8 +172,8 @@ end
 
     nc_l = Node_of_grid(1,M, grid, inter; chimera = true)
 
-    @test nc_l.intra_struct[1:4] == [[1, 5], [1, 6], [1, 7], [1, 8]]
-    @test nc_l.spin_inds == [1, 5, 2, 6, 3, 7, 4, 8]
+    #@test nc_l.intra_struct[1:4] == [[1, 5], [1, 6], [1, 7], [1, 8]]
+    @test nc_l.spins_inds == [1, 5, 2, 6, 3, 7, 4, 8]
     @test nc_l.right == [2,4,6,8]
     @test nc_l.left == Int[]
     @test nc_l.left_J == Float64[]

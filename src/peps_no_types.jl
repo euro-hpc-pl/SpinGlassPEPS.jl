@@ -7,7 +7,7 @@ using Distributed
 # TODO β and interactions should be as Float64, if typechange, make it inside a solver
 
 """
-compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{Interaction{T}}, i::Int, β::T)
+compute_single_tensor(ns::Node_of_grid, β::T)
 
 Returns an tensor form which mpses and mpos are build, initialy tensor is 5 mode:
 
@@ -24,101 +24,57 @@ If tensor is expected to be on the top of the peps mode 3 is trivial and is remo
 If tensor is expected to be on the bottom of the peps mode 4 is trivial and is removed
 """
 
-# TODO this function needs to be clearer (split into a few) and perhaps spead up
-# many repeating code inside
-
-#TODO searching functions outside
-
-#function index_of_interacting_spins(n::Node_of_grid, pairs::Vector{Vector{Int}})
-#    spins = Int[]
-
-#    for el in pairs
-#        index = findall(x->x==el[1], n.spin_inds)[1]
-#        push!(spins, index)
-#    end
-#    spins
-#end
-
 # TODO interactions are not necessary
 
-function compute_single_tensor(ns::Vector{Node_of_grid}, interactions::Vector{Interaction{T}},
-                                                        i::Int, β::T) where T <: AbstractFloat
+function compute_single_tensor(n::Node_of_grid, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
 
+    tensor_size = map(x -> 2^length(x), [n.left, n.right, n.up, n.down, n.spins_inds])
 
-    n = ns[i]
-    i == n.i || error("$i ≠ $(n.i), error in indexing a grid")
+    tensor = zeros(T, (tensor_size[1:4]...))
+    if !sum_over_last
+        tensor = zeros(T, (tensor_size...))
+    end
 
-    tensor_size = map(x -> 2^length(x), [n.left, n.right, n.up, n.down, n.spin_inds])
-
-    # these 2 are used to compute external energy
-    Jil = n.left_J
-    Jiu = n.up_J
-
-    # these 2 are used to compute internal energy
-    # compute log - energy here
-    #J_intra = [getJ(interactions, pair[1], pair[2]) for pair in n.intra_struct]
-    #h = [getJ(interactions, j,j) for j in n.spin_inds]
-
-    left = n.left
-    right = n.right
-    up = n.up
-    down = n.down
-
-    tensor = zeros(T, (tensor_size...))
     # following are done outside the loop
     siz = [ceil(Int, log(2, size)) for size in tensor_size]
 
-    # this will go to compute internal energy
-    #ind_a = Int[]
-    #ind_b = Int[]
-    #for pair in n.intra_struct
-    #    push!(ind_a, findall(x->x==pair[1], n.spin_inds)[1])
-    #    push!(ind_b, findall(x->x==pair[2], n.spin_inds)[1])
-    #end
+    for k in CartesianIndices(tuple(tensor_size[1:4]...))
+        spins = [ind2spin(k[i], siz[i]) for i in 1:4]
 
-    for k in CartesianIndices(tuple(tensor_size...))
+        v = zeros(T, tensor_size[5])
+        for i in 1:tensor_size[5]
+            all_spins = ind2spin(i, siz[5])
 
-        spins = [ind2spin(k[i], siz[i]) for i in 1:5]
-        all_spins = spins[5]
-
-        # dirac delta implementation
-        r = true
-        if length(right) > 0
-            r = (spins[2] == all_spins[right])
-        end
-
-        d = true
-        if length(down) > 0
-            d = (spins[4] == all_spins[down])
-        end
-        # if any is false further is not necessary
-        if (d && r)
-
-            J1 = 0.
-            if length(Jil) > 0
-                J1 = sum(Jil.*spins[1].*all_spins[left])
+            # dirac delta implementation
+            r = true
+            if length(n.right) > 0
+                r = (spins[2] == all_spins[n.right])
             end
 
-            J2 = 0.
-            if length(Jiu) > 0
-                J2 = sum(Jiu.*spins[3].*all_spins[up])
+            d = true
+            if length(n.down) > 0
+                d = (spins[4] == all_spins[n.down])
             end
+            # if any is false further is not necessary
+            if (d && r)
 
-            # this should be a function compute internal energy
-            #hh = β*sum(h.*all_spins)
+                J1 = 0.
+                if length(n.left_J) > 0
+                    J1 = sum(n.left_J.*spins[1].*all_spins[n.left])
+                end
 
-            #if n.intra_struct != Array{Int64,1}[]
-            #    i = 1
-            #    for pair in n.intra_struct
+                J2 = 0.
+                if length(n.up_J) > 0
+                    J2 = sum(n.up_J.*spins[3].*all_spins[n.up])
+                end
 
-            #        s1 = all_spins[ind_a[i]]
-            #        s2 = all_spins[ind_b[i]]
-
-            #        hh = hh + 2*β*J_intra[i]*s1*s2
-            #        i = i + 1
-            #    end
-            #end
-            @inbounds tensor[k] = exp(β*2*(J1+J2)+β*n.energy[k[5]])
+                @inbounds v[i] = exp(β*2*(J1+J2)+β*n.energy[i])
+            end
+            if sum_over_last
+                @inbounds tensor[k] = sum(v)
+            else
+                @inbounds tensor[k, :] = v
+            end
         end
     end
 
@@ -293,13 +249,15 @@ function make_lower_mps(grid::Matrix{Int}, ns::Vector{Node_of_grid},
                                            interactions::Vector{Interaction{T}}, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
     s = size(grid,1)
     if k <= s
-        mps = [sum_over_last(compute_single_tensor(ns, interactions, j, β)) for j in grid[s,:]]
+        #mps = [sum_over_last(compute_single_tensor(ns[j], β)) for j in grid[s,:]]
+        mps = [compute_single_tensor(ns[j], β; sum_over_last = true) for j in grid[s,:]]
         if threshold > 0.
             mps = compress_iter(mps, χ, threshold)
         end
         for i in s-1:-1:k
 
-            mpo = [sum_over_last(compute_single_tensor(ns, interactions, j, β)) for j in grid[i,:]]
+            #mpo = [sum_over_last(compute_single_tensor(ns[j], β)) for j in grid[i,:]]
+            mpo = [compute_single_tensor(ns[j], β; sum_over_last = true) for j in grid[i,:]]
             if threshold > 0.
                 mpo = compress_iter(mpo, χ, threshold)
             end
@@ -354,7 +312,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
         #this may need to ge cashed
         lower_mps = make_lower_mps(grid, ns, interactions, row + 1, β, χ, threshold)
 
-        upper_mpo = [compute_single_tensor(ns, interactions, j, β) for j in grid[row,:]]
+        upper_mpo = [compute_single_tensor(ns[j], β) for j in grid[row,:]]
 
         for j in grid[row,:]
 
@@ -366,7 +324,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                 # left cutoff
                 new_s = 0
                 if length(ns[j].left) > 0
-                    all = ns[j-1].spin_inds
+                    all = ns[j-1].spins_inds
                     ind = ns[j-1].right
                     new_s = reindex1(sol[end], length(all), ind)
 
@@ -376,7 +334,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                 if row < s[1]
                     for i in 1:length(sol)
                         k = grid[row,i]
-                        all = ns[k].spin_inds
+                        all = ns[k].spins_inds
 
                         ind = ns[k].down
                         sol[i] = reindex1(sol[i], length(all), ind)
@@ -392,7 +350,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                     ind_above = [0 for _ in 1:s[2]]
                     for k in 1:s[2]
                         l = grid[row-1,k]
-                        all = ns[l].spin_inds
+                        all = ns[l].spins_inds
 
                         index = ps.spins[k+(row-2)*s[2]]
                         ind = ns[l].down
@@ -447,9 +405,9 @@ function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Vector{Node_of_
 
         for k in 1:length(ns)
 
-            ii = ind2spin(ses[k], length(ns[k].spin_inds))
+            ii = ind2spin(ses[k], length(ns[k].spins_inds))
             for j in 1:length(ii)
-                one_solution[ns[k].spin_inds[j]] = ii[j]
+                one_solution[ns[k].spins_inds[j]] = ii[j]
             end
         end
         spins[l-i+1] = one_solution
