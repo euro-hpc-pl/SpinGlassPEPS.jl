@@ -40,8 +40,10 @@ function compute_single_tensor(n::Node_of_grid, β::T; sum_over_last::Bool = fal
 
     for k in CartesianIndices(tuple(tensor_size[1:4]...))
         spins = [ind2spin(k[i], siz[i]) for i in 1:4]
-
-        v = zeros(T, tensor_size[5])
+        v = T(0.)
+        if !sum_over_last
+            v = zeros(T, tensor_size[5])
+        end
         for i in 1:tensor_size[5]
             all_spins = ind2spin(i, siz[5])
 
@@ -67,11 +69,14 @@ function compute_single_tensor(n::Node_of_grid, β::T; sum_over_last::Bool = fal
                 if length(n.up_J) > 0
                     J2 = sum(n.up_J.*spins[3].*all_spins[n.up])
                 end
-
-                @inbounds v[i] = exp(β*2*(J1+J2)+β*n.energy[i])
+                if !sum_over_last
+                    @inbounds v[i] = exp(β*2*(J1+J2)+β*n.energy[i])
+                else
+                    v = v + exp(β*2*(J1+J2)+β*n.energy[i])
+                end
             end
             if sum_over_last
-                @inbounds tensor[k] = sum(v)
+                @inbounds tensor[k] = v
             else
                 @inbounds tensor[k, :] = v
             end
