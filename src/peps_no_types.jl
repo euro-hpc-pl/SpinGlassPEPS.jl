@@ -24,62 +24,42 @@ If tensor is expected to be on the top of the peps mode 3 is trivial and is remo
 If tensor is expected to be on the bottom of the peps mode 4 is trivial and is removed
 """
 
-# TODO interactions are not necessary
-
 function compute_single_tensor(n::Node_of_grid, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
 
     tensor_size = map(x -> 2^length(x), [n.left, n.right, n.up, n.down, n.spins_inds])
 
+    v = T(0.)
     tensor = zeros(T, (tensor_size[1:4]...))
     if !sum_over_last
         tensor = zeros(T, (tensor_size...))
+        v = zeros(T, tensor_size[5])
     end
 
-    # following are done outside the loop
-    siz = [ceil(Int, log(2, size)) for size in tensor_size]
+    no_spins = length(n.spins_inds)
 
     for k in CartesianIndices(tuple(tensor_size[1:4]...))
-        spins = [ind2spin(k[i], siz[i]) for i in 1:4]
-        v = T(0.)
-        if !sum_over_last
-            v = zeros(T, tensor_size[5])
-        end
+        # itteration over physical index
         for i in 1:tensor_size[5]
-            all_spins = ind2spin(i, siz[5])
+            # contract δ δ M M v (perhaps it can be done more efficiently)
+            if (k[2] == reindex(i, no_spins, n.right))
+                if (k[4] == reindex(i, no_spins, n.down))
 
-            # dirac delta implementation
-            r = true
-            if length(n.right) > 0
-                r = (spins[2] == all_spins[n.right])
-            end
+                    @inbounds e_inter = n.energy_left[k[1], i]+n.energy_up[k[3], i]
 
-            d = true
-            if length(n.down) > 0
-                d = (spins[4] == all_spins[n.down])
-            end
-            # if any is false further is not necessary
-            if (d && r)
-
-                J1 = 0.
-                if length(n.left_J) > 0
-                    J1 = sum(n.left_J.*spins[1].*all_spins[n.left])
-                end
-
-                J2 = 0.
-                if length(n.up_J) > 0
-                    J2 = sum(n.up_J.*spins[3].*all_spins[n.up])
-                end
-                if !sum_over_last
-                    @inbounds v[i] = exp(β*2*(J1+J2)+β*n.energy[i])
-                else
-                    v = v + exp(β*2*(J1+J2)+β*n.energy[i])
+                    if !sum_over_last
+                        @inbounds v[i] = exp(β*(e_inter+n.energy[i]))
+                    else
+                        v = v + exp(β*(e_inter+n.energy[i]))
+                    end
                 end
             end
-            if sum_over_last
-                @inbounds tensor[k] = v
-            else
-                @inbounds tensor[k, :] = v
-            end
+        end
+        if sum_over_last
+            @inbounds tensor[k] = v
+            v = 0.
+        else
+            @inbounds tensor[k, :] = v
+            v = zeros(T, tensor_size[5])
         end
     end
 
@@ -331,7 +311,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                 if length(ns[j].left) > 0
                     all = ns[j-1].spins_inds
                     ind = ns[j-1].right
-                    new_s = reindex1(sol[end], length(all), ind)
+                    new_s = reindex(sol[end], length(all), ind)
 
                 end
 
@@ -342,7 +322,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                         all = ns[k].spins_inds
 
                         ind = ns[k].down
-                        sol[i] = reindex1(sol[i], length(all), ind)
+                        sol[i] = reindex(sol[i], length(all), ind)
                     end
                 end
 
@@ -359,7 +339,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
 
                         index = ps.spins[k+(row-2)*s[2]]
                         ind = ns[l].down
-                        ind_above[k] = reindex1(index, length(all), ind)
+                        ind_above[k] = reindex(index, length(all), ind)
                     end
 
                     if row < s[1]

@@ -27,13 +27,14 @@ end
 """
     ind2spin(i::Int, s::Int = 2)
 
-return a spin from the physical index, if size is 1, returns zero.
+return a spin from the physical index, if no_spins is 1, returns zero.
 """
-function ind2spin(i::Int, size::Int = 1)
-    if size == 0
-        return [0]
-    else
-        s = [2^i for i in 1:size]
+function ind2spin(i::Int, no_spins::Int = 1)
+    #if no_spins == 0
+    #    return [1]
+    #else
+    if true
+        s = [2^i for i in 1:no_spins]
         return [1-2*Int((i-1)%j < div(j,2)) for j in s]
     end
 end
@@ -47,8 +48,11 @@ end
 
 
 
-function reindex1(i::Int, n::Int, subset_ind::Vector{Int})
-    s = ind2spin(i, n)
+function reindex(i::Int, no_spins::Int, subset_ind::Vector{Int})
+    if length(subset_ind) == 0
+        return 1
+    end
+    s = ind2spin(i, no_spins)
     spins2ind(s[subset_ind])
 end
 
@@ -260,8 +264,20 @@ struct Element_of_chimera_grid
     end
 end
 
-function compute_log_energy(g::Union{Element_of_square_grid, Element_of_chimera_grid},
-                            interactions::Vector{Interaction{T}}) where T <: AbstractFloat
+"""
+    struct Node_of_grid
+
+this structure is supposed to include all information about nodes on the grid.
+necessary to crearte the corresponding tensor (e.g. the element of the peps).
+"""
+# TODO this for sure need to be clarified, however I would leave such
+# approach. It allows for easy creation of various grids of interactions
+# (e.g. Pegasusu) and its modification during computation (if necessary).
+
+
+EE = Union{Element_of_square_grid, Element_of_chimera_grid}
+
+function log_internal_energy(g::EE, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
 
     # TODO h and J this will be tead from a grid
     hs = [getJ(interactions, i, i) for i in g.spins_inds]
@@ -284,27 +300,51 @@ function compute_log_energy(g::Union{Element_of_square_grid, Element_of_chimera_
 end
 
 
-"""
-    struct Node_of_grid
+function log_interaction_energy(g::EE, J_left::Vector{T}, J_up::Vector{T}) where T <: AbstractFloat
 
-this structure is supposed to include all information about nodes on the grid.
-necessary to crearte the corresponding tensor (e.g. the element of the peps).
-"""
-# TODO this for sure need to be clarified, however I would leave such
-# approach. It allows for easy creation of various grids of interactions
-# (e.g. Pegasusu) and its modification during computation (if necessary).
+    no_left = length(g.left)
+    no_up = length(g.up)
+    no_spins = length(g.spins_inds)
+
+    energies_left = zeros(T, 2^no_left, 2^no_spins)
+    energies_up = zeros(T, 2^no_up, 2^no_spins)
+
+    index_l = index_of_interacting_spins(g.spins_inds, g.left)
+    index_u = index_of_interacting_spins(g.spins_inds, g.up)
+
+    for i in 1:2^no_spins
+        σ_cluster = ind2spin(i, no_spins)
+        # left interaction matrix
+        for l in 1:2^no_left
+            if no_left > 0
+                σ = ind2spin(l, no_left)
+                energy_left = 2*sum(J_left.*σ.*σ_cluster[index_l])
+                @inbounds energies_left[l,i] = energy_left
+            end
+        end
+        # upper interaction matrix
+        for u in 1:2^no_up
+            if no_up > 0
+                σ = ind2spin(u, no_up)
+                energy_up = 2*sum(J_up.*σ.*σ_cluster[index_u])
+                @inbounds energies_up[u,i] = energy_up
+            end
+        end
+    end
+    energies_left, energies_up
+end
+
 
 struct Node_of_grid
     i::Int
     spins_inds::Vector{Int}
-    #intra_struct::Vector{Vector{Int}}
     left::Vector{Int}
-    left_J::Vector{Float64}
     right::Vector{Int}
     up::Vector{Int}
-    up_J::Vector{Float64}
     down::Vector{Int}
     energy::Vector{Float64}
+    energy_left::Array{Float64, 2}
+    energy_up::Array{Float64, 2}
     connected_nodes::Vector{Int}
     connected_spins::Vector{Matrix{Int}}
     connected_J::Vector{Float64}
@@ -315,13 +355,15 @@ struct Node_of_grid
         intra_struct = Vector{Int}[]
         connected_nodes = Int[]
 
+        g = Element_of_square_grid(i, grid, reshape([i], (1,1)))
+
         l = Int[]
         r = Int[]
         u = Int[]
         d = Int[]
-        left_J = Float64[]
-        up_J = Float64[]
-        connected_J = Float64[]
+        left_J = T[]
+        up_J = T[]
+        connected_J = T[]
 
         a = findall(x->x==i, grid)[1]
         j = a[1]
@@ -362,7 +404,9 @@ struct Node_of_grid
         h = getJ(interactions, i, i)
         log_energy = [-h, h]
 
-        new(i, [i], l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins, connected_J)
+        el, eu = log_interaction_energy(g, left_J, up_J)
+
+        new(i, [i], l, r, u, d, log_energy, el, eu, connected_nodes, connected_spins, connected_J)
     end
     #construction from matrix of matrices (a grid of many nodes)
     function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int},
@@ -379,32 +423,24 @@ struct Node_of_grid
         k = a[2]
         M = grid[j,k]
 
-        g = 0.
+
         if chimera
             g = Element_of_chimera_grid(i, Mat, M)
         else
             g = Element_of_square_grid(i, Mat, M)
         end
 
-
-        # TODO below will be done on a graph
         connected_spins = Matrix{Int}[]
-        left_J = Float64[]
-        up_J = Float64[]
-        connected_J = Float64[]
+        left_J = T[]
+        up_J = T[]
+        connected_J = T[]
 
         if is_element(j, k-1, Mat)
             ip = Mat[j, k-1]
             Mp = grid[j,k-1]
-
             push!(connected_nodes, ip)
+            g1 = typeof(g)(ip, Mat, Mp)
 
-            g1 = 0.
-            if chimera
-                g1 = Element_of_chimera_grid(ip, Mat, Mp)
-            else
-                g1 = Element_of_square_grid(ip, Mat, Mp)
-            end
 
             for i in 1:length(g.left)
                 J = getJ(interactions, g.left[i], g1.right[i])
@@ -420,13 +456,7 @@ struct Node_of_grid
             Mp = grid[j,k+1]
 
             push!(connected_nodes, ip)
-
-            g1 = 0.
-            if chimera
-                g1 = Element_of_chimera_grid(ip, Mat, Mp)
-            else
-                g1 = Element_of_square_grid(ip, Mat, Mp)
-            end
+            g1 = typeof(g)(ip, Mat, Mp)
 
             for i in 1:length(g.right)
                 J = getJ(interactions, g.right[i], g1.left[i])
@@ -439,15 +469,8 @@ struct Node_of_grid
 
             ip = Mat[j-1, k]
             Mp = grid[j-1,k]
-
             push!(connected_nodes, ip)
-
-            g1 = 0.
-            if chimera
-                g1 = Element_of_chimera_grid(ip, Mat, Mp)
-            else
-                g1 = Element_of_square_grid(ip, Mat, Mp)
-            end
+            g1 = typeof(g)(ip, Mat, Mp)
 
             for i in 1:length(g.up)
                 J = getJ(interactions, g.up[i], g1.down[i])
@@ -464,12 +487,7 @@ struct Node_of_grid
 
             push!(connected_nodes, ip)
 
-            g1 = 0.
-            if chimera
-                g1 = Element_of_chimera_grid(ip, Mat, Mp)
-            else
-                g1 = Element_of_square_grid(ip, Mat, Mp)
-            end
+            g1 = typeof(g)(ip, Mat, Mp)
 
             for i in 1:length(g.down)
                 J = getJ(interactions, g.down[i], g1.up[i])
@@ -478,14 +496,16 @@ struct Node_of_grid
             push!(connected_spins, hcat(g.down, g1.up))
         end
 
+        el, eu = log_interaction_energy(g, left_J, up_J)
+
         l = index_of_interacting_spins(g.spins_inds, g.left)
         r = index_of_interacting_spins(g.spins_inds, g.right)
         u = index_of_interacting_spins(g.spins_inds, g.up)
         d = index_of_interacting_spins(g.spins_inds, g.down)
 
-        log_energy = compute_log_energy(g, interactions)
+        log_energy = log_internal_energy(g, interactions)
 
-        new(i, g.spins_inds, l, left_J, r, u, up_J, d, log_energy, connected_nodes, connected_spins, connected_J)
+        new(i, g.spins_inds, l, r, u, d, log_energy, el, eu, connected_nodes, connected_spins, connected_J)
     end
     # construction from interactions directly, It will not check if interactions fits grid
     function(::Type{Node_of_grid})(i::Int, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
@@ -511,7 +531,7 @@ struct Node_of_grid
         h = getJ(interactions, i, i)
         log_energy = [-h, h]
 
-        new(i, [i], Int[], Float64[], Int[], Int[], Float64[], Int[], log_energy, connected_nodes, connected_spins, connected_J)
+        new(i, [i], Int[], Int[], Int[], Int[], log_energy, ones(1,1), ones(1,1), connected_nodes, connected_spins, connected_J)
     end
 end
 

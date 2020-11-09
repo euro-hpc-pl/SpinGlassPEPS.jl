@@ -103,15 +103,8 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
     for j in nodes
 
         a = findall(x -> x == j, ns[i].connected_nodes)[1]
-        #spins = ns[i].connected_spins[a]
-        # TODO this needs to be checked
-        #for r in 1:size(spins,1)
-        #    push!(J, getJ(interactions, spins[r,1], spins[r,2]))
-        #end
-        #println("vvvvvvvvvvvvvvvvv")
-        J = [ns[i].connected_J[a]]
 
-        #println("^^^^^^^^^^^^^^^^^^^^^^")
+        J = [ns[i].connected_J[a]]
 
         mpo[j] = Ctensor(J*β, d, j==k, j==l)
     end
@@ -131,7 +124,7 @@ function add_phase!(mps::Vector{Array{T, 3}},
 end
 
 
-function partial_spin_set(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
+function set_part_of_spins(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
     env = ones(T,1)
     for i in 1:length(spins)
         env = env*mps[i][:,:,spins[i]]
@@ -142,7 +135,7 @@ end
 function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
     d = size(mps[1], 3)
     k = length(spins)+1
-    left_v = partial_spin_set(mps, spins)
+    left_v = set_part_of_spins(mps, spins)
 
     A = mps[k]
     probs_at_k = zeros(T, d,d)

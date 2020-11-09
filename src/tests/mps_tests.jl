@@ -197,7 +197,7 @@ end
 
     v = ones(1)*mps[1][:,:,1]*mps[2][:,:,1]
     v = reshape(v, size(v,2))
-    v1 = partial_spin_set(mps, [1,1])
+    v1 = set_part_of_spins(mps, [1,1])
 
     @test v == v1
 
