@@ -19,7 +19,12 @@ end
     @test props(g, 2)[:internal_struct] == Dict()
     @test props(g, Edge(1,2))[:J] == 1
 
-    g1 = interactions2grid_graph(interactions, (2,2), (1,1))
+    M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
+    interactions = M2interactions(M)
+
+    g1 = interactions2grid_graph(interactions, (2,2))
+    println(props(g1, Edge(1,2))[:M])
+    println(props(g1, Edge(2,4))[:M])
 
     interactions = make_interactions()
 

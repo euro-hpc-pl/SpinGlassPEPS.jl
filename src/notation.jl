@@ -125,21 +125,6 @@ function interactions2graph(ints::Vector{Interaction{T}}) where T <: AbstractFlo
     ig
 end
 
-function interactions2grid_graph(ints::Vector{Interaction{T}}, grid_s::Tuple{Int, Int},
-                                cell_s::Tuple{Int, Int}) where T <: AbstractFloat
-
-    if cell_s == (1,1)
-        grid = nxmgrid(grid_s[1], grid_s[2])
-        ig = interactions2graph(ints::Vector{Interaction{T}})
-        for i in vertices(ig)
-            node = Element_of_square_grid(i, grid, reshape([i], (1,1)))
-            set_prop!(ig, i, :internal_struct, Dict("square_grid" => node))
-        end
-    end
-    id
-end
-
-
 
 """
     getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
@@ -226,20 +211,23 @@ struct Element_of_square_grid
         spins = Vector{Int}(vec(transpose(spins_inds)))
 
         #if the node exist
-        if is_element(row, column-1, grid)
+        if column > 1
             left = index_of_interacting_spins(spins, spins_inds[:, 1])
         end
-        if is_element(row, column+1, grid)
+        if column < size(grid, 2)
             right = index_of_interacting_spins(spins, spins_inds[:, end])
         end
-        if is_element(row-1, column, grid)
+        if row > 1
             up = index_of_interacting_spins(spins, spins_inds[1, :])
         end
-        if is_element(row+1, column, grid)
+        if row < size(grid, 1)
             down = index_of_interacting_spins(spins, spins_inds[end,:])
         end
 
         new(row, column, spins, intra_struct, left, right, up, down)
+    end
+    function(::Type{Element_of_square_grid})(i::Int, grid::Matrix{Int})
+        Element_of_square_grid(i, grid, reshape([i], (1,1)))
     end
 end
 
@@ -277,21 +265,66 @@ struct Element_of_chimera_grid
         end
 
         spins = Vector{Int}(vec(transpose(spins_inds)))
-        if is_element(row, column-1, grid)
+        if column > 1
             left = index_of_interacting_spins(spins, spins_inds[:, 2])
         end
-        if is_element(row, column+1, grid)
+        if column < size(grid, 2)
             right = index_of_interacting_spins(spins, spins_inds[:, 2])
         end
-        if is_element(row-1, column, grid)
+        if row > 1
             up = index_of_interacting_spins(spins, spins_inds[:, 1])
         end
-        if is_element(row+1, column, grid)
+        if row < size(grid, 1)
             down = index_of_interacting_spins(spins, spins_inds[:, 1])
         end
 
         new(row, column, spins, intra_struct, left, right, up, down)
     end
+end
+
+
+function is_grid(ig::MetaGraph, g_elements::Vector{Element_of_square_grid})
+    # TODO finish it
+    for i in vertices(ig)
+        a = g_elements[i]
+        println(i)
+        println(a.row, ",",  a.column)
+        for j in all_neighbors(ig, i)
+            b = g_elements[j]
+            println(b.row, ",", b.column)
+        end
+    end
+end
+
+
+function interactions2grid_graph(ints::Vector{Interaction{T}}, grid_s::Tuple{Int, Int}) where T <: AbstractFloat
+
+    ig = interactions2graph(ints::Vector{Interaction{T}})
+    grid = nxmgrid(grid_s[1], grid_s[2])
+    g_elements = [Element_of_square_grid(i, grid) for i in 1:maximum(grid)]
+    # TODO use rows and columns of neighbours
+    is_grid(ig, g_elements)
+    for i in grid
+        g_element = g_elements[i]
+
+        if g_element.column > 1
+            ip = grid[g_element.row, g_element.column-1]
+            e = Edge(i, ip)
+            J = props(ig, e)[:J]
+            M_left = M_of_interaction(g_element, [J], g_element.left)
+            set_prop!(ig, e, :M, M_left)
+        end
+
+        if g_element.row > 1
+            ip = grid[g_element.row-1, g_element.column]
+
+            e = Edge(i, ip)
+            J = props(ig, e)[:J]
+            M_up = M_of_interaction(g_element, [J], g_element.up)
+            set_prop!(ig, e, :M, M_up)
+        end
+    end
+    ig
 end
 
 """
@@ -329,37 +362,54 @@ function log_internal_energy(g::EE, interactions::Vector{Interaction{T}}) where 
     log_energy
 end
 
+function M_of_interaction(g::EE, J::Vector{T}, spin_subset::Vector{Int}) where T <: AbstractFloat
 
-function log_interaction_energy(g::EE, J_left::Vector{T}, J_up::Vector{T}) where T <: AbstractFloat
-
-    no_left = length(g.left)
-    no_up = length(g.up)
+    subset_size = length(spin_subset)
     no_spins = length(g.spins_inds)
 
-    energies_left = zeros(T, 2^no_left, 2^no_spins)
-    energies_up = zeros(T, 2^no_up, 2^no_spins)
+    log_energies = zeros(T, 2^subset_size, 2^no_spins)
 
     for i in 1:2^no_spins
         σ_cluster = ind2spin(i, no_spins)
-        # left interaction matrix
-        for l in 1:2^no_left
-            if no_left > 0
-                σ = ind2spin(l, no_left)
-                energy_left = 2*sum(J_left.*σ.*σ_cluster[g.left])
-                @inbounds energies_left[l,i] = energy_left
-            end
-        end
-        # upper interaction matrix
-        for u in 1:2^no_up
-            if no_up > 0
-                σ = ind2spin(u, no_up)
-                energy_up = 2*sum(J_up.*σ.*σ_cluster[g.up])
-                @inbounds energies_up[u,i] = energy_up
-            end
+        for j in 1:2^subset_size
+            σ = ind2spin(j, subset_size)
+            log_energy = 2*sum(J.*σ.*σ_cluster[spin_subset])
+            @inbounds log_energies[j,i] = log_energy
         end
     end
-    energies_left, energies_up
+    log_energies
 end
+
+#function log_interaction_energy(g::EE, J_left::Vector{T}, J_up::Vector{T}) where T <: AbstractFloat
+
+#    no_left = length(g.left)
+#    no_up = length(g.up)
+#    no_spins = length(g.spins_inds)
+
+#    energies_left = zeros(T, 2^no_left, 2^no_spins)
+#    energies_up = zeros(T, 2^no_up, 2^no_spins)
+
+#    for i in 1:2^no_spins
+#        σ_cluster = ind2spin(i, no_spins)
+        # left interaction matrix
+#        for l in 1:2^no_left
+#            if no_left > 0
+#                σ = ind2spin(l, no_left)
+#                energy_left = 2*sum(J_left.*σ.*σ_cluster[g.left])
+#                @inbounds energies_left[l,i] = energy_left
+#            end
+#        end
+        # upper interaction matrix
+#        for u in 1:2^no_up
+#            if no_up > 0
+#                σ = ind2spin(u, no_up)
+#                energy_up = 2*sum(J_up.*σ.*σ_cluster[g.up])
+#                @inbounds energies_up[u,i] = energy_up
+#            end
+#        end
+#    end
+#    energies_left, energies_up
+#end
 
 
 struct Node_of_grid
@@ -377,29 +427,31 @@ struct Node_of_grid
         s = size(grid)
         intra_struct = Vector{Int}[]
 
-        g = Element_of_square_grid(i, grid, reshape([i], (1,1)))
-
-        left_J = T[]
-        up_J = T[]
+        g = Element_of_square_grid(i, grid)
 
         a = findall(x->x==i, grid)[1]
         j = a[1]
         k = a[2]
 
-        if is_element(j, k-1, grid)
+        el = zeros(1,2)
+        eu = zeros(1,2)
+
+        if g.column > 1
             ip = grid[j, k-1]
             left_J = [getJ(interactions, i, ip)]
+            el = M_of_interaction(g, left_J, g.left)
         end
 
-        if is_element(j-1, k, grid)
+        if g.row > 1
             ip = grid[j-1, k]
             up_J = [getJ(interactions, i, ip)]
+            eu = M_of_interaction(g, up_J, g.up)
         end
 
         h = getJ(interactions, i, i)
         log_energy = [-h, h]
 
-        el, eu = log_interaction_energy(g, left_J, up_J)
+        #el, eu = log_interaction_energy(g, left_J, up_J)
 
         new(i, [i], g.left, g.right, g.up, g.down, log_energy, el, eu)
     end
@@ -424,10 +476,11 @@ struct Node_of_grid
             g = Element_of_square_grid(i, Mat, M)
         end
 
-        left_J = T[]
-        up_J = T[]
+        el = zeros(1,2^length(g.spins_inds))
+        eu = zeros(1,2^length(g.spins_inds))
 
         if is_element(j, k-1, Mat)
+            left_J = T[]
             ip = Mat[j, k-1]
             Mp = grid[j,k-1]
 
@@ -439,10 +492,11 @@ struct Node_of_grid
                 J = getJ(interactions, g.spins_inds[i1], g1.spins_inds[i2])
                 push!(left_J, J)
             end
+            el = M_of_interaction(g, left_J, g.left)
         end
 
         if is_element(j-1, k, Mat)
-
+            up_J = T[]
             ip = Mat[j-1, k]
             Mp = grid[j-1,k]
             g1 = typeof(g)(ip, Mat, Mp)
@@ -453,9 +507,9 @@ struct Node_of_grid
                 J = getJ(interactions, g.spins_inds[i1], g1.spins_inds[i2])
                 push!(up_J, J)
             end
+            eu = M_of_interaction(g, up_J, g.up)
         end
-
-        el, eu = log_interaction_energy(g, left_J, up_J)
+        #el, eu = log_interaction_energy(g, left_J, up_J)
 
         log_energy = log_internal_energy(g, interactions)
 
