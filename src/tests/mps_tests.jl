@@ -12,24 +12,9 @@ end
 
     ints = make_interactions_full()
     # a grid
-    M = [1 2; 3 4]
-    #a vector of nodes, transpose for better indexing
-    ns = [Node_of_grid(i, Array(transpose(M)), ints) for i in 1:maximum(M)]
+    g = interactions2graph(ints)
 
-    b_node, c_nodes = connections_for_mps(ns)
-    @test b_node == [1,2,3]
-    @test c_nodes == [[3, 2], [4], [4]]
-
-    all_b_nodes, all_c_nodes = cluster_conncetions(b_node, c_nodes)
-
-    @test all_b_nodes == [[1], [2], [3]]
-    @test all_c_nodes == [[[3, 2]], [[4]], [[4]]]
-    # 1 (B) with 3 and 2 (both C)
-    # another mps 2 with 4
-    # another mps 3 with 4
-
-    ns = [Node_of_grid(i, ints) for i in 1:5]
-    b_node, c_nodes = connections_for_mps(ns)
+    b_node, c_nodes = connections_for_mps(g)
     @test b_node == [1,2,3,4]
     @test c_nodes == [[2,3,4,5], [3,4,5], [4,5], [5]]
     b_nodes_in_mpses, c_nodes_in_mpses = cluster_conncetions(b_node, c_nodes)
@@ -38,30 +23,9 @@ end
     # 1 mps 1 (B) conceted with 2,3,4 and 5 (C)
     # 2 mps 2 (B) conected with 3,4 and 5
     # ....
-
-    grid = [1 2 3; 4 5 6; 7 8 9]
-    M = ones(9,9)
-    ints1 = M2interactions(M)
-
-    ns = [Node_of_grid(i, grid, ints1) for i in 1:maximum(grid)]
-    b_node, c_nodes  = connections_for_mps(ns)
-
-    @test b_node == [1, 2, 3, 4, 5, 6, 7, 8]
-    @test c_nodes == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
-
-    # this is only for larger elmentary cels
-    # takes into account that cals can be conected by different spins
-    b_node_new, c_nodes_new = split_if_differnt_spins(b_node, c_nodes, ns)
-    @test b_node_new == [1, 2, 3, 4, 5, 6, 7, 8]
-    @test c_nodes_new == [[2, 4], [3, 5], [6], [5, 7], [6, 8], [9], [8], [9]]
-
-    all_b_nodes, all_c_nodes = cluster_conncetions(b_node, c_nodes)
-    @test all_b_nodes == [[1, 5], [2, 6], [3, 7], [4, 8]]
-    @test all_c_nodes == [[[2, 4], [6, 8]], [[3, 5], [9]], [[6], [8]], [[5, 7], [9]]]
-    # 1 mps 1 (B) conected with 2 and 4 (C); and 5 (B) conected with 6 and 8
-    # 2 mps 2 (B) conceted with 3 and 5; and 6 (B) conected with 9
 end
 
+if false
 @testset begin "larger tensors"
 
     M = [1 2;3 4]
@@ -88,6 +52,7 @@ end
     all_b_node, all_c_nodes = cluster_conncetions(b_node_new, c_nodes_new)
     @test all_b_node == [[1, 3], [1], [2]]
     @test all_c_nodes == [[[2], [4]], [[3]], [[4]]]
+end
 end
 
 function make_interactions_case1()
@@ -156,13 +121,12 @@ end
 
     # changed to Vector{Node_of_grid}
     ints = M2interactions(M)
-    ns = [Node_of_grid(i, ints) for i in 1:3]
+    #ns = [Node_of_grid(i, ints) for i in 1:3]
+    g = interactions2graph(ints)
 
     # computed mps, β = 1., β_step = 1   χ = 2, threshold = 1e-8
-    mps = construct_mps(ns, 1., 1, 2, 1e-8)
+    mps = construct_mps(g, 1., 1, 2, 1e-8)
     @test mps ≈ mps1
-
-
 
 
     interactions =  make_interactions_case1()
@@ -175,10 +139,10 @@ end
     @test mps[3] == ones(1,1,2)
 
     # construct form mpo-mps
-    ns = [Node_of_grid(i, interactions) for i in 1:9]
-    #is, js = connections_for_mps(ns)
-    #all_is, all_js = cluster_conncetions(is,js)
-    mps = construct_mps(ns, β, 2, 4, 0.)
+    g = interactions2graph(interactions)
+    #ns = [Node_of_grid(i, interactions) for i in 1:9]
+
+    mps = construct_mps(g, β, 2, 4, 0.)
 
     # construct form psps for comparison
     grid = [1 2 3 ; 4 5 6; 7 8 9]
@@ -216,7 +180,7 @@ end
 
     # approximation
 
-    mps_a = construct_mps(ns, β, 3, 2, 1.e-12)
+    mps_a = construct_mps(g, β, 3, 2, 1.e-12)
     ps = sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
     pp = compute_probs(mps, [1,1])
 
@@ -256,9 +220,9 @@ end
 
     grid = [1 2 3; 4 5 6; 7 8 9]
 
-    ns = [Node_of_grid(i, ints) for i in 1:get_system_size(ints)]
-
-    spins, _ = solve_mps(ints, ns, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
+    #ns = [Node_of_grid(i, ints) for i in 1:get_system_size(ints)]
+    g = interactions2graph(ints)
+    spins, _ = solve_mps(g, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     #ground
     @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
@@ -268,9 +232,9 @@ end
 
     permuted_int = make_interactions_case3()
 
-    ns = [Node_of_grid(i, permuted_int) for i in 1:get_system_size(permuted_int)]
-
-    spins, objective = solve_mps(permuted_int, ns, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
+    #ns = [Node_of_grid(i, permuted_int) for i in 1:get_system_size(permuted_int)]
+    g = interactions2graph(permuted_int)
+    spins, objective = solve_mps(g, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
     @test objective[1] ≈ 0.30956452652382055
@@ -295,26 +259,6 @@ end
     @test objective[8] ≈ 0.09323904360231824
 end
 
-# it will be a test for larger cell tensors no mps when implemented
-if false
-@testset "on larger tensors" begin
-    β = 2.
-
-    M = [1 2;3 4]
-    grid1 = Array{Array{Int}}(undef, (2,2))
-    grid1[1,1] = [1 2; 4 5]
-    grid1[1,2] = reshape([3; 6], (2,1))
-    grid1[2,1] = reshape([7; 8], (1,2))
-    grid1[2,2] = reshape([9], (1,1))
-    grid1 = Array{Array{Int}}(grid1)
-
-    q = make_interactions_case2()
-
-    ns = [Node_of_grid(i, M, grid1, q) for i in 1:maximum(M)]
-
-    solve_mps(q, ns, 2, β=β, β_step=2, χ = 10, threshold = 1e-12)
-end
-end
 
 function make_interactions_larger()
     J_h = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
@@ -335,13 +279,13 @@ end
 
     println("number of β steps = ", β_step)
 
-    ns = [Node_of_grid(i, ints_larger) for i in 1:get_system_size(ints_larger)]
-
-    spins, _ = solve_mps(ints_larger, ns, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    #ns = [Node_of_grid(i, ints_larger) for i in 1:get_system_size(ints_larger)]
+    g = interactions2graph(ints_larger)
+    spins, _ = solve_mps(g, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_exact, _ = solve_mps(ints_larger, ns, 10; β=β, β_step=1, χ=12, threshold = 0.)
+    spins_exact, _ = solve_mps(g, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
     ns = [Node_of_grid(i, grid, ints_larger) for i in 1:maximum(grid)]
     spins_peps, _ = solve(ints_larger, ns, grid, 10; β = β, χ = 2, threshold = 1e-12)
@@ -368,10 +312,9 @@ end
     β_step = 2
 
     println("number of β steps = ", β_step)
-
-    ns = [Node_of_grid(i, ints_full) for i in 1:get_system_size(ints_full)]
-
-    spins, _ = solve_mps(ints_full, ns, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    #ns = [Node_of_grid(i, ints_full) for i in 1:get_system_size(ints_full)]
+    g = interactions2graph(ints_full)
+    spins, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @test spins == [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
 
@@ -379,9 +322,10 @@ end
     Random.seed!(1234)
     M = rand([-1.,-0.5,0.,0.5,1.], 64,64)
     M = M*(M')
-    q = M2interactions(M)
-    ns = [Node_of_grid(i, q) for i in 1:get_system_size(q)]
+    #q = M2interactions(M)
+    #ns = [Node_of_grid(i, q) for i in 1:get_system_size(q)]
+    g = interactions2graph(M2interactions(M))
 
-    @time s, _ = solve_mps(q, ns, 4; β=1., β_step=1, χ=6, threshold = 1.e-6)
+    @time s, _ = solve_mps(g, 4; β=1., β_step=1, χ=6, threshold = 1.e-6)
     @test length(s[1]) == 64
 end

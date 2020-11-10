@@ -375,7 +375,17 @@ end
 return final solutions sorted backwards in form Vector{Partial_sol{T}}
 spins are given in -1,1
 """
-function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Vector{Node_of_grid})  where T <: AbstractFloat
+function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Union{Vector{Node_of_grid}, MetaGraph})  where T <: AbstractFloat
+    
+    if typeof(ns) == MetaGraph{Int64,Float64}
+        # TODO this will need to be corrected
+        if props(ns, 1)[:internal_struct] == Dict()
+            objectives = [sol.objective for sol in partial_s]
+            spins = [sol.spins for sol in partial_s]
+            spins = [map(i->ind2spin(i, 1)[1], sol) for sol in spins]
+            return spins[end:-1:1], objectives[end:-1:1]
+        end
+    end
 
     l = length(partial_s)
     objective = zeros(T, l)

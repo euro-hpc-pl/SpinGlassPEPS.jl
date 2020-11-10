@@ -88,11 +88,13 @@ function Ctensor(J::Vector{T}, d::Int, most_left::Bool = false, most_right::Bool
 end
 
 function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
-                    ns::Vector{Node_of_grid}, β::T) where T<: AbstractFloat
+                    g::MetaGraph, β::T) where T<: AbstractFloat
 
-    a = findall(x -> x == nodes[1], ns[i].connected_nodes)[1]
-    # TODO this may need to be checked
-    d = 2^size(ns[i].connected_spins[a],1)
+    d = 2
+    if props(g, 1)[:internal_struct] != Dict()
+        # TODO, correct it
+        d = 2
+    end
 
     k = minimum([i, nodes...])
     l = maximum([i, nodes...])
@@ -101,10 +103,8 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
     end
     mpo[i] = Btensor(d, i==k, i==l, T)
     for j in nodes
-
-        a = findall(x -> x == j, ns[i].connected_nodes)[1]
-
-        J = [ns[i].connected_J[a]]
+        # TODO remove array
+        J = [props(g, Edge(i,j))[:J]]
 
         mpo[j] = Ctensor(J*β, d, j==k, j==l)
     end
@@ -112,13 +112,13 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
 end
 
 # TODO interactions are not necessary
-function add_phase!(mps::Vector{Array{T, 3}},
-                    ns::Vector{Node_of_grid}, β::T) where T<: AbstractFloat
+function add_phase!(mps::Vector{Array{T, 3}}, g::MetaGraph, β::T) where T<: AbstractFloat
 
     d = size(mps[1], 3)
     for i in 1:length(mps)
+        internal_e = props(g, i)[:log_energy]
         for j in 1:d
-            mps[i][:,:,j] = mps[i][:,:,j]*exp(ns[i].energy[j]*β/2)
+            mps[i][:,:,j] = mps[i][:,:,j]*exp(internal_e[j]*β/2)
         end
     end
 end
@@ -155,14 +155,14 @@ function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: 
     return(diag(probs_at_k))
 end
 
-function construct_mps_step(mps::Vector{Array{T, 3}}, ns::Vector{Node_of_grid},
+function construct_mps_step(mps::Vector{Array{T, 3}}, g::MetaGraph,
                                                     β::T, is::Vector{Int},
                                                     js::Vector{Vector{Int}}) where T<: AbstractFloat
     ##TODO physical dimention may be differet
     phys_dims = [size(el, 3) for el in mps]
     mpo = [make_ones_between_not_interactiong(phys_dims[i]) for i in 1:length(mps)]
     for k in 1:length(is)
-        add_MPO!(mpo, is[k], js[k], ns, β)
+        add_MPO!(mpo, is[k], js[k], g, β)
     end
     MPSxMPO(mps, mpo)
 end
@@ -214,14 +214,14 @@ function cluster_conncetions(all_is::Vector{Int}, all_js::Vector{Vector{Int}})
     end
 end
 
-function connections_for_mps(ns::Vector{Node_of_grid})
+function connections_for_mps(g::MetaGraph)
     all_is = Int[]
     all_js = Vector{Int}[]
     conections = Vector{Int}[]
+    # TODO this should be corrected and made more clear
+    for i in vertices(g)
 
-    for i in [e.i for e in ns]
-
-        pairs = [[i, node] for node in ns[i].connected_nodes]
+        pairs = [[i, node] for node in all_neighbors(g, i)]
         pairs_not_accounted = Int[]
         for p in pairs
 
@@ -270,22 +270,22 @@ end
 
 function construct_mps(M::Matrix{T}, β::T, β_step::Int, χ::Int, threshold::T) where T<: AbstractFloat
     ints = M2interactions(M)
-    ns = [Node_of_grid(i, ints) for i in 1:size(M,1)]
-    construct_mps(ns, β, β_step, χ, threshold)
+    g = interactions2graph(ints)
+    
+    construct_mps(g, β, β_step, χ, threshold)
 end
 
-function construct_mps(ns::Vector{Node_of_grid}, β::T, β_step::Int,
-                       χ::Int, threshold::T) where T<: AbstractFloat
+function construct_mps(g::MetaGraph, β::T, β_step::Int, χ::Int, threshold::T) where T<: AbstractFloat
 
-    is, js = connections_for_mps(ns)
-    is,js = split_if_differnt_spins(is,js,ns)
+    is, js = connections_for_mps(g)
+    #is,js = split_if_differnt_spins(is,js,ns)
     all_is, all_js = cluster_conncetions(is,js)
 
-    l = length(ns)
+    l = nv(g)
     mps = initialize_mps(l)
     for _ in 1:β_step
         for k in 1:length(all_is)
-            mps = construct_mps_step(mps, ns, β/β_step, all_is[k], all_js[k])
+            mps = construct_mps_step(mps, g,  β/β_step, all_is[k], all_js[k])
 
             s = maximum([size(e, 1) for e in mps])
             if ((threshold > 0) * (s > χ))
@@ -294,18 +294,16 @@ function construct_mps(ns::Vector{Node_of_grid}, β::T, β_step::Int,
             end
         end
     end
-    add_phase!(mps, ns, β)
+    add_phase!(mps, g, β)
     mps
 end
 
 ### TODO should be reintegrated with the solve
-function solve_mps(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid},
-                no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
+function solve_mps(g::MetaGraph, no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
 
+    problem_size = nv(g)
 
-    problem_size = length(ns)
-
-    mps = construct_mps(ns, β, β_step, χ, threshold)
+    mps = construct_mps(g, β, β_step, χ, threshold)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for j in 1:problem_size
@@ -322,7 +320,7 @@ function solve_mps(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid
         partial_s = select_best_solutions(partial_s_temp, no_sols)
 
         if j == problem_size
-            return return_solutions(partial_s, ns)
+            return return_solutions(partial_s, g)
         end
     end
 end

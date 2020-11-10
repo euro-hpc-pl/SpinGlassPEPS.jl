@@ -80,12 +80,12 @@ using NPZ
     @testset "mpo-mps one spin nodes" begin
 
         # MPS MPO treates as a graph without the structure
-        ns = [Node_of_grid(i, ints) for i in 1:get_system_size(ints)]
+        #ns = [Node_of_grid(i, ints) for i in 1:get_system_size(ints)]
 
         χ = 10
         β_step = 2
-
-        spins_mps, objective_mps = solve_mps(ints, ns, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
+        g = interactions2graph(ints)
+        spins_mps, objective_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
 
         for i in 1:10
             @test v2energy(QM, spins_mps[i]) ≈ -ens[i]
@@ -144,6 +144,7 @@ spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
     #-1 this for the model
     J = -1*Qubo2M(M)
     q_vec = M2interactions(J)
+    g = interactions2graph(q_vec)
 
     # parameters of the solver
     χ = 10
@@ -151,8 +152,8 @@ spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
     β_step = 1
 
     print("mpo mps time  =  ")
-    ns = [Node_of_grid(i, q_vec) for i in 1:get_system_size(q_vec)]
-    @time spins_mps, objective_mps = solve_mps(q_vec, ns, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+    #ns = [Node_of_grid(i, q_vec) for i in 1:get_system_size(q_vec)]
+    @time spins_mps, objective_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     binary_mps = [spins2binary(el) for el in spins_mps]
     enenrgies_from_binary = [transpose(x)*M*x for x in binary_mps]

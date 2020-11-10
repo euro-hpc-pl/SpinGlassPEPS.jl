@@ -148,10 +148,10 @@ for k in 1:examples
     β_step = 4
 
     print("mps time  =  ")
-    ns = [Node_of_grid(i, interactions) for i in 1:get_system_size(interactions)]
 
     number = number_of_states + more_states_for_mps
-    @time spins_mps, objective_mps = solve_mps(interactions, ns, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+    g = interactions2graph(interactions)
+    @time spins_mps, objective_mps = solve_mps(g, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     # sorting improves the oputput
     energies_mps = [-v2energy(Mat_of_interactions, spins) for spins in spins_mps]

@@ -17,12 +17,13 @@ using Statistics
 
         # parametrising for mps
         interactions = M2interactions(M)
-        ns = [Node_of_grid(i, interactions) for i in 1:system_size]
+        #ns = [Node_of_grid(i, interactions) for i in 1:system_size]
         χ = 10
         β_step = 3
         β = 9.
 
-        spins_mps, objectives_mps = solve_mps(interactions, ns, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+        g = interactions2graph(interactions)
+        spins_mps, objectives_mps = solve_mps(g, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
         energies_mps = [-v2energy(M, spins) for spins in spins_mps]
         p = sortperm(energies_mps)
         spins_mps = spins_mps[p]
@@ -48,12 +49,13 @@ using Statistics
 
         # parametrising for mps
         interactions = M2interactions(M)
-        ns = [Node_of_grid(i, interactions) for i in 1:system_size]
+        g = interactions2graph(interactions)
+        #ns = [Node_of_grid(i, interactions) for i in 1:system_size]
         χ = 10
         β_step = 3
         β = 9.
 
-        spins_mps, objectives_mps = solve_mps(interactions, ns, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+        spins_mps, objectives_mps = solve_mps(g, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
         # sorting improve order of output that are a bit shufled
         energies_mps = [-v2energy(M, spins) for spins in spins_mps]
@@ -79,9 +81,9 @@ using Statistics
         β_step = 2
         β = 2.
         interactions = M2interactions(M)
-        ns = [Node_of_grid(i, interactions) for i in 1:64]
-
-        spins_mps, objectives_mps = solve_mps(interactions, ns, 20; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+        #ns = [Node_of_grid(i, interactions) for i in 1:64]
+        g = interactions2graph(interactions)
+        spins_mps, objectives_mps = solve_mps(g, 20; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
         @test length(spins_mps[1]) == 64
         @test issorted(objectives_mps, rev=true)
@@ -98,13 +100,13 @@ using Statistics
         #the solution required [1,x,x,...,x,1]
         M1[1,1] = M1[64,64] = M1[1,64] = M1[64,1] = 2.
         interactions = M2interactions(M1)
-        ns = [Node_of_grid(i, interactions) for i in 1:64]
-
+        #ns = [Node_of_grid(i, interactions) for i in 1:64]
+        g = interactions2graph(interactions)
         χ = 10
         β_step = 2
         β = 2.
 
-        spins_mps, objectives_mps = solve_mps(interactions, ns, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+        spins_mps, objectives_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
         @test length(spins_mps[1]) == 64
         @test issorted(objectives_mps, rev=true)
@@ -177,7 +179,8 @@ end
     spins_l, objectives_l = solve(interactions, ns_l, indexing, sols+10; β=β, χ=χ, threshold = 1.e-12)
 
     β_step = 4
-    spins_mps, objectives_mps = solve_mps(interactions, ns, sols+25; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+    g = interactions2graph(interactions)
+    spins_mps, objectives_mps = solve_mps(g, sols+25; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     # sorting according to energies improve outcome
     energies_mps = [-v2energy(M, spins) for spins in spins_mps]
