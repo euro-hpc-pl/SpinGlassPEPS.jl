@@ -123,6 +123,7 @@ end
     ints = M2interactions(M)
     #ns = [Node_of_grid(i, ints) for i in 1:3]
     g = interactions2graph(ints)
+    g = graph4mps(g)
 
     # computed mps, β = 1., β_step = 1   χ = 2, threshold = 1e-8
     mps = construct_mps(g, 1., 1, 2, 1e-8)
@@ -141,7 +142,7 @@ end
     # construct form mpo-mps
     g = interactions2graph(interactions)
     #ns = [Node_of_grid(i, interactions) for i in 1:9]
-
+    g = graph4mps(g)
     mps = construct_mps(g, β, 2, 4, 0.)
 
     # construct form psps for comparison
@@ -234,6 +235,7 @@ end
 
     #ns = [Node_of_grid(i, permuted_int) for i in 1:get_system_size(permuted_int)]
     g = interactions2graph(permuted_int)
+
     spins, objective = solve_mps(g, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
@@ -281,6 +283,7 @@ end
 
     #ns = [Node_of_grid(i, ints_larger) for i in 1:get_system_size(ints_larger)]
     g = interactions2graph(ints_larger)
+
     spins, _ = solve_mps(g, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
@@ -314,6 +317,7 @@ end
     println("number of β steps = ", β_step)
     #ns = [Node_of_grid(i, ints_full) for i in 1:get_system_size(ints_full)]
     g = interactions2graph(ints_full)
+
     spins, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
     @test spins == [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
@@ -325,6 +329,7 @@ end
     #q = M2interactions(M)
     #ns = [Node_of_grid(i, q) for i in 1:get_system_size(q)]
     g = interactions2graph(M2interactions(M))
+
 
     @time s, _ = solve_mps(g, 4; β=1., β_step=1, χ=6, threshold = 1.e-6)
     @test length(s[1]) == 64

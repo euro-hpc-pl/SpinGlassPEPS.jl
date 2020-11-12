@@ -271,7 +271,8 @@ end
 function construct_mps(M::Matrix{T}, β::T, β_step::Int, χ::Int, threshold::T) where T<: AbstractFloat
     ints = M2interactions(M)
     g = interactions2graph(ints)
-    
+    g = graph4mps(g)
+
     construct_mps(g, β, β_step, χ, threshold)
 end
 
@@ -301,6 +302,7 @@ end
 ### TODO should be reintegrated with the solve
 function solve_mps(g::MetaGraph, no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
 
+    g = graph4mps(g)
     problem_size = nv(g)
 
     mps = construct_mps(g, β, β_step, χ, threshold)

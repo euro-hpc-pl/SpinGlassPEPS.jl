@@ -115,12 +115,20 @@ function interactions2graph(ints::Vector{Interaction{T}}) where T <: AbstractFlo
         (i,j) = q.ind
         v = q.coupling
         if i == j
-            set_prop!(ig, i, :log_energy, [-v, v]) &&
-            set_prop!(ig, i, :internal_struct, Dict()) || error("Node $i missing!")
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
         else
             add_edge!(ig, i, j) &&
             set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
         end
+    end
+    ig
+end
+
+function graph4mps(ig::MetaGraph)
+    for v in vertices(ig)
+        h = props(ig, v)[:h]
+        set_prop!(ig, v, :log_energy, [-h, h])
+        set_prop!(ig, v, :internal_struct, Dict())
     end
     ig
 end
@@ -282,8 +290,9 @@ struct Element_of_chimera_grid
     end
 end
 
+EE = Union{Element_of_square_grid, Element_of_chimera_grid}
 
-function is_grid(ig::MetaGraph, g_elements::Vector{Element_of_square_grid})
+function is_grid(ig::MetaGraph, g_elements)
     # TODO finish it
     for i in vertices(ig)
         a = g_elements[i]
@@ -297,34 +306,57 @@ function is_grid(ig::MetaGraph, g_elements::Vector{Element_of_square_grid})
 end
 
 
-function interactions2grid_graph(ints::Vector{Interaction{T}}, grid_s::Tuple{Int, Int}) where T <: AbstractFloat
+function interactions2grid_graph(ig::MetaGraph, ints::Vector{Interaction{T}}, grid::Matrix{Int}) where T <: AbstractFloat
 
-    ig = interactions2graph(ints::Vector{Interaction{T}})
-    grid = nxmgrid(grid_s[1], grid_s[2])
+    # TODO form of the grid to the type
+    # TODO compute s from data or grid from data
+    s = (1,1)
+    # TODO compute M from data
     g_elements = [Element_of_square_grid(i, grid) for i in 1:maximum(grid)]
+    L = maximum(maximum(grid))
+
+    g = MetaGraph(L, 0.0)
+    println([v for v in vertices(g)])
+
     # TODO use rows and columns of neighbours
     is_grid(ig, g_elements)
-    for i in grid
+    for i in 1:L
         g_element = g_elements[i]
+        internal_e = log_internal_energy(g_element, ints)
+        set_prop!(g, i, :log_energy, internal_e)
+
+        if g_element.column < size(grid, 2)
+            ip = grid[g_element.row, g_element.column+1]
+            e = Edge(i, ip)
+            add_edge!(g, e) || error("Not a grid - cannot add Egde $e")
+            set_prop!(g, e, :inds, g_element.right)
+        end
 
         if g_element.column > 1
             ip = grid[g_element.row, g_element.column-1]
             e = Edge(i, ip)
             J = props(ig, e)[:J]
             M_left = M_of_interaction(g_element, [J], g_element.left)
-            set_prop!(ig, e, :M, M_left)
+            set_prop!(g, e, :M, M_left)
+        end
+
+        if g_element.row < size(grid, 1)
+            ip = grid[g_element.row+1, g_element.column]
+            e = Edge(i, ip)
+            add_edge!(g, e) || error("Not a grid - cannot add Egde $e")
+            set_prop!(g, e, :inds, g_element.down)
         end
 
         if g_element.row > 1
             ip = grid[g_element.row-1, g_element.column]
-
             e = Edge(i, ip)
             J = props(ig, e)[:J]
             M_up = M_of_interaction(g_element, [J], g_element.up)
-            set_prop!(ig, e, :M, M_up)
+            set_prop!(g, e, :M, M_up)
         end
+
     end
-    ig
+    g
 end
 
 """
@@ -338,7 +370,7 @@ necessary to crearte the corresponding tensor (e.g. the element of the peps).
 # (e.g. Pegasusu) and its modification during computation (if necessary).
 
 
-EE = Union{Element_of_square_grid, Element_of_chimera_grid}
+
 
 function log_internal_energy(g::EE, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
 

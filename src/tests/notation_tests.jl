@@ -12,19 +12,27 @@ end
     @test interactions == Interaction{Float64}[Interaction{Float64}((1, 1), 1.0), Interaction{Float64}((1, 2), 1.0), Interaction{Float64}((2, 2), 1.0)]
     @test interactions2M(interactions) == ones(2,2)
 
-    # graph creation
+    # graph for mps
     g = interactions2graph(interactions)
+    g = graph4mps(g)
     @test degree(g) == [1,1]
     @test props(g, 1)[:log_energy] == [-1., 1.]
     @test props(g, 2)[:internal_struct] == Dict()
     @test props(g, Edge(1,2))[:J] == 1
 
+    # graph for peps
     M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
     interactions = M2interactions(M)
 
-    g1 = interactions2grid_graph(interactions, (2,2))
-    println(props(g1, Edge(1,2))[:M])
-    println(props(g1, Edge(2,4))[:M])
+    ig = interactions2graph(interactions)
+    grid = nxmgrid(2,2)
+
+    g1 = interactions2grid_graph(ig, interactions, grid)
+    @test props(g1, Edge(1,2))[:M] == [2.0 -2.0; -2.0 2.0]
+    @test props(g1, Edge(2,4))[:M] == [2.0 -2.0; -2.0 2.0]
+    @test props(g1, 1)[:log_energy] == [-1., 1.]
+    @test props(g1, 2)[:log_energy] == [-1., 1.]
+    @test props(g1, Edge(1,2))[:inds] == [1]
 
     interactions = make_interactions()
 

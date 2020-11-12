@@ -23,6 +23,7 @@ using Statistics
         β = 9.
 
         g = interactions2graph(interactions)
+
         spins_mps, objectives_mps = solve_mps(g, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
         energies_mps = [-v2energy(M, spins) for spins in spins_mps]
         p = sortperm(energies_mps)
@@ -50,6 +51,7 @@ using Statistics
         # parametrising for mps
         interactions = M2interactions(M)
         g = interactions2graph(interactions)
+
         #ns = [Node_of_grid(i, interactions) for i in 1:system_size]
         χ = 10
         β_step = 3
@@ -83,6 +85,7 @@ using Statistics
         interactions = M2interactions(M)
         #ns = [Node_of_grid(i, interactions) for i in 1:64]
         g = interactions2graph(interactions)
+
         spins_mps, objectives_mps = solve_mps(g, 20; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
         @test length(spins_mps[1]) == 64
@@ -102,6 +105,7 @@ using Statistics
         interactions = M2interactions(M1)
         #ns = [Node_of_grid(i, interactions) for i in 1:64]
         g = interactions2graph(interactions)
+
         χ = 10
         β_step = 2
         β = 2.
@@ -180,6 +184,7 @@ end
 
     β_step = 4
     g = interactions2graph(interactions)
+
     spins_mps, objectives_mps = solve_mps(g, sols+25; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     # sorting according to energies improve outcome
