@@ -2,6 +2,11 @@ export MPS_from_gates, unique_neighbors
 export MPSControl
 export spectrum
 
+export _apply_bias!
+export _apply_exponent!
+export _apply_projector!
+export _apply_nothing!
+
 struct MPSControl 
     max_bond::Int
     var_ϵ::Number
@@ -53,95 +58,183 @@ function spectrum(ρ::MPS, k::Int)
     partial_states[1:k], marginal_pdo[1:k], pcut_max
 end
 
+function _gate(::Type{T}, ig::MetaGraph, dβ::Number, i::Int) where {T}
+    L = nv(ig)
+    O = MPO(T, L)
+
+    D = I(2)
+    P = [[1.] [0.]]
+
+    h = get_prop(ig, i, :h)
+    b = [exp(-0.5 * dβ * h * k) for k ∈ [-1, 1]]
+
+    nbrs = unique_neighbors(ig, i)
+
+    if !isempty(nbrs)
+        if i == 1   δ = P else δ = D end
+        @cast W[x, σ, y, η] := D[σ, y] * δ[x, y] * D[σ, η] * b[σ] 
+        O[i] = W
+
+        for j ∈ nbrs
+            J = get_prop(ig, i, j, :J) 
+            E = [exp(-0.5 * dβ * k * J * l) for k ∈ [-1, 1], l ∈ [-1, 1]] 
+
+            if j == L   δ = P' else δ = D end
+            @cast W[x, σ, y, η] := E[x, σ] * δ[x, y] * D[σ, η] 
+            O[j] = W
+        end
+
+        for l ∈ setdiff(1:L, union(i, nbrs))
+            if l == 1   δ = P   elseif l == L   δ = P' else  δ = D end  
+            @cast W[x, σ, y, η] := δ[x, y] * D[σ, η]    
+            O[l] = W
+        end
+    else 
+        for l ∈ 1:L
+            if l == 1   δ = P   elseif l == L   δ = P' else  δ = D end  
+            if l == i
+                @cast W[x, σ, y, η] := δ[x, y] * D[σ, η]
+            else    
+                @cast W[x, σ, y, η] := δ[x, y] * D[σ, η] * b[σ]   
+            end
+            O[l] = W
+        end    
+    end
+
+    O
+end 
+
+function _MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
+    L = nv(ig)
+
+    Dcut = mps.max_bond
+    tol = mps.var_ϵ
+    max_sweeps = mps.max_sweeps
+    @info "Set control parameters for MPS" Dcut tol max_sweeps
+
+    β = gibbs.β
+    schedule = gibbs.β_schedule
+
+    @assert β ≈ sum(schedule) "Incorrect β schedule."
+
+    @info "Preparing Hadamard state as MPS"
+    ρ = MPS(fill([1., 1.] / sqrt(2), L))
+    is_right = true
+
+    @info "Sweeping through β" schedule
+    for dβ ∈ schedule
+
+        is_right = false
+        for i ∈ 1:L
+            G = _gate(eltype(ρ), ig, dβ , i)
+            dot!(ρ, G)
+
+            if bond_dimension(ρ) > Dcut
+               @info "Compresing MPS" bond_dimension(ρ), Dcut
+               ρ = compress(ρ, Dcut, tol, max_sweeps) 
+               is_right = true
+            end
+        end
+    end
+
+    if !is_right
+        canonise!(ρ, :right)
+        is_right = true
+    end
+    ρ
+end
+
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     M = ψ[i]
-    if has_prop(ig, i, :h)
-        h = get_prop(ig, i, :h)
-        v = [exp(-0.5 * dβ * h * σ) for σ ∈ [-1, 1]]
-        @cast M[x, σ, y] = M[x, σ, y] * v[σ]  
-    end 
+    h = get_prop(ig, i, :h)
+    v = [exp(0.5 * dβ * h * σ) for σ ∈ [-1, 1]]
+    @cast M[x, σ, y] = M[x, σ, y] * v[σ]  
     ψ[i] = M
 end
 
 function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j::Int)
-    δ = I(2)
     M = ψ[j]
 
     J = get_prop(ig, i, j, :J) 
-    C = [exp(-0.5 * dβ * k * J * l) for k ∈ [-1, 1], l ∈ [-1, 1]]
+    C = [exp(0.5 * dβ * k * J * l) for k ∈ [-1, 1], l ∈ [-1, 1]]
 
-    if j == length(ψ)
-        @cast M̃[(x, a), σ, b] := C[x, σ] * δ[x, 1] * M[a, σ, b]  
-    else
-        @cast M̃[(x, a), σ, (y, b)] := C[x, σ] * δ[x, y] * M[a, σ, b]                     
-    end     
+    D = I(2)
+    P = [[1.] [0.]]
+    if j == length(ψ) δ = P' else δ = D end
+
+    @cast M̃[(x, a), σ, (y, b)] := C[σ, x] * δ[x, y] * M[a, σ, b]                      
     ψ[j] = M̃
 end
 
 function _apply_projector!(ψ::AbstractMPS, i::Int)
-    δ = I(2)
     M = ψ[i]
 
-    if i == 1
-        @cast M̃[a, σ, (y, b)] := δ[σ, y] * δ[1, y] * M[a, σ, b]
-    else   
-        @cast M̃[(x, a), σ, (y, b)] := δ[σ, y] * δ[x, y] * M[a, σ, b]
-    end 
+    D = I(2)
+    P = [[1.] [0.]]
+    if i == 1 δ = P else δ = D end
+ 
+    @cast M̃[(x, a), σ, (y, b)] := D[σ, y] * δ[x, y] * M[a, σ, b]
     ψ[i] = M̃
 end
 
-function _apply_nothing!(ψ::AbstractMPS, i::Int)    
-    δ = I(2)       
+function _apply_nothing!(ψ::AbstractMPS, i::Int) 
     M = ψ[i] 
 
-    if i == 1
-        @cast M̃[a, σ, (y, b)] := δ[1, y] * M[a, σ, b] 
-    elseif i == length(ψ)
-        @cast M̃[(x, a), σ, b] := δ[x, 1] * M[a, σ, b] 
-    else    
-        @cast M̃[(x, a), σ, (y, b)] := δ[x, y] * M[a, σ, b] 
-    end
+    D = I(2)
+    P = [[1.] [0.]]     
+    if i == 1  δ = P  elseif  i == length(ψ)  δ = P'  else  δ = D end  
+
+    @cast M̃[(x, a), σ, (y, b)] := δ[x, y] * M[a, σ, b] 
     ψ[i] = M̃    
 end
 
 function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
     L = nv(ig)
 
-    # control for MPS
     Dcut = mps.max_bond
     tol = mps.var_ϵ
     max_sweeps = mps.max_sweeps
+    @info "Set control parameters for MPS" Dcut tol max_sweeps
 
-    # control for Gibbs state
     β = gibbs.β
     schedule = gibbs.β_schedule
 
     @assert β ≈ sum(schedule) "Incorrect β schedule."
 
-    # prepare ~ Hadamard state as MPS
-    prod_state = fill([1., 1.], nv(ig))
-    ρ = MPS(prod_state)
+    @info "Preparing Hadamard state as MPS"
+    ρ = HadamardMPS(L)
+    is_right = true
 
+    @info "Sweeping through β and σ" schedule
     for dβ ∈ schedule, i ∈ 1:L
         _apply_bias!(ρ, ig, dβ, i) 
+        is_right = false
 
         nbrs = unique_neighbors(ig, i)
         if !isempty(nbrs)
+
+            @info "Applying outgoing gates from $i"
+            _apply_projector!(ρ, i)
+
             for j ∈ nbrs 
                 _apply_exponent!(ρ, ig, dβ, i, j) 
             end
 
-            _apply_projector!(ρ, i)
-
-            for l ∈ setdiff(1:L, union(i, nbrs)) 
+            for l ∈ setdiff(1:L, union(i, nbrs))
                 _apply_nothing!(ρ, l) 
             end
         end
 
-        # reduce bond dimension
         if bond_dimension(ρ) > Dcut
+            @info "Compresing MPS" bond_dimension(ρ), Dcut
             ρ = compress(ρ, Dcut, tol, max_sweeps) 
+            is_right = true
         end
+    end
+
+    if !is_right
+        canonise!(ρ, :right)
+        is_right = true
     end
     ρ
 end

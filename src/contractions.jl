@@ -13,11 +13,10 @@ function LinearAlgebra.dot(ρ::MPS, state::Vector{Int})
     C = ones(eltype(ρ), 1, 1)
 
     for (M, σ) ∈ zip(ρ, state)        
-        i = _idx[σ]
-        C = M[:, i, :]' * (C * M[:, i, :])  
-        @info "C" i σ C size(C) size(M[:, i, :]')  size(M[:, i, :])  
+        i = idx(σ)
+        C = M[:, i, :]' * (C * M[:, i, :])
     end
-    C[1]
+    tr(C)
 end
 
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
@@ -93,19 +92,19 @@ function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}
         W = O[i]
         M = ψ[i]
 
-        @reduce N[(x, a), (y, b), σ] := sum(η) W[x, σ, y, η] * M[a, η, b]      
+        @reduce N[(x, a), σ, (y, b)] := sum(η) W[x, σ, y, η] * M[a, η, b]      
         ϕ[i] = N
     end
     ϕ
 end
 
-function dot!(O::AbstractMPO, ψ::AbstractMPS)
+function dot!(ψ::AbstractMPS, O::AbstractMPO)
     L = length(ψ)
     for i in 1:L
         W = O[i]
         M = ψ[i]
 
-        @reduce N[(x, a), (y, b), σ] := sum(η) W[x, σ, y, η] * M[a, η, b]      
+        @reduce N[(x, a), σ, (y, b)] := sum(η) W[x, σ, y, η] * M[a, η, b]      
         ψ[i] = N
     end
 end
