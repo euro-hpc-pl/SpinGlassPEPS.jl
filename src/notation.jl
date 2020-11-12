@@ -342,10 +342,10 @@ EE = Union{Element_of_square_grid, Element_of_chimera_grid}
 
 function log_internal_energy(g::EE, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
 
-    # TODO h and J this will be tead from a grid
+    # TODO h and J this will be from a grid
     hs = [getJ(interactions, i, i) for i in g.spins_inds]
     no_spins = length(g.spins_inds)
-    #g.intra_struct
+
     log_energy = zeros(T, 2^no_spins)
 
     for i in 1:2^no_spins
@@ -380,44 +380,13 @@ function M_of_interaction(g::EE, J::Vector{T}, spin_subset::Vector{Int}) where T
     log_energies
 end
 
-#function log_interaction_energy(g::EE, J_left::Vector{T}, J_up::Vector{T}) where T <: AbstractFloat
-
-#    no_left = length(g.left)
-#    no_up = length(g.up)
-#    no_spins = length(g.spins_inds)
-
-#    energies_left = zeros(T, 2^no_left, 2^no_spins)
-#    energies_up = zeros(T, 2^no_up, 2^no_spins)
-
-#    for i in 1:2^no_spins
-#        σ_cluster = ind2spin(i, no_spins)
-        # left interaction matrix
-#        for l in 1:2^no_left
-#            if no_left > 0
-#                σ = ind2spin(l, no_left)
-#                energy_left = 2*sum(J_left.*σ.*σ_cluster[g.left])
-#                @inbounds energies_left[l,i] = energy_left
-#            end
-#        end
-        # upper interaction matrix
-#        for u in 1:2^no_up
-#            if no_up > 0
-#                σ = ind2spin(u, no_up)
-#                energy_up = 2*sum(J_up.*σ.*σ_cluster[g.up])
-#                @inbounds energies_up[u,i] = energy_up
-#            end
-#        end
-#    end
-#    energies_left, energies_up
-#end
 
 
 struct Node_of_grid
-    i::Int
     spins_inds::Vector{Int}
-    left::Vector{Int}
+    row::Int
+    column::Int
     right::Vector{Int}
-    up::Vector{Int}
     down::Vector{Int}
     energy::Vector{Float64}
     energy_left::Array{Float64, 2}
@@ -451,9 +420,7 @@ struct Node_of_grid
         h = getJ(interactions, i, i)
         log_energy = [-h, h]
 
-        #el, eu = log_interaction_energy(g, left_J, up_J)
-
-        new(i, [i], g.left, g.right, g.up, g.down, log_energy, el, eu)
+        new([i], g.row, g.column, g.right, g.down, log_energy, el, eu)
     end
     #construction from matrix of matrices (a grid of many nodes)
     function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int},
@@ -509,11 +476,10 @@ struct Node_of_grid
             end
             eu = M_of_interaction(g, up_J, g.up)
         end
-        #el, eu = log_interaction_energy(g, left_J, up_J)
 
         log_energy = log_internal_energy(g, interactions)
 
-        new(i, g.spins_inds, g.left, g.right, g.up, g.down, log_energy, el, eu)
+        new(g.spins_inds, g.row, g.column, g.right, g.down, log_energy, el, eu)
     end
 end
 

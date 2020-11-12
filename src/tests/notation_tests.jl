@@ -187,7 +187,7 @@ end
     #@test nc_l.intra_struct[1:4] == [[1, 5], [1, 6], [1, 7], [1, 8]]
     @test nc_l.spins_inds == [1, 5, 2, 6, 3, 7, 4, 8]
     @test nc_l.right == [2,4,6,8]
-    @test nc_l.left == Int[]
+    #@test nc_l.left == Int[]
     #@test nc_l.left_J == Float64[]
 
     #@test nc_l.connected_spins[1][:,1] == [5, 6, 7, 8]

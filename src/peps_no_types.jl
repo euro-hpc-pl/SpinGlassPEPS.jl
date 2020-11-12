@@ -26,46 +26,59 @@ If tensor is expected to be on the bottom of the peps mode 4 is trivial and is r
 
 function compute_single_tensor(n::Node_of_grid, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
 
-    tensor_size = map(x -> 2^length(x), [n.left, n.right, n.up, n.down, n.spins_inds])
+    # right = []
+    #down = []
+    #J_left = []
+    #J_up = []
+    #for i in aLL_neighbours(n)
+        #if i.row = n.row - 1
+            # J_left = ....
+        #elif i.row = n.row + 1
+            # right = ....
+        # ...
+        #end
+    #end
 
-    v = T(0.)
+    # this wil need to be changed
+    no_spins = length(n.spins_inds)
+    tensor_size = [size(n.energy_left, 1), 2^length(n.right), size(n.energy_up, 1), 2^length(n.down), 2^no_spins]
+
     tensor = zeros(T, (tensor_size[1:4]...))
     if !sum_over_last
         tensor = zeros(T, (tensor_size...))
-        v = zeros(T, tensor_size[5])
     end
 
-    no_spins = length(n.spins_inds)
+    for k in CartesianIndices(tuple(tensor_size[1], tensor_size[3]))
+        # tis is v
+        energy = n.energy
+        # conctraction with Ms
+        if n.column > 1
+            @inbounds energy = energy + n.energy_left[k[1], :]
+        end
 
-    for k in CartesianIndices(tuple(tensor_size[1:4]...))
+        if n.row > 1
+            @inbounds energy = energy + n.energy_up[k[2], :]
+        end
+        energy = exp.(β.*(energy))
+
         # itteration over physical index
         for i in 1:tensor_size[5]
-            # contract δ δ M M v (perhaps it can be done more efficiently)
-            if (k[2] == reindex(i, no_spins, n.right))
-                if (k[4] == reindex(i, no_spins, n.down))
 
-                    @inbounds e_inter = n.energy_left[k[1], i]+n.energy_up[k[3], i]
+            # this is for δs
+            k1 = reindex(i, no_spins, n.right)
+            k2 = reindex(i, no_spins, n.down)
 
-                    if !sum_over_last
-                        @inbounds v[i] = exp(β*(e_inter+n.energy[i]))
-                    else
-                        v = v + exp(β*(e_inter+n.energy[i]))
-                    end
-                end
+            if !sum_over_last
+                @inbounds tensor[k[1], k1, k[2], k2, i] = energy[i]
+            else
+                @inbounds tensor[k[1], k1, k[2], k2] = tensor[k[1], k1, k[2], k2] + energy[i]
             end
-        end
-        if sum_over_last
-            @inbounds tensor[k] = v
-            v = 0.
-        else
-            @inbounds tensor[k, :] = v
-            v = zeros(T, tensor_size[5])
         end
     end
 
     if length(n.down) == 0
         return dropdims(tensor, dims = 4)
-    elseif length(n.up) == 0
+    elseif n.row == 1
         return dropdims(tensor, dims = 3)
     end
     return tensor
@@ -308,7 +321,8 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                 objectives = [T(0.)]
                 # left cutoff
                 new_s = 0
-                if length(ns[j].left) > 0
+                # TODO it will be done on the grid coordinates of the node
+                if ns[j].column > 1
                     all = ns[j-1].spins_inds
                     ind = ns[j-1].right
                     new_s = reindex(sol[end], length(all), ind)
@@ -376,7 +390,7 @@ return final solutions sorted backwards in form Vector{Partial_sol{T}}
 spins are given in -1,1
 """
 function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Union{Vector{Node_of_grid}, MetaGraph})  where T <: AbstractFloat
-    
+
     if typeof(ns) == MetaGraph{Int64,Float64}
         # TODO this will need to be corrected
         if props(ns, 1)[:internal_struct] == Dict()
