@@ -71,15 +71,8 @@ interactions = make_interactions(data)
 M = -1*interactions2M(interactions)
 
 n = Int(sqrt(problem_size/8))
-nodes_numbers = nxmgrid(n,n)
 
-grid = Array{Array{Int}}(undef, (n,n))
-
-for i in 1:n
-    for j in 1:n
-        grid[i,j] = chimera_cell(i,j, problem_size)
-    end
-end
+grid, nodes_numbers = form_a_chimera_grid(n)
 
 ns = [Node_of_grid(i,nodes_numbers, grid, interactions; chimera = true) for i in 1:(n*n)]
 

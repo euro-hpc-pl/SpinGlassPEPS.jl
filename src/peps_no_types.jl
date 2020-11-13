@@ -6,6 +6,31 @@ using Distributed
 
 # TODO β and interactions should be as Float64, if typechange, make it inside a solver
 
+function get_parameters_for_T(g::MetaGraph, i::Int)
+    no_spins = length(props(g, i)[:spins])
+    tensor_size = [1,1,1,1, 2^no_spins]
+    right = Int[]
+    down = Int[]
+    M_left = zeros(1, 2^no_spins)
+    M_up = zeros(1, 2^no_spins)
+    for n in all_neighbors(g, i)
+        if props(g, i)[:column] -1 == props(g, n)[:column]
+            M_left = props(g, i, n)[:M]
+            tensor_size[1] = size(M_left, 1)
+        elseif props(g, i)[:column] +1 == props(g, n)[:column]
+            right = props(g, i, n)[:inds]
+            tensor_size[2] = 2^length(right)
+        elseif props(g, i)[:row] -1 == props(g, n)[:row]
+            M_up = props(g, i, n)[:M]
+            tensor_size[3] = size(M_up, 1)
+        elseif props(g, i)[:row] +1 == props(g, n)[:row]
+            down = props(g, i, n)[:inds]
+            tensor_size[4] = 2^length(down)
+        end
+    end
+    no_spins, tensor_size, right, down, M_left, M_up
+end
+
 """
 compute_single_tensor(ns::Node_of_grid, β::T)
 
@@ -24,40 +49,28 @@ If tensor is expected to be on the top of the peps mode 3 is trivial and is remo
 If tensor is expected to be on the bottom of the peps mode 4 is trivial and is removed
 """
 
-function compute_single_tensor(n::Node_of_grid, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
-
-    # right = []
-    #down = []
-    #J_left = []
-    #J_up = []
-    #for i in aLL_neighbours(n)
-        #if i.row = n.row - 1
-            # J_left = ....
-        #elif i.row = n.row + 1
-            # right = ....
-        # ...
-        #end
-    #end
-
-    # this wil need to be changed
-    no_spins = length(n.spins_inds)
-    tensor_size = [size(n.energy_left, 1), 2^length(n.right), size(n.energy_up, 1), 2^length(n.down), 2^no_spins]
+function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
+    n = 0
+    no_spins, tensor_size, right, down, M_left, M_up = get_parameters_for_T(g, i)
 
     tensor = zeros(T, (tensor_size[1:4]...))
     if !sum_over_last
         tensor = zeros(T, (tensor_size...))
     end
 
+    column = props(g, i)[:column]
+    row = props(g, i)[:row]
+    log_energy = props(g, i)[:log_energy]
     for k in CartesianIndices(tuple(tensor_size[1], tensor_size[3]))
-        # tis is v
-        energy = n.energy
+        energy = log_energy
+        #energy = n.energy
         # conctraction with Ms
-        if n.column > 1
-            @inbounds energy = energy + n.energy_left[k[1], :]
+        if column > 1
+            @inbounds energy = energy + M_left[k[1], :]
         end
 
-        if n.row > 1
-            @inbounds energy = energy + n.energy_up[k[2], :]
+        if row > 1
+            @inbounds energy = energy + M_up[k[2], :]
         end
         energy = exp.(β.*(energy))
 
@@ -65,8 +78,8 @@ function compute_single_tensor(n::Node_of_grid, β::T; sum_over_last::Bool = fal
         for i in 1:tensor_size[5]
 
             # this is for δs
-            k1 = reindex(i, no_spins, n.right)
-            k2 = reindex(i, no_spins, n.down)
+            k1 = reindex(i, no_spins, right)
+            k2 = reindex(i, no_spins, down)
 
             if !sum_over_last
                 @inbounds tensor[k[1], k1, k[2], k2, i] = energy[i]
@@ -76,9 +89,9 @@ function compute_single_tensor(n::Node_of_grid, β::T; sum_over_last::Bool = fal
         end
     end
 
-    if length(n.down) == 0
+    if length(down) == 0
         return dropdims(tensor, dims = 4)
-    elseif n.row == 1
+    elseif row == 1
         return dropdims(tensor, dims = 3)
     end
     return tensor
@@ -243,19 +256,19 @@ function conditional_probabs(mps::Vector{Array{T, 2}}) where T <: AbstractFloat
 end
 
 
-function make_lower_mps(grid::Matrix{Int}, ns::Vector{Node_of_grid},
-                                           interactions::Vector{Interaction{T}}, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
+function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
+    grid = props(g)[:grid]
     s = size(grid,1)
     if k <= s
         #mps = [sum_over_last(compute_single_tensor(ns[j], β)) for j in grid[s,:]]
-        mps = [compute_single_tensor(ns[j], β; sum_over_last = true) for j in grid[s,:]]
+        mps = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[s,:]]
         if threshold > 0.
             mps = compress_iter(mps, χ, threshold)
         end
         for i in s-1:-1:k
 
             #mpo = [sum_over_last(compute_single_tensor(ns[j], β)) for j in grid[i,:]]
-            mpo = [compute_single_tensor(ns[j], β; sum_over_last = true) for j in grid[i,:]]
+            mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
             if threshold > 0.
                 mpo = compress_iter(mpo, χ, threshold)
             end
@@ -300,17 +313,21 @@ end
 
 function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, grid::Matrix{Int},
                                         no_sols::Int = 2; β::T, χ::Int = 0,
-                                        threshold::T = T(1e-14)) where T <: AbstractFloat
+                                        threshold::T = T(1e-14), node_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
 
+    g = interactions2graph(interactions)
+    gg = interactions2grid_graph(g, interactions, node_size)
     # grid follows the iiteration
+    grid = props(gg)[:grid]
+    #ns = 0.
     s = size(grid)
     partial_s = Partial_sol{T}[Partial_sol{T}()]
     for row in 1:s[1]
         println("row of peps = ", row)
         #this may need to ge cashed
-        lower_mps = make_lower_mps(grid, ns, interactions, row + 1, β, χ, threshold)
+        lower_mps = make_lower_mps(gg, row + 1, β, χ, threshold)
 
-        upper_mpo = [compute_single_tensor(ns[j], β) for j in grid[row,:]]
+        upper_mpo = [compute_single_tensor(gg, j, β) for j in grid[row,:]]
 
         for j in grid[row,:]
 
@@ -322,9 +339,9 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                 # left cutoff
                 new_s = 0
                 # TODO it will be done on the grid coordinates of the node
-                if ns[j].column > 1
-                    all = ns[j-1].spins_inds
-                    ind = ns[j-1].right
+                if props(gg, j)[:column] > 1
+                    all = props(gg, j-1)[:spins]
+                    ind = props(gg, j, j-1)[:inds]
                     new_s = reindex(sol[end], length(all), ind)
 
                 end
@@ -333,9 +350,12 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                 if row < s[1]
                     for i in 1:length(sol)
                         k = grid[row,i]
-                        all = ns[k].spins_inds
+                        k1 = grid[row+1,i]
+                        #all = ns[k].spins_inds
+                        all = props(gg, k)[:spins]
 
-                        ind = ns[k].down
+                        #ind = ns[k].down
+                        ind = props(gg, k, k1)[:inds]
                         sol[i] = reindex(sol[i], length(all), ind)
                     end
                 end
@@ -349,10 +369,11 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
                     ind_above = [0 for _ in 1:s[2]]
                     for k in 1:s[2]
                         l = grid[row-1,k]
-                        all = ns[l].spins_inds
+                        l1 = grid[row,k]
+                        all = props(gg, l)[:spins]
 
                         index = ps.spins[k+(row-2)*s[2]]
-                        ind = ns[l].down
+                        ind = props(gg, l, l1)[:inds]
                         ind_above[k] = reindex(index, length(all), ind)
                     end
 
@@ -377,7 +398,7 @@ function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, g
             partial_s = select_best_solutions(partial_s_temp, no_sols)
 
             if j == maximum(grid)
-                return return_solutions(partial_s, ns)
+                return return_solutions(partial_s, gg)
             end
         end
     end
@@ -391,15 +412,15 @@ spins are given in -1,1
 """
 function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Union{Vector{Node_of_grid}, MetaGraph})  where T <: AbstractFloat
 
-    if typeof(ns) == MetaGraph{Int64,Float64}
-        # TODO this will need to be corrected
-        if props(ns, 1)[:internal_struct] == Dict()
-            objectives = [sol.objective for sol in partial_s]
-            spins = [sol.spins for sol in partial_s]
-            spins = [map(i->ind2spin(i, 1)[1], sol) for sol in spins]
-            return spins[end:-1:1], objectives[end:-1:1]
-        end
+    # TODO this will need to be corrected
+    if false
+        props(ns)[:grid]
+        objectives = [sol.objective for sol in partial_s]
+        spins = [sol.spins for sol in partial_s]
+        spins = [map(i->ind2spin(i, 1)[1], sol) for sol in spins]
+        return spins[end:-1:1], objectives[end:-1:1]
     end
+
 
     l = length(partial_s)
     objective = zeros(T, l)
@@ -412,11 +433,11 @@ function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Union{Vector{No
 
         ses = partial_s[i].spins
 
-        for k in 1:length(ns)
-
-            ii = ind2spin(ses[k], length(ns[k].spins_inds))
+        for k in vertices(ns)
+            spins_inds = props(ns, k)[:spins]
+            ii = ind2spin(ses[k], length(spins_inds))
             for j in 1:length(ii)
-                one_solution[ns[k].spins_inds[j]] = ii[j]
+                one_solution[spins_inds[j]] = ii[j]
             end
         end
         spins[l-i+1] = one_solution

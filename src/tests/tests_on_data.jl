@@ -47,20 +47,7 @@ using NPZ
 
         # forming a grid
 
-        M = [1 2 3; 4 5 6; 7 8 9]
-        grid1 = Array{Array{Int}}(undef, (3,3))
-        grid1[1,1] = [1 2; 6 7]
-        grid1[1,2] = [3 4; 8 9]
-        grid1[1,3] = reshape([5; 10], (2,1))
-        grid1[2,1] = [11 12; 16 17]
-        grid1[2,2] = [13 14; 18 19]
-        grid1[2,3] = reshape([15; 20], (2,1))
-
-        grid1[3,1] = reshape([21; 22], (1,2))
-        grid1[3,2] = reshape([23; 24], (1,2))
-        grid1[3,3] = reshape([25], (1,1))
-
-        grid1 = Array{Array{Int}}(grid1)
+        grid1, M = form_a_grid((2,2), (5,5))
 
         ns_l = [Node_of_grid(i, M, grid1, ints) for i in 1:maximum(M)]
 
@@ -80,8 +67,7 @@ using NPZ
     @testset "mpo-mps one spin nodes" begin
 
         # MPS MPO treates as a graph without the structure
-        #ns = [Node_of_grid(i, ints) for i in 1:get_system_size(ints)]
-
+        
         χ = 10
         β_step = 2
         g = interactions2graph(ints)
@@ -152,7 +138,7 @@ spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
     β_step = 1
 
     print("mpo mps time  =  ")
-    #ns = [Node_of_grid(i, q_vec) for i in 1:get_system_size(q_vec)]
+
     @time spins_mps, objective_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     binary_mps = [spins2binary(el) for el in spins_mps]

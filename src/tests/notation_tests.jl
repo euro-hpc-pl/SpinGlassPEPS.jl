@@ -1,3 +1,41 @@
+@testset "grid forming" begin
+
+    grid = [1 2 3; 4 5 6; 7 8 9]
+
+    @test nxmgrid(3,3) == grid
+    @test nxmgrid(2,4) == [1 2 3 4; 5 6 7 8]
+
+    # chimera
+
+    @test chimera_cell(1,1,512) == [1 5; 2 6; 3 7; 4 8]
+    @test chimera_cell(1,2,512) == [9 13; 10 14; 11 15; 12 16]
+    @test chimera_cell(2,1,512) == [65 69; 66 70; 67 71; 68 72]
+
+    c = grid_cel(1,1,(2,2),(5,5))
+    @test c == [1 2; 6 7]
+    c = grid_cel(1,3,(2,2),(5,5))
+    @test c == reshape([5; 10], (2,1))
+    c = grid_cel(3,3,(2,2),(5,5))
+    @test c == reshape([25], (1,1))
+
+    grid, M = form_a_grid((2,3), (7,7))
+    @test M == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
+    @test grid[1,1] == [1 2 3; 8 9 10]
+    @test grid[4,1] == reshape([43 44 45], (1,3))
+    @test grid[4,3] == reshape([49], (1,1))
+
+    grid, M = form_a_chimera_grid(2)
+
+    @test grid[1,1] == [1 5; 2 6; 3 7; 4 8]
+    @test grid[1,2] == [9 13; 10 14; 11 15; 12 16]
+    @test M == [1 2; 3 4]
+
+    M = ones(4,4)
+    fullM2grid!(M, (2,2))
+    @test M == [1.0 1.0 1.0 0.0; 1.0 1.0 0.0 1.0; 1.0 0.0 1.0 1.0; 0.0 1.0 1.0 1.0]
+end
+
+
 function make_interactions()
     J_h = [(1,1) -0.2; (1,2) -0.5; (1,4) -1.5; (2,2) -0.6; (2,3) -1.5; (2,5) -0.5; (3,3) -0.2; (3,6) 1.5]
     J_h = vcat(J_h, [(6,6) -2.2; (5,6) -0.25; (6,9) -0.52; (5,5) 0.2; (4,5) 0.5; (5,8) 0.5; (4,4) -2.2; (4,7) -0.01])
@@ -6,7 +44,7 @@ function make_interactions()
 end
 
 
-@testset "axiliary on interactions" begin
+@testset "interactions and graph forming" begin
     M = ones(2,2)
     interactions = M2interactions(M)
     @test interactions == Interaction{Float64}[Interaction{Float64}((1, 1), 1.0), Interaction{Float64}((1, 2), 1.0), Interaction{Float64}((2, 2), 1.0)]
@@ -17,22 +55,31 @@ end
     g = graph4mps(g)
     @test degree(g) == [1,1]
     @test props(g, 1)[:log_energy] == [-1., 1.]
-    @test props(g, 2)[:internal_struct] == Dict()
     @test props(g, Edge(1,2))[:J] == 1
 
     # graph for peps
-    M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
+    M = ones(4,4)
+    fullM2grid!(M, (2,2))
     interactions = M2interactions(M)
-
     ig = interactions2graph(interactions)
-    grid = nxmgrid(2,2)
 
-    g1 = interactions2grid_graph(ig, interactions, grid)
+    g1 = interactions2grid_graph(ig, interactions, (1,1))
     @test props(g1, Edge(1,2))[:M] == [2.0 -2.0; -2.0 2.0]
     @test props(g1, Edge(2,4))[:M] == [2.0 -2.0; -2.0 2.0]
     @test props(g1, 1)[:log_energy] == [-1., 1.]
     @test props(g1, 2)[:log_energy] == [-1., 1.]
     @test props(g1, Edge(1,2))[:inds] == [1]
+
+    M = ones(16,16)
+    fullM2grid!(M, (4,4))
+    interactions = M2interactions(M)
+    ig = interactions2graph(interactions)
+
+    g1 = interactions2grid_graph(ig, interactions, (2,2))
+    println(props(g1, Edge(1,2))[:M])
+    println(props(g1, 1)[:log_energy])
+    println(props(g1, Edge(1,2))[:inds])
+    println(props(g1, Edge(1,3))[:inds])
 
     interactions = make_interactions()
 
@@ -111,104 +158,6 @@ end
     println(log_internal_energy(v, interactions))
 end
 
-@testset "node type, connections on the graph" begin
-
-    M = ones(9,9)
-    inter = M2interactions(M)
-
-    grid = [1 2 3; 4 5 6; 7 8 9]
-
-    @test nxmgrid(3,3) == grid
-
-    #n = Node_of_grid(3, grid, inter)
-    #@test n.i == 3
-    #@test n.spins_inds == [3]
-    #@test n.intra_struct == Array{Int64,1}[]
-    #@test n.left == [1]
-    #@test n.right == Int[]
-    #@test n.up == Int[]
-    #@test n.down == [1]
-    #@test n.connected_nodes == [2,6]
-    #@test n.connected_spins == [[3 2], [3 6]]
-
-    #n = Node_of_grid(5, grid, inter)
-    #@test n.i == 5
-    #@test n.spins_inds == [5]
-    #@test n.intra_struct == Array{Int64,1}[]
-    #@test n.left == [1]
-    #@test n.right == [1]
-    #@test n.up == [1]
-    #@test n.down == [1]
-    #@test n.connected_spins == [[5 4], [5 6], [5 2], [5 8]]
-
-    M = ones(16,16)
-    inter = M2interactions(M)
-    grid1 = [1 2 3 4; 5 6 7 8; 9 10 11 12]
-    #n = Node_of_grid(4, grid1, inter)
-    #@test n.i == 4
-    #@test n.spins_inds == [4]
-    #@test n.intra_struct == Array{Int64,1}[]
-    #@test n.left == [1]
-    #@test n.right == Int[]
-    #@test n.up == Int[]
-    #@test n.down == [1]
-
-
-    n = Node_of_grid(9, grid1, inter)
-    #@test n.i == 9
-    #@test n.spins_inds == [9]
-    #@test n.intra_struct == Array{Int64,1}[]
-    #@test n.left == Int[]
-    #@test n.right == [1]
-    #@test n.up == [1]
-    #@test n.down == Int[]
-
-    n = Node_of_grid(12, grid1, inter)
-    #@test n.i == 12
-    #@test n.spins_inds == [12]
-    #@test n.intra_struct == Array{Int64,1}[]
-    #@test n.left == [1]
-    #@test n.right == Int[]
-    #@test n.up == [1]
-    #@test n.down == Int[]
-
-    #ns = [Node_of_grid(i, grid1, inter) for i in 1:maximum(grid1)]
-    #@test get_system_size(ns) == 12
-
-    #grid = Array{Array{Int}}(undef, (2,2))
-    #grid[1,1] = [1 2;5 6]
-    #grid[1,2] = [3 4; 7 8]
-    #grid[2,1] = [9 10;13 14]
-    #grid[2,2] = [11 12;15 16]
-    #grid = Array{Array{Int}}(grid)
-
-    # chimera
-
-    grid = Array{Array{Int}}(undef, (1,2))
-    grid[1,1] = [1 5; 2 6; 3 7; 4 8]
-    grid[1,2] = [9 13; 10 14; 11 15; 12 16]
-    grid = Array{Array{Int}}(grid)
-    M = reshape([1 2], (1,2))
-
-    nc_l = Node_of_grid(1,M, grid, inter; chimera = true)
-
-    #@test nc_l.intra_struct[1:4] == [[1, 5], [1, 6], [1, 7], [1, 8]]
-    @test nc_l.spins_inds == [1, 5, 2, 6, 3, 7, 4, 8]
-    @test nc_l.right == [2,4,6,8]
-    #@test nc_l.left == Int[]
-    #@test nc_l.left_J == Float64[]
-
-    #@test nc_l.connected_spins[1][:,1] == [5, 6, 7, 8]
-    #@test nc_l.connected_spins[1][:,2] == [13, 14, 15, 16]
-
-    #nc_l = Node_of_grid(2,M, grid, inter; chimera = true)
-    #@test nc_l.left_J == [1. ,1., 1. ,1.]
-
-
-    @test chimera_cell(1,1,512) == [1 5; 2 6; 3 7; 4 8]
-    @test chimera_cell(1,2,512) == [9 13; 10 14; 11 15; 12 16]
-    @test chimera_cell(2,1,512) == [65 69; 66 70; 67 71; 68 72]
-end
 
 @testset "test notation" begin
 

@@ -17,7 +17,7 @@ struct Interaction{T<:AbstractFloat}
     end
 end
 
-
+#############    forming varous grids    #############
 function nxmgrid(n::Int, m::Int)
     grid = zeros(Int, n, m)
     for i in 1:m
@@ -26,6 +26,86 @@ function nxmgrid(n::Int, m::Int)
        end
    end
    grid
+end
+
+
+function grid_cel(i::Int, j::Int, block_s::Tuple{Int, Int}, size::Tuple{Int, Int})
+    d1 = (i-1)*block_s[1]
+    d2 = (j-1)*block_s[2]
+    s1 = minimum([block_s[1], size[1]-d1])
+    s2 = minimum([block_s[2], size[2]-d2])
+    cel = zeros(Int, s1, s2)
+    delta_i = (i-1)*block_s[1]*size[2]
+    delta_j = (j-1)*block_s[2]
+    for k in 1:s1
+        for l in 1:s2
+            cel[k,l] = delta_i+ l + delta_j + (k-1)*size[2]
+        end
+    end
+    cel
+end
+
+
+function form_a_grid(block_size::Tuple{Int, Int}, size::Tuple{Int, Int})
+    s1 = ceil(Int, size[1]/block_size[1])
+    s2 = ceil(Int, size[2]/block_size[2])
+    M = nxmgrid(s1,s2)
+    grid1 = Array{Array{Int}}(undef, (s1,s2))
+    for i in 1:s1
+        for j in 1:s2
+            grid1[i,j] = grid_cel(i,j, block_size, size)
+        end
+    end
+    Array{Array{Int}}(grid1), M
+end
+
+function chimera_cell(i::Int, j::Int, size::Int)
+    size = Int(sqrt(size/8))
+    ofset = 8*(j-1)+8*size*(i-1)
+    cel = zeros(Int, 4, 2)
+    cel[:,1] = [k+ofset for k in 1:4]
+    cel[:,2] = [k+ofset for k in 5:8]
+    cel
+end
+
+# TODO this needs to be altered bor larger chimera cell
+function form_a_chimera_grid(n::Int)
+    problem_size = 8*n^2
+    M = nxmgrid(n,n)
+
+    grid = Array{Array{Int}}(undef, (n,n))
+
+    for i in 1:n
+        for j in 1:n
+            grid[i,j] = chimera_cell(i,j, problem_size)
+        end
+    end
+    Array{Array{Int}}(grid), M
+end
+
+
+#removes bonds that do not fit to the grid
+# testing function
+function fullM2grid!(M::Matrix{Float64}, s::Tuple{Int, Int})
+    s1 = s[1]
+    s2 = s[2]
+    pairs = Vector{Int}[]
+    for i in 1:s1*s2
+        if (i%s2 > 0 && i < s1*s2)
+            push!(pairs, [i, i+1])
+        end
+        if i <= s2*(s1-1)
+            push!(pairs, [i, i+s2])
+        end
+    end
+
+    for k in CartesianIndices(size(M))
+        i1 = [k[1], k[2]]
+        i2 = [k[2], k[1]]
+        if !(i1 in pairs) && !(i2 in pairs) && (k[1] != k[2])
+            M[i1...] = M[i2...] = 0.
+        end
+    end
 end
 
 
@@ -128,7 +208,7 @@ function graph4mps(ig::MetaGraph)
     for v in vertices(ig)
         h = props(ig, v)[:h]
         set_prop!(ig, v, :log_energy, [-h, h])
-        set_prop!(ig, v, :internal_struct, Dict())
+        set_prop!(ig, v, :spins, [v])
     end
     ig
 end
@@ -149,15 +229,6 @@ end
 
 # TODO following are used to form a grid,
 # they should be compleated and incorporated into the solver
-
-function chimera_cell(i::Int, j::Int, size::Int)
-    size = Int(sqrt(size/8))
-    ofset = 8*(j-1)+8*size*(i-1)
-    cel = zeros(Int, 4, 2)
-    cel[:,1] = [k+ofset for k in 1:4]
-    cel[:,2] = [k+ofset for k in 5:8]
-    cel
-end
 
 
 function is_element(i::Int, j::Int, grid::Matrix{Int})
@@ -237,6 +308,10 @@ struct Element_of_square_grid
     function(::Type{Element_of_square_grid})(i::Int, grid::Matrix{Int})
         Element_of_square_grid(i, grid, reshape([i], (1,1)))
     end
+    function(::Type{Element_of_square_grid})(i::Int, grid::Matrix{Int}, M::Array{Array{Int64,N} where N,2})
+        r = findall(x->x==i, grid)[1]
+        Element_of_square_grid(i, grid, M[r])
+    end
 end
 
 
@@ -288,6 +363,10 @@ struct Element_of_chimera_grid
 
         new(row, column, spins, intra_struct, left, right, up, down)
     end
+    function(::Type{Element_of_chimera_grid})(i::Int, grid::Matrix{Int}, M::Array{Array{Int64,N} where N,2})
+        r = findall(x->x==i, grid)[1]
+        Element_of_chimera_grid(i, grid, M[r])
+    end
 end
 
 EE = Union{Element_of_square_grid, Element_of_chimera_grid}
@@ -306,55 +385,70 @@ function is_grid(ig::MetaGraph, g_elements)
 end
 
 
-function interactions2grid_graph(ig::MetaGraph, ints::Vector{Interaction{T}}, grid::Matrix{Int}) where T <: AbstractFloat
+function interactions2grid_graph(ig::MetaGraph, ints::Vector{Interaction{T}}, cell_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
+    L = nv(ig)
 
-    # TODO form of the grid to the type
-    # TODO compute s from data or grid from data
-    s = (1,1)
-    # TODO compute M from data
-    g_elements = [Element_of_square_grid(i, grid) for i in 1:maximum(grid)]
-    L = maximum(maximum(grid))
+    M = zeros(1,1)
+    g_elements = []
+    if degree(ig, 1) == 2
 
-    g = MetaGraph(L, 0.0)
-    println([v for v in vertices(g)])
+        s2 = maximum(all_neighbors(ig, 1))-1
+        # error will be rised if not Int
+        s1 = Int(L/s2)
+        #is_grid(ig, (s1, s2))
+        grid, M = form_a_grid(cell_size, (s1, s2))
+        g_elements = [Element_of_square_grid(i, M, grid) for i in 1:maximum(M)]
+    elseif degree(ig, 1) == 5
+        # error will be rised if not Int
+        n = Int(sqrt(L/8))
+        grid, M = form_a_chimera_grid(n)
+        g_elements = [Element_of_chimera_grid(i, M, grid) for i in 1:maximum(M)]
+    else
+        error("degree of first node = $degree(ig, 1), neither grid nor chimera")
+    end
+    L1 = maximum(M)
+    g = MetaGraph(L1, 0.0)
 
-    # TODO use rows and columns of neighbours
-    is_grid(ig, g_elements)
-    for i in 1:L
+    set_prop!(g, :grid, M)
+
+    for i in 1:L1
         g_element = g_elements[i]
+        set_prop!(g, i, :row, g_element.row)
+        set_prop!(g, i, :column, g_element.column)
+        set_prop!(g, i, :spins, g_element.spins_inds)
+
         internal_e = log_internal_energy(g_element, ints)
         set_prop!(g, i, :log_energy, internal_e)
 
-        if g_element.column < size(grid, 2)
-            ip = grid[g_element.row, g_element.column+1]
+        if g_element.column < size(M, 2)
+            ip = M[g_element.row, g_element.column+1]
             e = Edge(i, ip)
             add_edge!(g, e) || error("Not a grid - cannot add Egde $e")
             set_prop!(g, e, :inds, g_element.right)
         end
 
         if g_element.column > 1
-            ip = grid[g_element.row, g_element.column-1]
+            ip = M[g_element.row, g_element.column-1]
             e = Edge(i, ip)
-            J = props(ig, e)[:J]
-            M_left = M_of_interaction(g_element, [J], g_element.left)
+            J = get_Js(g_element, g_elements[ip], ints, connection = "lr")
+            M_left = M_of_interaction(g_element, J, g_element.left)
             set_prop!(g, e, :M, M_left)
         end
 
-        if g_element.row < size(grid, 1)
-            ip = grid[g_element.row+1, g_element.column]
+        if g_element.row < size(M, 1)
+            ip = M[g_element.row+1, g_element.column]
             e = Edge(i, ip)
             add_edge!(g, e) || error("Not a grid - cannot add Egde $e")
             set_prop!(g, e, :inds, g_element.down)
         end
 
         if g_element.row > 1
-            ip = grid[g_element.row-1, g_element.column]
+            ip = M[g_element.row-1, g_element.column]
             e = Edge(i, ip)
-            J = props(ig, e)[:J]
-            M_up = M_of_interaction(g_element, [J], g_element.up)
+            J = get_Js(g_element, g_elements[ip], ints, connection = "ud")
+            M_up = M_of_interaction(g_element, J, g_element.up)
             set_prop!(g, e, :M, M_up)
         end
-
     end
     g
 end
@@ -479,18 +573,13 @@ struct Node_of_grid
         eu = zeros(1,2^length(g.spins_inds))
 
         if is_element(j, k-1, Mat)
-            left_J = T[]
             ip = Mat[j, k-1]
             Mp = grid[j,k-1]
 
             g1 = typeof(g)(ip, Mat, Mp)
 
-            for i in 1:length(g.left)
-                i1 = g.left[i]
-                i2 = g1.right[i]
-                J = getJ(interactions, g.spins_inds[i1], g1.spins_inds[i2])
-                push!(left_J, J)
-            end
+            left_J = get_Js(g, g1, interactions, connection = "lr")
+
             el = M_of_interaction(g, left_J, g.left)
         end
 
@@ -500,12 +589,8 @@ struct Node_of_grid
             Mp = grid[j-1,k]
             g1 = typeof(g)(ip, Mat, Mp)
 
-            for i in 1:length(g.up)
-                i1 = g.up[i]
-                i2 = g1.down[i]
-                J = getJ(interactions, g.spins_inds[i1], g1.spins_inds[i2])
-                push!(up_J, J)
-            end
+            up_J = get_Js(g, g1, interactions, connection = "ud")
+
             eu = M_of_interaction(g, up_J, g.up)
         end
 
@@ -515,10 +600,35 @@ struct Node_of_grid
     end
 end
 
+function get_Js(g::EE, g1::EE, interactions::Vector{Interaction{T}}; connection::String = "") where T <: AbstractFloat
+    J = T[]
+    v = [0]
+    v1 = [0]
+    if connection == "lr"
+        v = g.left
+        v1 = g1.right
+    elseif connection == "ud"
+        v = g.up
+        v1 = g1.down
+    end
+
+    for i in 1:length(v)
+        i1 = v[i]
+        i2 = v1[i]
+        j = getJ(interactions, g.spins_inds[i1], g1.spins_inds[i2])
+        push!(J, j)
+    end
+    J
+end
+
 ###################### Axiliary functions mainly for the solver ########
 
 function get_system_size(ns::Vector{Node_of_grid})
     mapreduce(x -> length(x.spins_inds), +, ns)
+end
+
+function get_system_size(g::MetaGraph)
+    mapreduce(i -> length(props(g,i)[:spins]), +, vertices(g))
 end
 
 """

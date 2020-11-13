@@ -25,36 +25,6 @@ end
     # ....
 end
 
-if false
-@testset begin "larger tensors"
-
-    M = [1 2;3 4]
-    grid1 = Array{Array{Int}}(undef, (2,2))
-    grid1[1,1] = [1 2; 5 6]
-    grid1[1,2] = [3 4; 7 8]
-    grid1[2,1] = [9 10; 13 14]
-    grid1[2,2] = [11 12; 15 16]
-    grid1 = Array{Array{Int}}(grid1)
-    ints1 = M2interactions(ones(16,16))
-
-    ns_large = [Node_of_grid(i, M, grid1, ints1) for i in 1:maximum(M)]
-
-    b_node, c_nodes = connections_for_mps(ns_large)
-
-    @test b_node == [1, 2, 3]
-    @test c_nodes == [[2 ,3], [4], [4]]
-
-    b_node_new, c_nodes_new = split_if_differnt_spins(b_node, c_nodes, ns_large)
-
-    @test b_node_new == [1, 1, 2, 3]
-    @test c_nodes_new == [[2], [3], [4], [4]]
-
-    all_b_node, all_c_nodes = cluster_conncetions(b_node_new, c_nodes_new)
-    @test all_b_node == [[1, 3], [1], [2]]
-    @test all_c_nodes == [[[2], [4]], [[3]], [[4]]]
-end
-end
-
 function make_interactions_case1()
     J_h = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
     J_h = vcat(J_h, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
@@ -119,16 +89,14 @@ end
 
     # the same, detailed
 
-    # changed to Vector{Node_of_grid}
     ints = M2interactions(M)
-    #ns = [Node_of_grid(i, ints) for i in 1:3]
     g = interactions2graph(ints)
+    g1 =
     g = graph4mps(g)
 
     # computed mps, β = 1., β_step = 1   χ = 2, threshold = 1e-8
     mps = construct_mps(g, 1., 1, 2, 1e-8)
     @test mps ≈ mps1
-
 
     interactions =  make_interactions_case1()
 
@@ -141,19 +109,19 @@ end
 
     # construct form mpo-mps
     g = interactions2graph(interactions)
-    #ns = [Node_of_grid(i, interactions) for i in 1:9]
+    g1 = interactions2grid_graph(g, interactions, (1,1))
     g = graph4mps(g)
     mps = construct_mps(g, β, 2, 4, 0.)
 
-    # construct form psps for comparison
-    grid = [1 2 3 ; 4 5 6; 7 8 9]
-    ns_peps = [Node_of_grid(i, grid, interactions) for i in 1:9]
+    # construct form peps for comparison
+    #grid = [1 2 3 ; 4 5 6; 7 8 9]
+    #ns_peps = [Node_of_grid(i, grid, interactions) for i in 1:9]
     M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
     k = 0
     for i in 1:3
         for j in 1:3
             k = k+1
-            M[i,j] = compute_single_tensor(ns_peps[k], β)
+            M[i,j] = compute_single_tensor(g1, k, β)
         end
     end
     M = Matrix{Array{Float64, N} where N}(M)
@@ -219,9 +187,8 @@ end
 
     ints = make_interactions_case2()
 
-    grid = [1 2 3; 4 5 6; 7 8 9]
+    #grid = [1 2 3; 4 5 6; 7 8 9]
 
-    #ns = [Node_of_grid(i, ints) for i in 1:get_system_size(ints)]
     g = interactions2graph(ints)
     spins, _ = solve_mps(g, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
 
@@ -233,7 +200,6 @@ end
 
     permuted_int = make_interactions_case3()
 
-    #ns = [Node_of_grid(i, permuted_int) for i in 1:get_system_size(permuted_int)]
     g = interactions2graph(permuted_int)
 
     spins, objective = solve_mps(g, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
@@ -274,14 +240,11 @@ end
 
     ints_larger = make_interactions_larger()
 
-    grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
-
     β = 0.5
     β_step = 2
 
     println("number of β steps = ", β_step)
 
-    #ns = [Node_of_grid(i, ints_larger) for i in 1:get_system_size(ints_larger)]
     g = interactions2graph(ints_larger)
 
     spins, _ = solve_mps(g, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
@@ -290,6 +253,7 @@ end
 
     spins_exact, _ = solve_mps(g, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
+    grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
     ns = [Node_of_grid(i, grid, ints_larger) for i in 1:maximum(grid)]
     spins_peps, _ = solve(ints_larger, ns, grid, 10; β = β, χ = 2, threshold = 1e-12)
 
@@ -315,7 +279,7 @@ end
     β_step = 2
 
     println("number of β steps = ", β_step)
-    #ns = [Node_of_grid(i, ints_full) for i in 1:get_system_size(ints_full)]
+
     g = interactions2graph(ints_full)
 
     spins, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
@@ -326,10 +290,8 @@ end
     Random.seed!(1234)
     M = rand([-1.,-0.5,0.,0.5,1.], 64,64)
     M = M*(M')
-    #q = M2interactions(M)
-    #ns = [Node_of_grid(i, q) for i in 1:get_system_size(q)]
-    g = interactions2graph(M2interactions(M))
 
+    g = interactions2graph(M2interactions(M))
 
     @time s, _ = solve_mps(g, 4; β=1., β_step=1, χ=6, threshold = 1.e-6)
     @test length(s[1]) == 64

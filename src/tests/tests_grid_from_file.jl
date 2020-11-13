@@ -68,6 +68,9 @@ for k in 1:examples
     ################ exact method ###################
 
     print("peps time  = ")
+
+    g = interactions2graph(interactions)
+    gg = interactions2grid_graph(g, interactions)
     number = number_of_states + more_states_for_peps
     @time spins, objective = solve(interactions, ns, grid, number ; β = T(β), χ = 0, threshold = T(0.))
 
@@ -98,38 +101,15 @@ for k in 1:examples
 
     @test objective ≈ objective_approx atol = 1.e-7
 
-    nodes_numbers = nxmgrid(3,3)
 
-    grid = Array{Array{Int}}(undef, (3,3))
-    grid[1,1] = [1 2; 6 7]
-    grid[1,2] = [3 4; 8 9]
-    grid[1,3] = reshape([5; 10], (2,1))
-    grid[2,1] = [11 12; 16 17]
-    grid[2,2] = [13 14; 18 19]
-    grid[2,3] = reshape([15; 20], (2,1))
-    grid[3,1] = reshape([21; 22], (1,2))
-    grid[3,2] = reshape([23; 24], (1,2))
-    grid[3,3] = reshape([25], (1,1))
-
-    if size(Mat_of_interactions, 1) == 36
-        grid[1,1] = [1 2; 7 8]
-        grid[1,2] = [3 4; 9 10]
-        grid[1,3] = [5 6; 11 12]
-        grid[2,1] = [13 14; 19 20]
-        grid[2,2] = [15 16; 21 22]
-        grid[2,3] = [17 18; 23 24]
-        grid[3,1] = [25 26; 31 32]
-        grid[3,2] = [27 28; 33 34]
-        grid[3,3] = [29 30; 35 36]
-    end
-
-    grid = Array{Array{Int}}(grid)
+    grid, nodes_numbers = form_a_grid((2,2), (s,s))
+    gg = interactions2grid_graph(g, interactions, (2,2))
 
     ns_l = [Node_of_grid(i, nodes_numbers, grid, interactions) for i in 1:9]
 
     print("peps larger T")
     number = number_of_states + more_states_for_peps
-    @time spins_larger_nodes, objective_larger_nodes = solve(interactions, ns_l, nodes_numbers, number; β = T(β), χ = χ, threshold = T(1e-12))
+    @time spins_larger_nodes, objective_larger_nodes = solve(interactions, ns_l, nodes_numbers, number; node_size = (2,2), β = T(β), χ = χ, threshold = T(1e-12))
 
     for i in 1:number_of_states
 
@@ -150,7 +130,7 @@ for k in 1:examples
     print("mps time  =  ")
 
     number = number_of_states + more_states_for_mps
-    g = interactions2graph(interactions)
+
     @time spins_mps, objective_mps = solve_mps(g, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     # sorting improves the oputput
@@ -168,6 +148,4 @@ for k in 1:examples
             @test states_given[i,:] == spins_mps[i]
         end
     end
-
-
 end

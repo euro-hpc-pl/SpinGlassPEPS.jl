@@ -91,10 +91,7 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
                     g::MetaGraph, β::T) where T<: AbstractFloat
 
     d = 2
-    if props(g, 1)[:internal_struct] != Dict()
-        # TODO, correct it
-        d = 2
-    end
+    # TODO, correct d = length(props(g, i)[:log_energy])
 
     k = minimum([i, nodes...])
     l = maximum([i, nodes...])

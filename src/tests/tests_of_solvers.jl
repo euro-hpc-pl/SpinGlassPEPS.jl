@@ -17,7 +17,7 @@ using Statistics
 
         # parametrising for mps
         interactions = M2interactions(M)
-        #ns = [Node_of_grid(i, interactions) for i in 1:system_size]
+
         χ = 10
         β_step = 3
         β = 9.
@@ -52,7 +52,6 @@ using Statistics
         interactions = M2interactions(M)
         g = interactions2graph(interactions)
 
-        #ns = [Node_of_grid(i, interactions) for i in 1:system_size]
         χ = 10
         β_step = 3
         β = 9.
@@ -128,27 +127,6 @@ end
 
 @testset "grid vs. brute force, testing wide spectrum" begin
 
-    #removes bonds that do not fit to the grid
-    function set_zero_from_outside_grid!(M::Matrix{Float64}, s1::Int, s2::Int)
-        pairs = Vector{Int}[]
-        for i in 1:s1*s2
-            if (i%s1 > 0 && i < s1*s2)
-                push!(pairs, [i, i+1])
-            end
-            if i <= s1*(s2-1)
-                push!(pairs, [i, i+s1])
-            end
-        end
-
-        for k in CartesianIndices(size(M))
-            i1 = [k[1], k[2]]
-            i2 = [k[2], k[1]]
-            if !(i1 in pairs) && !(i2 in pairs) && (k[1] != k[2])
-                M[i1...] = M[i2...] = 0.
-            end
-        end
-    end
-
     sols = 10
     system_size = 24
     # sampler of random symmetric matrix
@@ -156,10 +134,10 @@ end
     X = rand(system_size, system_size)
     M = cov(X)
 
-    set_zero_from_outside_grid!(M, 6,4)
+    fullM2grid!(M, (4,6))
 
     interactions = M2interactions(M)
-    grid = [1 2 3 4 5 6; 7 8 9 10 11 12; 13 14 15 16 17 18; 19 20 21 22 23 24]
+    grid = nxmgrid(4,6)
     ns = [Node_of_grid(i, grid, interactions) for i in 1:maximum(grid)]
 
     χ = 12
@@ -168,16 +146,8 @@ end
     spins_exact, objectives_exact = solve(interactions, ns, grid, sols+10; β=β, χ=0, threshold = 0.)
 
     spins_approx, objectives_approx = solve(interactions, ns, grid, sols+10; β=β, χ=χ, threshold = 1.e-12)
-    indexing = [1 2 3; 4 5 6]
-    grid1 = Array{Array{Int}}(undef, (2,3))
 
-    grid1[1,1] = [1 2; 7 8]
-    grid1[1,2] = [3 4; 9 10]
-    grid1[1,3] = [5 6; 11 12]
-    grid1[2,1] = [13 14; 19 20]
-    grid1[2,2] = [15 16; 21 22]
-    grid1[2,3] = [17 18; 23 24]
-    grid1 = Array{Array{Int}}(grid1)
+    grid1, indexing = form_a_grid((2,2), (4,6))
     ns_l = [Node_of_grid(i, indexing, grid1, interactions) for i in 1:maximum(indexing)]
 
     spins_l, objectives_l = solve(interactions, ns_l, indexing, sols+10; β=β, χ=χ, threshold = 1.e-12)

@@ -26,7 +26,7 @@ end
     @test b[1].spins == [1, 1, 2]
     @test b[1].objective == 1.
 
-    grid = [1 2; 3 4]
+    grid = nxmgrid(2,2)
 
     a =  Partial_sol{Float64}([1,1,1,2], 0.2)
     b = Partial_sol{Float64}([1,1,2,2], 1.)
@@ -34,8 +34,10 @@ end
     interactions = make_interactions_case1()
 
     ns = [Node_of_grid(i, grid, interactions) for i in 1:maximum(grid)]
+    g = interactions2graph(interactions)
+    gg = interactions2grid_graph(g, interactions, (2,2))
 
-    spins, objectives = return_solutions([a,b], ns)
+    spins, objectives = return_solutions([a,b], g)
     @test spins == [[-1, -1, 1, 1],[-1, -1, -1, 1]]
     @test objectives == [1.0, 0.2]
 end
@@ -49,13 +51,7 @@ end
 
 @testset "larger tensors" begin
     # TODO this will be done by the function
-    grid = Array{Array{Int}}(undef, (2,2))
-    grid[1,1] = [1 2;4 5]
-    grid[1,2] = reshape([3, 6], (2,1))
-    grid[2,1] = reshape([7, 8], (1,2))
-    grid[2,2] = reshape([9], (1,1))
-    grid = Array{Array{Int}}(grid)
-    M = [1 2;3 4]
+    grid, M = form_a_grid((2,2),(3,3))
 
     q = make_interactions()
     β = 1.5
@@ -63,7 +59,7 @@ end
     T1 = compute_single_tensor(ns[1], β)
     T2 = compute_single_tensor(ns[2],  β)
 
-    M = [1 2 3; 4 5 6; 7 8 9]
+    M = nxmgrid(3,3)
     ns = [Node_of_grid(i, M, q) for i in 1:maximum(M)]
     t1 = compute_single_tensor(ns[1], β)
     t2 = compute_single_tensor(ns[2], β)
@@ -97,7 +93,7 @@ function make_c8()
 end
 
 @testset "chimera cel" begin
-    # TODO this will be done by the function as well
+    # TODO this will be done by the function as well, indexes must be renumbered
 
     grid2 = Array{Array{Int}}(undef, (1,1))
     grid2[1,1] = [1 2;3 4;5 6;7 8]
@@ -157,7 +153,7 @@ end
 
 @testset "PEPS network vs encon" begin
     ints = make_interactions()
-    grid = [1 2 3 ; 4 5 6 ; 7 8 9]
+    grid = nxmgrid(3,3)
     @test v2energy(ones(2,2), [1,1]) == 4
 
     Mat = interactions2M(ints)
@@ -208,7 +204,7 @@ end
     @test a == [0.5, 0.5]
 
     interactions = make_interactions()
-    grid = [1 2 3; 4 5 6; 7 8 9]
+    grid = nxmgrid(3,3)
     β = 3.
 
     ns = [Node_of_grid(i, grid, interactions) for i in 1:9]
@@ -242,9 +238,11 @@ end
 
 
     # probabilities
+    g = interactions2graph(interactions)
+    gg = interactions2grid_graph(g, interactions, (1,1))
 
     A = Vector{Array{Float64, 4}}(M[1,:])
-    lower_mps = make_lower_mps(grid, ns, interactions, 2, β, 0, 0.)
+    lower_mps = make_lower_mps(gg, 2, β, 0, 0.)
     # marginal prob
     sol = Int[]
     objective = conditional_probabs(A, lower_mps, 0, sol)
@@ -310,7 +308,7 @@ end
 
     inter = interactions_case2()
     # TODO forming a frid inside a solver
-    grid = [1 2 3; 4 5 6; 7 8 9]
+    grid = nxmgrid(3,3)
     ns = [Node_of_grid(i, grid, inter) for i in 1:maximum(grid)]
 
     spins, objective = solve(inter, ns, grid, 4; β = 1., χ = 2)
@@ -324,16 +322,10 @@ end
     # combinations and degeneracy
     permuted_ints = make_interactions_case3()
 
-    grid = [1 2 3; 4 5 6; 7 8 9]
+    grid = nxmgrid(3,3)
     ns = [Node_of_grid(i, grid, permuted_ints) for i in 1:maximum(grid)]
 
-    M = [1 2;3 4]
-    grid1 = Array{Array{Int}}(undef, (2,2))
-    grid1[1,1] = [1 2; 4 5]
-    grid1[1,2] = reshape([3; 6], (2,1))
-    grid1[2,1] = reshape([7; 8], (1,2))
-    grid1[2,2] = reshape([9], (1,1))
-    grid1 = Array{Array{Int}}(grid1)
+    grid1, M = form_a_grid((2,2), (3,3))
 
     ns_large = [Node_of_grid(i, M, grid1, permuted_ints) for i in 1:maximum(M)]
 
@@ -439,19 +431,13 @@ end
 
     int_larger = make_interactions_large()
 
-    grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
+    grid = nxmgrid(4,4)
 
     ns = [Node_of_grid(i, grid, int_larger) for i in 1:maximum(grid)]
     spins, objective = solve(int_larger, ns, grid, 10; β = 3., χ = 2, threshold = 1e-11)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    M = [1 2;3 4]
-    grid1 = Array{Array{Int}}(undef, (2,2))
-    grid1[1,1] = [1 2; 5 6]
-    grid1[1,2] = [3 4; 7 8]
-    grid1[2,1] = [9 10; 13 14]
-    grid1[2,2] = [11 12; 15 16]
-    grid1 = Array{Array{Int}}(grid1)
+    grid1, M = form_a_grid((2,2), (4,4))
 
     ns_large = [Node_of_grid(i, M, grid1, int_larger) for i in 1:maximum(M)]
 
