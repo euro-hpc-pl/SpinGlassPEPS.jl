@@ -35,9 +35,9 @@ end
 
     ns = [Node_of_grid(i, grid, interactions) for i in 1:maximum(grid)]
     g = interactions2graph(interactions)
-    gg = interactions2grid_graph(g, interactions, (2,2))
+    gg = interactions2grid_graph(g, interactions, (1,1))
 
-    spins, objectives = return_solutions([a,b], g)
+    spins, objectives = return_solutions([a,b], gg)
     @test spins == [[-1, -1, 1, 1],[-1, -1, -1, 1]]
     @test objectives == [1.0, 0.2]
 end
