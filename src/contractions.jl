@@ -9,10 +9,10 @@ export left_env, right_env, dot!
 # ---------------------------------------------------------------
 #
 
-function LinearAlgebra.dot(ρ::MPS, state::Vector{Int})  
-    C = ones(eltype(ρ), 1, 1)
+function LinearAlgebra.dot(ψ::MPS, state::Union{Vector, NTuple}) 
+    C = ones(eltype(ψ), 1, 1)
 
-    for (M, σ) ∈ zip(ρ, state)        
+    for (M, σ) ∈ zip(ψ, state)        
         i = idx(σ)
         C = M[:, i, :]' * (C * M[:, i, :])
     end
@@ -70,7 +70,7 @@ end
 
 LinearAlgebra.norm(ψ::AbstractMPS) = sqrt(abs(dot(ψ, ψ)))
 
-function LinearAlgebra.dot(ϕ::MPS, O::Vector{T}, ψ::MPS) where {T <: AbstractMatrix}
+function LinearAlgebra.dot(ϕ::MPS, O::Union{Vector, NTuple}, ψ::MPS) #where T <: AbstractMatrix
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
     C = ones(S, 1, 1)
 

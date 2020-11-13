@@ -2,27 +2,27 @@ export idx, ising, proj
 export HadamardMPS, rq
 export Reshape, all_states
 
-proj(s::Int) = proj(Val(s))
-proj(::Val{1}) = [[1., 0.] [0., 0.]]
-proj(::Val{-1}) = [[0., 0.] [0., 1.]]
-proj(state::Vector{Int}) = proj.(state)
-
-ising(state::Vector{Int}) = 2 .* state .- 1
-
-#idx(s::Int) = idx(Val(s))
-#idx(::Val{-1}) = 1
-#idx(::Val{1}) = 2
+ising(σ::Union{Vector, NTuple}) = 2 .* σ .- 1
 
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
-_σ(idx::Int) = (idx == 1) ? -1 : idx - 1
+_σ(idx::Int) = (idx == 1) ? -1 : idx - 1 
 
-function all_states(rank::Union{Vector, NTuple})
+function proj(state::T, dims::S) where {T, S <: Union{Vector, NTuple}}
+    P = [] 
+    for (σ, r) ∈ zip(state, dims)
+        v = zeros(r)
+        v[idx(σ)...] = 1.
+        push!(P, v * v')
+    end
+    P
+end 
+
+function all_states(rank::T) where T <: Union{Vector, NTuple}
     basis = [union(-1, 1:r-1) for r ∈ rank]
     product(basis...)
 end 
 
 HadamardMPS(L::Int) = MPS(fill([1., 1.] / sqrt(2), L))
-#HadamardMPS(L::Int, d::Int) = MPS(fill([1., 1.] / sqrt(2), L))
 
 function Reshape(A::AbstractArray{T}, dims::Tuple) where {T <: Number}
     ord = reverse(1:length(dims))
