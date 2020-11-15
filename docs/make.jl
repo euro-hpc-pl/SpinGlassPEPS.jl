@@ -35,5 +35,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/iitis/SpinGlassPEPS.jl.git"
+    repo = "github.com/iitis/SpinGlassPEPS.jl.git",
+    devbranch = "lp/docs-example"
 )

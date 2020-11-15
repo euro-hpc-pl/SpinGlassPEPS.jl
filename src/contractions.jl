@@ -63,7 +63,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Calculates the norm of an `MPS` \$\\ket{\\phi}\$
+Calculates the norm of an MPS \$\\ket{\\phi}\$
 """
 LinearAlgebra.norm(ψ::AbstractMPS) = sqrt(abs(dot(ψ, ψ)))
 
@@ -71,13 +71,13 @@ LinearAlgebra.norm(ψ::AbstractMPS) = sqrt(abs(dot(ψ, ψ)))
 """
 $(TYPEDSIGNATURES)
 
-Calculates \$\\ket{\\phi} O \\ket{\\psi}\$
+Calculates \$\\bra{\\phi} O \\ket{\\psi}\$
 
-#Details
+# Details
 
 Calculates the matrix element of \$O\$
 ```math
-\\ket{\\phi} O \\ket{\\psi}
+\\bra{\\phi} O \\ket{\\psi}
 ```
 in one pass, utlizing `TensorOperations`.
 """
