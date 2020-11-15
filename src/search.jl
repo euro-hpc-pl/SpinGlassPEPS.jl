@@ -56,60 +56,11 @@ function spectrum(ψ::MPS, keep::Int)
         states = B[:, perm]
 
         prob = vec(pdo)[perm]
-
-        #p = vec(pdo)[perm[k+1]]
-        #pCut < p ? pCut = p : ()
+        #pCut < last(prob) ? pCut = last(prob) : ()
     end
-    states, prob #, pCut
+    states, prob# ,pCut
 end
 
-#=
-function spectrum(ρ::MPS, k::Int) 
-    # ρ needs to be in the right canonical form
-    l = length(ρ)
-    T = eltype(ρ)
-
-    @assert k > 0 "Number of states has to be > 0."
-
-    left_env = fill(ones(T, 1, 1), 2*k)  
-    marginal_pdo = fill(0., 2*k)
-    partial_states = fill([], 2*k) 
-
-    pcut_max = 0.
-
-    for i ∈ 1:l
-        M = ρ[i]
-
-        r = size(M, 2)
-        basis = union(-1, 1:r-1)
-
-        for (j, (state, L)) ∈ enumerate(zip(partial_states[1:k], left_env[1:k]))
-            for σ ∈ basis
-                m = idx(σ)
-                n = j + (m - 1) * k
-                
-                left_env[n] = M[:, m, :]' * (L * M[:, m, :])
-                marginal_pdo[n] = tr(left_env[n])
-                partial_states[n] = push!(state, σ)
-            end  
-            
-            @info "Probability of spin being up, down" i j k marginal_pdo[j] marginal_pdo[k+j]
-            @info "Left environment" left_env[j] left_env[j+k]
-            @assert marginal_pdo[j] + marginal_pdo[k+j] ≈ 1
-        end
-
-        perm = sortperm(marginal_pdo, rev=true) 
-        marginal_pdo = marginal_pdo[perm]
-
-        pcut_max < marginal_pdo[k+1] ? pCutMax = marginal_pdo[k+1] : ()
-
-        partial_states = partial_states[perm]
-        left_env = left_env[perm]
-    end
-
-    partial_states[1:k], marginal_pdo[1:k], pcut_max
-end
-=#
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     M = ψ[i]
     h = get_prop(ig, i, :h)

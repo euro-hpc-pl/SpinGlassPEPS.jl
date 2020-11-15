@@ -79,7 +79,7 @@ ig = ising_graph(instance, N)
             @test ϱ[idx.(σ)...] ≈ p
         end 
 
-        max_states = N^2
+        max_states = N^2 - 1
         @info "Verifying low energy spectrum" max_states
 
         @test_nowarn is_right_normalized(rψ)
@@ -94,9 +94,9 @@ ig = ising_graph(instance, N)
             @test ϱ[idx.(σ)...] ≈ p
             @test abs(energy(σ, ig) - e) < ϵ
         end
-    end
-    
-    #=
+    end    
+
+        #=
     @info "Generating MPS from gates"
     Gψ = MPS(ig, mps_param, gibbs_param) 
 
