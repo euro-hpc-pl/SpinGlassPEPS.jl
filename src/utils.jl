@@ -1,6 +1,6 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export Reshape, all_states
+export all_states
 
 ising(σ::Union{Vector, NTuple}) = 2 .* σ .- 1
 
@@ -23,13 +23,6 @@ function all_states(rank::T) where T <: Union{Vector, NTuple}
 end 
 
 HadamardMPS(L::Int) = MPS(fill([1., 1.] / sqrt(2), L))
-
-function Reshape(A::AbstractArray{T}, dims::Tuple) where {T <: Number}
-    ord = reverse(1:length(dims))
-
-    A = reshape(A, reverse(dims))
-    permutedims(A, ord)
-end 
 
 function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int, args...) 
     fact = pqrfact(M, rank=Dcut, args...)

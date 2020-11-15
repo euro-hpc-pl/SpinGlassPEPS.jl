@@ -1,6 +1,5 @@
 export bond_dimension, is_left_normalized, is_right_normalized
 export verify_bonds, verify_physical_dims, tensor, rank
-using Base
 
 for (T, N) in ((:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
@@ -40,17 +39,17 @@ Base.size(a::AbstractMPSorMPO) = (length(a.tensors), )
 
 LinearAlgebra.rank(ψ::MPS) = Tuple(size(A, 2) for A ∈ ψ)
 
-MPS(A::Array) = MPS(A, :right)
-MPS(A::Array, s::Symbol, args...) = MPS(A, Val(s), typemax(Int), args...)
-MPS(A::Array, s::Symbol, Dcut::Int, args...) = MPS(A, Val(s), Dcut, args...)
-MPS(A::Array, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(A, Dcut, args...)
-MPS(A::Array, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(A, Dcut, args...)
+MPS(A::AbstractArray) = MPS(A, :right)
+MPS(A::AbstractArray, s::Symbol, args...) = MPS(A, Val(s), typemax(Int), args...)
+MPS(A::AbstractArray, s::Symbol, Dcut::Int, args...) = MPS(A, Val(s), Dcut, args...)
+MPS(A::AbstractArray, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(A, Dcut, args...)
+MPS(A::AbstractArray, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(A, Dcut, args...)
 
-function _right_sweep_SVD(Θ::Array{T}, Dcut::Int=typemax(Int), args...) where {T}
+function _right_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) where {T}
     rank = ndims(Θ)
     ψ = MPS(T, rank)
 
-    V = Reshape(copy(conj(Θ)), (length(Θ), 1))
+    V = reshape(copy(conj(Θ)), (length(Θ), 1))
 
     for i ∈ 1:rank
         d = size(Θ, i)
@@ -69,11 +68,11 @@ function _right_sweep_SVD(Θ::Array{T}, Dcut::Int=typemax(Int), args...) where {
     ψ
 end
 
-function _left_sweep_SVD(Θ::Array{T}, Dcut::Int=typemax(Int), args...) where {T}
+function _left_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) where {T}
     rank = ndims(Θ)
     ψ = MPS(T, rank)
 
-    U = Reshape(copy(Θ), (length(Θ), 1))
+    U = reshape(copy(Θ), (length(Θ), 1))
 
     for i ∈ rank:-1:1
         d = size(Θ, i)
@@ -93,8 +92,11 @@ function _left_sweep_SVD(Θ::Array{T}, Dcut::Int=typemax(Int), args...) where {T
 end 
 
 function tensor(ψ::MPS, state::Union{Vector, NTuple})
-    ρ = [A[:, idx(σ), :] for (A, σ) ∈ zip(ψ, state)]
-    tr(*(ρ...))
+    C = I
+    for  (A, σ) ∈ zip(ψ, state)
+        C *= A[:, idx(σ), :]
+    end
+    tr(C)
 end
 
 function tensor(ψ::MPS)
@@ -112,7 +114,7 @@ function MPS(states::Vector{Vector{T}}) where {T <: Number}
     ψ = MPS(T, L)
     for i ∈ 1:L
         v = states[i]
-        ψ[i] = Reshape(copy(v), (1, length(v), 1))
+        ψ[i] = reshape(copy(v), (1, length(v), 1))
     end
     ψ
 end

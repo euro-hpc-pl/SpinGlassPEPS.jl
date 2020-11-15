@@ -43,7 +43,7 @@ end
 @testset "Reshaping (row-wise)" begin
     vec = Vector(1:6)
 
-    A = Reshape(vec, (2, 3))
+    A = reshape_row(vec, (2, 3))
     B = [1 2 3; 4 5 6]
 
     @test A ≈ B
@@ -55,7 +55,7 @@ end
     vec = kron(states...)
 
     ψ = tensor(MPS(states))
-    ϕ = Reshape(vec, dims)
+    ϕ = reshape_row(vec, dims)
 
     @test ψ ≈ ϕ
 end 

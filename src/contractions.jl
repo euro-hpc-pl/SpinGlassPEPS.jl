@@ -10,7 +10,7 @@ export left_env, right_env, dot!
 #
 
 function LinearAlgebra.dot(ψ::MPS, state::Union{Vector, NTuple}) 
-    C = ones(eltype(ψ), 1, 1)
+    C = I
 
     for (M, σ) ∈ zip(ψ, state)        
         i = idx(σ)
@@ -28,7 +28,7 @@ function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
         M̃ = conj(ϕ[i])
         @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ) 
     end
-    C[1]
+    tr(C)
 end
 
 function left_env(ϕ::MPS, ψ::MPS) 
@@ -80,7 +80,7 @@ function LinearAlgebra.dot(ϕ::MPS, O::Union{Vector, NTuple}, ψ::MPS) #where T 
         Mat = O[i]
         @tensor C[x, y] := M̃[β, σ, x] * Mat[σ, η] * C[β, α] * M[α, η, y] order = (α, η, β, σ)
     end
-    C[1]
+    tr(C)
 end
 
 function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}

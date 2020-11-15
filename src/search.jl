@@ -13,6 +13,9 @@ struct MPSControl
     max_sweeps::Int
 end
 
+const P = [1. 0]
+const D = I(2)
+
 function spectrum(ρ::MPS, k::Int) 
     # ρ needs to be in the right canonical form
     l = length(ρ)
@@ -72,9 +75,9 @@ function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j
     J = get_prop(ig, i, j, :J) 
     C = [exp(0.5 * dβ * k * J * l) for k ∈ [-1, 1], l ∈ [-1, 1]]
 
-    D = I(2)
-    P = [[1.] [0.]]
-    if j == length(ψ) δ = P' else δ = D end
+
+    δ = j == length(ψ) ? P' : D
+    j == length(ψ) ? δ = P' : δ = D
 
     @cast M̃[(x, a), σ, (y, b)] := C[σ, x] * δ[x, y] * M[a, σ, b]                      
     ψ[j] = M̃
@@ -83,9 +86,7 @@ end
 function _apply_projector!(ψ::AbstractMPS, i::Int)
     M = ψ[i]
 
-    D = I(2)
-    P = [[1.] [0.]]
-    if i == 1 δ = P else δ = D end
+    δ = i == 1 ? P : D
  
     @cast M̃[(x, a), σ, (y, b)] := D[σ, y] * δ[x, y] * M[a, σ, b]
     ψ[i] = M̃
@@ -93,9 +94,7 @@ end
 
 function _apply_nothing!(ψ::AbstractMPS, i::Int) 
     M = ψ[i] 
-
-    D = I(2)
-    P = [[1.] [0.]]     
+  
     if i == 1  δ = P  elseif  i == length(ψ)  δ = P'  else  δ = D end  
 
     @cast M̃[(x, a), σ, (y, b)] := δ[x, y] * M[a, σ, b] 
