@@ -19,12 +19,11 @@ end
 
 function brute_force(ig::MetaGraph, k::Int=1)
     L = nv(ig)
-    states = to_ising.(digits.(0:2^L-1, base=2, pad=L))
+    states = ising.(digits.(0:2^L-1, base=2, pad=L))
     energies = energy.(states, Ref(ig))
     perm = sortperm(energies)
     states[perm][1:k], energies[perm][1:k]
 end  
-
 
 function gibbs_tensor(ig::MetaGraph, opts::GibbsControl)
     L = nv(ig)

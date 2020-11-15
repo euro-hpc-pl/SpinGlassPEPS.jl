@@ -74,8 +74,8 @@ using GraphPlot
 
             @test maximum(R) ≈ maximum(ρ)
             @test minimum(R) ≈ minimum(ρ)
-            
-            @test [ρ[_toIdx.(σ)...] for σ ∈ states] ≈ R
+
+            @test [ρ[idx.(σ)...] for σ ∈ states] ≈ R
         end
     end
 end

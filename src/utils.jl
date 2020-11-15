@@ -1,7 +1,54 @@
-export idx, to_ising
+export idx, ising, proj
+export HadamardMPS, rq
+export all_states
 
-to_ising(state) = 2 .* state .- 1
+ising(σ::Union{Vector, NTuple}) = 2 .* σ .- 1
 
-idx(s::Int) = idx(Val(s))
-idx(::Val{-1}) = 1
-idx(::Val{1}) = 2
+idx(σ::Int) = (σ == -1) ? 1 : σ + 1
+_σ(idx::Int) = (idx == 1) ? -1 : idx - 1 
+
+function proj(state::T, dims::S) where {T, S <: Union{Vector, NTuple}}
+    P = [] 
+    for (σ, r) ∈ zip(state, dims)
+        v = zeros(r)
+        v[idx(σ)...] = 1.
+        push!(P, v * v')
+    end
+    P
+end 
+
+function all_states(rank::T) where T <: Union{Vector, NTuple}
+    basis = [union(-1, 1:r-1) for r ∈ rank]
+    product(basis...)
+end 
+
+HadamardMPS(L::Int) = MPS(fill([1., 1.] / sqrt(2), L))
+
+function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int, args...) 
+    fact = pqrfact(M, rank=Dcut, args...)
+    Q = fact[:Q]
+    R = fact[:R]
+    return _qr_fix(Q, R)
+end     
+
+function rq(M::AbstractMatrix, Dcut::Int, args...) 
+    fact = pqrfact(:c, conj.(M), rank=Dcut, args...)
+    Q = fact[:Q]
+    R = fact[:R]
+    return _qr_fix(Q, R)'
+end  
+
+function _qr_fix(Q::AbstractMatrix, R::AbstractMatrix)
+    d = diag(R)
+    ph = d./abs.(d)
+    idim = size(R, 1)
+    q = Matrix(Q)[:, 1:idim]
+    return transpose(ph) .* q
+end
+
+function LinearAlgebra.svd(A::AbstractMatrix, Dcut::Int, args...)
+    U, Σ, V = psvd(A, rank=Dcut, args...)
+    d = diag(U)
+    ph = d ./ abs.(d)
+    return  U * Diagonal(ph), Σ, V * Diagonal(ph)
+end

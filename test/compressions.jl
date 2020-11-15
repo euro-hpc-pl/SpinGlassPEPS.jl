@@ -18,14 +18,14 @@ T = Float64
 @testset "Canonisation (left)" begin
     canonise!(ψ, :left)  
     show(ψ)  
-    @test _is_left_normalized(ψ) 
+    @test is_left_normalized(ψ) 
     @test dot(ψ, ψ) ≈ 1  
 end
 
 @testset "Canonisation (right)" begin
     canonise!(ϕ, :right)  
     show(ϕ)
-    @test _is_right_normalized(ϕ) 
+    @test is_right_normalized(ϕ) 
     @test dot(ϕ, ϕ) ≈ 1      
 end
 
@@ -51,6 +51,21 @@ end
     @test dot(ψ, ψ) ≈ 1     
 end
 
+@testset "<left|right>" begin
+    ϵ = 1E-14
+    ψ  = randn(MPS{T}, sites, D, d)
+
+    l = copy(ψ)
+    r = copy(l)
+    canonise!(l, :left) 
+    canonise!(r, :right)
+
+    @test dot(l, l) ≈ 1
+    @test dot(r, r) ≈ 1
+
+    @test abs(1 - abs(dot(l, r))) < ϵ 
+end 
+
 @testset "Variational compression" begin
     Dcut = 5
     tol = 1E-4
@@ -68,45 +83,12 @@ end
     println("(Φ, Φ) = ", dot(Φ, Φ))
 
     overlap = dot(Ψ, Φ)
-    dist1 = 2 - 2 * real(overlap)
-    dist2 = norm(Ψ)^2 + norm(Φ)^2 - 2 * real(overlap)
+    dist1 = 2 - 2 * abs(overlap)
+    dist2 = norm(Ψ)^2 + norm(Φ)^2 - 2 * abs(overlap)
 
     @test abs(dist1 - dist2) < 1e-14
 
     println("(Φ, Ψ) = ", overlap)
     println("dist(Φ, Ψ)^2 = ", dist2)
-end
-
-@testset "Compare with Krzysiek's implementation" begin
-    Dcut = 2
-    tol = 1E-4
-    max_sweeps = 5
-
-    canonise!(Φ, :right)
-    @test dot(Φ, Φ) ≈ 1 
-
-    Ψ = compress(Φ, Dcut, tol, max_sweeps)  
-
-    Φ_trunc = copy(Φ)
-    truncate!(Φ_trunc, :right, Dcut)
-
-    permuted_mps = map(x->permutedims(x, (1,3,2)), Φ.tensors)
-    # tensors = compress_mps_itterativelly(, Φ_trunc.tensors, Dcut, tol)
-    tensors = compress_iter(permuted_mps, Dcut, tol)
-    tensors = map(x->permutedims(x, (1,3,2)), tensors)
-    ξ = MPS(tensors)
-    # ξ.tensors = tensors
-     
-    @test dot(ξ, ξ) ≈ 1   
-
-    println("(ξ, ξ) = ", dot(ξ, ξ))
-
-    overlap = dot(Ψ, ξ)
-    dist1 = 2 - 2 * real(overlap)
-    dist2 = norm(Ψ)^2 + norm(ξ)^2 - 2 * real(overlap)
-
-    @test abs(dist1 - dist2) < 1e-14
-        
-    println("Krzysiek wins - flawless victory, fatality.")
 end
 end
