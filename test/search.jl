@@ -23,12 +23,12 @@ ig = ising_graph(instance, N)
     gibbs_param = GibbsControl(β, β_schedule)
     mps_param = MPSControl(Dcut, var_tol, max_sweeps) 
 
-    @testset "Gibbs pure state (MPS)" begin
+    @testset "Exact Gibbs pure state (MPS)" begin
         d = 2
         L = nv(ig)
         dims = fill(d, L)
 
-        @info "Generating exact Gibbs state - |ρ>" d L dims β ϵ
+        @info "Generating Gibbs state - |ρ>" d L dims β ϵ
 
         ϱ = gibbs_tensor(ig, gibbs_param)
         @test sum(ϱ) ≈ 1
@@ -53,33 +53,21 @@ ig = ising_graph(instance, N)
         ρ = abs.(ψ) .^ 2 
         @test ρ / sum(ρ) ≈ ϱ
 
-        @info "Generating MPS from exact |ρ>"
+        @info "Generating MPS from |ρ>"
         rψ = MPS(ψ)
         @test dot(rψ, rψ) ≈ 1
 
         lψ = MPS(ψ, :left)
         @test dot(lψ, lψ) ≈ 1
  
-        vlψ = tensor(lψ)
-        vrψ = tensor(rψ)
+        vlψ = vec(tensor(lψ))
+        vrψ = vec(tensor(rψ))
 
         vψ = vec(ψ)
         vψ /= norm(vψ)
 
-        @test abs(1 - abs( dot( vec(vlψ), vec(vrψ)) ) ) < ϵ
-        @test abs(1 - abs( dot( vec(vlψ), vψ) ) ) < ϵ
-
-        @info "Generating MPS from gates"
-
-        #=
-        Gψ = MPS(ig, mps_param, gibbs_param) 
-
-        @test bond_dimension(Gρ) > 1
-        @test dot(Gρ, Gρ) ≈ 1
-        @test_nowarn verify_bonds(ρ)
-
-        @test abs(1 - abs(dot(Gψ, rψ) ) ) < ϵ # this does not work
-        =#
+        @test abs(1 - abs(dot(vlψ, vrψ))) < ϵ
+        @test abs(1 - abs(dot(vlψ, vψ))) < ϵ
 
         @info "Verifying probabilities" L β
 
@@ -90,15 +78,32 @@ ig = ising_graph(instance, N)
             @test p ≈ r 
             @test ϱ[idx.(σ)...] ≈ p
         end 
+
+        max_states = N^2
+        @info "Verifying low energy spectrum" max_states
+
+        @test_nowarn is_right_normalized(rψ)
+
+        states, prob = spectrum(rψ, max_states)
+        states_bf, energies = brute_force(ig, max_states)
+
+        #@info "The largest discarded probability" pCut
+
+        for (j, (p, e)) ∈ enumerate(zip(prob, energies))
+            σ = states[:, j]
+            @test ϱ[idx.(σ)...] ≈ p
+            @test abs(energy(σ, ig) - e) < ϵ
+        end
     end
-
-
-    #=
-    @info "Verifying low energy spectrum"
-    states, probab, pCut = _spectrum(ρ, max_states)
-    @info "The largest discarded probability" pCut
-    @test energy.(states, Ref(ig)) ≈ energies
-    @test states == states_bf
-    =#
     
+    #=
+    @info "Generating MPS from gates"
+    Gψ = MPS(ig, mps_param, gibbs_param) 
+
+    @test bond_dimension(Gρ) > 1
+    @test dot(Gρ, Gρ) ≈ 1
+    @test_nowarn verify_bonds(ρ)
+
+    @test abs(1 - abs(dot(Gψ, rψ) ) ) < ϵ # this does not work
+    =#
 end

@@ -13,16 +13,16 @@ function brute_force_lazy(ig::MetaGraph, k::Int=1)
     L = nv(ig)
     states = product(fill([-1, 1], L)...)
     energies = vec(energy.(states, Ref(ig)))
-    perm = sortperm(energies)
-    collect.(states)[perm][1:k], energies[perm][1:k]
+    perm = partialsortperm(energies, 1:k) 
+    collect.(states)[perm], energies[perm]
 end    
 
 function brute_force(ig::MetaGraph, k::Int=1)
     L = nv(ig)
     states = ising.(digits.(0:2^L-1, base=2, pad=L))
     energies = energy.(states, Ref(ig))
-    perm = sortperm(energies)
-    states[perm][1:k], energies[perm][1:k]
+    perm = partialsortperm(energies, 1:k) 
+    states[perm], energies[perm]
 end  
 
 function gibbs_tensor(ig::MetaGraph, opts::GibbsControl)
