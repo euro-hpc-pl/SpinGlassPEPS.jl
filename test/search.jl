@@ -8,17 +8,48 @@ N = L^2
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 ig = ising_graph(instance, N)
 
+ϵ = 1E-14
+
+Dcut = N^2 + 1
+var_tol = 1E-8
+max_sweeps = 4
+
+β = 1
+dβ = 0.25
+β_schedule = [β] #[dβ for _ ∈ 1:4]
+
+@testset "Verifying gate operations" begin
+
+    @info "Applying nothing" ϵ 
+
+    ψ = HadamardMPS(N)
+    ϕ = copy(ψ)
+
+    @test dot(ψ, ψ) ≈ 1
+    @test dot(ϕ, ϕ) ≈ 1
+
+    for i ∈ 1:N
+        _apply_nothing!(ψ, i)
+    end
+
+    @test dot(ψ, ψ) ≈ 1
+    @test abs(1 - abs(dot(ψ, ϕ))) < ϵ
+
+    @info "Applying bias"
+    χ = copy(ϕ)
+    bias = [get_prop(ig, i, :h) for i ∈ 1:N]
+
+    for i ∈ 1:N
+        _apply_bias!(ϕ, ig, β, i)
+    end
+    
+    @test dot(ϕ, ϕ) ≈ prod(cosh(β * h) for h ∈ bias)
+
+    @info "Applying interaction"
+
+end
+
 @testset "MPS from gates" begin
-
-    ϵ = 1E-14
-
-    Dcut = 6
-    var_tol = 1E-8
-    max_sweeps = 4
-
-    β = 1
-    dβ = 0.25
-    β_schedule = [β] #[dβ for _ ∈ 1:4]
 
     gibbs_param = GibbsControl(β, β_schedule)
     mps_param = MPSControl(Dcut, var_tol, max_sweeps) 
@@ -70,17 +101,17 @@ ig = ising_graph(instance, N)
         @test abs(1 - abs(dot(vlψ, vrψ))) < ϵ
         @test abs(1 - abs(dot(vlψ, vψ))) < ϵ
 
+        #=
         @info "Verifying MPS from gates"
 
-        #=
         Gψ = MPS(ig, mps_param, gibbs_param) 
 
         @test_nowarn is_right_normalized(Gψ)
         @test bond_dimension(Gψ) > 1
         @test dot(Gψ, Gψ) ≈ 1
-        @test_nowarn verify_bonds(ρ)
+        @test_nowarn verify_bonds(Gψ)
 
-        @test abs(1 - abs(dot(Gψ, rψ) ) ) < ϵ 
+        @test abs(1 - abs(dot(Gψ, rψ))) < ϵ 
         =#
 
         @info "Verifying probabilities" L β

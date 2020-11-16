@@ -85,9 +85,9 @@ function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j
 
     J = get_prop(ig, i, j, :J)  
     C = [exp(0.5 * dβ * k * J * l) for k ∈ basis, l ∈ basis]
-    D = I(2)
+    D = Array(I(d))
 
-    δ = j == length(ψ) ? D[:,1] : D
+    δ = j == length(ψ) ? D[:, 1:1] : D
 
     @cast M̃[(x, a), σ, (y, b)] := C[σ, x] * δ[x, y] * M[a, σ, b]                      
     ψ[j] = M̃
@@ -95,19 +95,19 @@ end
 
 function _apply_projector!(ψ::AbstractMPS, i::Int)
     M = ψ[i]
-    D = I(size(M, 2))
+    D = Array(I(size(M, 2)))
 
-    δ = i == 1 ? D[1, :] : D
- 
+    δ = i == 1 ? D[1:1,:] : D
+
     @cast M̃[(x, a), σ, (y, b)] := D[σ, y] * δ[x, y] * M[a, σ, b]
     ψ[i] = M̃
 end
 
 function _apply_nothing!(ψ::AbstractMPS, i::Int) 
     M = ψ[i] 
-    D = I(size(M, 2))
+    D = Array(I(size(M, 2)))
 
-    if i == 1  δ = D[1,:]  elseif  i == length(ψ)  δ = D[:,1]  else  δ = D end  
+    if i == 1  δ = D[1:1,:]  elseif  i == length(ψ)  δ = D[:,1:1]  else  δ = D end  
 
     @cast M̃[(x, a), σ, (y, b)] := δ[x, y] * M[a, σ, b] 
     ψ[i] = M̃    
