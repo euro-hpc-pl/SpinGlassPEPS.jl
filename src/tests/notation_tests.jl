@@ -75,11 +75,6 @@ end
 @testset "grid formation" begin
     grid = [1 2 3; 4 5 6; 7 8 9]
 
-    @test is_element(1,1, grid) == true
-    @test is_element(1,5, grid) == false
-    @test is_element(0,1, grid) == false
-
-
     spins_inds = [7 8 9; 10 11 12; 13 14 15]
     i = 2
     v = Element_of_square_grid(i, grid, spins_inds)
