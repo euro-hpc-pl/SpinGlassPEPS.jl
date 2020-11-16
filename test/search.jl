@@ -69,6 +69,17 @@ ig = ising_graph(instance, N)
         @test abs(1 - abs(dot(vlψ, vrψ))) < ϵ
         @test abs(1 - abs(dot(vlψ, vψ))) < ϵ
 
+        #=
+        @info "Verifying MPS from gates"
+        Gψ = MPS(ig, mps_param, gibbs_param) 
+
+        @test bond_dimension(Gρ) > 1
+        @test dot(Gρ, Gρ) ≈ 1
+        @test_nowarn verify_bonds(ρ)
+
+        @test abs(1 - abs(dot(Gψ, rψ) ) ) < ϵ 
+        =#
+
         @info "Verifying probabilities" L β
 
         for σ ∈ states
@@ -79,31 +90,22 @@ ig = ising_graph(instance, N)
             @test ϱ[idx.(σ)...] ≈ p
         end 
 
-        max_states = N^2 - 1
-        @info "Verifying low energy spectrum" max_states
-
         @test_nowarn is_right_normalized(rψ)
 
-        states, prob = spectrum(rψ, max_states)
-        states_bf, energies = brute_force(ig, max_states)
+        for max_states ∈ [1, N, 2*N, N^2]
+            @info "Verifying low energy spectrum" max_states
 
-        #@info "The largest discarded probability" pCut
+            states, prob, pCut = spectrum(rψ, max_states)
+            states_bf, energies = brute_force(ig, max_states)
 
-        for (j, (p, e)) ∈ enumerate(zip(prob, energies))
-            σ = states[:, j]
-            @test ϱ[idx.(σ)...] ≈ p
-            @test abs(energy(σ, ig) - e) < ϵ
+            @info "The largest discarded probability" pCut
+            @test maximum(prob) > pCut
+
+            for (j, (p, e)) ∈ enumerate(zip(prob, energies))
+                σ = states[:, j]
+                @test ϱ[idx.(σ)...] ≈ p
+                @test abs(energy(σ, ig) - e) < ϵ
+            end
         end
     end    
-
-        #=
-    @info "Generating MPS from gates"
-    Gψ = MPS(ig, mps_param, gibbs_param) 
-
-    @test bond_dimension(Gρ) > 1
-    @test dot(Gρ, Gρ) ≈ 1
-    @test_nowarn verify_bonds(ρ)
-
-    @test abs(1 - abs(dot(Gψ, rψ) ) ) < ϵ # this does not work
-    =#
 end

@@ -1,11 +1,13 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states
+export all_states, local_basis
 
 ising(σ::Union{Vector, NTuple}) = 2 .* σ .- 1
 
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1 
+
+local_basis(d::Int) = union(-1, 1:d-1)
 
 function proj(state::T, dims::S) where {T, S <: Union{Vector, NTuple}}
     P = [] 
@@ -18,7 +20,7 @@ function proj(state::T, dims::S) where {T, S <: Union{Vector, NTuple}}
 end 
 
 function all_states(rank::T) where T <: Union{Vector, NTuple}
-    basis = [union(-1, 1:r-1) for r ∈ rank]
+    basis = [local_basis(r) for r ∈ rank]
     product(basis...)
 end 
 

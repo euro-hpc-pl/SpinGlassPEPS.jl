@@ -17,17 +17,20 @@ end
 function spectrum(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
-
-    k = 1
+    
+    keep_extra = keep
     pCut = prob = 0.
+    k = 1
+
+    if keep < (*)(rank(ψ)...)
+        keep_extra += 1
+    end
 
     states = fill([], 1, k)
     left_env = ones(T, 1, 1, k)
 
     for (i, M) ∈ enumerate(ψ)
         _, d, β = size(M)
-
-        basis = union(-1, 1:d-1)
 
         pdo = zeros(T, k, d)
         LL = zeros(T, β, β, k, d)
@@ -36,29 +39,31 @@ function spectrum(ψ::MPS, keep::Int)
         for j ∈ 1:k 
             L = left_env[:, :, j]
 
-            for σ ∈ basis
+            for σ ∈ local_basis(d)
                 m = idx(σ)
 
                 LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
                 pdo[j, m] = tr(LL[:, :, j, m])
-
                 config[:, j, m] = vcat(states[:, j]..., σ)
             end  
         end
-        k = min(k * d, keep)
 
-        perm = partialsortperm(vec(pdo), 1:k, rev=true)  
+        perm = collect(1: k * d)
+        k = min(k * d, keep_extra)
+
+        if k >= keep_extra
+            partialsortperm!(perm, vec(pdo), 1:k, rev=true)   
+            prob = vec(pdo)[perm]
+            pCut < last(prob) ? pCut = last(prob) : ()
+        end
 
         @cast A[α, β, (l, d)] |= LL[α, β, l, d] 
         left_env = A[:, :, perm]
 
         @cast B[α, (l, d)] |= config[α, l, d]
         states = B[:, perm]
-
-        prob = vec(pdo)[perm]
-        #pCut < last(prob) ? pCut = last(prob) : ()
     end
-    states, prob# ,pCut
+    states[:, 1:keep], prob[1:keep], pCut
 end
 
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
