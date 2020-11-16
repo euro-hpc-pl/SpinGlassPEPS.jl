@@ -12,30 +12,26 @@ using NPZ
     ens = data["energies"]
     states = data["states"]
 
-    ints = M2interactions(QM)
+    g = M2graph(-QM)
 
-    grid = [1 2 3 4 5; 6 7 8 9 10; 11 12 13 14 15; 16 17 18 19 20; 21 22 23 24 25]
-    ns = [Node_of_grid(i, grid, ints) for i in 1:maximum(grid)]
-
-    # PEPS exact
     objective_exact = 0.
 
     @testset "peps exact and approximated one spin nodes" begin
 
-        spins_exact, objective_exact = solve(ints, ns, grid, 10; β = β, χ = 0, threshold = 0.)
+        spins_exact, objective_exact = solve(g, 10; β = β, χ = 0, threshold = 0.)
 
         for i in 1:10
-            @test v2energy(QM, spins_exact[i]) ≈ -ens[i]
+            @test v2energy(QM, spins_exact[i]) ≈ ens[i]
             @test spins_exact[i] == Int.(states[i,:])
         end
 
         # PEPS approx
 
         χ = 2
-        spins_approx, objective_approx = solve(ints, ns, grid, 10; β = β, χ = χ, threshold = 1e-10)
+        spins_approx, objective_approx = solve(g, 10; β = β, χ = χ, threshold = 1e-10)
 
         for i in 1:10
-            @test v2energy(QM, spins_approx[i]) ≈ -ens[i]
+            @test v2energy(QM, spins_approx[i]) ≈ ens[i]
             @test spins_approx[i] == Int.(states[i,:])
         end
 
@@ -47,16 +43,12 @@ using NPZ
 
         # forming a grid
 
-        grid1, M = form_a_grid((2,2), (5,5))
-
-        ns_l = [Node_of_grid(i, M, grid1, ints) for i in 1:maximum(M)]
-
         χ = 2
 
-        spins_l, objective_l = solve(ints, ns_l, M, 10; β = β, χ = χ, threshold = 1e-10)
+        spins_l, objective_l = solve(g, 10; β = β, χ = χ, threshold = 1e-10, node_size = (2,2))
 
         for i in 1:10
-            @test v2energy(QM, spins_l[i]) ≈ -ens[i]
+            @test v2energy(QM, spins_l[i]) ≈ ens[i]
             @test spins_l[i] == Int.(states[i,:])
         end
 
@@ -67,14 +59,14 @@ using NPZ
     @testset "mpo-mps one spin nodes" begin
 
         # MPS MPO treates as a graph without the structure
-        
+
         χ = 10
         β_step = 2
-        g = interactions2graph(ints)
+
         spins_mps, objective_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
 
         for i in 1:10
-            @test v2energy(QM, spins_mps[i]) ≈ -ens[i]
+            @test v2energy(QM, spins_mps[i]) ≈ ens[i]
             @test spins_mps[i] == Int.(states[i,:])
         end
     end
@@ -89,12 +81,10 @@ function Qubo2M(Q::Matrix{T}) where T <: AbstractFloat
     J + h
 end
 
-spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
 
 @testset "mpo-mps small instance of rail dispratching problem" begin
 
     # testing converts
-    @test spins2binary([-1,-1,1,1]) == [0,0,1,1]
 
     X = rand(10,10)
     X = X*X'
@@ -127,10 +117,9 @@ spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
         M[i,j] = d[3]
     end
 
-    #-1 this for the model
-    J = -1*Qubo2M(M)
-    q_vec = M2interactions(J)
-    g = interactions2graph(q_vec)
+    # TODO use the read function
+    J = Qubo2M(M)
+    g = M2graph(J)
 
     # parameters of the solver
     χ = 10

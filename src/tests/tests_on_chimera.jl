@@ -1,5 +1,6 @@
 using NPZ
 using ArgParse
+using CSV
 #addprocs(1)
 
 include("../notation.jl")
@@ -7,11 +8,8 @@ include("../brute_force.jl")
 include("../compression.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
+include("../ising.jl")
 
-problem_size = 128
-file = "001.txt"
-β = 2.
-χ = 20
 
 s = ArgParseSettings("description")
   @add_arg_table! s begin
@@ -41,42 +39,43 @@ println(folder)
 problem_size = parse_args(s)["size"]
 β = parse_args(s)["beta"]
 χ = parse_args(s)["chi"]
+#si = parse_args(s)["size"]
+
+function make_graph(data::Array{Array{Any,1},1})
+    L = Int(maximum(maximum(data)))
+    M = zeros(L,L)
+    println("problem size = ", size(data,1))
+
+    ig = MetaGraph(L, 0.0)
+
+    set_prop!(ig, :description, "The Ising model.")
+
+    for k in 1:size(data,1)
+        i = Int(data[k][1])
+        j = Int(data[k][2])
+        v = Float64(data[k][3])
+        if i == j
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
+        else
+            add_edge!(ig, i, j) &&
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+        end
+        M[i,j] = M[j,i] = v
+    end
+    ig, M
+end
+
+
+# TODO this does not work
+#ig = ising_graph(fi, size)
 
 # reading data from txt
 data = (x-> Array{Any}([parse(Int, x[1]), parse(Int, x[2]), parse(Float64, x[3])])).(split.(readlines(open(fi))[2:end]))
 
 
-function make_interactions(data::Array{Array{Any,1},1})
-    interactions = Interaction{Float64}[]
-    for k in 1:size(data,1)
-        i = Int(data[k][1])
-        j = Int(data[k][2])
-        J = -1*Float64(data[k][3])
-        push!(interactions, Interaction((i,j), J))
-    end
-    interactions
-end
+g, M = make_graph(data)
 
-# TODO this seams not to work proprtly
-function M2Qubo(M::Matrix{T}) where T <: AbstractFloat
-    h = diagm(diag(M))
-    J = M-h
-    a = 4*J
-    b = 2*h - 2*diagm(dropdims(sum(J; dims=1); dims=1))
-    a+b
-end
-
-interactions = make_interactions(data)
-
-M = -1*interactions2M(interactions)
-
-n = Int(sqrt(problem_size/8))
-
-grid, nodes_numbers = form_a_chimera_grid(n)
-
-ns = [Node_of_grid(i,nodes_numbers, grid, interactions; chimera = true) for i in 1:(n*n)]
-
-@time spins, objective = solve(interactions, ns, nodes_numbers, 10; β=β, χ = χ, threshold = 1e-8)
+@time spins, objective = solve(g, 10; β=β, χ = χ, threshold = 1e-8)
 
 energies = [v2energy(M, s) for s in spins]
 

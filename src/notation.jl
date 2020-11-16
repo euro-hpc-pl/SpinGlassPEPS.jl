@@ -2,20 +2,6 @@ using TensorOperations
 using LightGraphs
 using MetaGraphs
 
-### the following are used to write and stopre J an h
-# Interaction type are used to distinguish zero interactions
-# strength and no interactions
-
-struct Interaction{T<:AbstractFloat}
-    ind::Tuple{Int, Int}
-    coupling::T
-    function(::Type{Interaction{T}})(ind::Tuple{Int, Int}, coupling::T1) where {T <: AbstractFloat, T1 <: AbstractFloat}
-        new{T}(ind, T(coupling))
-    end
-    function(::Type{Interaction})(ind::Tuple{Int, Int}, coupling::Float64)
-        new{Float64}(ind, coupling)
-    end
-end
 
 #############    forming varous grids    #############
 function nxmgrid(n::Int, m::Int)
@@ -68,7 +54,7 @@ function chimera_cell(i::Int, j::Int, size::Int)
     cel
 end
 
-# TODO this needs to be altered bor larger chimera cell
+# TODO this needs to be altered for larger chimera cell
 function form_a_chimera_grid(n::Int)
     problem_size = 8*n^2
     M = nxmgrid(n,n)
@@ -109,15 +95,6 @@ function fullM2grid!(M::Matrix{Float64}, s::Tuple{Int, Int})
 end
 
 
-function get_system_size(interactions::Vector{Interaction{T}}) where T <: AbstractFloat
-    size = 0
-    for q in interactions
-        size = maximum([size, q.ind[1], q.ind[2]])
-    end
-    size
-end
-
-
 """
     ind2spin(i::Int, s::Int = 2)
 
@@ -146,63 +123,29 @@ function reindex(i::Int, no_spins::Int, subset_ind::Vector{Int})
 end
 
 
-"""
-    M2interactions(M::Matrix{T}) where T <:AbstractFloat
-
-Convert the interaction matrix (must be symmetric) to the vector
-of Interaction Type
-"""
-function M2interactions(M::Matrix{T}) where T <:AbstractFloat
-    interactions = Interaction{T}[]
-    s = size(M)
-    for i in 1:s[1]
-        for j in i:s[2]
-            if (M[i,j] != 0.) | (i == j)
-                x = M[i,j]
-                interaction = Interaction{T}((i,j), x)
-                push!(interactions, interaction)
-            end
-        end
-    end
-    interactions
-end
-
-"""
-    interactions2M(ints::Vector{Interaction{T}}) where T <: AbstractFloat
-
-inverse to M2interactions(M::Matrix{T})
-"""
-
-function interactions2M(ints::Vector{Interaction{T}}) where T <: AbstractFloat
-    s = get_system_size(ints)
-    Mat = zeros(T,s,s)
-    for q in ints
-        (i,j) = q.ind
-        Mat[i,j] = Mat[j,i] = q.coupling
-    end
-    Mat
-end
-
-function interactions2graph(ints::Vector{Interaction{T}}) where T <: AbstractFloat
-    L = get_system_size(ints)
-
+# TODO test it
+function M2graph(M::Matrix{Float64})
+    size(M,1) == size(M,2) || error("matrix not squared")
+    L = size(M,1)
+    #TODO is symmetric
     ig = MetaGraph(L, 0.0)
 
     set_prop!(ig, :description, "The Ising model.")
 
-    # setup the model (J_ij, h_i)
-    for q ∈ ints
-        (i,j) = q.ind
-        v = q.coupling
-        if i == j
-            set_prop!(ig, i, :h, v) || error("Node $i missing!")
-        else
-            add_edge!(ig, i, j) &&
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+    # takes lower triangular
+    for i in 1:size(M, 1)
+        for j in 1:i
+            if i == j
+                set_prop!(ig, i, :h, M[i,i]) || error("Node $i missing!")
+            elseif M[i,j] != 0.
+                add_edge!(ig, i, j) &&
+                set_prop!(ig, i, j, :J, M[i,j]) || error("Cannot add Egde ($i, $j)")
+            end
         end
     end
     ig
 end
+
 
 function graph4mps(ig::MetaGraph)
     for v in vertices(ig)
@@ -214,32 +157,7 @@ function graph4mps(ig::MetaGraph)
 end
 
 
-"""
-    getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
-
-reades the coupling from the interactions, returns the number
-"""
-function getJ(interactions::Vector{Interaction{T}}, i::Int, j::Int) where T <: AbstractFloat
-    try
-        return filter(x->x.ind==(i,j), interactions)[1].coupling
-    catch
-        return filter(x->x.ind==(j,i), interactions)[1].coupling
-    end
-end
-
-# TODO following are used to form a grid,
-# they should be compleated and incorporated into the solver
-
-
-function is_element(i::Int, j::Int, grid::Matrix{Int})
-    try
-        grid[i, j]
-        return true
-    catch
-        return false
-    end
-end
-
+# TODO is this needed?
 function position_in_cluster(cluster::Vector{Int}, i::Int)
     # cluster is assumed to be unique
     return findall(x->x==i, cluster)[1]
@@ -385,7 +303,7 @@ function is_grid(ig::MetaGraph, g_elements)
 end
 
 
-function interactions2grid_graph(ig::MetaGraph, ints::Vector{Interaction{T}}, cell_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
+function interactions2grid_graph(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
     L = nv(ig)
 
     M = zeros(1,1)
@@ -417,7 +335,7 @@ function interactions2grid_graph(ig::MetaGraph, ints::Vector{Interaction{T}}, ce
         set_prop!(g, i, :column, g_element.column)
         set_prop!(g, i, :spins, g_element.spins_inds)
 
-        internal_e = log_internal_energy(g_element, ints)
+        internal_e = log_internal_energy(g_element, ig)
         set_prop!(g, i, :log_energy, internal_e)
 
         if g_element.column < size(M, 2)
@@ -430,7 +348,7 @@ function interactions2grid_graph(ig::MetaGraph, ints::Vector{Interaction{T}}, ce
         if g_element.column > 1
             ip = M[g_element.row, g_element.column-1]
             e = Edge(i, ip)
-            J = get_Js(g_element, g_elements[ip], ints, connection = "lr")
+            J = get_Js(g_element, g_elements[ip], ig, connection = "lr")
             M_left = M_of_interaction(g_element, J, g_element.left)
             set_prop!(g, e, :M, M_left)
         end
@@ -445,7 +363,7 @@ function interactions2grid_graph(ig::MetaGraph, ints::Vector{Interaction{T}}, ce
         if g_element.row > 1
             ip = M[g_element.row-1, g_element.column]
             e = Edge(i, ip)
-            J = get_Js(g_element, g_elements[ip], ints, connection = "ud")
+            J = get_Js(g_element, g_elements[ip], ig, connection = "ud")
             M_up = M_of_interaction(g_element, J, g_element.up)
             set_prop!(g, e, :M, M_up)
         end
@@ -453,32 +371,21 @@ function interactions2grid_graph(ig::MetaGraph, ints::Vector{Interaction{T}}, ce
     g
 end
 
-"""
-    struct Node_of_grid
-
-this structure is supposed to include all information about nodes on the grid.
-necessary to crearte the corresponding tensor (e.g. the element of the peps).
-"""
-# TODO this for sure need to be clarified, however I would leave such
-# approach. It allows for easy creation of various grids of interactions
-# (e.g. Pegasusu) and its modification during computation (if necessary).
 
 
-
-
-function log_internal_energy(g::EE, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
+function log_internal_energy(g::EE, ig::MetaGraph)
 
     # TODO h and J this will be from a grid
-    hs = [getJ(interactions, i, i) for i in g.spins_inds]
+    hs = [props(ig, i)[:h] for i in g.spins_inds]
     no_spins = length(g.spins_inds)
 
-    log_energy = zeros(T, 2^no_spins)
+    log_energy = zeros(2^no_spins)
 
     for i in 1:2^no_spins
         σs = ind2spin(i, no_spins)
         e = sum(σs.*hs)
         for pair in g.intra_struct
-            J = getJ(interactions, pair...)
+            J = props(ig, pair[1], pair[2])[:J]
             i1 = position_in_cluster(g.spins_inds, pair[1])
             i2 = position_in_cluster(g.spins_inds, pair[2])
             e = e + 2*σs[i1]*σs[i2]*J
@@ -507,101 +414,8 @@ function M_of_interaction(g::EE, J::Vector{T}, spin_subset::Vector{Int}) where T
 end
 
 
-
-struct Node_of_grid
-    spins_inds::Vector{Int}
-    row::Int
-    column::Int
-    right::Vector{Int}
-    down::Vector{Int}
-    energy::Vector{Float64}
-    energy_left::Array{Float64, 2}
-    energy_up::Array{Float64, 2}
-
-    function(::Type{Node_of_grid})(i::Int, grid::Matrix{Int}, interactions::Vector{Interaction{T}}) where T <: AbstractFloat
-        s = size(grid)
-        intra_struct = Vector{Int}[]
-
-        g = Element_of_square_grid(i, grid)
-
-        a = findall(x->x==i, grid)[1]
-        j = a[1]
-        k = a[2]
-
-        el = zeros(1,2)
-        eu = zeros(1,2)
-
-        if g.column > 1
-            ip = grid[j, k-1]
-            left_J = [getJ(interactions, i, ip)]
-            el = M_of_interaction(g, left_J, g.left)
-        end
-
-        if g.row > 1
-            ip = grid[j-1, k]
-            up_J = [getJ(interactions, i, ip)]
-            eu = M_of_interaction(g, up_J, g.up)
-        end
-
-        h = getJ(interactions, i, i)
-        log_energy = [-h, h]
-
-        new([i], g.row, g.column, g.right, g.down, log_energy, el, eu)
-    end
-    #construction from matrix of matrices (a grid of many nodes)
-    function(::Type{Node_of_grid})(i::Int, Mat::Matrix{Int},
-                                grid::Array{Array{Int64,N} where N,2},
-                                interactions::Vector{Interaction{T}};
-                                chimera::Bool = false) where T <: AbstractFloat
-
-
-
-        # TODO to below 10 lines is the working by-pass will be changed to graphs
-        a = findall(x->x==i, Mat)[1]
-        j = a[1]
-        k = a[2]
-        M = grid[j,k]
-
-
-        if chimera
-            g = Element_of_chimera_grid(i, Mat, M)
-        else
-            g = Element_of_square_grid(i, Mat, M)
-        end
-
-        el = zeros(1,2^length(g.spins_inds))
-        eu = zeros(1,2^length(g.spins_inds))
-
-        if is_element(j, k-1, Mat)
-            ip = Mat[j, k-1]
-            Mp = grid[j,k-1]
-
-            g1 = typeof(g)(ip, Mat, Mp)
-
-            left_J = get_Js(g, g1, interactions, connection = "lr")
-
-            el = M_of_interaction(g, left_J, g.left)
-        end
-
-        if is_element(j-1, k, Mat)
-            up_J = T[]
-            ip = Mat[j-1, k]
-            Mp = grid[j-1,k]
-            g1 = typeof(g)(ip, Mat, Mp)
-
-            up_J = get_Js(g, g1, interactions, connection = "ud")
-
-            eu = M_of_interaction(g, up_J, g.up)
-        end
-
-        log_energy = log_internal_energy(g, interactions)
-
-        new(g.spins_inds, g.row, g.column, g.right, g.down, log_energy, el, eu)
-    end
-end
-
-function get_Js(g::EE, g1::EE, interactions::Vector{Interaction{T}}; connection::String = "") where T <: AbstractFloat
-    J = T[]
+function get_Js(g::EE, g1::EE, ig::MetaGraph; connection::String = "")
+    J = Float64[]
     v = [0]
     v1 = [0]
     if connection == "lr"
@@ -615,7 +429,7 @@ function get_Js(g::EE, g1::EE, interactions::Vector{Interaction{T}}; connection:
     for i in 1:length(v)
         i1 = v[i]
         i2 = v1[i]
-        j = getJ(interactions, g.spins_inds[i1], g1.spins_inds[i2])
+        j = props(ig, g.spins_inds[i1], g1.spins_inds[i2])[:J]
         push!(J, j)
     end
     J
@@ -623,9 +437,9 @@ end
 
 ###################### Axiliary functions mainly for the solver ########
 
-function get_system_size(ns::Vector{Node_of_grid})
-    mapreduce(x -> length(x.spins_inds), +, ns)
-end
+#function get_system_size(ns::Vector{Node_of_grid})
+#    mapreduce(x -> length(x.spins_inds), +, ns)
+#end
 
 function get_system_size(g::MetaGraph)
     mapreduce(i -> length(props(g,i)[:spins]), +, vertices(g))
@@ -670,3 +484,6 @@ function vecvec2matrix(v::Vector{Vector{Int}})
     end
     M
 end
+
+
+spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]

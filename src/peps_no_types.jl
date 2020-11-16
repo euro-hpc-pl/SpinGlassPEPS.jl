@@ -63,7 +63,6 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
     log_energy = props(g, i)[:log_energy]
     for k in CartesianIndices(tuple(tensor_size[1], tensor_size[3]))
         energy = log_energy
-        #energy = n.energy
         # conctraction with Ms
         if column > 1
             @inbounds energy = energy + M_left[k[1], :]
@@ -72,7 +71,7 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
         if row > 1
             @inbounds energy = energy + M_up[k[2], :]
         end
-        energy = exp.(β.*(energy))
+        energy = exp.(-β.*(energy))
 
         # itteration over physical index
         for i in 1:tensor_size[5]
@@ -256,11 +255,10 @@ function conditional_probabs(mps::Vector{Array{T, 2}}) where T <: AbstractFloat
 end
 
 
-function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::T) where T <: AbstractFloat
+function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64) where T <: AbstractFloat
     grid = props(g)[:grid]
     s = size(grid,1)
     if k <= s
-        #mps = [sum_over_last(compute_single_tensor(ns[j], β)) for j in grid[s,:]]
         mps = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[s,:]]
         if threshold > 0.
             mps = compress_iter(mps, χ, threshold)
@@ -311,12 +309,10 @@ end
 
 # TODO this will be the exported function
 
-function solve(interactions::Vector{Interaction{T}}, ns::Vector{Node_of_grid}, grid::Matrix{Int},
-                                        no_sols::Int = 2; β::T, χ::Int = 0,
-                                        threshold::T = T(1e-14), node_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
+function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
+                threshold::Float64 = 1e-14, node_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
 
-    g = interactions2graph(interactions)
-    gg = interactions2grid_graph(g, interactions, node_size)
+    gg = interactions2grid_graph(g, node_size)
     # grid follows the iiteration
     grid = props(gg)[:grid]
     #ns = 0.
@@ -410,7 +406,7 @@ end
 return final solutions sorted backwards in form Vector{Partial_sol{T}}
 spins are given in -1,1
 """
-function return_solutions(partial_s::Vector{Partial_sol{T}}, ns::Union{Vector{Node_of_grid}, MetaGraph})  where T <: AbstractFloat
+function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  where T <: AbstractFloat
 
     # TODO this will need to be corrected
     if false

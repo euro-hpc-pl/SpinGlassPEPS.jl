@@ -179,7 +179,7 @@ function L_update(U::Array{T, 3}, U_exact::Array{T, 3}, R::Array{T, 2}) where T 
     C
 end
 
-function compress_mps_itterativelly(mps::Vector{Array{T,3}}, mps_anzatz::Vector{Array{T,3}}, threshold::T) where T <: AbstractFloat
+function compress_mps_itterativelly(mps::Vector{Array{T,3}}, mps_anzatz::Vector{Array{T,3}}, threshold::Float64) where T <: AbstractFloat
 
     mps_centr = [zeros(T, 1,1,1) for _ in 1:length(mps)]
 
@@ -272,7 +272,7 @@ end
 
 # various compressing schemes
 
-function compress_iter(mps::Vector{Array{T,3}}, χ::Int, threshold::T) where T <: AbstractFloat
+function compress_iter(mps::Vector{Array{T,3}}, χ::Int, threshold::Float64) where T <: AbstractFloat
     mps_lc = left_canonical_approx(mps, 0)
     mps_anzatz = left_canonical_approx(mps, χ)
     compress_mps_itterativelly(mps_lc, mps_anzatz, threshold)
@@ -281,7 +281,7 @@ end
 
 # TODO I made this simple implementation for the intra-step compression
 
-function compress_iter(mpo::Vector{Array{T,4}}, χ::Int, threshold::T) where T <: AbstractFloat
+function compress_iter(mpo::Vector{Array{T,4}}, χ::Int, threshold::Float64) where T <: AbstractFloat
     s = [size(el) for el in mpo]
     mps = [reshape(mpo[i], (s[i][1], s[i][2], s[i][3]*s[i][4])) for i in 1:length(mpo)]
     mps = compress_iter(mps, χ, threshold)

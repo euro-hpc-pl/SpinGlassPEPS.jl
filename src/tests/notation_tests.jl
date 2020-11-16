@@ -36,22 +36,11 @@
 end
 
 
-function make_interactions()
-    J_h = [(1,1) -0.2; (1,2) -0.5; (1,4) -1.5; (2,2) -0.6; (2,3) -1.5; (2,5) -0.5; (3,3) -0.2; (3,6) 1.5]
-    J_h = vcat(J_h, [(6,6) -2.2; (5,6) -0.25; (6,9) -0.52; (5,5) 0.2; (4,5) 0.5; (5,8) 0.5; (4,4) -2.2; (4,7) -0.01])
-    J_h = vcat(J_h, [(7,7) 0.2; (7,8) 0.5; (8,8) -0.2; (8,9) -0.05; (9,9) -0.8])
-    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
-end
-
-
 @testset "interactions and graph forming" begin
     M = ones(2,2)
-    interactions = M2interactions(M)
-    @test interactions == Interaction{Float64}[Interaction{Float64}((1, 1), 1.0), Interaction{Float64}((1, 2), 1.0), Interaction{Float64}((2, 2), 1.0)]
-    @test interactions2M(interactions) == ones(2,2)
 
     # graph for mps
-    g = interactions2graph(interactions)
+    g = M2graph(M)
     g = graph4mps(g)
     @test degree(g) == [1,1]
     @test props(g, 1)[:log_energy] == [-1., 1.]
@@ -60,10 +49,9 @@ end
     # graph for peps
     M = ones(4,4)
     fullM2grid!(M, (2,2))
-    interactions = M2interactions(M)
-    ig = interactions2graph(interactions)
+    ig = M2graph(M)
 
-    g1 = interactions2grid_graph(ig, interactions, (1,1))
+    g1 = interactions2grid_graph(ig, (1,1))
     @test props(g1, Edge(1,2))[:M] == [2.0 -2.0; -2.0 2.0]
     @test props(g1, Edge(2,4))[:M] == [2.0 -2.0; -2.0 2.0]
     @test props(g1, 1)[:log_energy] == [-1., 1.]
@@ -72,27 +60,15 @@ end
 
     M = ones(16,16)
     fullM2grid!(M, (4,4))
-    interactions = M2interactions(M)
-    ig = interactions2graph(interactions)
+    ig = M2graph(M)
 
-    g1 = interactions2grid_graph(ig, interactions, (2,2))
+    g1 = interactions2grid_graph(ig, (2,2))
     println(props(g1, Edge(1,2))[:M])
     println(props(g1, 1)[:log_energy])
     println(props(g1, Edge(1,2))[:inds])
     println(props(g1, Edge(1,3))[:inds])
 
-    interactions = make_interactions()
-
-    #n = Node_of_grid(1, interactions)
-    #@test n.connected_nodes == [2,4]
-
-    #n = Node_of_grid(5, interactions)
-    #@test n.connected_nodes == [2,6,4,8]
-
-    #n = Node_of_grid(9, interactions)
-    #@test n.connected_nodes == [6,8]
-
-    @test get_system_size(interactions) == 9
+    @test get_system_size(g1) == 16
 
 end
 
@@ -145,90 +121,99 @@ end
     #@test v.down == [1,2,3,4]
 end
 
+function make_interactions()
+    L = 9
+    J_h = [1 1 -0.2; 1 2 -0.5; 1 4 -1.5; 2 2 -0.6; 2 3 -1.5; 2 5 -0.5; 3 3 -0.2; 3 6 1.5]
+    J_h = vcat(J_h, [6 6 -2.2; 5 6 -0.25; 6 9 -0.52; 5 5 0.2; 4 5 0.5; 5 8 0.5; 4 4 -2.2; 4 7 -0.01])
+    J_h = vcat(J_h, [7 7 0.2; 7 8 0.5; 8 8 -0.2; 8 9 -0.05; 9 9 -0.8])
+
+    ig = MetaGraph(L, 0.0)
+
+    set_prop!(ig, :description, "The Ising model.")
+
+    for k in 1:size(J_h, 1)
+        i, j, v = J_h[k,:]
+        i = Int(i)
+        j = Int(j)
+        if i == j
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
+        else
+            add_edge!(ig, i, j) &&
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+        end
+    end
+    ig
+end
+
 @testset "axiliary functions for making nodes" begin
     cluster = [2,5,6,7,11]
     @test position_in_cluster(cluster, 6) == 3
     @test position_in_cluster(cluster, 2) == 1
 
-    interactions = make_interactions()
+    ig = make_interactions()
+
     grid = [1 2;3 4]
     spins_inds = [1 2; 4 5]
     # 1,1 elements of grid with spins [1 2; 4 5]
     v = Element_of_square_grid(1, grid, spins_inds)
-    println(log_internal_energy(v, interactions))
+
+    println(log_internal_energy(v, ig))
 end
 
 
-@testset "test notation" begin
+@testset "operations on spins" begin
+    A = ones(2,2,2,2)
+    @test sum_over_last(A) == 2*ones(2,2,2)
 
-    @testset "Interaction type" begin
-        el = Interaction((1,2), 1.1)
-        @test el.ind == (1,2)
-        @test el.coupling == 1.1
+    @test last_m_els([1,2,3,4], 2) == [3,4]
+    @test last_m_els([1,2,3,4], 5) == [1,2,3,4]
 
-        el = Interaction{BigFloat}((1,2), 1.1)
-        @test el.coupling == 1.1
-        @test typeof(el.coupling) == BigFloat
+    @test ind2spin(1,1) == [-1]
+    @test ind2spin(2,1) == [1]
+    @test ind2spin(1, 4) == [-1,-1,-1,-1]
+    @test ind2spin(2, 4) == [1,-1,-1,-1]
+    @test ind2spin(3, 4) == [-1,1,-1,-1]
 
-        interactions = make_interactions()
+    @test spins2ind([-1,-1,-1,-1]) == 1
+    @test spins2ind([1,-1,-1,-1]) == 2
+    @test spins2ind([-1,1,-1,-1]) == 3
 
-        @test getJ(interactions, 1,2) == -0.5
-        @test getJ(interactions, 2,1) == -0.5
-        @test_throws BoundsError getJ(interactions, 1,3)
-    end
+    @test spins2binary([-1,-1,1,1]) == [0,0,1,1]
 
-    @testset "axiliary" begin
-        A = ones(2,2,2,2)
-        @test sum_over_last(A) == 2*ones(2,2,2)
+    no_spins = 4
+    s = ind2spin(7, no_spins)
+    @test s == [-1, 1, 1, -1]
+    @test spins2ind(s) == 7
 
-        @test last_m_els([1,2,3,4], 2) == [3,4]
-        @test last_m_els([1,2,3,4], 5) == [1,2,3,4]
+    s = ind2spin(9, no_spins)
+    @test s == [-1, -1, -1, 1]
+    @test spins2ind(s) == 9
 
-        @test ind2spin(1,1) == [-1]
-        @test ind2spin(2,1) == [1]
-        @test ind2spin(1, 4) == [-1,-1,-1,-1]
-        @test ind2spin(2, 4) == [1,-1,-1,-1]
-        @test ind2spin(3, 4) == [-1,1,-1,-1]
+    no_spins = 8
+    index_all_spins = 3
+    indexes_of_subset = [2,3]
 
-        @test spins2ind([-1,-1,-1,-1]) == 1
-        @test spins2ind([1,-1,-1,-1]) == 2
-        @test spins2ind([-1,1,-1,-1]) == 3
-
-        no_spins = 4
-        s = ind2spin(7, no_spins)
-        @test s == [-1, 1, 1, -1]
-        @test spins2ind(s) == 7
-
-        s = ind2spin(9, no_spins)
-        @test s == [-1, -1, -1, 1]
-        @test spins2ind(s) == 9
+    @test reindex(index_all_spins, no_spins, indexes_of_subset) == 2
+    index_all_spins = 1
+    @test reindex(index_all_spins, no_spins, indexes_of_subset) == 1
 
 
-        no_spins = 8
-        index_all_spins = 3
-        indexes_of_subset = [2,3]
+    @test spins2binary([1,1,-1]) == [1,1,0]
+    @test binary2spins([0,0,1]) == [-1,-1,1]
 
-        @test reindex(index_all_spins, no_spins, indexes_of_subset) == 2
-        index_all_spins = 1
-        @test reindex(index_all_spins, no_spins, indexes_of_subset) == 1
-
-
-        @test spins2binary([1,1,-1]) == [1,1,0]
-        @test binary2spins([0,0,1]) == [-1,-1,1]
-
-        vecvec = [[1,1,-1],[1,-1,1]]
-        @test vecvec2matrix(vecvec) == [1 1; 1 -1; -1 1]
-    end
+    vecvec = [[1,1,-1],[1,-1,1]]
+    @test vecvec2matrix(vecvec) == [1 1; 1 -1; -1 1]
 end
+
 
 @testset "brute force testing" begin
     M = ones(3,3)
 
     v = [1,1,1]
-    @test -v2energy(M,v) == -9.
+    @test v2energy(M,v) == -9.
 
     v = [-1,-1,-1]
-    @test -v2energy(M,v) == -3.
+    @test v2energy(M,v) == -3.
 
     spins, energies = brute_force_solve(M, 2)
     @test spins == [[1, 1, 1], [-1, -1, -1]]

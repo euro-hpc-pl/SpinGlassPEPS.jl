@@ -103,7 +103,7 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
         # TODO remove array
         J = [props(g, Edge(i,j))[:J]]
 
-        mpo[j] = Ctensor(J*β, d, j==k, j==l)
+        mpo[j] = Ctensor(-J*β, d, j==k, j==l)
     end
     mpo
 end
@@ -115,7 +115,7 @@ function add_phase!(mps::Vector{Array{T, 3}}, g::MetaGraph, β::T) where T<: Abs
     for i in 1:length(mps)
         internal_e = props(g, i)[:log_energy]
         for j in 1:d
-            mps[i][:,:,j] = mps[i][:,:,j]*exp(internal_e[j]*β/2)
+            mps[i][:,:,j] = mps[i][:,:,j]*exp(-β/2*internal_e[j])
         end
     end
 end
@@ -235,39 +235,38 @@ function connections_for_mps(g::MetaGraph)
     all_is, all_js
 end
 
-function split_if_differnt_spins(is::Vector{Int}, js::Vector{Vector{Int}}, ns::Vector{Node_of_grid})
-    is_new = Int[]
-    js_new = Vector{Int}[]
-    for i in 1:length(is)
-        el_i = is[i]
-        el_j = js[i]
-        n = ns[el_i].connected_nodes
-        a = findall(x -> x == el_j[1], n)[1]
+#function split_if_differnt_spins(is::Vector{Int}, js::Vector{Vector{Int}}, ns::Vector{Node_of_grid})
+#    is_new = Int[]
+#    js_new = Vector{Int}[]
+#    for i in 1:length(is)
+#        el_i = is[i]
+#        el_j = js[i]
+#        n = ns[el_i].connected_nodes
+#        a = findall(x -> x == el_j[1], n)[1]
 
-        spins = ns[el_i].connected_spins[a][:,1]
-        push!(is_new, el_i)
-        j_temp = Int[]
-        for j in el_j
-            a = findall(x -> x == j, n)[1]
-            spins_temp = ns[el_i].connected_spins[a][:,1]
+#        spins = ns[el_i].connected_spins[a][:,1]
+#        push!(is_new, el_i)
+#        j_temp = Int[]
+#        for j in el_j
+#            a = findall(x -> x == j, n)[1]
+#            spins_temp = ns[el_i].connected_spins[a][:,1]
 
-            if spins != spins_temp
-                push!(is_new, el_i)
-                push!(js_new, j_temp)
-                j_temp = Int[]
-                spins = spins_temp
-            end
-            push!(j_temp, j)
-        end
-        push!(js_new, j_temp)
-    end
-    is_new, js_new
-end
+#            if spins != spins_temp
+#                push!(is_new, el_i)
+#                push!(js_new, j_temp)
+#                j_temp = Int[]
+#                spins = spins_temp
+#            end
+#            push!(j_temp, j)
+#        end
+#        push!(js_new, j_temp)
+#    end
+#    is_new, js_new
+#end
 
 
-function construct_mps(M::Matrix{T}, β::T, β_step::Int, χ::Int, threshold::T) where T<: AbstractFloat
-    ints = M2interactions(M)
-    g = interactions2graph(ints)
+function construct_mps(M::Matrix{Float64}, β::T, β_step::Int, χ::Int, threshold::Float64) where T<: AbstractFloat
+    g = M2graph(M)
     g = graph4mps(g)
 
     construct_mps(g, β, β_step, χ, threshold)

@@ -18,7 +18,7 @@ function brute_force_solve(M::Matrix{Float64}, sols::Int)
     for i in 1:2^s
         spins = ind2spin(i, s)
         push!(all_spins, spins)
-        energy = -v2energy(M, spins)
+        energy = v2energy(M, spins)
         push!(energies, energy)
     end
     p = sortperm(energies)
@@ -30,9 +30,9 @@ end
 
 return energy Float given a matrix of interacrions and vector of spins
 """
-# a minus sign should be incorporated to energy
+
 function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
     d =  diag(M)
     M = M .- diagm(d)
-    transpose(v)*M*v + transpose(v)*d
+    -transpose(v)*M*v - transpose(v)*d
 end

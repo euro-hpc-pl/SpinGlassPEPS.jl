@@ -1,18 +1,33 @@
 using TensorOperations
 
+
 function make_interactions_full()
-    J_h = [(1,1) 0.; (1,2) 0.; (1,3) 2.; (1,4) 0.; (1,5) 2.; (2,2) 0.; (2,3) 0.; (2,4) 2.]
-    J_h = vcat(J_h, [(2,5) 0.; (3,3) 0.; (3,4) 2.; (3,5) 0.; (4,4) 0.; (4,5) 0.; (5,5) 0.])
-    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+    L = 5
+    J_h = [1 1 0.; 1 2 0.; 1 3 2.; 1 4 0.; 1 5 2.; 2 2 0.; 2 3 0.; 2 4 2.]
+    J_h = vcat(J_h, [2 5 0.; 3 3 0.; 3 4 2.; 3 5 0.; 4 4 0.; 4 5 0.; 5 5 0.])
+    ig = MetaGraph(L, 0.0)
+
+    set_prop!(ig, :description, "The Ising model.")
+
+    for k in 1:size(J_h, 1)
+        i, j, v = J_h[k,:]
+        i = Int(i)
+        j = Int(j)
+        if i == j
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
+        else
+            add_edge!(ig, i, j) &&
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+        end
+    end
+    ig
 end
 
 @testset "axiliary, testing grouping of connections" begin
     b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
     @test b == 16.0*ones(1,1)
 
-    ints = make_interactions_full()
-    # a grid
-    g = interactions2graph(ints)
+    g = make_interactions_full()
 
     b_node, c_nodes = connections_for_mps(g)
     @test b_node == [1,2,3,4]
@@ -26,10 +41,26 @@ end
 end
 
 function make_interactions_case1()
-    J_h = [(1,1) .5; (1,2) -0.5; (1,4) -1.5; (2,2) -1.; (2,3) -1.5; (2,5) -0.5; (3,3) 2.; (3,6) 1.5]
-    J_h = vcat(J_h, [(6,6) .05; (5,6) -0.25; (6,9) -0.52; (5,5) 0.75; (4,5) 0.5; (5,8) 0.5; (4,4) 0.; (4,7) -0.01])
-    J_h = vcat(J_h, [(7,7) 0.35; (7,8) 0.5; (8,8) -0.08; (8,9) -0.05; (9,9) 0.33])
-    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+    L = 9
+    J_h = [1 1 .5; 1 2 -0.5; 1 4 -1.5; 2 2 -1.; 2 3 -1.5; 2 5 -0.5; 3 3 2.; 3 6 1.5]
+    J_h = vcat(J_h, [6 6 .05; 5 6 -0.25; 6 9 -0.52; 5 5 0.75; 4 5 0.5; 5 8 0.5; 4 4 0.; 4 7 -0.01])
+    J_h = vcat(J_h, [7 7 0.35; 7 8 0.5; 8 8 -0.08; 8 9 -0.05; 9 9 0.33])
+    ig = MetaGraph(L, 0.0)
+
+    set_prop!(ig, :description, "The Ising model.")
+
+    for k in 1:size(J_h, 1)
+        i, j, v = J_h[k,:]
+        i = Int(i)
+        j = Int(j)
+        if i == j
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
+        else
+            add_edge!(ig, i, j) &&
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+        end
+    end
+    ig
 end
 
 
@@ -69,6 +100,17 @@ function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractF
     ncon(tensors, indexes)
 end
 
+function form_peps(gg::MetaGraph, β::Float64, s::Tuple{Int, Int} = (3,3))
+    M = Array{Union{Nothing, Array{Float64}}}(nothing, s)
+    k = 0
+    for i in 1:s[1]
+        for j in 1:s[2]
+            k = k+1
+            M[i,j] = compute_single_tensor(gg, k, β)
+        end
+    end
+    Matrix{Array{Float64, N} where N}(M)
+end
 
 @testset "MPS computing" begin
 
@@ -80,25 +122,21 @@ end
 
     @test length(mps1) == 3
     # this is B type tensor, only internal energy (± h/2)
-    @test mps1[1][1,:,:] ≈ [exp(-1/2) 0.0; 0.0 exp(1/2)]
+    @test mps1[1][1,:,:] ≈ [exp(1/2) 0.0; 0.0 exp(-1/2)]
     # type C tensor input from internale enegy and interaction
     #±(h/2 + J) -- J is twice due to the symmetry of M
-    @test mps1[2][1,:,:] ≈ [exp(1/2) exp(-1/2); 0.0 0.0]
-    @test mps1[2][2,:,:] ≈ [0. 0.; exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
-    @test mps1[3][:,1,:] ≈ [exp(1/2) exp(-1/2); exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
+    @test mps1[2][1,:,:] ≈ [exp(-1/2) exp(1/2); 0.0 0.0]
+    @test mps1[2][2,:,:] ≈ [0. 0.; exp(1)*exp(1/2) exp(-1)*exp(-1/2)]
+    @test mps1[3][:,1,:] ≈ [exp(-1/2) exp(1/2); exp(1)*exp(1/2) exp(-1)*exp(-1/2)]
 
     # the same, detailed
 
-    ints = M2interactions(M)
-    g = interactions2graph(ints)
-    g1 =
+    g = M2graph(M)
     g = graph4mps(g)
 
     # computed mps, β = 1., β_step = 1   χ = 2, threshold = 1e-8
     mps = construct_mps(g, 1., 1, 2, 1e-8)
     @test mps ≈ mps1
-
-    interactions =  make_interactions_case1()
 
     β = 2.
 
@@ -108,23 +146,13 @@ end
     @test mps[3] == ones(1,1,2)
 
     # construct form mpo-mps
-    g = interactions2graph(interactions)
-    g1 = interactions2grid_graph(g, interactions, (1,1))
-    g = graph4mps(g)
-    mps = construct_mps(g, β, 2, 4, 0.)
+    g =  make_interactions_case1()
+    g2 = graph4mps(g)
+    mps = construct_mps(g2, β, 2, 4, 0.)
 
-    # construct form peps for comparison
-    #grid = [1 2 3 ; 4 5 6; 7 8 9]
-    #ns_peps = [Node_of_grid(i, grid, interactions) for i in 1:9]
-    M = Array{Union{Nothing, Array{Float64}}}(nothing, (3,3))
-    k = 0
-    for i in 1:3
-        for j in 1:3
-            k = k+1
-            M[i,j] = compute_single_tensor(g1, k, β)
-        end
-    end
-    M = Matrix{Array{Float64, N} where N}(M)
+    # PEPS for comparison
+    g1 = interactions2grid_graph(g, (1,1))
+    M = form_peps(g1, β)
     # compute probabilities by n-con
     cc = contract3x3by_ncon(M)
 
@@ -167,29 +195,35 @@ end
 end
 
 
-function make_interactions_case2(T::Type = Float64)
-    css = 2.
-    J_h = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
-    J_h = vcat(J_h, [(6,6) 0.; (6,5) -1.75; (6,9) 0.; (5,5) 0.75; (5,4) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
-    J_h = vcat(J_h, [(7,7) css; (7,8) 0.; (8,8) css; (8,9) 0.; (9,9) css])
-    [Interaction{T}(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
-end
+function interactions_case2()
+    L = 9
+    css = -2.
+    J_h = [1 1 -1.25; 1 2 1.75; 1 4 css; 2 2 -1.75; 2 3 1.75; 2 5 0.; 3 3 -1.75; 3 6 css]
+    J_h = vcat(J_h, [6 6 0.; 6 5 1.75; 6 9 0.; 5 5 -0.75; 5 4 1.75; 5 8 0.; 4 4 0.; 4 7 0.])
+    J_h = vcat(J_h, [7 7 css; 7 8 0.; 8 8 css; 8 9 0.; 9 9 css])
 
-function make_interactions_case3()
-    css = 2.
-    J_h = [(1,1) 1.25; (1,2) -1.75; (1,4) css; (2,2) 1.75; (2,3) -1.75; (2,5) 0.; (3,3) 1.75; (3,6) css]
-    J_h = vcat(J_h, [(6,6) 0.; (5,6) -1.75; (6,9) 0.; (5,5) 0.75; (4,5) -1.75; (5,8) 0.; (4,4) 0.; (4,7) 0.])
-    J_h = vcat(J_h, [(7,7) 0.1; (7,8) 0.; (8,8) 0.1; (8,9) 0.; (9,9) 0.1])
-    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+    ig = MetaGraph(L, 0.0)
+
+    set_prop!(ig, :description, "The Ising model.")
+
+    for k in 1:size(J_h, 1)
+        i, j, v = J_h[k,:]
+        i = Int(i)
+        j = Int(j)
+        if i == j
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
+        else
+            add_edge!(ig, i, j) &&
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+        end
+    end
+    ig
 end
 
 @testset "MPS - solving simple problem" begin
 
-    ints = make_interactions_case2()
+    g = interactions_case2()
 
-    #grid = [1 2 3; 4 5 6; 7 8 9]
-
-    g = interactions2graph(ints)
     spins, _ = solve_mps(g, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
 
     #ground
@@ -198,9 +232,10 @@ end
     #first
     @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
 
-    permuted_int = make_interactions_case3()
-
-    g = interactions2graph(permuted_int)
+    # introduce degeneracy
+    set_prop!(g, 7, :h, -0.1)
+    set_prop!(g, 8, :h, -0.1)
+    set_prop!(g, 9, :h, -0.1)
 
     spins, objective = solve_mps(g, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
 
@@ -227,25 +262,39 @@ end
     @test objective[8] ≈ 0.09323904360231824
 end
 
+function make_interactions_large()
+    L = 16
+    J_h = [1 1 -2.8; 1 2 0.3; 1 5 0.2; 2 2 2.7; 2 3 0.255; 2 6 0.21; 3 3 -2.6; 3 4 0.222; 3 7 0.213; 4 4 2.5; 4 8 0.2]
+    J_h = vcat(J_h, [5 5 -2.4; 5 6 0.15; 5 9 0.211; 6 6 2.3; 6 7 0.2; 6 10 0.15; 7 7 -2.2; 7 8 0.11; 7 11 0.35; 8 8 2.1; 8 12 0.19])
+    J_h = vcat(J_h, [9 9 -2.; 9 10 0.222; 9 13 0.15; 10 10 1.9; 10 11 0.28; 10 14 0.21; 11 11 -1.8; 11 12 0.19; 11 15 0.18; 12 12 1.7; 12 16 0.27])
+    J_h = vcat(J_h, [13 13 -1.6; 13 14 0.32; 14 14 1.5; 14 15 0.19; 15 15 -1.4; 15 16 0.21; 16 16 1.3])
 
-function make_interactions_larger()
-    J_h = [(1,1) 2.8; (1,2) -0.3; (1,5) -0.2; (2,2) -2.7; (2,3) -0.255; (2,6) -0.21; (3,3) 2.6; (3,4) -0.222; (3,7) -0.213; (4,4) -2.5; (4,8) -0.2]
-    J_h = vcat(J_h, [(5,5) 2.4; (5,6) -0.15; (5,9) -0.211; (6,6) -2.3; (6,7) -0.2; (6,10) -0.15; (7,7) 2.2; (7,8) -0.11; (7,11) -0.35; (8,8) -2.1; (8,12) -0.19])
-    J_h = vcat(J_h, [(9,9) 2.; (9,10) -0.222; (9,13) -0.15; (10,10) -1.9; (10,11) -0.28; (10,14) -0.21; (11,11) 1.8; (11,12) -0.19; (11,15) -0.18; (12,12) -1.7; (12,16) -0.27])
-    J_h = vcat(J_h, [(13,13) 1.6; (13,14) -0.32; (14,14) -1.5; (14,15) -0.19; (15,15) 1.4; (15,16) -0.21; (16,16) -1.3])
-    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+    ig = MetaGraph(L, 0.0)
+
+    set_prop!(ig, :description, "The Ising model.")
+
+    for k in 1:size(J_h, 1)
+        i, j, v = J_h[k,:]
+        i = Int(i)
+        j = Int(j)
+        if i == j
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
+        else
+            add_edge!(ig, i, j) &&
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+        end
+    end
+    ig
 end
 
 @testset "MPS vs PEPS larger system" begin
 
-    ints_larger = make_interactions_larger()
+    g = make_interactions_large()
 
     β = 0.5
     β_step = 2
 
     println("number of β steps = ", β_step)
-
-    g = interactions2graph(ints_larger)
 
     spins, _ = solve_mps(g, 10; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
@@ -253,9 +302,7 @@ end
 
     spins_exact, _ = solve_mps(g, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
-    grid = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
-    ns = [Node_of_grid(i, grid, ints_larger) for i in 1:maximum(grid)]
-    spins_peps, _ = solve(ints_larger, ns, grid, 10; β = β, χ = 2, threshold = 1e-12)
+    spins_peps, _ = solve(g, 10; β = β, χ = 2, threshold = 1e-12)
 
     for k in 1:10
         #testing exact
@@ -266,21 +313,36 @@ end
 end
 
 function make_interactions_full()
-    J_h = [(1,1) 0.1; (1,2) 1.; (1,3) 1.; (1,4) 0.2; (2,2) -0.1; (2,3) 1.0; (2,4) 0.2]
-    J_h = vcat(J_h, [(3,3) 0.2; (3,4) 0.2; (4,4) -0.2])
-    [Interaction(J_h[i,1], J_h[i,2]) for i in 1:size(J_h, 1)]
+    J_h = [1 1 -0.1; 1 2 -1.; 1 3 -1.; 1 4 -0.2; 2 2 0.1; 2 3 -1.0; 2 4 -0.2]
+    J_h = vcat(J_h, [3 3 -0.2; 3 4 -0.2; 4 4 0.2])
+
+    L = 4
+    ig = MetaGraph(L, 0.0)
+
+    set_prop!(ig, :description, "The Ising model.")
+
+    for k in 1:size(J_h, 1)
+        i, j, v = J_h[k,:]
+        i = Int(i)
+        j = Int(j)
+        if i == j
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
+        else
+            add_edge!(ig, i, j) &&
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+        end
+    end
+    ig
 end
 
 @testset "MPS on full graph" begin
 
-    ints_full = make_interactions_full()
+    g = make_interactions_full()
 
     β = 0.5
     β_step = 2
 
     println("number of β steps = ", β_step)
-
-    g = interactions2graph(ints_full)
 
     spins, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
 
@@ -291,7 +353,7 @@ end
     M = rand([-1.,-0.5,0.,0.5,1.], 64,64)
     M = M*(M')
 
-    g = interactions2graph(M2interactions(M))
+    g = M2graph(M)
 
     @time s, _ = solve_mps(g, 4; β=1., β_step=1, χ=6, threshold = 1.e-6)
     @test length(s[1]) == 64
