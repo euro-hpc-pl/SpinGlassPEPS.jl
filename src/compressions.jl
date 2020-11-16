@@ -32,7 +32,6 @@ function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
         @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
         ψ[i] = A
     end
-    #ψ[end] *= sign(V[1])
 end
 
 function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
@@ -54,7 +53,6 @@ function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
         @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
-    #ψ[1] *= sign(U[1])
 end
  
 

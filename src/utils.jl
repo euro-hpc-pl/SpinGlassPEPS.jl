@@ -24,6 +24,9 @@ function all_states(rank::T) where T <: Union{Vector, NTuple}
     product(basis...)
 end 
 
+function HadamardMPS(rank::T) where T <: Union{Vector, NTuple} 
+    MPS(fill(1, r) ./ sqrt(r) for r ∈ rank)
+end
 HadamardMPS(L::Int) = MPS(fill([1., 1.] / sqrt(2), L))
 
 function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int, args...) 

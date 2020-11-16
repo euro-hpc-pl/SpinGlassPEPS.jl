@@ -68,8 +68,11 @@ end
 
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     M = ψ[i]
+    d = size(M, 2)
+
     h = get_prop(ig, i, :h)
-    v = [exp(0.5 * dβ * h * σ) for σ ∈ [-1, 1]]
+    v = [exp(0.5 * dβ * h * σ) for σ ∈ local_basis(d)]
+
     @cast M[x, σ, y] = M[x, σ, y] * v[σ]  
     ψ[i] = M
 end
@@ -77,12 +80,14 @@ end
 function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j::Int)
     M = ψ[j]
 
-    J = get_prop(ig, i, j, :J) 
-    C = [exp(0.5 * dβ * k * J * l) for k ∈ [-1, 1], l ∈ [-1, 1]]
+    d = size(M, 2)
+    basis = local_basis(d)
 
+    J = get_prop(ig, i, j, :J)  
+    C = [exp(0.5 * dβ * k * J * l) for k ∈ basis, l ∈ basis]
+    D = I(2)
 
-    δ = j == length(ψ) ? P' : D
-    j == length(ψ) ? δ = P' : δ = D
+    δ = j == length(ψ) ? D[:,1] : D
 
     @cast M̃[(x, a), σ, (y, b)] := C[σ, x] * δ[x, y] * M[a, σ, b]                      
     ψ[j] = M̃
@@ -90,8 +95,9 @@ end
 
 function _apply_projector!(ψ::AbstractMPS, i::Int)
     M = ψ[i]
+    D = I(size(M, 2))
 
-    δ = i == 1 ? P : D
+    δ = i == 1 ? D[1, :] : D
  
     @cast M̃[(x, a), σ, (y, b)] := D[σ, y] * δ[x, y] * M[a, σ, b]
     ψ[i] = M̃
@@ -99,8 +105,9 @@ end
 
 function _apply_nothing!(ψ::AbstractMPS, i::Int) 
     M = ψ[i] 
-  
-    if i == 1  δ = P  elseif  i == length(ψ)  δ = P'  else  δ = D end  
+    D = I(size(M, 2))
+
+    if i == 1  δ = D[1,:]  elseif  i == length(ψ)  δ = D[:,1]  else  δ = D end  
 
     @cast M̃[(x, a), σ, (y, b)] := δ[x, y] * M[a, σ, b] 
     ψ[i] = M̃    

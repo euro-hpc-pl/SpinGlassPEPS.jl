@@ -93,7 +93,7 @@ end
 
 function tensor(ψ::MPS, state::Union{Vector, NTuple})
     C = I
-    for  (A, σ) ∈ zip(ψ, state)
+    for (A, σ) ∈ zip(ψ, state)
         C *= A[:, idx(σ), :]
     end
     tr(C)

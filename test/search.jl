@@ -56,6 +56,7 @@ ig = ising_graph(instance, N)
         @info "Generating MPS from |ρ>"
         rψ = MPS(ψ)
         @test dot(rψ, rψ) ≈ 1
+        @test_nowarn is_right_normalized(rψ)
 
         lψ = MPS(ψ, :left)
         @test dot(lψ, lψ) ≈ 1
@@ -69,12 +70,14 @@ ig = ising_graph(instance, N)
         @test abs(1 - abs(dot(vlψ, vrψ))) < ϵ
         @test abs(1 - abs(dot(vlψ, vψ))) < ϵ
 
-        #=
         @info "Verifying MPS from gates"
+
+        #=
         Gψ = MPS(ig, mps_param, gibbs_param) 
 
-        @test bond_dimension(Gρ) > 1
-        @test dot(Gρ, Gρ) ≈ 1
+        @test_nowarn is_right_normalized(Gψ)
+        @test bond_dimension(Gψ) > 1
+        @test dot(Gψ, Gψ) ≈ 1
         @test_nowarn verify_bonds(ρ)
 
         @test abs(1 - abs(dot(Gψ, rψ) ) ) < ϵ 
@@ -89,8 +92,6 @@ ig = ising_graph(instance, N)
             @test p ≈ r 
             @test ϱ[idx.(σ)...] ≈ p
         end 
-
-        @test_nowarn is_right_normalized(rψ)
 
         for max_states ∈ [1, N, 2*N, N^2]
             @info "Verifying low energy spectrum" max_states
