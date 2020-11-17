@@ -119,16 +119,16 @@ end
     # construct MPS form tha matrix of interacion
     mps1 = construct_mps(M, 1., 1, 2, 1e-8)
     #mps modes 1 - left, 2 - right, 3 - physical
-
+    if true
     @test length(mps1) == 3
     # this is B type tensor, only internal energy (± h/2)
-    @test mps1[1][1,:,:] ≈ [exp(1/2) 0.0; 0.0 exp(-1/2)]
+    @test mps1[1][1,:,:] ≈ [exp(-1/2) 0.0; 0.0 exp(1/2)]
     # type C tensor input from internale enegy and interaction
     #±(h/2 + J) -- J is twice due to the symmetry of M
-    @test mps1[2][1,:,:] ≈ [exp(-1/2) exp(1/2); 0.0 0.0]
-    @test mps1[2][2,:,:] ≈ [0. 0.; exp(1)*exp(1/2) exp(-1)*exp(-1/2)]
-    @test mps1[3][:,1,:] ≈ [exp(-1/2) exp(1/2); exp(1)*exp(1/2) exp(-1)*exp(-1/2)]
-
+    @test mps1[2][1,:,:] ≈ [exp(1/2) exp(-1/2); 0.0 0.0]
+    @test mps1[2][2,:,:] ≈ [0. 0.; exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
+    @test mps1[3][:,1,:] ≈ [exp(1/2) exp(-1/2); exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
+    end
     # the same, detailed
 
     g = M2graph(M)
@@ -151,7 +151,7 @@ end
     mps = construct_mps(g2, β, 2, 4, 0.)
 
     # PEPS for comparison
-    g1 = interactions2grid_graph(g, (1,1))
+    g1 = graph4peps(g, (1,1))
     M = form_peps(g1, β)
     # compute probabilities by n-con
     cc = contract3x3by_ncon(M)
@@ -208,6 +208,8 @@ function interactions_case2()
 
     for k in 1:size(J_h, 1)
         i, j, v = J_h[k,:]
+        #convention
+        v = -v
         i = Int(i)
         j = Int(j)
         if i == j
@@ -233,9 +235,9 @@ end
     @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
 
     # introduce degeneracy
-    set_prop!(g, 7, :h, -0.1)
-    set_prop!(g, 8, :h, -0.1)
-    set_prop!(g, 9, :h, -0.1)
+    set_prop!(g, 7, :h, 0.1)
+    set_prop!(g, 8, :h, 0.1)
+    set_prop!(g, 9, :h, 0.1)
 
     spins, objective = solve_mps(g, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
 
@@ -275,6 +277,7 @@ function make_interactions_large()
 
     for k in 1:size(J_h, 1)
         i, j, v = J_h[k,:]
+        v = -v
         i = Int(i)
         j = Int(j)
         if i == j
@@ -323,6 +326,7 @@ function make_interactions_full()
 
     for k in 1:size(J_h, 1)
         i, j, v = J_h[k,:]
+        v = -v
         i = Int(i)
         j = Int(j)
         if i == j

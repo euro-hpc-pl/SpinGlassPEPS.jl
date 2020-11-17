@@ -70,8 +70,7 @@ function form_a_chimera_grid(n::Int)
 end
 
 
-#removes bonds that do not fit to the grid
-# testing function
+#removes bonds that do not fit to the grid, testing function
 function fullM2grid!(M::Matrix{Float64}, s::Tuple{Int, Int})
     s1 = s[1]
     s2 = s[2]
@@ -94,76 +93,14 @@ function fullM2grid!(M::Matrix{Float64}, s::Tuple{Int, Int})
     end
 end
 
+#### constructors of the grid structure ######
 
-"""
-    ind2spin(i::Int, s::Int = 2)
-
-return a spin from the physical index, if no_spins is 1, returns zero.
-"""
-function ind2spin(i::Int, no_spins::Int = 1)
-    s = [2^i for i in 1:no_spins]
-    return [1-2*Int((i-1)%j < div(j,2)) for j in s]
-end
-
-
-function spins2ind(s::Vector{Int})
-    s = [Int(el == 1) for el in s]
-    v = [2^i for i in 0:1:length(s)-1]
-    transpose(s)*v+1
-end
-
-
-
-function reindex(i::Int, no_spins::Int, subset_ind::Vector{Int})
-    if length(subset_ind) == 0
-        return 1
-    end
-    s = ind2spin(i, no_spins)
-    spins2ind(s[subset_ind])
-end
-
-
-# TODO test it
-function M2graph(M::Matrix{Float64})
-    size(M,1) == size(M,2) || error("matrix not squared")
-    L = size(M,1)
-    #TODO is symmetric
-    ig = MetaGraph(L, 0.0)
-
-    set_prop!(ig, :description, "The Ising model.")
-
-    # takes lower triangular
-    for i in 1:size(M, 1)
-        for j in 1:i
-            if i == j
-                set_prop!(ig, i, :h, M[i,i]) || error("Node $i missing!")
-            elseif M[i,j] != 0.
-                add_edge!(ig, i, j) &&
-                set_prop!(ig, i, j, :J, M[i,j]) || error("Cannot add Egde ($i, $j)")
-            end
-        end
-    end
-    ig
-end
-
-
-function graph4mps(ig::MetaGraph)
-    for v in vertices(ig)
-        h = props(ig, v)[:h]
-        set_prop!(ig, v, :log_energy, [-h, h])
-        set_prop!(ig, v, :spins, [v])
-    end
-    ig
-end
-
-
-# TODO is this needed?
 function position_in_cluster(cluster::Vector{Int}, i::Int)
     # cluster is assumed to be unique
     return findall(x->x==i, cluster)[1]
 end
 
-function index_of_interacting_spins(all::Vector{Int}, part::Vector{Int})
+function positions_in_cluster(all::Vector{Int}, part::Vector{Int})
     [position_in_cluster(all, i) for i in part]
 end
 
@@ -204,21 +141,20 @@ struct Element_of_square_grid
             end
         end
 
-        #TODO this representation will be changes
-        spins = Vector{Int}(vec(transpose(spins_inds)))
+        spins = vec(spins_inds)
 
         #if the node exist
         if column > 1
-            left = index_of_interacting_spins(spins, spins_inds[:, 1])
+            left = positions_in_cluster(spins, spins_inds[:, 1])
         end
         if column < size(grid, 2)
-            right = index_of_interacting_spins(spins, spins_inds[:, end])
+            right = positions_in_cluster(spins, spins_inds[:, end])
         end
         if row > 1
-            up = index_of_interacting_spins(spins, spins_inds[1, :])
+            up = positions_in_cluster(spins, spins_inds[1, :])
         end
         if row < size(grid, 1)
-            down = index_of_interacting_spins(spins, spins_inds[end,:])
+            down = positions_in_cluster(spins, spins_inds[end,:])
         end
 
         new(row, column, spins, intra_struct, left, right, up, down)
@@ -265,18 +201,18 @@ struct Element_of_chimera_grid
             end
         end
 
-        spins = Vector{Int}(vec(transpose(spins_inds)))
+        spins = vec(spins_inds)
         if column > 1
-            left = index_of_interacting_spins(spins, spins_inds[:, 2])
+            left = positions_in_cluster(spins, spins_inds[:, 2])
         end
         if column < size(grid, 2)
-            right = index_of_interacting_spins(spins, spins_inds[:, 2])
+            right = positions_in_cluster(spins, spins_inds[:, 2])
         end
         if row > 1
-            up = index_of_interacting_spins(spins, spins_inds[:, 1])
+            up = positions_in_cluster(spins, spins_inds[:, 1])
         end
         if row < size(grid, 1)
-            down = index_of_interacting_spins(spins, spins_inds[:, 1])
+            down = positions_in_cluster(spins, spins_inds[:, 1])
         end
 
         new(row, column, spins, intra_struct, left, right, up, down)
@@ -285,6 +221,42 @@ struct Element_of_chimera_grid
         r = findall(x->x==i, grid)[1]
         Element_of_chimera_grid(i, grid, M[r])
     end
+end
+
+
+#####  graph representation #########
+
+function M2graph(M::Matrix{Float64})
+    size(M,1) == size(M,2) || error("matrix not squared")
+    L = size(M,1)
+    #TODO is symmetric
+    ig = MetaGraph(L, 0.0)
+
+    set_prop!(ig, :description, "The Ising model.")
+
+    # takes lower triangular
+    for i in 1:size(M, 1)
+        for j in 1:i
+            if i == j
+                set_prop!(ig, i, :h, M[i,i]) || error("Node $i missing!")
+            elseif M[i,j] != 0.
+                add_edge!(ig, i, j) &&
+                set_prop!(ig, i, j, :J, M[i,j]) || error("Cannot add Egde ($i, $j)")
+            end
+        end
+    end
+    ig
+end
+
+
+function graph4mps(ig::MetaGraph)
+    for v in vertices(ig)
+        h = props(ig, v)[:h]
+        # -∑hs convention
+        set_prop!(ig, v, :energy, [h, -h])
+        set_prop!(ig, v, :spins, [v])
+    end
+    ig
 end
 
 EE = Union{Element_of_square_grid, Element_of_chimera_grid}
@@ -303,7 +275,7 @@ function is_grid(ig::MetaGraph, g_elements)
 end
 
 
-function interactions2grid_graph(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
+function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
     L = nv(ig)
 
     M = zeros(1,1)
@@ -335,8 +307,8 @@ function interactions2grid_graph(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,
         set_prop!(g, i, :column, g_element.column)
         set_prop!(g, i, :spins, g_element.spins_inds)
 
-        internal_e = log_internal_energy(g_element, ig)
-        set_prop!(g, i, :log_energy, internal_e)
+        internal_e = internal_energy(g_element, ig)
+        set_prop!(g, i, :energy, internal_e)
 
         if g_element.column < size(M, 2)
             ip = M[g_element.row, g_element.column+1]
@@ -348,9 +320,8 @@ function interactions2grid_graph(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,
         if g_element.column > 1
             ip = M[g_element.row, g_element.column-1]
             e = Edge(i, ip)
-            J = get_Js(g_element, g_elements[ip], ig, connection = "lr")
-            M_left = M_of_interaction(g_element, J, g_element.left)
-            set_prop!(g, e, :M, M_left)
+            M_left = M_of_interaction(g_element, g_elements[ip], ig)
+            set_prop!(g, i, ip, :M, M_left)
         end
 
         if g_element.row < size(M, 1)
@@ -362,66 +333,43 @@ function interactions2grid_graph(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,
 
         if g_element.row > 1
             ip = M[g_element.row-1, g_element.column]
-            e = Edge(i, ip)
-            J = get_Js(g_element, g_elements[ip], ig, connection = "ud")
-            M_up = M_of_interaction(g_element, J, g_element.up)
-            set_prop!(g, e, :M, M_up)
+            M_up = M_of_interaction(g_element, g_elements[ip], ig)
+            set_prop!(g, i, ip, :M, M_up)
         end
     end
     g
 end
 
 
+function internal_energy(g::EE, ig::MetaGraph)
 
-function log_internal_energy(g::EE, ig::MetaGraph)
-
-    # TODO h and J this will be from a grid
     hs = [props(ig, i)[:h] for i in g.spins_inds]
     no_spins = length(g.spins_inds)
 
-    log_energy = zeros(2^no_spins)
+    energy = zeros(2^no_spins)
 
     for i in 1:2^no_spins
         σs = ind2spin(i, no_spins)
-        e = sum(σs.*hs)
+        e = -sum(σs.*hs)
         for pair in g.intra_struct
             J = props(ig, pair[1], pair[2])[:J]
             i1 = position_in_cluster(g.spins_inds, pair[1])
             i2 = position_in_cluster(g.spins_inds, pair[2])
-            e = e + 2*σs[i1]*σs[i2]*J
+            e = e - 2*σs[i1]*σs[i2]*J
         end
-        log_energy[i] = e
+        energy[i] = e
     end
-    log_energy
+    energy
 end
 
-function M_of_interaction(g::EE, J::Vector{T}, spin_subset::Vector{Int}) where T <: AbstractFloat
-
-    subset_size = length(spin_subset)
-    no_spins = length(g.spins_inds)
-
-    log_energies = zeros(T, 2^subset_size, 2^no_spins)
-
-    for i in 1:2^no_spins
-        σ_cluster = ind2spin(i, no_spins)
-        for j in 1:2^subset_size
-            σ = ind2spin(j, subset_size)
-            log_energy = 2*sum(J.*σ.*σ_cluster[spin_subset])
-            @inbounds log_energies[j,i] = log_energy
-        end
-    end
-    log_energies
-end
-
-
-function get_Js(g::EE, g1::EE, ig::MetaGraph; connection::String = "")
+function get_Js(g::EE, g1::EE, ig::MetaGraph)
     J = Float64[]
     v = [0]
     v1 = [0]
-    if connection == "lr"
+    if g.row == g1.row
         v = g.left
         v1 = g1.right
-    elseif connection == "ud"
+    elseif g.column == g1.column
         v = g.up
         v1 = g1.down
     end
@@ -435,31 +383,82 @@ function get_Js(g::EE, g1::EE, ig::MetaGraph; connection::String = "")
     J
 end
 
-###################### Axiliary functions mainly for the solver ########
+function M_of_interaction(g::EE, g1::EE, ig::MetaGraph)
+    spin_subset = []
+    if g.row == g1.row
+        spin_subset = g.left
+    elseif g.column == g1.column
+        spin_subset = g.up
+    end
+    J = get_Js(g, g1, ig)
 
-#function get_system_size(ns::Vector{Node_of_grid})
-#    mapreduce(x -> length(x.spins_inds), +, ns)
-#end
+    subset_size = length(spin_subset)
+    no_spins = length(g.spins_inds)
+
+    energy = zeros(2^subset_size, 2^no_spins)
+
+    for i in 1:2^no_spins
+        σ_cluster = ind2spin(i, no_spins)
+        for j in 1:2^subset_size
+            σ = ind2spin(j, subset_size)
+            @inbounds energy[j,i] = -2*sum(J.*σ.*σ_cluster[spin_subset])
+        end
+    end
+    energy
+end
+
+
+###################### Axiliary functions on spins ########
+
+"""
+    ind2spin(i::Int, no_spins::Int = 1)
+
+return a configuration determined by an index i i.e.
+a no_spins long vector of -1 and 1
+"""
+function ind2spin(i::Int, no_spins::Int = 1)
+    s = [2^i for i in 1:no_spins]
+    return [1-2*Int((i-1)%j < div(j,2)) for j in s]
+end
+
+function spins2ind(s::Vector{Int})
+    s = [Int(el == 1) for el in s]
+    v = [2^i for i in 0:1:length(s)-1]
+    transpose(s)*v+1
+end
+
+function reindex(i::Int, no_spins::Int, subset_ind::Vector{Int})
+    if length(subset_ind) == 0
+        return 1
+    end
+    s = ind2spin(i, no_spins)
+    spins2ind(s[subset_ind])
+end
+
+spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
+
+binary2spins(spins::Vector{Int}) = [2*i-1 for i in spins]
+
 
 function get_system_size(g::MetaGraph)
     mapreduce(i -> length(props(g,i)[:spins]), +, vertices(g))
 end
 
 """
-    function sum_over_last(T::Array{T, N}) where N
+    function sum_over_last(tensor::Array{T, N}) where {T <: AbstractFloat, N}
 
-    used to trace over the phisical index, treated as the last index
+sum over last index phisical index
+returns Array{T, N-1}
 
 """
 function sum_over_last(tensor::Array{T, N}) where {T <: AbstractFloat, N}
     dropdims(sum(tensor, dims = N), dims = N)
 end
 
-
 """
     last_m_els(vector::Vector{Int}, m::Int)
 
-returns last m element of the vector{Int} or the whole vector if it has less than m elements
+returns last m element of the Vector{Int} or the whole vector if it has less than m elements
 
 """
 function last_m_els(vector::Vector{Int}, m::Int)
@@ -469,10 +468,6 @@ function last_m_els(vector::Vector{Int}, m::Int)
         return vector[end-m+1:end]
     end
 end
-
-spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
-
-binary2spins(spins::Vector{Int}) = [2*i-1 for i in spins]
 
 
 # this is axiliary function for npz write
@@ -484,6 +479,3 @@ function vecvec2matrix(v::Vector{Vector{Int}})
     end
     M
 end
-
-
-spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]

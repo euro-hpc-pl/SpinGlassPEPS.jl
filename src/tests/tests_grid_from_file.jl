@@ -58,7 +58,7 @@ for k in 1:examples
 
     energies_given = data["energies"][k,:,:]
 
-    g = M2graph(-Mat_of_interactions)
+    g = M2graph(Mat_of_interactions)
 
     ################ exact method ###################
 

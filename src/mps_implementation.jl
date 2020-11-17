@@ -91,7 +91,7 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
                     g::MetaGraph, β::T) where T<: AbstractFloat
 
     d = 2
-    # TODO, correct d = length(props(g, i)[:log_energy])
+    # TODO, correct d = length(props(g, i)[:energy])
 
     k = minimum([i, nodes...])
     l = maximum([i, nodes...])
@@ -101,7 +101,7 @@ function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
     mpo[i] = Btensor(d, i==k, i==l, T)
     for j in nodes
         # TODO remove array
-        J = [props(g, Edge(i,j))[:J]]
+        J = [-props(g, Edge(i,j))[:J]]
 
         mpo[j] = Ctensor(-J*β, d, j==k, j==l)
     end
@@ -113,7 +113,7 @@ function add_phase!(mps::Vector{Array{T, 3}}, g::MetaGraph, β::T) where T<: Abs
 
     d = size(mps[1], 3)
     for i in 1:length(mps)
-        internal_e = props(g, i)[:log_energy]
+        internal_e = props(g, i)[:energy]
         for j in 1:d
             mps[i][:,:,j] = mps[i][:,:,j]*exp(-β/2*internal_e[j])
         end

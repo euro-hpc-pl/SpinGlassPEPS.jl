@@ -12,7 +12,7 @@ using NPZ
     ens = data["energies"]
     states = data["states"]
 
-    g = M2graph(-QM)
+    g = M2graph(QM)
 
     objective_exact = 0.
 
@@ -78,7 +78,8 @@ function Qubo2M(Q::Matrix{T}) where T <: AbstractFloat
     J = (Q - diagm(diag(Q)))/4
     v = dropdims(sum(J; dims=1); dims = 1)
     h = diagm(diag(Q)/2 + v*2)
-    J + h
+    # convention
+    - J - h
 end
 
 
@@ -91,16 +92,17 @@ end
 
     J = Qubo2M(X)
 
-    Delta = 4J - X
+    Delta = 4J + X
     @test maximum(abs.(Delta - diagm(diag(Delta)))) ≈ 0. atol = 1e-12
 
     # a sum over interactions
     Y = J - diagm(diag(J))
     v = dropdims(sum(Y; dims=1); dims = 1)
 
-    b = diag(X)
+    b = -diag(X)
     # TODO why 4v not 2v
     @test maximum(abs.(2*diag(J) - 4*v - b)) ≈ 0. atol = 1e-12
+
 
     # tests on data
     file = "tests/data/QUBO8qbits"

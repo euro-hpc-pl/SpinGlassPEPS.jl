@@ -60,7 +60,11 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
 
     column = props(g, i)[:column]
     row = props(g, i)[:row]
-    log_energy = props(g, i)[:log_energy]
+    log_energy = props(g, i)[:energy]
+
+    k1 = [reindex(i, no_spins, right) for i in 1:tensor_size[5]]
+    k2 = [reindex(i, no_spins, down) for i in 1:tensor_size[5]]
+
     for k in CartesianIndices(tuple(tensor_size[1], tensor_size[3]))
         energy = log_energy
         # conctraction with Ms
@@ -77,13 +81,13 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
         for i in 1:tensor_size[5]
 
             # this is for δs
-            k1 = reindex(i, no_spins, right)
-            k2 = reindex(i, no_spins, down)
+            #k1 = reindex(i, no_spins, right)
+            #k2 = reindex(i, no_spins, down)
 
             if !sum_over_last
-                @inbounds tensor[k[1], k1, k[2], k2, i] = energy[i]
+                @inbounds tensor[k[1], k1[i], k[2], k2[i], i] = energy[i]
             else
-                @inbounds tensor[k[1], k1, k[2], k2] = tensor[k[1], k1, k[2], k2] + energy[i]
+                @inbounds tensor[k[1], k1[i], k[2], k2[i]] = tensor[k[1], k1[i], k[2], k2[i]] + energy[i]
             end
         end
     end
@@ -312,7 +316,7 @@ end
 function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
                 threshold::Float64 = 1e-14, node_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
 
-    gg = interactions2grid_graph(g, node_size)
+    gg = graph4peps(g, node_size)
     # grid follows the iiteration
     grid = props(gg)[:grid]
     #ns = 0.

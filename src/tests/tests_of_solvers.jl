@@ -22,7 +22,7 @@ using Statistics
         β_step = 3
         β = 9.
 
-        g = M2graph(-M)
+        g = M2graph(M)
 
         spins_mps, objectives_mps = solve_mps(g, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
         energies_mps = [v2energy(M, spins) for spins in spins_mps]
@@ -49,7 +49,7 @@ using Statistics
         spins_brute, energies_brute = brute_force_solve(M, sols)
 
         # parametrising for mps
-        g = M2graph(-M)
+        g = M2graph(M)
 
         χ = 10
         β_step = 3
@@ -90,15 +90,15 @@ using Statistics
         # testing particular spins
         for i in 1:19
             spins = spins_mps[i]
-            @test spins[1:2] == [-1,-1]
-            @test spins[5:6] == [-1,-1]
+            @test spins[1:2] == [1,1]
+            @test spins[5:6] == [1,1]
             # shows that output do vary
             @test spins_mps[i] != spins_mps[i+1]
         end
 
         ##### another case ####
         #the solution required [1,x,x,...,x,1]
-        M1[1,1] = M1[64,64] = M1[1,64] = M1[64,1] = 2.5
+        M1[1,1] = M1[64,64] = M1[1,64] = M1[64,1] = 2.
 
         g = M2graph(M1)
 
@@ -113,8 +113,8 @@ using Statistics
         # testing particular spins
         for i in 1:9
             spins = spins_mps[i]
-            @test spins[1] == -1
-            @test spins[64] == -1
+            @test spins[1] == 1
+            @test spins[64] == 1
             # shows that output do vary
             @test spins_mps[i] != spins_mps[i+1]
         end
@@ -133,7 +133,7 @@ end
 
     fullM2grid!(M, (4,6))
 
-    g = M2graph(-M)
+    g = M2graph(M)
 
     χ = 12
     β = 2.

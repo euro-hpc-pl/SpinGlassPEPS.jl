@@ -53,7 +53,8 @@ function make_graph(data::Array{Array{Any,1},1})
     for k in 1:size(data,1)
         i = Int(data[k][1])
         j = Int(data[k][2])
-        v = Float64(data[k][3])
+        # conventoion
+        v = -Float64(data[k][3])
         if i == j
             set_prop!(ig, i, :h, v) || error("Node $i missing!")
         else
