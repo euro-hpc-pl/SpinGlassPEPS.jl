@@ -5,17 +5,20 @@ using LinearAlgebra
 using TensorOperations
 using TensorCast
 using Random
+using LightGraphs
+using MetaGraphs
+
+include("../base.jl")
+include("../contractions.jl")
+include("../compressions.jl")
+include("../ising.jl")
+include("../search.jl")
 
 include("../notation.jl")
 include("../brute_force.jl")
 include("../compression.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
-include("../base.jl")
-include("../contractions.jl")
-include("../compressions.jl")
-include("../ising.jl")
-include("../search.jl")
 
 
 s = ArgParseSettings("description")

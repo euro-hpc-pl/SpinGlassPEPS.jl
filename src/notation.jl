@@ -1,6 +1,3 @@
-using TensorOperations
-using LightGraphs
-using MetaGraphs
 
 
 #############    forming varous grids    #############

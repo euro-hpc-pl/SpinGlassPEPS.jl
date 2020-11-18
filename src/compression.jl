@@ -3,6 +3,7 @@ import LinearAlgebra: DivideAndConquer
 using LowRankApprox
 using Random
 
+if false
 # TODO some of functions from LP-BG can be used there                                         |
 #                                             |
 # TODO permute dimetnions to ---viatual - physical - virtual---
@@ -274,35 +275,13 @@ end
 
 #compress(ψ::AbstractMPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
 
-
-function compress_iter(mps::Vector{Array{T,3}}, χ::Int, threshold::Float64) where T <: AbstractFloat
-    mps1 = [permutedims(e, (1,3,2)) for e in mps]
-    ψ = MPS(mps1)
-    ϕ  = compress(ψ, χ, threshold)
-    #mps_lc = left_canonical_approx(mps, 0)
-    #mps_anzatz = left_canonical_approx(mps, χ)
-    #ret = compress_mps_itterativelly(mps_lc, mps_anzatz, threshold)
-    ret1 = [permutedims(e, (1,3,2)) for e in ϕ]
-    #println(typeof(ret1))
-    #println([size(e) for e in ret])
-    #println([size(e) for e in ret1])
-    ret1
-end
-
-
-# TODO I made this simple implementation for the intra-step compression
-
-#function compress_iter(mpo::Vector{Array{T,4}}, χ::Int, threshold::Float64) where T <: AbstractFloat
-#    s = [size(el) for el in mpo]
-#    mps = [reshape(mpo[i], (s[i][1], s[i][2], s[i][3]*s[i][4])) for i in 1:length(mpo)]
-#    mps = compress_iter(mps, χ, threshold)
-
-#    s1 =  [size(el) for el in mps]
-#    mps = [reshape(mps[i], (s1[i][1], s1[i][2], s[i][3], s[i][4])) for i in 1:length(mps)]
-#    return mps
-#end
-
-# TODO for testing - comparison only
+# TODO use proper function for testing - comparison only
 function compress_svd(mps::Vector{Array{T,3}}, χ::Int) where T <: AbstractFloat
     left_canonical_approx(mps, χ)
+end
+
+end
+
+function compress_iter(ψ::MPS{T}, χ::Int, threshold::Float64) where T <: AbstractFloat
+    compress(ψ, χ, threshold)
 end

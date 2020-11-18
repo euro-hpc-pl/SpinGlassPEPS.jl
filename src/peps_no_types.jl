@@ -121,7 +121,15 @@ function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) whe
         end
         mps_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3]))
     end
-    Array{Array{T, 3}}(mps_res)
+    ret = Array{Array{T, 3}}(mps_res)
+    mps = MPS([permutedims(e, (1,3,2)) for e in mps_down])
+    mpo = MPO([permutedims(e, (1,3,2,4)) for e in mps_up])
+    ret1 = mpo*mps
+    ret1 = [permutedims(e, (1,2,3)) for e in ret1]
+    println([size(e) for e in ret])
+    println([size(e) for e in ret1])
+    #println(ret-ret1)
+    ret
 end
 
 """
@@ -265,19 +273,22 @@ function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64
     s = size(grid,1)
     if k <= s
         mps = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[s,:]]
+        mps = MPS([permutedims(e, (1,3,2)) for e in mps])
         if threshold > 0.
             mps = compress_iter(mps, χ, threshold)
         end
         for i in s-1:-1:k
 
             mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
-
-            mps = MPSxMPO(mps, mpo)
+            mpo = MPO([permutedims(e, (1,3,2,4)) for e in mpo])
+            mps = mpo*mps
+            # there is a bug in the product
+            mps = MPS([permutedims(e, (1,3,2)) for e in mps])
             if threshold > 0.
                 mps = compress_iter(mps, χ, threshold)
             end
         end
-        return mps
+        return [permutedims(e, (1,3,2)) for e in mps]
         end
     [zeros(T,1)]
 end

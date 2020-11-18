@@ -2,18 +2,22 @@ using NPZ
 using ArgParse
 using CSV
 using TensorCast
+using LightGraphs
+using MetaGraphs
+
 #addprocs(1)
+include("../base.jl")
+include("../contractions.jl")
+include("../compressions.jl")
+include("../ising.jl")
+include("../search.jl")
 
 include("../notation.jl")
 include("../brute_force.jl")
 include("../compression.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
-include("../base.jl")
-include("../contractions.jl")
-include("../compressions.jl")
-include("../ising.jl")
-include("../search.jl")
+
 
 
 s = ArgParseSettings("description")
