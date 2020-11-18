@@ -1,13 +1,18 @@
 using NPZ
 using Test
-using ArgParse
-using LinearAlgebra
-using TensorOperations
-using TensorCast
 using Random
 using LightGraphs
 using MetaGraphs
+using NPZ
+using ArgParse
+using CSV
+using TensorCast
+using LinearAlgebra
+using MetaGraphs
+using TensorOperations
+using LowRankApprox
 
+include("../utils.jl")
 include("../base.jl")
 include("../contractions.jl")
 include("../compressions.jl")
@@ -16,7 +21,7 @@ include("../search.jl")
 
 include("../notation.jl")
 include("../brute_force.jl")
-include("../compression.jl")
+#include("../compression.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 

@@ -315,6 +315,7 @@ end
     end
 end
 
+
 function make_interactions_full()
     J_h = [1 1 -0.1; 1 2 -1.; 1 3 -1.; 1 4 -0.2; 2 2 0.1; 2 3 -1.0; 2 4 -0.2]
     J_h = vcat(J_h, [3 3 -0.2; 3 4 -0.2; 4 4 0.2])
@@ -343,26 +344,23 @@ end
 
     g = make_interactions_full()
 
-    β = 0.5
-    β_step = 2
-
-    println("number of β steps = ", β_step)
-
-    spins, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=12, threshold = 1.e-8)
+    spins, _ = solve_mps(g, 4; β=1., β_step=2, χ=12, threshold = 1.e-8)
 
     @test spins[1] in [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
     @test spins[2] in [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
     @test spins[3] in [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
     @test spins[4] in [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
 
+    β = 0.1
+    β_step = 4
 
-    #test if if just works on large graph 64 x 64
+    #test if works on large graph 64 x 64
     Random.seed!(1234)
     M = rand([-1.,-0.5,0.,0.5,1.], 64,64)
     M = M*(M')
 
     g = M2graph(M)
 
-    @time s, _ = solve_mps(g, 4; β=1., β_step=1, χ=6, threshold = 1.e-6)
+    @time s, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=25, threshold = 1.e-12)
     @test length(s[1]) == 64
 end

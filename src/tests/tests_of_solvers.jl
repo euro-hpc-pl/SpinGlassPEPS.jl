@@ -77,9 +77,9 @@ using Statistics
         M[5,5] = M[5,6] = M[6,5] = M[1,6] = M[6,1] = M[2,6] = M[6,2] = M[6,6] = 2.
         # the output expected is [1,1,x,x,1,1,x,.....]
 
-        χ = 10
-        β_step = 2
-        β = 2.
+        χ = 25
+        β = 0.1
+        β_step = 4
 
         g = M2graph(M)
 
@@ -102,9 +102,9 @@ using Statistics
 
         g = M2graph(M1)
 
-        χ = 10
-        β_step = 2
-        β = 2.
+        χ = 25
+        β = 0.1
+        β_step = 4
 
         spins_mps, objectives_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 

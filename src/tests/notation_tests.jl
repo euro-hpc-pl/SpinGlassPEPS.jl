@@ -162,7 +162,6 @@ end
     @test M[:,1] == [-4.0, 0.0, 0.0, 4.0]
 end
 
-
 @testset "operations on spins" begin
 
     @test ind2spin(1,1) == [-1]

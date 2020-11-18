@@ -60,7 +60,7 @@ using NPZ
 
         # MPS MPO treates as a graph without the structure
 
-        χ = 10
+        χ = 15
         β_step = 2
 
         spins_mps, objective_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)

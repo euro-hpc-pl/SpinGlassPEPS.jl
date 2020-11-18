@@ -108,28 +108,28 @@ returns an mps, the product of the mpo and mps
 """
 # TODO Take from LP+BG code, or at lest simplify, remove reshape
 function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
-        mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
-        for i in 1:length(mps_down)
-        A = mps_down[i]
-        B = mps_up[i]
-        sa = size(A)
-        sb = size(B)
+    #    mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
+    #    for i in 1:length(mps_down)
+    #    A = mps_down[i]
+    #    B = mps_up[i]
+    #    sa = size(A)
+    #    sb = size(B)
 
-        C = zeros(T, sa[1] , sb[1], sa[2], sb[2], sb[3])
-        @tensor begin
-            C[a,d,b,e,f] = A[a,b,x]*B[d,e,f,x]
-        end
-        mps_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3]))
-    end
-    ret = Array{Array{T, 3}}(mps_res)
+    #    C = zeros(T, sa[1] , sb[1], sa[2], sb[2], sb[3])
+    #    @tensor begin
+    #        C[a,d,b,e,f] = A[a,b,x]*B[d,e,f,x]
+    #    end
+    #    mps_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3]))
+    #end
+    #ret = Array{Array{T, 3}}(mps_res)
     mps = MPS([permutedims(e, (1,3,2)) for e in mps_down])
     mpo = MPO([permutedims(e, (1,3,2,4)) for e in mps_up])
     ret1 = mpo*mps
-    ret1 = [permutedims(e, (1,2,3)) for e in ret1]
-    println([size(e) for e in ret])
-    println([size(e) for e in ret1])
+    ret1 = [permutedims(e, (1,3,2)) for e in ret1]
+    #println([size(e) for e in ret])
+    #println([size(e) for e in ret1])
     #println(ret-ret1)
-    ret
+    ret1
 end
 
 """
@@ -275,17 +275,15 @@ function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64
         mps = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[s,:]]
         mps = MPS([permutedims(e, (1,3,2)) for e in mps])
         if threshold > 0.
-            mps = compress_iter(mps, χ, threshold)
+            mps = compress(mps, χ, threshold)
         end
         for i in s-1:-1:k
 
             mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
             mpo = MPO([permutedims(e, (1,3,2,4)) for e in mpo])
             mps = mpo*mps
-            # there is a bug in the product
-            mps = MPS([permutedims(e, (1,3,2)) for e in mps])
             if threshold > 0.
-                mps = compress_iter(mps, χ, threshold)
+                mps = compress(mps, χ, threshold)
             end
         end
         return [permutedims(e, (1,3,2)) for e in mps]

@@ -3,9 +3,12 @@ using ArgParse
 using CSV
 using TensorCast
 using LightGraphs
+using LinearAlgebra
 using MetaGraphs
+using TensorOperations
+using LowRankApprox
 
-#addprocs(1)
+include("../utils.jl")
 include("../base.jl")
 include("../contractions.jl")
 include("../compressions.jl")
@@ -14,7 +17,7 @@ include("../search.jl")
 
 include("../notation.jl")
 include("../brute_force.jl")
-include("../compression.jl")
+#include("../compression.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 

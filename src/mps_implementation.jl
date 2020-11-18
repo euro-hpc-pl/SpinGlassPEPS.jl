@@ -283,13 +283,11 @@ function construct_mps(g::MetaGraph, β::T, β_step::Int, χ::Int, threshold::T)
     for _ in 1:β_step
         for k in 1:length(all_is)
             mps = construct_mps_step(mps, g,  β/β_step, all_is[k], all_js[k])
-
             s = maximum([size(e, 1) for e in mps])
             if ((threshold > 0) * (s > χ))
                 mps = MPS([permutedims(e, (1,3,2)) for e in mps])
-                mps = compress_iter(mps, χ, threshold)
+                mps = compress(mps, χ, threshold)
                 mps = [permutedims(e, (1,3,2)) for e in mps]
-                #mps = compress_svd(mps, χ)
             end
         end
     end
