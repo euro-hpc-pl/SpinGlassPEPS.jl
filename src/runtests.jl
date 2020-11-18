@@ -1,6 +1,7 @@
 using Test
 using LinearAlgebra
 using TensorOperations
+using TensorCast
 using Random
 
 path = "/home/kdomino/Dokumenty/julia_modules/"
@@ -20,6 +21,12 @@ include("brute_force.jl")
 include("compression.jl")
 include("peps_no_types.jl")
 include("mps_implementation.jl")
+
+include("base.jl")
+include("contractions.jl")
+include("compressions.jl")
+include("ising.jl")
+include("search.jl")
 
 include("tests/notation_tests.jl")
 include("tests/compression_tests.jl")

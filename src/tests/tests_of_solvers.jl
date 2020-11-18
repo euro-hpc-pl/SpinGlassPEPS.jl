@@ -1,7 +1,7 @@
 using Random
 using Statistics
 
-#TODO why we have -M for brure force
+
 @testset "mps on full graphs" begin
 
     @testset "L = 15 testing with brute force" begin
@@ -98,7 +98,7 @@ using Statistics
 
         ##### another case ####
         #the solution required [1,x,x,...,x,1]
-        M1[1,1] = M1[64,64] = M1[1,64] = M1[64,1] = 2.
+        M1[1,1] = M1[64,64] = M1[1,64] = M1[64,1] = 2.5
 
         g = M2graph(M1)
 

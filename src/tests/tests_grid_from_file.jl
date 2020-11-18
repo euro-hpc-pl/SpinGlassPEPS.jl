@@ -1,13 +1,21 @@
 using NPZ
-using Plots
 using Test
 using ArgParse
+using LinearAlgebra
+using TensorOperations
+using TensorCast
+using Random
 
 include("../notation.jl")
 include("../brute_force.jl")
 include("../compression.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
+include("../base.jl")
+include("../contractions.jl")
+include("../compressions.jl")
+include("../ising.jl")
+include("../search.jl")
 
 
 s = ArgParseSettings("description")
@@ -25,7 +33,7 @@ examples = length(data["energies"][:,1])
 println("examples = ", examples)
 
 
-β = 4.
+β = 3.
 
 number_of_states = 10
 
@@ -111,7 +119,7 @@ for k in 1:examples
     @test objective ≈ objective_larger_nodes atol = 1.e-7
 
     ############ MPO - MPS #########
-    χ = 14
+    χ = 15
 
     β_step = 4
 
@@ -119,7 +127,7 @@ for k in 1:examples
 
     number = number_of_states + more_states_for_mps
 
-    @time spins_mps, objective_mps = solve_mps(g, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
+    @time spins_mps, objective_mps = solve_mps(g, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-14)
 
     # sorting improves the oputput
     energies_mps = [v2energy(Mat_of_interactions, spins) for spins in spins_mps]

@@ -1,8 +1,9 @@
 using TensorOperations
 using LinearAlgebra
 using GenericLinearAlgebra
-using SharedArrays
+#using SharedArrays
 using Distributed
+
 
 # TODO β and interactions should be as Float64, if typechange, make it inside a solver
 
@@ -269,11 +270,8 @@ function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64
         end
         for i in s-1:-1:k
 
-            #mpo = [sum_over_last(compute_single_tensor(ns[j], β)) for j in grid[i,:]]
             mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
-            if threshold > 0.
-                mpo = compress_iter(mpo, χ, threshold)
-            end
+
             mps = MPSxMPO(mps, mpo)
             if threshold > 0.
                 mps = compress_iter(mps, χ, threshold)
@@ -411,16 +409,6 @@ return final solutions sorted backwards in form Vector{Partial_sol{T}}
 spins are given in -1,1
 """
 function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  where T <: AbstractFloat
-
-    # TODO this will need to be corrected
-    if false
-        props(ns)[:grid]
-        objectives = [sol.objective for sol in partial_s]
-        spins = [sol.spins for sol in partial_s]
-        spins = [map(i->ind2spin(i, 1)[1], sol) for sol in spins]
-        return spins[end:-1:1], objectives[end:-1:1]
-    end
-
 
     l = length(partial_s)
     objective = zeros(T, l)

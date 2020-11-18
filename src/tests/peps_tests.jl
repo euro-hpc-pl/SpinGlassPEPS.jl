@@ -417,7 +417,7 @@ end
 
     spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2))
     for i in 1:10
-        @test objective[i] ≈ objective_l[i]
+        @test objective[i] ≈ objective_l[i] atol=1e-8
         @test spins[i] == spins_l[i]
     end
 end
