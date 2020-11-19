@@ -124,8 +124,8 @@ end
             @test ϱ[idx.(σ)...] ≈ p
         end 
 
-        #for max_states ∈ [1, N, 2*N, N^2]
-        for max_states ∈ [N]
+        for max_states ∈ [1, N, 2*N, N^2]
+        #for max_states ∈ [N]
             @info "Verifying low energy spectrum" max_states
 
             states, prob, pCut = spectrum(rψ, max_states)
