@@ -25,7 +25,7 @@ function spectrum(ψ::MPS, keep::Int)
     if keep < (*)(rank(ψ)...)
         keep_extra += 1
     end
-
+ 
     states = fill([], 1, k)
     left_env = ones(T, 1, 1, k)
 
@@ -33,7 +33,9 @@ function spectrum(ψ::MPS, keep::Int)
         _, d, β = size(M)
 
         pdo = zeros(T, k, d)
+        pcond = zeros(T, k, d)
         LL = zeros(T, β, β, k, d)
+        LLnew = zeros(T, β, β, k, d)
         config = zeros(Int, i, k, d)
 
         for j ∈ 1:k 
@@ -44,24 +46,27 @@ function spectrum(ψ::MPS, keep::Int)
 
                 LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
                 pdo[j, m] = tr(LL[:, :, j, m])
+                pcond[j,m] = pdo[j, m]^2
                 config[:, j, m] = vcat(states[:, j]..., σ)
-            end  
+                LLnew[:, :, j, m] = LL[:, :, j, m]/pdo[j,m]
+            end
+            L = LLnew
         end
-
         perm = collect(1: k * d)
         k = min(k * d, keep_extra)
 
         if k >= keep_extra
-            partialsortperm!(perm, vec(pdo), 1:k, rev=true)   
-            prob = vec(pdo)[perm]
+            partialsortperm!(perm, vec(pcond), 1:k, rev=true)   
+            prob = vec(pcond)[perm]
             pCut < last(prob) ? pCut = last(prob) : ()
         end
 
-        @cast A[α, β, (l, d)] |= LL[α, β, l, d] 
-        left_env = A[:, :, perm]
+        @cast A[α, β, (l, d)] |= LLnew[α, β, l, d]
+        left_env = A[:, :, perm] 
 
-        @cast B[α, (l, d)] |= config[α, l, d]
+        @cast B[β, (l, d)] |= config[β, l, d]
         states = B[:, perm]
+        println(prob)
     end
     states[:, 1:keep], prob[1:keep], pCut
 end
