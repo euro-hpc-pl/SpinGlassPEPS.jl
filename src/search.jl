@@ -66,6 +66,7 @@ function spectrum(ψ::MPS, keep::Int)
 
         @cast B[β, (l, d)] |= config[β, l, d]
         states = B[:, perm]
+        println(prob)
     end
     states[:, 1:keep], prob[1:keep], pCut
 end
