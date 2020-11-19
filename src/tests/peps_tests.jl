@@ -18,14 +18,12 @@
         b = select_best_solutions([ps3, ps2], 1)
         @test b[1].spins == [1, 1, 2]
         @test b[1].objective == 1.
-
-
-        a =  Partial_sol{Float64}([1,1,1,2], 0.2)
-        b = Partial_sol{Float64}([1,1,2,2], 1.)
-
     end
 
     @testset "functions of graph" begin
+
+        a =  Partial_sol{Float64}([1,1,1,2], 0.2)
+        b = Partial_sol{Float64}([1,1,2,2], 1.)
 
         M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
 
