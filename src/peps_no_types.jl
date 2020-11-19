@@ -18,12 +18,13 @@ function get_parameters_for_T(g::MetaGraph, i::Int)
         if props(g, i)[:column] -1 == props(g, n)[:column]
             M_left = props(g, i, n)[:M]
             tensor_size[1] = size(M_left, 1)
-        elseif props(g, i)[:column] +1 == props(g, n)[:column]
-            right = props(g, i, n)[:inds]
-            tensor_size[2] = 2^length(right)
         elseif props(g, i)[:row] -1 == props(g, n)[:row]
             M_up = props(g, i, n)[:M]
-            tensor_size[3] = size(M_up, 1)
+            tensor_size[2] = size(M_up, 1)
+
+        elseif props(g, i)[:column] +1 == props(g, n)[:column]
+            right = props(g, i, n)[:inds]
+            tensor_size[3] = 2^length(right)
         elseif props(g, i)[:row] +1 == props(g, n)[:row]
             down = props(g, i, n)[:inds]
             tensor_size[4] = 2^length(down)
@@ -33,22 +34,25 @@ function get_parameters_for_T(g::MetaGraph, i::Int)
 end
 
 """
-compute_single_tensor(ns::Node_of_grid, β::T)
+compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
 
-Returns an tensor form which mpses and mpos are build, initialy tensor is 5 mode:
+Returns tensors, building blocks for a peps initialy tensor is 5 mode:
 
-            5 .    3
+            5 .    2
                 .  |
                   .|
-            1 ---  T ---- 2
+            1 ---  T ---- 3
                    |
                    |
                    4
-and mode 5 is physical.
+mode 5 is physical.
 
-If tensor is expected to be on the top of the peps mode 3 is trivial and is removed
-If tensor is expected to be on the bottom of the peps mode 4 is trivial and is removed
+If tensor on the top row of the peps mode 2 is trivial and removed
+
+If tensor on the bottom row of the peps mode 4 is trivial and is removed, to be
+an element of the mps
 """
+
 
 function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
     n = 0
@@ -66,7 +70,7 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
     k1 = [reindex(i, no_spins, right) for i in 1:tensor_size[5]]
     k2 = [reindex(i, no_spins, down) for i in 1:tensor_size[5]]
 
-    for k in CartesianIndices(tuple(tensor_size[1], tensor_size[3]))
+    for k in CartesianIndices(tuple(tensor_size[1], tensor_size[2]))
         energy = log_energy
         # conctraction with Ms
         if column > 1
@@ -86,17 +90,17 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
             #k2 = reindex(i, no_spins, down)
 
             if !sum_over_last
-                @inbounds tensor[k[1], k1[i], k[2], k2[i], i] = energy[i]
+                @inbounds tensor[k[1], k[2], k1[i], k2[i], i] = energy[i]
             else
-                @inbounds tensor[k[1], k1[i], k[2], k2[i]] = tensor[k[1], k1[i], k[2], k2[i]] + energy[i]
+                @inbounds tensor[k[1], k[2], k1[i], k2[i]] = tensor[k[1], k[2], k1[i], k2[i]] + energy[i]
             end
         end
     end
 
     if length(down) == 0
         return dropdims(tensor, dims = 4)
-    elseif row == 1
-        return dropdims(tensor, dims = 3)
+    #elseif row == 1
+    #    return dropdims(tensor, dims = 2)
     end
     return tensor
 end
@@ -108,28 +112,11 @@ returns an mps, the product of the mpo and mps
 """
 # TODO Take from LP+BG code, or at lest simplify, remove reshape
 function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
-    #    mps_res = Array{Union{Nothing, Array{T}}}(nothing, length(mps_down))
-    #    for i in 1:length(mps_down)
-    #    A = mps_down[i]
-    #    B = mps_up[i]
-    #    sa = size(A)
-    #    sb = size(B)
 
-    #    C = zeros(T, sa[1] , sb[1], sa[2], sb[2], sb[3])
-    #    @tensor begin
-    #        C[a,d,b,e,f] = A[a,b,x]*B[d,e,f,x]
-    #    end
-    #    mps_res[i] = reshape(C, (sa[1]*sb[1], sa[2]*sb[2], sb[3]))
-    #end
-    #ret = Array{Array{T, 3}}(mps_res)
     mps = MPS([permutedims(e, (1,3,2)) for e in mps_down])
     mpo = MPO([permutedims(e, (1,3,2,4)) for e in mps_up])
     ret1 = mpo*mps
-    ret1 = [permutedims(e, (1,3,2)) for e in ret1]
-    #println([size(e) for e in ret])
-    #println([size(e) for e in ret1])
-    #println(ret-ret1)
-    ret1
+    [permutedims(e, (1,3,2)) for e in ret1]
 end
 
 """
@@ -177,6 +164,7 @@ function scalar_prod_step(mps_down::Array{T, 2}, mps_up::Array{T, 3}, env::Array
     C
 end
 
+# TODO merge both
 """
     function set_spin_from_letf(mps::Vector{Array{T,3}}, sol::Vector{Int}, s::Int) where T <: AbstractFloat
 
@@ -273,14 +261,16 @@ function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64
     s = size(grid,1)
     if k <= s
         mps = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[s,:]]
-        mps = MPS([permutedims(e, (1,3,2)) for e in mps])
+        #mps = MPS([permutedims(e, (1,3,2)) for e in mps])
+        mps = MPS(mps)
         if threshold > 0.
             mps = compress(mps, χ, threshold)
         end
         for i in s-1:-1:k
 
             mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
-            mpo = MPO([permutedims(e, (1,3,2,4)) for e in mpo])
+            #mpo = MPO([permutedims(e, (1,3,2,4)) for e in mpo])
+            mpo = MPO(mpo)
             mps = mpo*mps
             if threshold > 0.
                 mps = compress(mps, χ, threshold)
@@ -335,45 +325,43 @@ function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
         lower_mps = make_lower_mps(gg, row + 1, β, χ, threshold)
 
         upper_mpo = [compute_single_tensor(gg, j, β) for j in grid[row,:]]
+        if s[1] > row
+            upper_mpo = [permutedims(e, (1,3,2,4,5)) for e in upper_mpo]
+        else
+            upper_mpo = [permutedims(e, (1,3,2,4)) for e in upper_mpo]
+        end
 
         for j in grid[row,:]
 
             partial_s_temp = Partial_sol{T}[]
             for ps in partial_s
-                sol = ps.spins[1+(row-1)*s[2]:end]
 
                 objectives = [T(0.)]
+                ##### TODO the belowe cases will be moved to seperate function ####
                 # left cutoff
                 new_s = 0
                 # TODO it will be done on the grid coordinates of the node
                 if props(gg, j)[:column] > 1
                     all = props(gg, j-1)[:spins]
                     ind = props(gg, j, j-1)[:inds]
-                    new_s = reindex(sol[end], length(all), ind)
-
+                    new_s = reindex(ps.spins[end], length(all), ind)
                 end
 
                 # reindex to contrtact with belowe
+                sol = ps.spins[1+(row-1)*s[2]:end]
                 if row < s[1]
                     for i in 1:length(sol)
                         k = grid[row,i]
                         k1 = grid[row+1,i]
-                        #all = ns[k].spins_inds
                         all = props(gg, k)[:spins]
 
-                        #ind = ns[k].down
                         ind = props(gg, k, k1)[:inds]
                         sol[i] = reindex(sol[i], length(all), ind)
                     end
                 end
-
-                if row == 1
-
-                    objectives = conditional_probabs(upper_mpo, lower_mps, new_s, sol)
-
-                else
-                    # upper cutoff
-                    ind_above = [0 for _ in 1:s[2]]
+                # upper cutoff
+                ind_above = [1 for _ in 1:s[2]]
+                if row > 1
                     for k in 1:s[2]
                         l = grid[row-1,k]
                         l1 = grid[row,k]
@@ -383,18 +371,19 @@ function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
                         ind = props(gg, l, l1)[:inds]
                         ind_above[k] = reindex(index, length(all), ind)
                     end
+                end
 
-                    if row < s[1]
+        
+                if row < s[1]
+                    upper_mps = [upper_mpo[k][:,:,ind_above[k],:,:] for k in 1:s[2]]
+                    objectives = conditional_probabs(upper_mps, lower_mps, new_s, sol)
 
-                        upper_mps = [upper_mpo[k][:,:,ind_above[k],:,:] for k in 1:s[2]]
-                        objectives = conditional_probabs(upper_mps, lower_mps, new_s, sol)
-
-                    else
-                        l = length(sol)
-                        mps = [upper_mpo[k][:,:,ind_above[k],:] for k in l+1:s[2]]
-                        mps = set_spin_from_letf(mps, l, new_s, s[2])
-                        objectives = conditional_probabs(mps)
-                    end
+                else
+                    l = length(sol)
+                    #println(l)
+                    upper_mps = [upper_mpo[k][:,:,ind_above[k],:] for k in 1:s[2]]
+                    M = set_spin_from_letf(upper_mps[l+1:end], l, new_s, s[2])
+                    objectives = conditional_probabs(M)
                 end
 
                 for l in 1:length(objectives)

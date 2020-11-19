@@ -32,7 +32,7 @@ include("brute_force.jl")
 #include("compression.jl")
 include("peps_no_types.jl")
 include("mps_implementation.jl")
-
+include("tests/test_helpers.jl")
 
 include("tests/notation_tests.jl")
 #include("tests/compression_tests.jl")

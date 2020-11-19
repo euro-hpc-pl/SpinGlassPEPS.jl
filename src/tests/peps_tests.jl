@@ -48,67 +48,35 @@ fullM2grid!(Mq, (2,2))
     t1 = compute_single_tensor(g1, 1, β, sum_over_last = true)
     t2 = compute_single_tensor(g1, 2, β, sum_over_last = true)
     t3 = compute_single_tensor(g1, 3, β, sum_over_last = true)
-
+    t1 = permutedims(t1, (1,3,2,4))
+    t2 = permutedims(t2, (1,3,2,4))
+    t3 = permutedims(t3, (1,3,2))
     # all are on the egde from left or right
 
-    @test size(t1) == (1, 2, 2)
-    @test t1[1,:,:] ≈ [exp(-1*β) 0.; 0. exp(1*β)]
+    @test size(t1) == (1, 2, 1, 2)
+    @test t1[1,:,1,:] ≈ [exp(-1*β) 0.; 0. exp(1*β)]
 
-    @test size(t2) == (2,1,2)
-    @test t2[:,1,:] ≈ [exp(1*β) exp(-1*β); exp(-3*β) exp(3*β)]
+    @test size(t2) == (2,1,1,2)
+    @test t2[:,1,1,:] ≈ [exp(1*β) exp(-1*β); exp(-3*β) exp(3*β)]
 
     @test size(t3) == (1,2,2)
     @test t3[1,:,:] ≈ [exp(1*β) exp(-3*β); exp(-1*β) exp(3*β)]
 
     t = compute_single_tensor(g1, 1, β)
-    @test t1 ≈ t[:,:,:,1]+t[:,:,:,2]
+    t = permutedims(t, (1,3,2,4,5))
+    @test t1 ≈ t[:,:,:,:,1]+t[:,:,:,:,2]
 
     #used to construct a larger tensor of 2x2 nodes
-    tensors = [t1, t2]
+    tensors = [t1[:,:,1,:], t2[:,:,1,:]]
     modes = [[-1, 1,-3], [1, -2, -4]]
     T2 = ncon(tensors, modes)
 
     gg = graph4peps(g, (2,1))
     T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
+    T1 = permutedims(T1, (1,3,2))
     @test vec(T1) ≈ vec(T2)
 end
 
-# NCon constraction
-function contract3x3by_ncon(M::Matrix{Array{T, N} where N}) where T <: AbstractFloat
-    u1 = M[1,1][1,:,:,:]
-    v1 = [2,31, -1]
-
-    u2 = M[1,2][:,:,:,:]
-    v2 = [2,3,32,-2]
-
-    u3 = M[1,3][:,1,:,:]
-    v3 = [3,33,-3]
-
-    m1 = M[2,1][1,:,:,:,:]
-
-    v4 = [4,  31, 41, -4]
-    m2 = M[2,2]
-
-    v5 = [4, 5, 32, 42, -5]
-    m3 = M[2,3][:,1,:,:,:]
-
-    v6 = [5, 33, 43, -6]
-
-    d1 = M[3,1][1,:,:,:]
-
-    v7 = [6, 41, -7]
-    d2 = M[3,2][:,:,:,:]
-
-    v8 = [6,7,42,-8]
-    d3 = M[3,3][:,1,:,:]
-
-    v9 = [7, 43, -9]
-
-    tensors = (u1, u2, u3, m1, m2, m3, d1, d2, d3)
-    indexes = (v1, v2, v3, v4, v5, v6, v7, v8, v9)
-
-    ncon(tensors, indexes)
-end
 
 Mq = zeros(9,9)
 Mq[1,1] = 1.
@@ -132,18 +100,6 @@ Mq[5,8] = Mq[8,5] = 0.12
 Mq[6,9] = Mq[9,6] = -0.52
 Mq[7,8] = Mq[8,7] = 0.5
 Mq[8,9] = Mq[9,8] = -0.05
-
-function form_peps(gg::MetaGraph, β::Float64, s::Tuple{Int, Int} = (3,3))
-    M = Array{Union{Nothing, Array{Float64}}}(nothing, s)
-    k = 0
-    for i in 1:s[1]
-        for j in 1:s[2]
-            k = k+1
-            M[i,j] = compute_single_tensor(gg, k, β)
-        end
-    end
-    Matrix{Array{Float64, N} where N}(M)
-end
 
 
 @testset "whole peps tensor" begin
@@ -206,7 +162,7 @@ end
     m2 = [sum_over_last(el) for el in M[2,:]]
     m1 = [sum_over_last(el) for el in M[1,:]]
     # get it back to array{4}
-    m1 = [reshape(el, (size(el,1), size(el,2), 1, size(el,3))) for el in m1]
+    #m1 = [reshape(el, (size(el,1), size(el,2), 1, size(el,3))) for el in m1]
 
     mx = MPSxMPO(m3, m2)
     mx = MPSxMPO(mx, m1)
@@ -216,7 +172,7 @@ end
     @test (A*B*C)[1] ≈ su
 
     # probabilities
-    A = Vector{Array{Float64, 4}}(M[1,:])
+    A = Vector{Array{Float64, 4}}([e[:,:,1,:,:] for e in M[1,:]])
 
     row = 2
     lower_mps = make_lower_mps(gg, row, β, 0, 0.)
