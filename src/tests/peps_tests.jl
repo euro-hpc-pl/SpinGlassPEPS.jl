@@ -1,44 +1,52 @@
 @testset "PEPS - axiliary functions" begin
 
-    # partial solution
-    ps = Partial_sol{Float64}()
-    @test ps.spins == []
-    @test ps.objective == 1.
+    @testset "partial solution type" begin
+        ps = Partial_sol{Float64}()
+        @test ps.spins == []
+        @test ps.objective == 1.
 
-    ps1 = Partial_sol{Float64}([1,1], 1.)
-    @test ps1.spins == [1,1]
-    @test ps1.objective == 1.
+        ps1 = Partial_sol{Float64}([1,1], 1.)
+        @test ps1.spins == [1,1]
+        @test ps1.objective == 1.
 
-    ps2 = update_partial_solution(ps1, 2, 1.)
-    @test ps2.spins == [1,1,2]
-    @test ps2.objective == 1.
+        ps2 = update_partial_solution(ps1, 2, 1.)
+        @test ps2.spins == [1,1,2]
+        @test ps2.objective == 1.
 
-    ps3 = Partial_sol{Float64}([1,1,1], .2)
+        ps3 = Partial_sol{Float64}([1,1,1], .2)
 
-    b = select_best_solutions([ps3, ps2], 1)
-    @test b[1].spins == [1, 1, 2]
-    @test b[1].objective == 1.
+        b = select_best_solutions([ps3, ps2], 1)
+        @test b[1].spins == [1, 1, 2]
+        @test b[1].objective == 1.
 
-    #grid = nxmgrid(2,2)
 
-    a =  Partial_sol{Float64}([1,1,1,2], 0.2)
-    b = Partial_sol{Float64}([1,1,2,2], 1.)
+        a =  Partial_sol{Float64}([1,1,1,2], 0.2)
+        b = Partial_sol{Float64}([1,1,2,2], 1.)
 
-    M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
+    end
 
-    g = M2graph(M)
-    gg = graph4peps(g, (1,1))
+    @testset "functions of graph"
 
-    spins, objectives = return_solutions([a,b], gg)
-    @test spins == [[-1, -1, 1, 1],[-1, -1, -1, 1]]
-    @test objectives == [1.0, 0.2]
+        M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
+
+        g = M2graph(M)
+        gg = graph4peps(g, (1,1))
+
+        spins, objectives = return_solutions([a,b], gg)
+        @test spins == [[-1, -1, 1, 1],[-1, -1, -1, 1]]
+        @test objectives == [1.0, 0.2]
+
+        # TODO test new functions here
+    end
 end
 
 ### creation a matrix of interactions step by step as an example
 Mq = ones(4,4)
 fullM2grid!(Mq, (2,2))
 
-@testset "peps element" begin
+@testset "tensor construction" begin
+
+    #TODO clear permutedims
 
     g = M2graph(Mq)
     β = 2.
@@ -130,9 +138,6 @@ end
 
     ####   conditional probability implementation
 
-    mps = MPSxMPO([ones(1,2,2), 2*ones(2,1,2)], [ones(1,2,1,2), ones(2,1,1,2)])
-    @test mps == [2*ones(1,4,1), 4*ones(4,1,1)]
-
     a = scalar_prod_step(ones(2,2,2), ones(2,2,2), ones(2,2))
     @test a == [8.0 8.0; 8.0 8.0]
 
@@ -140,7 +145,7 @@ end
     @test a == [8.0, 8.0]
 
     v1 = [ones(1,2,2,2), ones(2,2,2,2), ones(2,2,2,2), ones(2,1,2,2)]
-    v2 = [ones(1,2,2), ones(2,2,2), ones(2,2,2), ones(2,1,2)]
+    v2 = MPS([ones(1,2,2), ones(2,2,2), ones(2,2,2), ones(2,2,1)])
     a = conditional_probabs(v1, v2, 2, [2,2,2])
     @test a == [0.5, 0.5]
 
@@ -156,29 +161,31 @@ end
     #TODO make something with dimensionality
     cc = contract3x3by_ncon(M)
     su = sum(cc)
-
+    
     # trace all spins
-    m3 = [sum_over_last(el) for el in M[3,:]]
-    m2 = [sum_over_last(el) for el in M[2,:]]
-    m1 = [sum_over_last(el) for el in M[1,:]]
+    #m3 = [sum_over_last(el) for el in M[3,:]]
+    #m2 = [sum_over_last(el) for el in M[2,:]]
+    #m1 = [sum_over_last(el) for el in M[1,:]]
     # get it back to array{4}
     #m1 = [reshape(el, (size(el,1), size(el,2), 1, size(el,3))) for el in m1]
 
-    mx = MPSxMPO(m3, m2)
-    mx = MPSxMPO(mx, m1)
-    A = mx[1][:,:,1]
-    B = mx[2][:,:,1]
-    C = mx[3][:,:,1]
-    @test (A*B*C)[1] ≈ su
+    #mx = MPSxMPO(m3, m2)
+    #mx = MPSxMPO(mx, m1)
+    #A = mx[1][:,:,1]
+    #B = mx[2][:,:,1]
+    #C = mx[3][:,:,1]
+    #@test (A*B*C)[1] ≈ su
 
     # probabilities
     A = Vector{Array{Float64, 4}}([e[:,:,1,:,:] for e in M[1,:]])
 
     row = 2
     lower_mps = make_lower_mps(gg, row, β, 0, 0.)
+
     # marginal prob
     sol = Int[]
-    objective = conditional_probabs(A, lower_mps, 0, sol)
+    objective = conditional_probabs(A, lower_mps, 1, sol)
+
     p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
     p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
     # approx due to numerical accuracy
@@ -201,6 +208,7 @@ end
 
     row = 3
     lower_mps = make_lower_mps(gg, row, β ,0, 0.)
+
     M_temp = [M[2,i][:,:,sol2[i],:,:] for i in 1:3]
     obj2 = conditional_probabs(M_temp, lower_mps, sol2[end], sol2[4:4])
     # this is exact
@@ -209,7 +217,8 @@ end
     # with approximation marginal
     row = 2
     lower_mps_a = make_lower_mps(gg, row, β, 2, 1e-6)
-    objective = conditional_probabs(A, lower_mps_a, 0, sol)
+
+    objective = conditional_probabs(A, lower_mps_a, 1, sol)
     @test objective ≈ [p1, p2]
 
     objective1 = conditional_probabs(A, lower_mps_a, sol1[end], sol1)
@@ -217,6 +226,7 @@ end
 
     row = 3
     lower_mps_a = make_lower_mps(gg, row, β, 2, 1.e-6)
+    lower_mps_a = [e for e in lower_mps_a]
     obj2_a = conditional_probabs(M_temp, lower_mps_a, sol2[end], sol2[4:4])
     # this is approx
     @test [cond1, cond2] ≈ obj2_a

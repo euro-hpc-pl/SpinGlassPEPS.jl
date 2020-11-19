@@ -1,5 +1,14 @@
-include("peps_no_types.jl")
-include("notation.jl")
+#include("peps_no_types.jl")
+#include("notation.jl")
+
+# TODO Take from LP+BG code
+function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
+
+    mps = MPS([permutedims(e, (1,3,2)) for e in mps_down])
+    mpo = MPO([permutedims(e, (1,3,2,4)) for e in mps_up])
+    ret1 = mpo*mps
+    [permutedims(e, (1,3,2)) for e in ret1]
+end
 
 
 function scalar_prod_with_itself(mps::Vector{Array{T, 3}}) where T <: AbstractFloat

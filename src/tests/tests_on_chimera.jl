@@ -7,6 +7,9 @@ using LinearAlgebra
 using MetaGraphs
 using TensorOperations
 using LowRankApprox
+using Logging
+
+disable_logging(LogLevel(0))
 
 include("../utils.jl")
 include("../base.jl")
