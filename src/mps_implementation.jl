@@ -1,7 +1,6 @@
 include("peps_no_types.jl")
 include("notation.jl")
 
-
 function scalar_prod_with_itself(mps::Vector{Array{T, 3}}) where T <: AbstractFloat
     env = ones(T, 1,1)
     for i in length(mps):-1:1
