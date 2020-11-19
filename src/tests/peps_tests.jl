@@ -131,7 +131,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     @test exp.(-β*v2energy(Mq, v)) ≈ cc[2,1,2,1,2,1,2,1,2]
 end
 
-# TODO this will be the ilostative step by step how does the probability computation work
+# TODO this will be the ilustative step by step how does the probability computation work
 @testset "testing marginal/conditional probabilities" begin
 
     ####   conditional probability implementation
@@ -160,19 +160,6 @@ end
     cc = contract3x3by_ncon(M)
     su = sum(cc)
 
-    # trace all spins
-    #m3 = [sum_over_last(el) for el in M[3,:]]
-    #m2 = [sum_over_last(el) for el in M[2,:]]
-    #m1 = [sum_over_last(el) for el in M[1,:]]
-    # get it back to array{4}
-    #m1 = [reshape(el, (size(el,1), size(el,2), 1, size(el,3))) for el in m1]
-
-    #mx = MPSxMPO(m3, m2)
-    #mx = MPSxMPO(mx, m1)
-    #A = mx[1][:,:,1]
-    #B = mx[2][:,:,1]
-    #C = mx[3][:,:,1]
-    #@test (A*B*C)[1] ≈ su
 
     # probabilities
     A = Vector{Array{Float64, 4}}([e[:,:,1,:,:] for e in M[1,:]])
@@ -224,7 +211,7 @@ end
 
     row = 3
     lower_mps_a = make_lower_mps(gg, row, β, 2, 1.e-6)
-    lower_mps_a = [e for e in lower_mps_a]
+
     obj2_a = conditional_probabs(M_temp, lower_mps_a, sol2[end], sol2[4:4])
     # this is approx
     @test [cond1, cond2] ≈ obj2_a
