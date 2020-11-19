@@ -25,7 +25,7 @@
 
     end
 
-    @testset "functions of graph"
+    @testset "functions of graph" begin
 
         M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
 
@@ -161,7 +161,7 @@ end
     #TODO make something with dimensionality
     cc = contract3x3by_ncon(M)
     su = sum(cc)
-    
+
     # trace all spins
     #m3 = [sum_over_last(el) for el in M[3,:]]
     #m2 = [sum_over_last(el) for el in M[2,:]]
