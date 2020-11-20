@@ -150,7 +150,7 @@ end
 
 
 """
-    function set_spin_from_letf(mps::Vector{Array{T,3}}, l::Int, new_s::Int) where T <: AbstractFloat
+    function set_spin_from_letf(mps::Vector{Array{T,3}}, new_s::Int) where T <: AbstractFloat
 
 Given mps, returns a vector of matrices.
 
@@ -161,14 +161,14 @@ Further are traced over the physical (last) dimension.
 
 
 """
-function set_spin_from_letf(mps::Vector{Array{T,3}}, l::Int, new_s::Int) where T <: AbstractFloat
+function set_spin_from_letf(mps::Vector{Array{T,3}}, new_s::Int) where T <: AbstractFloat
     # transposition is to make a simple matrix multiplication for computing a probability
-    Ms = [Array(transpose(mps[l+1][new_s,:,:]))]
-    vcat(Ms, [sum_over_last(el) for el in mps[l+2:end]])
+    Ms = [Array(transpose(mps[1][new_s,:,:]))]
+    vcat(Ms, [sum_over_last(el) for el in mps[2:end]])
 end
 
 """
-    function set_spin_from_letf(mpo::Vector{Array{T,4}}, l::Int, new_s::Int) where T <: AbstractFloat
+    function set_spin_from_letf(mpo::Vector{Array{T,4}}, new_s::Int) where T <: AbstractFloat
 
 Given mpo, returns a vector of 3-mode arrays
 
@@ -177,17 +177,17 @@ first mode index is set to new_s (this is the configuration of l-1 th element).
 
 Further are traced over the physical (last) dimension.
 """
-function set_spin_from_letf(mpo::Vector{Array{T,4}}, l::Int, new_s::Int) where T <: AbstractFloat
-    B = [mpo[l+1][new_s,:,:,:]]
-    vcat(B, [sum_over_last(el) for el in mpo[l+2:end]])
+function set_spin_from_letf(mpo::Vector{Array{T,4}}, new_s::Int) where T <: AbstractFloat
+    B = [mpo[1][new_s,:,:,:]]
+    vcat(B, [sum_over_last(el) for el in mpo[2:end]])
 end
 
 # TODO, rename and explain s, s_new it was done temporarly
 # explain tensors B,C,D
-function conditional_probabs(M::Vector{Array{T,4}}, lower_mps::MPS{T}, new_s::Int, s::Vector{Int}) where T <: AbstractFloat
+function conditional_probabs(A::Vector{Array{T,3}}, lower_mps::MPS{T}, s::Vector{Int}) where T <: AbstractFloat
 
     l = length(s)
-    A = set_spin_from_letf(M, l, new_s)
+    #A = set_spin_from_letf(M[l+1:end], new_s)
 
     B = ones(T, 1)
     for i in 1:l
@@ -269,6 +269,20 @@ end
 
 # TODO this will be the exported function
 
+
+function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
+    grid = props(gg)[:grid]
+    column = props(gg, j)[:column]
+    row = props(gg, j)[:row]
+    if  column > 1
+        jp = grid[row, column-1]
+        all = props(gg, jp)[:spins]
+        ind = props(gg, j, jp)[:inds]
+        return reindex(ps.spins[end], length(all), ind)
+    end
+    1
+end
+
 function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
                 threshold::Float64 = 1e-14, node_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
 
@@ -290,52 +304,63 @@ function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
             for ps in partial_s
 
                 objectives = [T(0.)]
-                ##### TODO the belowe cases will be moved to seperate function ####
-                # left cutoff
-                new_s = 1
-                # TODO it will be done on the grid coordinates of the node
-                if props(gg, j)[:column] > 1
-                    all = props(gg, j-1)[:spins]
-                    ind = props(gg, j, j-1)[:inds]
-                    new_s = reindex(ps.spins[end], length(all), ind)
-                end
 
-                # reindex to contrtact with belowe
+
+                # reindex to contrtact with below
+                grid = props(gg)[:grid]
+                s = size(grid)
+                row = props(gg, j)[:row]
+                column = props(gg, j)[:column]
+
                 sol = ps.spins[1+(row-1)*s[2]:end]
+                println(length(sol))
+                println(column)
+                # reindex
                 if row < s[1]
                     for i in 1:length(sol)
                         k = grid[row,i]
                         k1 = grid[row+1,i]
                         all = props(gg, k)[:spins]
 
+                        index = sol[i]
+
                         ind = props(gg, k, k1)[:inds]
-                        sol[i] = reindex(sol[i], length(all), ind)
+                        sol[i] = reindex(index, length(all), ind)
                     end
                 end
-                # upper cutoff
-                ind_above = [1 for _ in 1:s[2]]
+
+                # spin indices from above
+                grid = props(gg)[:grid]
+                s = size(grid)
+                row = props(gg, j)[:row]
+                column = props(gg, j)[:column]
+
+                ind_above = ones(Int, s[2]-column+1)
                 if row > 1
-                    for k in 1:s[2]
-                        l = grid[row-1,k]
-                        l1 = grid[row,k]
-                        all = props(gg, l)[:spins]
+                    for i in column:s[2]
+                        k = grid[row-1,i]
+                        k1 = grid[row,i]
+                        all = props(gg, k)[:spins]
 
-                        index = ps.spins[k+(row-2)*s[2]]
-                        ind = props(gg, l, l1)[:inds]
-                        ind_above[k] = reindex(index, length(all), ind)
+                        index = ps.spins[k]
+                        ind = props(gg, k, k1)[:inds]
+                        ind_above[i-column+1] = reindex(index, length(all), ind)
                     end
                 end
 
+                left_s = spin_index_from_left(gg, ps, j)
+                l = props(gg, j)[:column]
                 if row < s[1]
-
-                    upper_mps = [upper_mpo[k][:,ind_above[k],:,:,:] for k in 1:s[2]]
-                    objectives = conditional_probabs(upper_mps, lower_mps, new_s, sol)
+                    #set spins from above
+                    M = [upper_mpo[k][:,ind_above[k-l+1],:,:,:] for k in l:s[2]]
+                    A = set_spin_from_letf(M, left_s)
+                    objectives = conditional_probabs(A, lower_mps, sol)
 
                 else
-                    l = length(sol)
-                    upper_mps = [upper_mpo[k][:,ind_above[k],:,:] for k in 1:s[2]]
+                    #set spins from above
+                    upper_mps = [upper_mpo[k][:,ind_above[k-l+1],:,:] for k in l:s[2]]
 
-                    Ms = set_spin_from_letf(upper_mps, l, new_s)
+                    Ms = set_spin_from_letf(upper_mps, left_s)
                     objectives = conditional_probabs(Ms)
                 end
 

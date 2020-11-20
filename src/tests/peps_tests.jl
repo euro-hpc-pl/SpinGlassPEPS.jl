@@ -142,12 +142,37 @@ end
     a = scalar_prod_step(ones(2,2), ones(2,2,2), ones(2,2))
     @test a == [8.0, 8.0]
 
+    # inds from above have been set on v1 already
     v1 = [ones(1,2,2,2), ones(2,2,2,2), ones(2,2,2,2), ones(2,1,2,2)]
     v2 = MPS([ones(1,2,2), ones(2,2,2), ones(2,2,2), ones(2,2,1)])
-    a = conditional_probabs(v1, v2, 2, [2,2,2])
+    ind = [2,2,2]
+    #               physical indices
+    #
+    #     |        |          |        |
+    #  1--v1[1] -- v1[2]  -- v1[3] -- v1[4]--1
+    #     |        |          |        |
+    # 1--v2[1] -- v2[2]  --  v2[3]-- v2[4]--1
+    #
+    #                  ||
+    #                  V
+    #                                        |
+    #   ind[1]   ind[2]    ind[3] ind[3]--v1[4]--1
+    #     |       |            |             |
+    # 1--v2[1] -- v2[2]  --  v2[3]     -- v2[4]--1
+
+
+    A = set_spin_from_letf(v1[4:4], ind[3])
+
+
+    a = conditional_probabs(A, v2, ind)
     @test a == [0.5, 0.5]
 
-    a = conditional_probabs([ones(2,2), ones(2,2), ones(2,1)])
+    #
+    #    --  M -- M -- M -- 1
+    #
+    #
+    M = [ones(2,2), ones(2,2), ones(2,1)]
+    a = conditional_probabs(M)
     @test a == [0.5, 0.5]
 
     β = 3.
@@ -161,15 +186,17 @@ end
     su = sum(cc)
 
 
-    # probabilities
+    # first row case
     A = Vector{Array{Float64, 4}}([e[:,:,1,:,:] for e in M[1,:]])
 
+    # the row for lower_mps
     row = 2
     lower_mps = make_lower_mps(gg, row, β, 0, 0.)
 
     # marginal prob
     sol = Int[]
-    objective = conditional_probabs(A, lower_mps, 1, sol)
+    Al = set_spin_from_letf(A, 1)
+    objective = conditional_probabs(Al, lower_mps, sol)
 
     p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
     p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
@@ -180,41 +207,10 @@ end
     p11 = sum(cc[1,1,:,:,:,:,:,:,:])/su
     p12 = sum(cc[1,2,:,:,:,:,:,:,:])/su
     sol1 = Int[1]
-    objective1 = conditional_probabs(A, lower_mps, sol1[end], sol1)
+    Al = set_spin_from_letf(A[2:end], 1)
+    objective1 = conditional_probabs(Al, lower_mps, sol1)
     # approx due to numerical accuracy
     @test objective1 ≈ [p11/p1, p12/p1]
-
-
-    cond1 = sum(cc[1,2,1,2,1,:,:,:,:])/sum(cc[1,2,1,2,:,:,:,:,:])
-    cond2 = sum(cc[1,2,1,2,2,:,:,:,:])/sum(cc[1,2,1,2,:,:,:,:,:])
-    @test cond1+cond2 ≈ 1
-
-    sol2 = Int[1,2,1,2]
-
-    row = 3
-    lower_mps = make_lower_mps(gg, row, β ,0, 0.)
-
-    M_temp = [M[2,i][:,:,sol2[i],:,:] for i in 1:3]
-    obj2 = conditional_probabs(M_temp, lower_mps, sol2[end], sol2[4:4])
-    # this is exact
-    @test [cond1, cond2] ≈ obj2
-
-    # with approximation marginal
-    row = 2
-    lower_mps_a = make_lower_mps(gg, row, β, 2, 1e-6)
-
-    objective = conditional_probabs(A, lower_mps_a, 1, sol)
-    @test objective ≈ [p1, p2]
-
-    objective1 = conditional_probabs(A, lower_mps_a, sol1[end], sol1)
-    @test objective1 ≈ [p11/p1, p12/p1]
-
-    row = 3
-    lower_mps_a = make_lower_mps(gg, row, β, 2, 1.e-6)
-
-    obj2_a = conditional_probabs(M_temp, lower_mps_a, sol2[end], sol2[4:4])
-    # this is approx
-    @test [cond1, cond2] ≈ obj2_a
 
 end
 

@@ -1,5 +1,3 @@
-#include("peps_no_types.jl")
-#include("notation.jl")
 
 # TODO Take from LP+BG code
 function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat

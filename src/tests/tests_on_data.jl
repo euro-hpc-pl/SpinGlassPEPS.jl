@@ -1,6 +1,3 @@
-using NPZ
-
-
 @testset "testing peps and mpo-mps on grid, random instance" begin
 
     β = 3.

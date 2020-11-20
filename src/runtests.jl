@@ -3,10 +3,13 @@ using LinearAlgebra
 using TensorOperations
 using TensorCast
 using Random
+using Statistics
 using LightGraphs
 using MetaGraphs
 using LowRankApprox
 using Logging
+using NPZ
+
 
 disable_logging(LogLevel(0))
 

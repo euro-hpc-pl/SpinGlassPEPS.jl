@@ -1,6 +1,3 @@
-using Random
-using Statistics
-
 
 @testset "mps on full graphs" begin
 
