@@ -9,8 +9,8 @@ _σ(idx::Int) = (idx == 1) ? -1 : idx - 1
 
 local_basis(d::Int) = union(-1, 1:d-1)
 
-function proj(state::T, dims::S) where {T, S <: Union{Vector, NTuple}}
-    P = [] 
+function proj(state, dims::T) where {T <: Union{Vector, NTuple}}
+    P = Matrix{Float64}[] 
     for (σ, r) ∈ zip(state, dims)
         v = zeros(r)
         v[idx(σ)...] = 1.

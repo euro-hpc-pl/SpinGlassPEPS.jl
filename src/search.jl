@@ -22,7 +22,7 @@ function spectrum(ψ::MPS, keep::Int)
     pCut = prob = 0.
     k = 1
 
-    if keep < (*)(rank(ψ)...)
+    if keep < prod(rank(ψ))
         keep_extra += 1
     end
 
