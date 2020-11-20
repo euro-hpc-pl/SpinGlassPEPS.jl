@@ -111,6 +111,9 @@ function _apply_nothing!(ψ::AbstractMPS, i::Int)
     ψ[i] = M̃    
 end
 
+_holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
+
+
 function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
     L = nv(ig)
 
@@ -141,10 +144,8 @@ function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
                 _apply_exponent!(ρ, ig, dβ, i, j) 
             end
 
-            for l ∈ i+1:last(nbrs) 
-                if l ∉ nbrs
-                    _apply_nothing!(χ, l) 
-                end
+            for l ∈ _holes(nbrs) 
+                _apply_nothing!(χ, l) 
             end
         end
 
