@@ -1,5 +1,5 @@
 
-function make_left_canonical(t1::Array{T, 3}, t2::Array{T, 3}) where T <: AbstractFloat
+function make_left_canonical(t1::AbstractArray{T, 3}, t2::AbstractArray{T, 3}) where T <: AbstractFloat
     s = size(t1)
 
     p1 = [1,3,2]
@@ -21,7 +21,7 @@ end
 
 
 
-function make_right_canonical(t1::Array{T, 3}, t2::Array{T, 3}) where T <: AbstractFloat
+function make_right_canonical(t1::AbstractArray{T, 3}, t2::AbstractArray{T, 3}) where T <: AbstractFloat
 
     s = size(t2)
 
@@ -91,7 +91,7 @@ function right_canonical_approx(mps::Vector{Array{T, 3}}, χ::Int) where T <: Ab
 end
 
 
-function QR_make_right_canonical(t2::Array{T, 3}) where T <: AbstractFloat
+function QR_make_right_canonical(t2::AbstractArray{T, 3}) where T <: AbstractFloat
 
     s = size(t2)
     p = [2,3,1]
@@ -109,7 +109,7 @@ function QR_make_right_canonical(t2::Array{T, 3}) where T <: AbstractFloat
     Bnew, R
 end
 
-function QR_make_left_canonical(t2::Array{T, 3}) where T <: AbstractFloat
+function QR_make_left_canonical(t2::AbstractArray{T, 3}) where T <: AbstractFloat
 
     s = size(t2)
     p = [1,3,2]
@@ -127,12 +127,12 @@ function QR_make_left_canonical(t2::Array{T, 3}) where T <: AbstractFloat
 end
 
 """
-    function R_update(U::Array{T, 3}, U_exact::Array{T, 3}, R::Array{T, 2}) where T <: AbstractFloat
+    function R_update(U::AbstractArray{T, 3}, U_exact::AbstractArray{T, 3}, R::AbstractArray{T, 2}) where T <: AbstractFloat
 
 update the right enviroment in the approximation,
 Return matrix, the updated enviroment
 """
-function R_update(U::Array{T, 3}, U_exact::Array{T, 3}, R::Array{T, 2}) where T <: AbstractFloat
+function R_update(U::AbstractArray{T, 3}, U_exact::AbstractArray{T, 3}, R::AbstractArray{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(U, 1), size(U_exact, 1))
     @tensor begin
         #v concers contracting modes of size 1 in C
@@ -142,12 +142,12 @@ function R_update(U::Array{T, 3}, U_exact::Array{T, 3}, R::Array{T, 2}) where T 
 end
 
 """
-    L_update(U::Array{T, 3}, U_exact::Array{T, 3}, R::Array{T, 2}) where T <: AbstractFloat
+    L_update(U::AbstractArray{T, 3}, U_exact::AbstractArray{T, 3}, R::AbstractArray{T, 2}) where T <: AbstractFloat
 
 update the left enviroment in the approximation,
 Return matrix, the updated enviroment
 """
-function L_update(U::Array{T, 3}, U_exact::Array{T, 3}, R::Array{T, 2}) where T <: AbstractFloat
+function L_update(U::AbstractArray{T, 3}, U_exact::AbstractArray{T, 3}, R::AbstractArray{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(U, 2), size(U_exact, 2))
     @tensor begin
         C[a,b] = U[x,a,v]*U_exact[y,b,v]*R[x,y]

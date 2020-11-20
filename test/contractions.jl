@@ -18,6 +18,12 @@ Id = [I(d) for _ ∈ 1:length(ϕ)]
     @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)  
 
     @test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ)))
+
+    ψ[end] *= 1/norm(ψ)
+    @test dot(ψ, ψ) ≈ 1
+
+    ϕ[1] *= 1/norm(ϕ)
+    @test dot(ϕ, ϕ) ≈ 1
 end
 
 @testset "left environment" begin

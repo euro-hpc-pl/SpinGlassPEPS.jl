@@ -1,26 +1,4 @@
- export truncate!, canonise!, compress, compress!
-
-function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int) 
-    fact = pqrfact(M, rank=Dcut)
-    Q = fact[:Q]
-    R = fact[:R]
-    return _qr_fix!(Q, R)
-end     
-
-function rq(M::AbstractMatrix, Dcut::Int) 
-    fact = pqrfact(:c, conj.(M), rank=Dcut)
-    Q = fact[:Q]
-    R = fact[:R]
-    return _qr_fix!(Q, R)'
-end  
-
-function _qr_fix!(Q::AbstractMatrix, R::AbstractMatrix)
-    d = diag(R)
-    ph = d./abs.(d)
-    idim = size(R, 1)
-    q = Matrix(Q)[:, 1:idim]
-    return transpose(ph) .* q
-end
+export truncate!, canonise!, compress
 
 function canonise!(ψ::AbstractMPS)
     canonise!(ψ, :right)
@@ -47,7 +25,7 @@ function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
         @cast   M̃[(x, σ), y] |= M[x, σ, y]
         
         # decompose
-        U, Σ, V = psvd(M̃, rank=Dcut)
+        U, Σ, V = svd(M̃, Dcut)
 
         # create new    
         d = size(ψ[i], 2)
@@ -68,7 +46,7 @@ function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
         @cast   M̃[x, (σ, y)] |= M[x, σ, y]
 
         # decompose
-        U, Σ, V = psvd(M̃, rank=Dcut)
+        U, Σ, V = svd(M̃, Dcut)
 
         # create new 
         d = size(ψ[i], 2)
@@ -78,7 +56,7 @@ function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
 end
  
 
-function compress(ψ::AbstractMPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
+function compress(ψ::AbstractMPS, Dcut::Int, tol::Number=1E-8, max_sweeps::Int=4)
 
     # Initial guess - truncated ψ 
     ϕ = copy(ψ)
@@ -91,29 +69,24 @@ function compress(ψ::AbstractMPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
     overlap = 0 
     overlap_before = 1
      
-    println("Compressing down to: $Dcut") 
+    @info "Compressing down to" Dcut
     
     for sweep ∈ 1:max_sweeps            
         _left_sweep_var!!(ϕ, env, ψ, Dcut)
         overlap = _right_sweep_var!!(ϕ, env, ψ, Dcut)
 
         diff = abs(overlap_before - abs(overlap))
-        println("Convergence: ", diff)
+        @info "Convergence" diff
 
         if diff < tol
-            println("Finished in $sweep sweeps (of $max_sweeps).")
+            @info "Finished in $sweep sweeps of $(max_sweeps)."
             break
         else
             overlap_before = overlap
         end    
     end
-    return ϕ  
+    ϕ  
 end
-
-function compress!(ψ::MPS, Dcut::Int, tol::Number, max_sweeps::Int=4)
-    ϕ = compress(ψ, Dcut, tol, max_sweeps)
-    ψ = copy(ϕ)
-end 
 
 function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
     S = eltype(ϕ)
@@ -173,6 +146,6 @@ function _right_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcu
         @tensor LL[x, y] := conj(A[β, σ, x]) * L[β, α] * B[α, σ, y] order = (α, β, σ)
         env[i+1] = LL
     end
-    return real(env[end][1])
+    real(env[end][1])
 end
 

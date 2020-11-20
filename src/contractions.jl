@@ -1,4 +1,3 @@
-using Base 
 export left_env, right_env, dot!
 
 # --------------------------- Conventions ------------------------ 
@@ -10,6 +9,16 @@ export left_env, right_env, dot!
 # ---------------------------------------------------------------
 #
 
+function LinearAlgebra.dot(ψ::MPS, state::Union{Vector, NTuple}) 
+    C = I
+
+    for (M, σ) ∈ zip(ψ, state)        
+        i = idx(σ)
+        C = M[:, i, :]' * (C * M[:, i, :])
+    end
+    tr(C)
+end
+
 function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     T = promote_type(eltype(ψ), eltype(ϕ))
     C = ones(T, 1, 1)
@@ -19,7 +28,7 @@ function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
         M̃ = conj(ϕ[i])
         @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ) 
     end
-    return C[1]
+    tr(C)
 end
 
 function left_env(ϕ::MPS, ψ::MPS) 
@@ -37,7 +46,7 @@ function left_env(ϕ::MPS, ψ::MPS)
         @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ)
         L[i+1] = C
     end
-    return L
+    L
 end
 
 # NOT tested yet
@@ -56,12 +65,31 @@ function right_env(ϕ::MPS, ψ::MPS)
         @tensor D[x, y] := M[x, σ, α] * D[α, β] * M̃[y, σ, β] order = (β, α, σ)
         R[i] = D
     end
-    return R
+    R
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Calculates the norm of an MPS \$\\ket{\\phi}\$
+"""
 LinearAlgebra.norm(ψ::AbstractMPS) = sqrt(abs(dot(ψ, ψ)))
 
-function LinearAlgebra.dot(ϕ::MPS, O::Vector{T}, ψ::MPS) where {T <: AbstractMatrix}
+
+"""
+$(TYPEDSIGNATURES)
+
+Calculates \$\\bra{\\phi} O \\ket{\\psi}\$
+
+# Details
+
+Calculates the matrix element of \$O\$
+```math
+\\bra{\\phi} O \\ket{\\psi}
+```
+in one pass, utlizing `TensorOperations`.
+"""
+function LinearAlgebra.dot(ϕ::MPS, O::Union{Vector, NTuple}, ψ::MPS) #where T <: AbstractMatrix
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
     C = ones(S, 1, 1)
 
@@ -70,8 +98,8 @@ function LinearAlgebra.dot(ϕ::MPS, O::Vector{T}, ψ::MPS) where {T <: AbstractM
         M̃ = conj.(ϕ[i])
         Mat = O[i]
         @tensor C[x, y] := M̃[β, σ, x] * Mat[σ, η] * C[β, α] * M[α, η, y] order = (α, η, β, σ)
-end
-    return C[1]
+    end
+    tr(C)
 end
 
 function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}
@@ -83,19 +111,19 @@ function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}
         W = O[i]
         M = ψ[i]
 
-        @reduce N[(x, a), (y, b), σ] := sum(η) W[x, σ, y, η] * M[a, η, b]      
+        @reduce N[(x, a), σ, (y, b)] := sum(η) W[x, σ, y, η] * M[a, η, b]      
         ϕ[i] = N
     end
-    return ϕ
+    ϕ
 end
 
-function dot!(O::AbstractMPO, ψ::AbstractMPS)
+function dot!(ψ::AbstractMPS, O::AbstractMPO)
     L = length(ψ)
     for i in 1:L
         W = O[i]
         M = ψ[i]
 
-        @reduce N[(x, a), (y, b), σ] := sum(η) W[x, σ, y, η] * M[a, η, b]      
+        @reduce N[(x, a), σ, (y, b)] := sum(η) W[x, σ, y, η] * M[a, η, b]      
         ψ[i] = N
     end
 end
@@ -114,7 +142,7 @@ function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
         @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]        
         O[i] = V
     end
-    return O
+    O
 end
 
 Base.:(*)(O1::AbstractMPO, O2::AbstractMPO) = dot(O1, O2)
