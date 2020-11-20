@@ -68,6 +68,7 @@ function right_env(ϕ::MPS, ψ::MPS)
     R
 end
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -89,6 +90,7 @@ Calculates the matrix element of \$O\$
 ```
 in one pass, utlizing `TensorOperations`.
 """
+
 function LinearAlgebra.dot(ϕ::MPS, O::Union{Vector, NTuple}, ψ::MPS) #where T <: AbstractMatrix
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
     C = ones(S, 1, 1)
@@ -101,6 +103,7 @@ function LinearAlgebra.dot(ϕ::MPS, O::Union{Vector, NTuple}, ψ::MPS) #where T 
     end
     tr(C)
 end
+
 
 function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}
     L = length(ψ)
