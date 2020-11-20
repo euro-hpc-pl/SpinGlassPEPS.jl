@@ -24,6 +24,7 @@ mps_param = MPSControl(Dcut, var_tol, max_sweeps)
 ϱ = gibbs_tensor(ig, gibbs_param)
 @test sum(ϱ) ≈ 1
 
+
 @testset "Verifying gate operations" begin
     χ = HadamardMPS(N)
 
