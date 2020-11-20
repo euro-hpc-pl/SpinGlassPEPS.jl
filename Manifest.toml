@@ -230,12 +230,6 @@ git-tree-sha1 = "81690084b6198a2e1da36fcfda16eeca9f9f24e4"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.1"
 
-[[Kronecker]]
-deps = ["FillArrays", "LinearAlgebra", "Random", "SparseArrays", "StatsBase", "Test"]
-git-tree-sha1 = "4149069db731d4fc1b7da29557a690a1bc69f3c5"
-uuid = "2c470bb0-bcc8-11e8-3dad-c9649493f05e"
-version = "0.3.1"
-
 [[LLVM]]
 deps = ["CEnum", "Libdl", "Printf", "Unicode"]
 git-tree-sha1 = "a662366a5d485dee882077e8da3e1a95a86d097f"
@@ -426,12 +420,6 @@ version = "0.12.4"
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-
-[[StatsBase]]
-deps = ["DataAPI", "DataStructures", "LinearAlgebra", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics"]
-git-tree-sha1 = "7bab7d4eb46b225b35179632852b595a3162cb61"
-uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.33.2"
 
 [[Strided]]
 deps = ["LinearAlgebra", "TupleTools"]
