@@ -4,6 +4,7 @@ export GibbsControl
 export brute_force
 export brute_force_lazy
 
+const State = Union{Vector, NTuple}
 struct GibbsControl 
     β::Number
     β_schedule::Vector{<:Number}
@@ -17,7 +18,7 @@ function brute_force_lazy(ig::MetaGraph, k::Int=1)
     collect.(states)[perm], energies[perm]
 end    
 
-function brute_force(ig::MetaGraph, k::Int=1)
+function _brute_force(ig::MetaGraph, k::Int=1)
     L = nv(ig)
     states = ising.(digits.(0:2^L-1, base=2, pad=L))
     energies = energy.(states, Ref(ig))
@@ -25,11 +26,25 @@ function brute_force(ig::MetaGraph, k::Int=1)
     states[perm], energies[perm]
 end  
 
-function gibbs_tensor(ig::MetaGraph, opts::GibbsControl)
-    L = nv(ig)
-    β = opts.β
-    states = product(fill([-1, 1], L)...)
-    ρ = exp.(-β .* energy.(states, Ref(ig)))
+
+"""
+$(TYPEDSIGNATURES)
+
+Calculates Gibbs state of a classical Ising Hamiltonian
+
+# Details
+
+Calculates all matrix elements of \$\\rho\$ (probabilities)
+```math
+\$\\bra{\\σ}\\rho\\ket{\\eta}\$
+```
+for all possible configurations \$\\σ\$.
+"""
+function gibbs_tensor(ig::MetaGraph)
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
+
+    ρ = exp.(-β .* energy.(all_states(rank), Ref(ig)))
     ρ ./ sum(ρ)
 end
 
@@ -37,9 +52,9 @@ end
 """
 Calculate the Ising energy as E = -sum_<i,j> s_i * J_ij * s_j - sum_j h_i * s_j.
 """
-function energy(σ::Union{Vector, NTuple}, ig::MetaGraph)
+function energy(σ::State, ig::MetaGraph)
 
-    energy = 0
+    energy = 0.
     # quadratic
     for edge ∈ edges(ig)
         i, j = src(edge), dst(edge)         
@@ -92,6 +107,7 @@ function ising_graph(instance::String, L::Int, β::Number=1)
 
     # store extra information
     set_prop!(ig, :β, β)
+    set_prop!(ig, :rank, fill(d, L))
     
     ig
 end
