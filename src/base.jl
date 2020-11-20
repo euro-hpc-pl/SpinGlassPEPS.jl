@@ -207,7 +207,7 @@ end
 
 function Base.show(::IO, ψ::AbstractMPS)
     L = length(ψ)
-    dims = [size(ψ[i]) for i ∈ 1:L] 
+    dims = size.(ψ)
 
     @info "Matrix product state on $L sites:" 
     _show_sizes(dims)
