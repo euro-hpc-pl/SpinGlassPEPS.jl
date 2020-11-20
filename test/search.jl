@@ -36,7 +36,7 @@ mps_param = MPSControl(Dcut, var_tol, max_sweeps)
     @test sum(T) ≈ 1
 
     for i ∈ 1:N
-        _apply_bias!(χ, ig, β, i)
+        SpinGlassPEPS._apply_bias!(χ, ig, β, i)
 
         h = get_prop(ig, i, :h)
         for σ ∈ states
@@ -47,9 +47,9 @@ mps_param = MPSControl(Dcut, var_tol, max_sweeps)
 
         if !isempty(nbrs)
 
-            _apply_projector!(χ, i)
+            SpinGlassPEPS._apply_projector!(χ, i)
             for j ∈ nbrs 
-                _apply_exponent!(χ, ig, β, i, j) 
+                SpinGlassPEPS._apply_exponent!(χ, ig, β, i, j) 
 
                 J = get_prop(ig, i, j, :J)
                 for σ ∈ states
@@ -59,7 +59,7 @@ mps_param = MPSControl(Dcut, var_tol, max_sweeps)
 
             for l ∈ i+1:maximum(nbrs)
                 if l ∉ nbrs
-                    _apply_nothing!(χ, l) 
+                    SpinGlassPEPS._apply_nothing!(χ, l) 
                 end
             end
         end

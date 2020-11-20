@@ -2,11 +2,6 @@ export MPS_from_gates, unique_neighbors
 export MPSControl
 export spectrum
 
-export _apply_bias!
-export _apply_exponent!
-export _apply_projector!
-export _apply_nothing!
-
 struct MPSControl 
     max_bond::Int
     var_ϵ::Number
