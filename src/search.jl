@@ -135,17 +135,17 @@ function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
 
         nbrs = unique_neighbors(ig, i)
         if !isempty(nbrs)
-
-            @info "Applying outgoing gates from $i"
             _apply_projector!(ρ, i)
 
             for j ∈ nbrs 
                 _apply_exponent!(ρ, ig, dβ, i, j) 
             end
 
-            #for l ∈ setdiff(1:L, union(i, nbrs))
-            #    _apply_nothing!(ρ, l) 
-            #end
+            for l ∈ i+1:last(nbrs) 
+                if l ∉ nbrs
+                    _apply_nothing!(χ, l) 
+                end
+            end
         end
 
         if bond_dimension(ρ) > Dcut
@@ -161,3 +161,4 @@ function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
     end
     ρ
 end
+

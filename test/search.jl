@@ -25,38 +25,7 @@ mps_param = MPSControl(Dcut, var_tol, max_sweeps)
 @test sum(ϱ) ≈ 1
 
 @testset "Verifying gate operations" begin
-
-    #=
-    @info "Applying nothing" ϵ 
-
-    ψ = HadamardMPS(N)
-    ϕ = copy(ψ)
-
-    @test dot(ψ, ϕ) ≈ 1
-    @test dot(ψ, ψ) ≈ 1
-    @test dot(ϕ, ϕ) ≈ 1
-
-    for i ∈ 1:N
-        _apply_nothing!(ψ, i)
-    end
-
-    @test dot(ψ, ψ) ≈ 1
-    @test abs(1 - abs(dot(ψ, ϕ))) < ϵ
-
-    @info "Applying bias"
-    χ = HadamardMPS(N) #copy(ϕ) # wtf copy does not work
-
-    bias = [get_prop(ig, i, :h) for i ∈ 1:N]
-
-    for i ∈ 1:N
-        _apply_bias!(ϕ, ig, β, i)
-    end
-    
-    @test dot(ϕ, ϕ) ≈ prod(cosh(β * h) for h ∈ bias)
-    =#
-
-    @info "Applying interactions"
-    χ = HadamardMPS(N) 
+    χ = HadamardMPS(N)
 
     d = 2
     rank = fill(d, N)
@@ -97,7 +66,6 @@ mps_param = MPSControl(Dcut, var_tol, max_sweeps)
         show(χ)
         verify_bonds(χ)
 
-        @info dot(χ, χ), sum(T) 
         @test abs(dot(χ, χ) - sum(T)) < ϵ
     end
 
@@ -150,7 +118,6 @@ end
         @test abs(1 - abs(dot(vlψ, vrψ))) < ϵ
         @test abs(1 - abs(dot(vlψ, vψ))) < ϵ
 
-        #=
         @info "Verifying MPS from gates"
 
         Gψ = MPS(ig, mps_param, gibbs_param) 
@@ -161,7 +128,6 @@ end
         @test_nowarn verify_bonds(Gψ)
 
         @test abs(1 - abs(dot(Gψ, rψ))) < ϵ 
-        =#
 
         @info "Verifying probabilities" L β
 
