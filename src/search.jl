@@ -85,31 +85,29 @@ function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j
 
     J = get_prop(ig, i, j, :J)  
     C = [exp(0.5 * dβ * k * J * l) for k ∈ basis, l ∈ basis]
-    D = Array(I(d))
+    D = I(d)
 
-    δ = j == length(ψ) ? D[:, 1:1] : D
-
-    @cast M̃[(x, a), σ, (y, b)] := C[σ, x] * δ[x, y] * M[a, σ, b]                      
+    if j == length(ψ)
+        @cast M̃[(x, a), σ, b] := C[σ, x] * M[a, σ, b]   
+    else
+        @cast M̃[(x, a), σ, (y, b)] := C[σ, x] * D[x, y] * M[a, σ, b]   
+    end       
     ψ[j] = M̃
 end
 
 function _apply_projector!(ψ::AbstractMPS, i::Int)
     M = ψ[i]
-    D = Array(I(size(M, 2)))
+    D = I(size(M, 2))
 
-    δ = i == 1 ? D[1:1,:] : D
-
-    @cast M̃[(x, a), σ, (y, b)] := D[σ, y] * δ[x, y] * M[a, σ, b]
+    @cast M̃[a, σ, (y, b)] := D[σ, y] * M[a, σ, b]
     ψ[i] = M̃
 end
 
 function _apply_nothing!(ψ::AbstractMPS, i::Int) 
     M = ψ[i] 
-    D = Array(I(size(M, 2)))
+    D = I(size(M, 2))
 
-    if i == 1  δ = D[1:1,:]  elseif  i == length(ψ)  δ = D[:,1:1]  else  δ = D end  
-
-    @cast M̃[(x, a), σ, (y, b)] := δ[x, y] * M[a, σ, b] 
+    @cast M̃[(x, a), σ, (y, b)] := D[x, y] * M[a, σ, b] 
     ψ[i] = M̃    
 end
 
@@ -145,9 +143,9 @@ function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
                 _apply_exponent!(ρ, ig, dβ, i, j) 
             end
 
-            for l ∈ setdiff(1:L, union(i, nbrs))
-                _apply_nothing!(ρ, l) 
-            end
+            #for l ∈ setdiff(1:L, union(i, nbrs))
+            #    _apply_nothing!(ρ, l) 
+            #end
         end
 
         if bond_dimension(ρ) > Dcut

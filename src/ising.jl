@@ -58,10 +58,12 @@ end
 """
 Create a graph that represents the Ising Hamiltonian.
 """
-function ising_graph(instance::String, L::Int, β::Number=1)
+function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1)
 
     # load the Ising instance
-    ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
+    if typeof(instance) == String 
+        ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
+    end
     ig = MetaGraph(L, 0.0)
 
     set_prop!(ig, :description, "The Ising model.")

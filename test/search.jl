@@ -18,13 +18,21 @@ max_sweeps = 4
 dβ = 0.25
 β_schedule = [β] #[dβ for _ ∈ 1:4]
 
+gibbs_param = GibbsControl(β, β_schedule)
+mps_param = MPSControl(Dcut, var_tol, max_sweeps) 
+
+ϱ = gibbs_tensor(ig, gibbs_param)
+@test sum(ϱ) ≈ 1
+
 @testset "Verifying gate operations" begin
 
+    #=
     @info "Applying nothing" ϵ 
 
     ψ = HadamardMPS(N)
     ϕ = copy(ψ)
 
+    @test dot(ψ, ϕ) ≈ 1
     @test dot(ψ, ψ) ≈ 1
     @test dot(ϕ, ϕ) ≈ 1
 
@@ -36,7 +44,8 @@ dβ = 0.25
     @test abs(1 - abs(dot(ψ, ϕ))) < ϵ
 
     @info "Applying bias"
-    χ = copy(ϕ)
+    χ = HadamardMPS(N) #copy(ϕ) # wtf copy does not work
+
     bias = [get_prop(ig, i, :h) for i ∈ 1:N]
 
     for i ∈ 1:N
@@ -44,15 +53,58 @@ dβ = 0.25
     end
     
     @test dot(ϕ, ϕ) ≈ prod(cosh(β * h) for h ∈ bias)
+    =#
 
-    @info "Applying interaction"
+    @info "Applying interactions"
+    χ = HadamardMPS(N) 
 
+    d = 2
+    rank = fill(d, N)
+    states = all_states(rank)
+    T = ones(rank...) ./ d^N 
+
+    @test sum(T) ≈ 1
+
+    for i ∈ 1:N
+        _apply_bias!(χ, ig, β, i)
+
+        h = get_prop(ig, i, :h)
+        for σ ∈ states
+            T[idx.(σ)...] *= exp(β * σ[i] * h) 
+        end
+
+        nbrs = unique_neighbors(ig, i)
+
+        if !isempty(nbrs)
+
+            _apply_projector!(χ, i)
+            for j ∈ nbrs 
+                _apply_exponent!(χ, ig, β, i, j) 
+
+                J = get_prop(ig, i, j, :J)
+                for σ ∈ states
+                    T[idx.(σ)...] *= exp(β * σ[i] * J * σ[j]) 
+                end
+            end
+
+            for l ∈ i+1:maximum(nbrs)
+                if l ∉ nbrs
+                    _apply_nothing!(χ, l) 
+                end
+            end
+        end
+        
+        show(χ)
+        verify_bonds(χ)
+
+        @info dot(χ, χ), sum(T) 
+        @test abs(dot(χ, χ) - sum(T)) < ϵ
+    end
+
+    @test T ./ sum(T) ≈ ϱ 
 end
 
 @testset "MPS from gates" begin
-
-    gibbs_param = GibbsControl(β, β_schedule)
-    mps_param = MPSControl(Dcut, var_tol, max_sweeps) 
 
     @testset "Exact Gibbs pure state (MPS)" begin
         d = 2
@@ -60,9 +112,6 @@ end
         dims = fill(d, L)
 
         @info "Generating Gibbs state - |ρ>" d L dims β ϵ
-
-        ϱ = gibbs_tensor(ig, gibbs_param)
-        @test sum(ϱ) ≈ 1
 
         states = all_states(dims) 
         ψ = ones(dims...)
