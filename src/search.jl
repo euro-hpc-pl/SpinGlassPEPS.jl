@@ -108,7 +108,7 @@ end
 
 _holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
 
-function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
+function MPS(ig::MetaGraph)
     L = nv(ig)
 
     Dcut = mps.max_bond

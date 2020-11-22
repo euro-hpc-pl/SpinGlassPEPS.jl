@@ -2,8 +2,6 @@ export idx, ising, proj
 export HadamardMPS, rq
 export all_states, local_basis
 
-ising(σ::Union{Vector, NTuple}) = 2 .* σ .- 1
-
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1 
 
