@@ -34,7 +34,25 @@
         @test spins == [[-1, -1, 1, 1],[-1, -1, -1, 1]]
         @test objectives == [1.0, 0.2]
 
-        # TODO test new functions here
+        M = ones(16,16)
+        fullM2grid!(M, (4,4))
+        g = M2graph(M)
+        gg = graph4peps(g, (2,2))
+
+        ps = Partial_sol{Float64}([6], .2)
+        ul,ur = spin_indices_from_above(gg, ps, 2)
+        l = spin_index_from_left(gg, ps, 2)
+        @test ul == [1]
+        @test ur == [1]
+        @test l == 2
+
+        ps = Partial_sol{Float64}([4,6], .2)
+        ul,ur = spin_indices_from_above(gg, ps, 3)
+        l = spin_index_from_left(gg, ps, 3)
+        @test ul == Int[]
+        @test ur == [2,1]
+        @test l == 1
+
     end
 end
 
@@ -51,12 +69,21 @@ fullM2grid!(Mq, (2,2))
     #smaller tensors
     g1 = graph4peps(g, (1,1))
 
+    no_spins, tensor_size, right, down, M_left, M_up = get_parameters_for_T(g1, 1)
+    println(no_spins == 1)
+    println(tensor_size == [1, 1, 2, 2, 2])
+    println(right == [1])
+    println(down == [1])
+    println(M_left == [0.0 0.0])
+    println(M_up == [0.0 0.0])
+
     t1 = compute_single_tensor(g1, 1, β, sum_over_last = true)
     t2 = compute_single_tensor(g1, 2, β, sum_over_last = true)
     t3 = compute_single_tensor(g1, 3, β, sum_over_last = true)
+
     t1 = permutedims(t1, (1,3,2,4))
     t2 = permutedims(t2, (1,3,2,4))
-    t3 = permutedims(t3, (1,3,2))
+    t3 = permutedims(t3, (1,3,2,4))
     # all are on the egde from left or right
 
     @test size(t1) == (1, 2, 1, 2)
@@ -65,8 +92,8 @@ fullM2grid!(Mq, (2,2))
     @test size(t2) == (2,1,1,2)
     @test t2[:,1,1,:] ≈ [exp(1*β) exp(-1*β); exp(-3*β) exp(3*β)]
 
-    @test size(t3) == (1,2,2)
-    @test t3[1,:,:] ≈ [exp(1*β) exp(-3*β); exp(-1*β) exp(3*β)]
+    @test size(t3) == (1,2,2,1)
+    @test t3[1,:,:,1] ≈ [exp(1*β) exp(-3*β); exp(-1*β) exp(3*β)]
 
     t = compute_single_tensor(g1, 1, β)
     t = permutedims(t, (1,3,2,4,5))
@@ -79,7 +106,7 @@ fullM2grid!(Mq, (2,2))
 
     gg = graph4peps(g, (2,1))
     T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
-    T1 = permutedims(T1, (1,3,2))
+    T1 = permutedims(T1, (1,3,2,4))
     @test vec(T1) ≈ vec(T2)
 end
 
@@ -132,6 +159,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 end
 
 # TODO this will be the ilustative step by step how does the probability computation work
+
 @testset "testing marginal/conditional probabilities" begin
 
     ####   conditional probability implementation
@@ -139,41 +167,15 @@ end
     a = scalar_prod_step(ones(2,2,2), ones(2,2,2), ones(2,2))
     @test a == [8.0 8.0; 8.0 8.0]
 
-    a = scalar_prod_step(ones(2,2), ones(2,2,2), ones(2,2))
-    @test a == [8.0, 8.0]
+    mps1 = MPS([ones(2,2,2), ones(2,2,1)])
+    mps2 = MPS([ones(2,2,2), ones(2,2,1)])
+    @test compute_scalar_prod(mps1, mps2) == [16.0 16.0; 16.0 16.0]
 
-    # inds from above have been set on v1 already
-    v1 = [ones(1,2,2,2), ones(2,2,2,2), ones(2,2,2,2), ones(2,1,2,2)]
-    v2 = MPS([ones(1,2,2), ones(2,2,2), ones(2,2,2), ones(2,2,1)])
-    ind = [2,2,2]
-    #               physical indices
-    #
-    #     |        |          |        |
-    #  1--v1[1] -- v1[2]  -- v1[3] -- v1[4]--1
-    #     |        |          |        |
-    # 1--v2[1] -- v2[2]  --  v2[3]-- v2[4]--1
-    #
-    #                  ||
-    #                  V
-    #                                        |
-    #   ind[1]   ind[2]    ind[3] ind[3]--v1[4]--1
-    #     |       |            |             |
-    # 1--v2[1] -- v2[2]  --  v2[3]     -- v2[4]--1
+    Ms = [ones(1,2), ones(2,2), ones(2,2)]
+    println(Mprod(Ms))
 
-
-    A = set_spin_from_letf(v1[4:4], ind[3])
-
-
-    a = conditional_probabs(A, v2, ind)
-    @test a == [0.5, 0.5]
-
-    #
-    #    --  M -- M -- M -- 1
-    #
-    #
-    M = [ones(2,2), ones(2,2), ones(2,1)]
-    a = conditional_probabs(M)
-    @test a == [0.5, 0.5]
+    mpo = [ones(2,2,2,2), ones(2,2,2,2)]
+    println(set_spin_from_letf(mpo, 1))
 
     β = 3.
     g = M2graph(Mq)
@@ -186,33 +188,48 @@ end
     su = sum(cc)
 
 
-    # first row case
-    A = Vector{Array{Float64, 4}}([e[:,:,1,:,:] for e in M[1,:]])
+    # first row
+    A =  M[1,:]
 
     # the row for lower_mps
-    row = 2
-    lower_mps = make_lower_mps(gg, row, β, 0, 0.)
+    row = 1
+    lower_mps = make_lower_mps(gg, row+1, β, 0, 0.)
 
     # marginal prob
-    sol = Int[]
-    Al = set_spin_from_letf(A, 1)
-    objective = conditional_probabs(Al, lower_mps, sol)
+    sol = Partial_sol{Float64}(Int[], 0.)
+    j = 1
+    objective = conditional_probabs(gg, sol, j, lower_mps, A)
+    sol = Partial_sol{Float64}([1], objective[1])
 
     p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
     p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
     # approx due to numerical accuracy
     @test objective ≈ [p1, p2]
 
+    j = 2
+    objective = conditional_probabs(gg, sol, j, lower_mps, A)
     #conditional prob
     p11 = sum(cc[1,1,:,:,:,:,:,:,:])/su
     p12 = sum(cc[1,2,:,:,:,:,:,:,:])/su
-    sol1 = Int[1]
-    Al = set_spin_from_letf(A[2:end], 1)
-    objective1 = conditional_probabs(Al, lower_mps, sol1)
     # approx due to numerical accuracy
-    @test objective1 ≈ [p11/p1, p12/p1]
+    @test objective ≈ [p11/p1, p12/p1]
+
+    j = 5
+    row = 2
+    lower_mps = make_lower_mps(gg, row+1, β, 0, 0.)
+    A =  M[2,:]
+
+    # objective value from the previous step is set artificially
+    sol = Partial_sol{Float64}(Int[1,1,1,1], 1.)
+    objective = conditional_probabs(gg, sol, j, lower_mps, A)
+    #conditional prob
+    p1 = sum(cc[1,1,1,1,1,:,:,:,:])/sum(cc[1,1,1,1,:,:,:,:,:])
+    p2 = sum(cc[1,1,1,1,2,:,:,:,:])/sum(cc[1,1,1,1,:,:,:,:,:])
+    # approx due to numerical accuracy
+    @test objective ≈ [p1, p2]
 
 end
+
 
 function interactions_case2()
     L = 9

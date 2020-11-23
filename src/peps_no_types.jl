@@ -48,8 +48,7 @@ Returns tensors, building blocks for a peps initialy tensor is 5 mode:
 mode 5 is physical.
 
 
-If tensor on the bottom row of the peps mode 4 is trivial and is removed.
-We have an element of the mps.
+If sum_over_last -- summed over mode 5
 """
 
 
@@ -84,9 +83,6 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
         # itteration over physical index
         for i in 1:tensor_size[5]
 
-            # this is for δs
-            #k1 = reindex(i, no_spins, right)
-            #k2 = reindex(i, no_spins, down)
 
             if !sum_over_last
                 @inbounds tensor[k[1], k[2], k1[i], k2[i], i] = energy[i]
@@ -95,24 +91,16 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
             end
         end
     end
-
-    if length(down) == 0
-        return dropdims(tensor, dims = 4)
-    end
     return tensor
 end
 
 
 """
-    function compute_scalar_prod(mps_down::Vector{Array{T, N} where N}, mps_up::Vector{Array{T, 3}}) where T <: AbstractFloat
+    function compute_scalar_prod(mps_down::MPS{T}, mps_up::MPS{T}) where T <: AbstractFloat
 
-Returns vector, the scalar product of two mpses. The first elemnt of mps_down
-is supposed to be a matrix, as its first mode is set due to the spin to the left.
-The first elemnt of mps_up has two virtual modes and one physical. Ather elements have
-all virtual modes.
+Returns matrix, the scalar product of two mpses, with open two legs of first elements.
 """
-# this is Type dependent, leave it as it is
-function compute_scalar_prod(mps_down::Vector{Array{T, N} where N}, mps_up::Vector{Array{T, 3}}) where T <: AbstractFloat
+function compute_scalar_prod(mps_down::MPS{T}, mps_up::MPS{T}) where T <: AbstractFloat
     env = ones(T, 1,1)
     for i in length(mps_up):-1:1
         env = scalar_prod_step(mps_down[i], mps_up[i], env)
@@ -125,47 +113,16 @@ end
 
 Returns matrix
 """
+
 function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
     C = zeros(T, size(mps_up, 1), size(mps_down, 1))
 
     @tensor begin
-        C[a,b] = mps_up[a,x,z]*mps_down[b,z,y]*env[x,y]
+        C[a,b] = mps_up[a,z,x]*mps_down[b,z,y]*env[x,y]
     end
     C
 end
 
-"""
-    function scalar_prod_step(mps_down::Array{T, 2}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
-
-Returns a vector, proportional to the vector of probabilities
-"""
-function scalar_prod_step(mps_down::Array{T, 2}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
-    C = zeros(T, size(mps_up, 3))
-
-    @tensor begin
-        C[a] = mps_up[x,z,a]*mps_down[z,y]*env[x,y]
-    end
-    C
-end
-
-
-"""
-    function set_spin_from_letf(mps::Vector{Array{T,3}}, new_s::Int) where T <: AbstractFloat
-
-Given mps, returns a vector of matrices.
-
-First is the l th element of mps where
-first mode index is set to new_s (this is the configuration of l-1 th element).
-
-Further are traced over the physical (last) dimension.
-
-
-"""
-function set_spin_from_letf(mps::Vector{Array{T,3}}, new_s::Int) where T <: AbstractFloat
-    # transposition is to make a simple matrix multiplication for computing a probability
-    Ms = [Array(transpose(mps[1][new_s,:,:]))]
-    vcat(Ms, [sum_over_last(el) for el in mps[2:end]])
-end
 
 """
     function set_spin_from_letf(mpo::Vector{Array{T,4}}, new_s::Int) where T <: AbstractFloat
@@ -178,66 +135,35 @@ first mode index is set to new_s (this is the configuration of l-1 th element).
 Further are traced over the physical (last) dimension.
 """
 function set_spin_from_letf(mpo::Vector{Array{T,4}}, new_s::Int) where T <: AbstractFloat
-    B = [mpo[1][new_s,:,:,:]]
-    vcat(B, [sum_over_last(el) for el in mpo[2:end]])
+    B = mpo[1][new_s,:,:,:]
+    B = permutedims(B, (3,1,2))
+    mps = vcat([B], [sum_over_last(el) for el in mpo[2:end]])
+    MPS(mps)
 end
 
-# TODO, rename and explain s, s_new it was done temporarly
-# explain tensors B,C,D
-function conditional_probabs(A::Vector{Array{T,3}}, lower_mps::MPS{T}, s::Vector{Int}) where T <: AbstractFloat
 
-    l = length(s)
-    #A = set_spin_from_letf(M[l+1:end], new_s)
-
-    B = ones(T, 1)
-    for i in 1:l
-        B = transpose(B)*lower_mps[i][:,s[i],:]
-        B = B[1,:]
-    end
-    E = lower_mps[l+1]
-    C = zeros(T, size(E,2), size(E,3))
-    @tensor begin
-        C[b,c] = E[a,b,c]*B[a]
-    end
-    D = vcat([C], [lower_mps[i] for i in l+2:length(lower_mps)])
-
-    unnorm_prob = compute_scalar_prod(D, A)
-    unnorm_prob./sum(unnorm_prob)
-end
-
-"""
-    function conditional_probabs(Ms::Vector{Array{T, 2}}) where T <: AbstractFloat
-
-Copmutes a conditional probability from a vector of matrices (a last step)
-"""
-function conditional_probabs(Ms::Vector{Array{T, 2}}) where T <: AbstractFloat
+function Mprod(Ms::Vector{Array{T, 2}}) where T <: AbstractFloat
     env = ones(T, 1)
-    for i in length(Ms):-1:1
-        env = Ms[i]*env
+    for M in Ms
+        env = env*M
     end
-    env./sum(env)
+    transpose(env)
 end
 
 
 function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64) where T <: AbstractFloat
     grid = props(g)[:grid]
     s = size(grid,1)
-    if k <= s
-        mps = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[s,:]]
-        mps = MPS(mps)
+    mps = MPS([ones(T, (1,1,1)) for _ in 1:size(grid,2)])
+
+    for i in s:-1:k
+        mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
+        mps = MPO(mpo)*mps
         if threshold > 0.
             mps = compress(mps, χ, threshold)
         end
-        for i in s-1:-1:k
-            mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
-            mps = MPO(mpo)*mps
-            if threshold > 0.
-                mps = compress(mps, χ, threshold)
-            end
-        end
-        return mps
     end
-    MPS([zeros(T,1,1,1)])
+    return mps
 end
 
 """
@@ -267,7 +193,51 @@ function update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where
     Partial_sol{T}(vcat(ps.spins, [s]), objective)
 end
 
-# TODO this will be the exported function
+"""
+    spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
+
+returns two vectors of incdices from above to the cutoff.
+
+              physical .
+                         .   upper_right
+                           .  |      |
+    upper_left   from_left-- A3 --  A4 -- 1
+      |    |                 |      |
+1 -- B1 -- B2       --       B3  -- B4 -- 1
+"""
+function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
+    grid = props(gg)[:grid]
+    s = size(grid)
+    row = props(gg, j)[:row]
+    column = props(gg, j)[:column]
+
+    upper_right = ones(Int, s[2]-column+1)
+    upper_left = ones(Int, column-1)
+
+    if row > 1
+        for i in column:s[2]
+            k = grid[row-1,i]
+            k1 = grid[row,i]
+            all = props(gg, k)[:spins]
+
+            index = ps.spins[k]
+            ind = props(gg, k, k1)[:inds]
+            upper_right[i-column+1] = reindex(index, length(all), ind)
+        end
+    end
+    if row < s[1]
+        for i in 1:column-1
+            k = grid[row,i]
+            k1 = grid[row+1,i]
+            all = props(gg, k)[:spins]
+            ind = props(gg, k, k1)[:inds]
+            index = ps.spins[k]
+
+            upper_left[i] = reindex(index, length(all), ind)
+        end
+    end
+    upper_left, upper_right
+end
 
 
 function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
@@ -283,15 +253,39 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
     1
 end
 
+function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mps::MPS{T},
+                                            upper_mpo::Vector{Array{T,5}}) where T <: AbstractFloat
+
+    upper_left, upper_right = spin_indices_from_above(gg, ps, j)
+    left_s = spin_index_from_left(gg, ps, j)
+    l = props(gg, j)[:column]
+    grid = props(gg)[:grid]
+
+    M = [upper_mpo[k][:,upper_right[k-l+1],:,:,:] for k in l:size(grid,2)]
+    # move to mps notation
+    M = [permutedims(e, (1,3,2,4)) for e in M]
+    upper_mps = set_spin_from_letf(M, left_s)
+
+    lower_mps_right = MPS([lower_mps[i] for i in l:size(grid,2)])
+    partial_scalar_prod = compute_scalar_prod(lower_mps_right, upper_mps)
+    # up 1 down 2
+    lower_mps_left = [lower_mps[i][:,upper_left[i],:] for i in 1:l-1]
+    weight = Mprod(lower_mps_left)
+    probs_unnormed = partial_scalar_prod*weight
+
+    probs_unnormed./sum(probs_unnormed)
+end
+
+
 function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
                 threshold::Float64 = 1e-14, node_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
 
     gg = graph4peps(g, node_size)
-    # grid follows the iiteration
+
     grid = props(gg)[:grid]
-    s = size(grid)
+
     partial_s = Partial_sol{T}[Partial_sol{T}()]
-    for row in 1:s[1]
+    for row in 1:size(grid,1)
         @info "row of peps = " row
         #this may be cashed
         lower_mps = make_lower_mps(gg, row + 1, β, χ, threshold)
@@ -303,66 +297,7 @@ function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
             partial_s_temp = Partial_sol{T}[]
             for ps in partial_s
 
-                objectives = [T(0.)]
-
-
-                # reindex to contrtact with below
-                grid = props(gg)[:grid]
-                s = size(grid)
-                row = props(gg, j)[:row]
-                column = props(gg, j)[:column]
-
-                sol = ps.spins[1+(row-1)*s[2]:end]
-                println(length(sol))
-                println(column)
-                # reindex
-                if row < s[1]
-                    for i in 1:length(sol)
-                        k = grid[row,i]
-                        k1 = grid[row+1,i]
-                        all = props(gg, k)[:spins]
-
-                        index = sol[i]
-
-                        ind = props(gg, k, k1)[:inds]
-                        sol[i] = reindex(index, length(all), ind)
-                    end
-                end
-
-                # spin indices from above
-                grid = props(gg)[:grid]
-                s = size(grid)
-                row = props(gg, j)[:row]
-                column = props(gg, j)[:column]
-
-                ind_above = ones(Int, s[2]-column+1)
-                if row > 1
-                    for i in column:s[2]
-                        k = grid[row-1,i]
-                        k1 = grid[row,i]
-                        all = props(gg, k)[:spins]
-
-                        index = ps.spins[k]
-                        ind = props(gg, k, k1)[:inds]
-                        ind_above[i-column+1] = reindex(index, length(all), ind)
-                    end
-                end
-
-                left_s = spin_index_from_left(gg, ps, j)
-                l = props(gg, j)[:column]
-                if row < s[1]
-                    #set spins from above
-                    M = [upper_mpo[k][:,ind_above[k-l+1],:,:,:] for k in l:s[2]]
-                    A = set_spin_from_letf(M, left_s)
-                    objectives = conditional_probabs(A, lower_mps, sol)
-
-                else
-                    #set spins from above
-                    upper_mps = [upper_mpo[k][:,ind_above[k-l+1],:,:] for k in l:s[2]]
-
-                    Ms = set_spin_from_letf(upper_mps, left_s)
-                    objectives = conditional_probabs(Ms)
-                end
+                objectives = conditional_probabs(gg, ps, j, lower_mps, upper_mpo)
 
                 for l in 1:length(objectives)
                     push!(partial_s_temp, update_partial_solution(ps, l, ps.objective*objectives[l]))
