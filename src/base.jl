@@ -146,6 +146,17 @@ function MPS(O::MPO)
     ψ
 end  
 
+function Base.randn(::Type{MPS{T}}, D::Int, rank::Union{Vector, NTuple}) where {T}
+    L = length(rank)
+    ψ = MPS(T, L)
+    ψ[1] = randn(T, 1, rank[1], D)
+    for i ∈ 2:(L-1)
+        ψ[i] = randn(T, D, rank[i], D)
+    end
+    ψ[end] = randn(T, D, rank[end], 1)
+    ψ
+end
+
 function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
     ψ = MPS(T, L)
     ψ[1] = randn(T, 1, d, D)

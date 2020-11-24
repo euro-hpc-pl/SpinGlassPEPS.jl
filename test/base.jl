@@ -23,6 +23,27 @@ T = ComplexF64
     @test ϕ ≈ ψ
 
     show(ψ)
+
+    dims = (3, 2, 5, 4) 
+    @info "Veryfing ψ of arbitrary rank" dims
+
+    ψ = randn(MPS{T}, D, dims)
+    @test verify_bonds(ψ) == nothing
+
+    @test ψ == ψ
+    @test ψ ≈ ψ
+
+    @test length(ψ) == length(dims)
+    @test size(ψ) == (length(dims), )
+    @test eltype(ψ) == ComplexF64
+    @test rank(ψ) == dims
+    @test bond_dimension(ψ) ≈ D
+
+    ϕ = copy(ψ) 
+    @test ϕ == ψ
+    @test ϕ ≈ ψ
+
+    show(ψ)
 end
 
 @testset "Random MPO" begin

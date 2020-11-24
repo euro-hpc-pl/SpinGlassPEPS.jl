@@ -76,7 +76,7 @@ end
         β = get_prop(ig, :β)
         rank = get_prop(ig, :rank)
 
-        @info "Generating Gibbs state - |ρ>" d L rank β ϵ
+        @info "Generating Gibbs state - |ρ>" L rank β ϵ
 
         ψ = ones(rank...)
 
