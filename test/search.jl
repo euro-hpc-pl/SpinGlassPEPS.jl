@@ -6,12 +6,13 @@ L = 2
 N = L^2
 
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
+
 ig = ising_graph(instance, N)
-set_prop!(ig, :β, rand(Float64))
+set_prop!(ig, :β, 1.)#rand(Float64))
 r = (3, 2, 5, 4)
 set_prop!(ig, :rank, r)
 
-ϵ = 1E-10
+ϵ = 1E-8
 D = prod(r) + 1
 var_ϵ = 1E-8
 sweeps = 4
