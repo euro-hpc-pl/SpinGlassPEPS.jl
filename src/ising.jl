@@ -96,7 +96,7 @@ function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1)
     if typeof(instance) == String
         ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
     else
-        ising = [ (first(c), last(c), J) for (c, J) ∈ instance ] 
+        ising = [ (i, j, J) for ((i, j), J) ∈ instance ] 
     end
 
     ig = MetaGraph(L, 0.0)
