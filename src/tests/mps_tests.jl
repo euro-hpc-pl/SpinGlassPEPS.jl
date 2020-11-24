@@ -63,7 +63,7 @@ function make_interactions_case1()
     ig
 end
 
-if true
+
 @testset "MPS computing" begin
 
     #interactions matrix
@@ -71,7 +71,7 @@ if true
     # construct MPS form tha matrix of interacion
     mps1 = construct_mps(M, 1., 1, 2, 1e-8)
     #mps modes 1 - left, 2 - right, 3 - physical
-    if true
+
     @test length(mps1) == 3
     # this is B type tensor, only internal energy (± h/2)
     @test mps1[1][1,:,:] ≈ [exp(-1/2) 0.0; 0.0 exp(1/2)]
@@ -80,7 +80,7 @@ if true
     @test mps1[2][1,:,:] ≈ [exp(1/2) 0.0; exp(-1/2) 0.0]
     @test mps1[2][2,:,:] ≈ [0. exp(-1)*exp(-1/2); 0. exp(1)*exp(1/2)]
     @test mps1[3][:,:,1] ≈ [exp(1/2) exp(-1/2); exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
-    end
+
     # the same, detailed
 
     g = M2graph(M)
@@ -117,7 +117,7 @@ if true
     end
 
     @test compute_probs(mps, [1,1]) ≈ diag(B)
-    end
+
 
     @test compute_probs(mps, [1,1]) ≈ sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
     @test compute_probs(mps, [1,1,2,2,1]) ≈ sum(cc[1,1,2,2,1,:,:,:,:], dims = (2,3,4))
@@ -140,7 +140,6 @@ if true
     pp = compute_probs(mps, [1,1,2,2,1,2,1,2])
 
     @test ps/sum(ps) ≈ pp/sum(pp)
-
 end
 
 function interactions_case2()
