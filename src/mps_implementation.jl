@@ -1,69 +1,66 @@
+"""
+    contract2probability(A::Array{T,3}, M::Matrix{T}, v::Vector{T})
 
-# TODO Take from LP+BG code
-function MPSxMPO(mps_down::Vector{Array{T, 3}}, mps_up::Vector{Array{T, 4}}) where T <: AbstractFloat
+return vector diag(prob) the result of the following contraction
 
-    mps = MPS([permutedims(e, (1,3,2)) for e in mps_down])
-    mpo = MPO([permutedims(e, (1,3,2,4)) for e in mps_up])
-    ret1 = mpo*mps
-    [permutedims(e, (1,3,2)) for e in ret1]
-end
+           v -- A .
+                |   .
+                      .
+                      M
+                      .
+                |   .
+           v -- A .
 
+"""
 
-function scalar_prod_with_itself(mps::Vector{Array{T, 3}}) where T <: AbstractFloat
-    env = ones(T, 1,1)
-    for i in length(mps):-1:1
-        env = scalar_prod_step(mps[i], env)
+function contract2probability(A::Array{T,3}, M::Matrix{T}, v::Vector{T}) where T <: AbstractFloat
+    #probs = zeros(T, size(A,2), size(A,2))
+    #@tensor begin
+    #    probs[x,y] = A[a,x,b]*A[c,y,d]*v[a]*v[c]*M[b,d]
+    #end
+    probs = zeros(T, size(A,2))
+    for i in 1:size(A,2)
+        @inbounds A1 = A[:,i,:]
+        @inbounds probs[i] = transpose(v)*A1*M*transpose(A1)*v
     end
-    env
-end
-
-function scalar_prod_step(mps::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
-    C = zeros(T, size(mps, 1), size(mps, 1))
-
-    @tensor begin
-        C[a,b] = mps[a,x,z]*mps[b,y,z]*env[x,y]
-    end
-    C
+    #println(diag(probs)-probs1)
+    return probs
 end
 
 
-function initialize_mps(l::Int, physical_dims::Int =  2, T::Type = Float64)
-    [ones(T, 1,1,physical_dims) for _ in 1:l]
+"""
+    ones24(T::Type, phys_dim::Int)
+
+returns Array{T,4} of size = (1,phys_dim,1,phys_dim)
+a[1,i,1,j] = 1. only if i = j and 0. otherwise
+
+pass interactions between mode 2 and 4
+"""
+function ones24(T::Type, phys_dim::Int)
+    d = (1,phys_dim,1,phys_dim)
+    M = diagm(ones(T, phys_dim))
+    reshape(M,d)
 end
 
-function initialize_mpo(l::Int, physical_dims::Int =  2, T::Type = Float64)
-    [make_ones_between_not_interactiong(physical_dims, T) for _ in 1:l]
-end
+"""
+    ones13_24(T::Type, phys_dim::Int)
 
+returns Array{T,4} of size = (phys_dim,phys_dim,phys_dim,phys_dim)
+a[i,j,k,l] = 1. only if i = k and j = l
+otherwise a[i,j,k,l] = 0.
 
-####
-
-
-# TODO this two below perhaps can be simplified
-
-
-function make_ones_between_not_interactiong(d::Int, T::Type = Float64)
-    ret = zeros(T, d,d)
-    for j in 1:d
-        ret[j,j] = T(1.)
-    end
-    reshape(ret, (1,1,d,d))
-end
-
-function make_ones_between_interacting_nodes(d::Int, T::Type = Float64)
-    ret = zeros(T, d,d,d,d)
-    for i in 1:d
-        for j in 1:d
-            ret[i,i,j,j] = T(1.)
-        end
-    end
-    ret
+pass interactions between mode 2 and 4 as well as beteen mode 1 and 3
+"""
+function ones13_24(T::Type, phys_dim::Int)
+    M = diagm(ones(T, phys_dim))
+    M = kron(M,M)
+    d = (phys_dim,phys_dim,phys_dim,phys_dim)
+    reshape(M,d)
 end
 
 ### below the constriction of B-tensors and C-tensors
-### TODO these should be tested directly in unit tests
 
-function Btensor(d::Int, most_left::Bool = false, most_right::Bool = false, T::Type = Float64)
+function Btensor(T::Type, d::Int, most_left::Bool = false, most_right::Bool = false)
     B_tensor = zeros(T, d,d,d,d)
     for i in 1:d
         @inbounds B_tensor[i,i,i,i] = T(1.)
@@ -71,104 +68,85 @@ function Btensor(d::Int, most_left::Bool = false, most_right::Bool = false, T::T
     if most_left
         return sum(B_tensor, dims = 1)
     elseif most_right
-        return sum(B_tensor, dims = 2)
+        return sum(B_tensor, dims = 3)
     end
     return B_tensor
 end
 
-function Ctensor(J::Vector{T}, d::Int, most_left::Bool = false, most_right::Bool = false) where T <: AbstractFloat
+function Ctensor(T::Type, J::Float64, d::Int, most_left::Bool = false, most_right::Bool = false)
 
     ret = zeros(T, d,d,d,d)
     for i in 1:d
         for k in 1:d
-            # TODO this need to be checked
-            Jb = sum(J.*ind2spin(i).*ind2spin(k))
-            ret[i,i,k,k] = exp(Jb)
+            # TODO assumed d = 2 otherwise correct
+            ret[i,k,i,k] = exp(J*(2*i-3)*(2*k-3))
         end
     end
     if most_left
         return sum(ret, dims = 1)
     elseif most_right
-        return sum(ret, dims = 2)
+        return sum(ret, dims = 3)
     end
     return ret
 end
 
-function add_MPO!(mpo::Vector{Array{T, 4}}, i::Int, nodes::Vector{Int},
-                    g::MetaGraph, β::T) where T<: AbstractFloat
+function add_MPO!(mpo::MPO{T}, i::Int, nodes::Vector{Int}, g::MetaGraph, β::T) where T<: AbstractFloat
 
-    d = 2
-    # TODO, correct d = length(props(g, i)[:energy])
+    d = length(props(g, i)[:energy])
 
     k = minimum([i, nodes...])
     l = maximum([i, nodes...])
     for j in k:l
-        mpo[j] = make_ones_between_interacting_nodes(d, T)
+        mpo[j] = ones13_24(T, d)
     end
-    mpo[i] = Btensor(d, i==k, i==l, T)
+    mpo[i] = Btensor(T, d, i==k, i==l)
     for j in nodes
-        # TODO remove array
-        J = [-props(g, Edge(i,j))[:J]]
-
-        mpo[j] = Ctensor(-J*β, d, j==k, j==l)
+        # minus for convention
+        J = -props(g, Edge(i,j))[:J]
+        # minus for probability
+        mpo[j] = Ctensor(T, -J*β, d, j==k, j==l)
     end
-    mpo
 end
 
-# TODO interactions are not necessary
-function add_phase!(mps::Vector{Array{T, 3}}, g::MetaGraph, β::T) where T<: AbstractFloat
 
-    d = size(mps[1], 3)
+function add_phase!(mps::MPS{T}, g::MetaGraph, β::T) where T<: AbstractFloat
+
     for i in 1:length(mps)
         internal_e = props(g, i)[:energy]
-        for j in 1:d
-            mps[i][:,:,j] = mps[i][:,:,j]*exp(-β/2*internal_e[j])
+        # usually length = 2
+        for j in 1:length(internal_e)
+            mps[i][:,j,:] = mps[i][:,j,:]*exp(-β/2*internal_e[j])
         end
     end
 end
 
 
-function set_part_of_spins(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
-    env = ones(T,1)
-    for i in 1:length(spins)
-        env = env*mps[i][:,:,spins[i]]
+function compute_probs(mps::MPS{T}, spins::Vector{Int}) where T <: AbstractFloat
+
+    k = length(spins)
+    mm = [mps[i][:,spins[i],:] for i in 1:k]
+    left_v = Mprod(mm)[1,:]
+
+    right_m = ones(T,1,1)
+    if k+1 < length(mps)
+        # TODO should be simpyfied
+        mps1 = MPS([mps[i] for i in k+2:length(mps)])
+        right_m = compute_scalar_prod(mps1, mps1)
     end
-    reshape(env, size(env,2))
+    contract2probability(mps[k+1], right_m, left_v)
 end
 
-function compute_probs(mps::Vector{Array{T, 3}}, spins::Vector{Int}) where T <: AbstractFloat
-    d = size(mps[1], 3)
-    k = length(spins)+1
-    left_v = set_part_of_spins(mps, spins)
-
-    A = mps[k]
-    probs_at_k = zeros(T, d,d)
-    if k < length(mps)
-        right_m = scalar_prod_with_itself(mps[k+1:end])
-
-        @tensor begin
-            probs_at_k[x,y] = A[a,b,x]*A[c,d,y]*left_v[a]*left_v[c]*right_m[b,d]
-        end
-
-    else
-        # uses one() insted of right mstrix
-        @tensor begin
-            probs_at_k[x,y] = A[a,b,x]*A[c,b,y]*left_v[a]*left_v[c]
-        end
-    end
-    return(diag(probs_at_k))
-end
-
-function construct_mps_step(mps::Vector{Array{T, 3}}, g::MetaGraph,
-                                                    β::T, is::Vector{Int},
+function construct_mps_step(mps::MPS{T}, g::MetaGraph, β::T, is::Vector{Int},
                                                     js::Vector{Vector{Int}}) where T<: AbstractFloat
-    ##TODO physical dimention may be differet
-    phys_dims = [size(el, 3) for el in mps]
-    mpo = [make_ones_between_not_interactiong(phys_dims[i]) for i in 1:length(mps)]
+
+    phys_dims = size(mps[1], 2)
+
+    mpo = MPO([ones24(T, phys_dims) for _ in 1:length(mps)])
+
     for k in 1:length(is)
         add_MPO!(mpo, is[k], js[k], g, β)
     end
-    MPSxMPO(mps, mpo)
+    mpo*mps
 end
 
 function cluster_conncetions(all_is::Vector{Int}, all_js::Vector{Vector{Int}})
@@ -286,15 +264,14 @@ function construct_mps(g::MetaGraph, β::T, β_step::Int, χ::Int, threshold::T)
     all_is, all_js = cluster_conncetions(is,js)
 
     l = nv(g)
-    mps = initialize_mps(l)
+    d = 2
+    mps = MPS([ones(T, 1,d,1) for _ in 1:l])
     for _ in 1:β_step
         for k in 1:length(all_is)
             mps = construct_mps_step(mps, g,  β/β_step, all_is[k], all_js[k])
             s = maximum([size(e, 1) for e in mps])
             if ((threshold > 0) * (s > χ))
-                mps = MPS([permutedims(e, (1,3,2)) for e in mps])
                 mps = compress(mps, χ, threshold)
-                mps = [permutedims(e, (1,3,2)) for e in mps]
             end
         end
     end

@@ -143,11 +143,11 @@ end
 
 
 function Mprod(Ms::Vector{Array{T, 2}}) where T <: AbstractFloat
-    env = ones(T, 1)
+    env = ones(T, 1,1)
     for M in Ms
         env = env*M
     end
-    transpose(env)
+    env
 end
 
 
@@ -271,7 +271,7 @@ function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mp
     # up 1 down 2
     lower_mps_left = [lower_mps[i][:,upper_left[i],:] for i in 1:l-1]
     weight = Mprod(lower_mps_left)
-    probs_unnormed = partial_scalar_prod*weight
+    probs_unnormed = partial_scalar_prod*transpose(weight)
 
     probs_unnormed./sum(probs_unnormed)
 end

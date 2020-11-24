@@ -24,8 +24,8 @@ function make_interactions_full()
 end
 
 @testset "axiliary, testing grouping of connections" begin
-    b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
-    @test b == 16.0*ones(1,1)
+    #b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
+    #@test b == 16.0*ones(1,1)
 
     g = make_interactions_full()
 
@@ -63,7 +63,7 @@ function make_interactions_case1()
     ig
 end
 
-
+if true
 @testset "MPS computing" begin
 
     #interactions matrix
@@ -77,9 +77,9 @@ end
     @test mps1[1][1,:,:] ≈ [exp(-1/2) 0.0; 0.0 exp(1/2)]
     # type C tensor input from internale enegy and interaction
     #±(h/2 + J) -- J is twice due to the symmetry of M
-    @test mps1[2][1,:,:] ≈ [exp(1/2) exp(-1/2); 0.0 0.0]
-    @test mps1[2][2,:,:] ≈ [0. 0.; exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
-    @test mps1[3][:,1,:] ≈ [exp(1/2) exp(-1/2); exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
+    @test mps1[2][1,:,:] ≈ [exp(1/2) 0.0; exp(-1/2) 0.0]
+    @test mps1[2][2,:,:] ≈ [0. exp(-1)*exp(-1/2); 0. exp(1)*exp(1/2)]
+    @test mps1[3][:,:,1] ≈ [exp(1/2) exp(-1/2); exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
     end
     # the same, detailed
 
@@ -91,11 +91,7 @@ end
     @test mps ≈ mps1
 
     β = 2.
-
-    mps = initialize_mps(9)
-    @test mps[1] == ones(1,1,2)
-    @test mps[2] == ones(1,1,2)
-    @test mps[3] == ones(1,1,2)
+    d = 2
 
     # construct form mpo-mps
     g =  make_interactions_case1()
@@ -108,20 +104,20 @@ end
     # compute probabilities by n-con
     cc = contract3x3by_ncon(M)
 
-    v = ones(1)*mps[1][:,:,1]*mps[2][:,:,1]
-    v = reshape(v, size(v,2))
-    v1 = set_part_of_spins(mps, [1,1])
 
-    @test v == v1
+    v = ones(1)*mps[1][:,1,:]*mps[2][:,1,:]
+    v = reshape(v, size(v,2))
 
     A = mps[3]
     B = zeros(2,2)
-    M = scalar_prod_with_itself(mps[4:end])
+    mps1 = MPS([mps[i] for i in 4:length(mps)])
+    M = compute_scalar_prod(mps1, mps1)
     @tensor begin
-        B[x,y] = A[a,b,x]*A[c,d,y]*v1[a]*v1[c]*M[b,d]
+        B[x,y] = A[a,x,b]*A[c,y,d]*v[a]*v[c]*M[b,d]
     end
 
     @test compute_probs(mps, [1,1]) ≈ diag(B)
+    end
 
     @test compute_probs(mps, [1,1]) ≈ sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
     @test compute_probs(mps, [1,1,2,2,1]) ≈ sum(cc[1,1,2,2,1,:,:,:,:], dims = (2,3,4))
@@ -144,8 +140,8 @@ end
     pp = compute_probs(mps, [1,1,2,2,1,2,1,2])
 
     @test ps/sum(ps) ≈ pp/sum(pp)
-end
 
+end
 
 function interactions_case2()
     L = 9
