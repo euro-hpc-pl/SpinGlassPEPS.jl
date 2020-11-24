@@ -2,12 +2,13 @@ export idx, ising, proj
 export HadamardMPS, rq
 export all_states, local_basis
 
-ising(σ::Union{Vector, NTuple}) = 2 .* σ .- 1
-
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1 
 
+LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
+
 local_basis(d::Int) = union(-1, 1:d-1)
+local_basis(ψ::AbstractMPS, i::Int) = local_basis(size(ψ[i], 2))
 
 function proj(state, dims::T) where {T <: Union{Vector, NTuple}}
     P = Matrix{Float64}[] 
@@ -25,9 +26,11 @@ function all_states(rank::T) where T <: Union{Vector, NTuple}
 end 
 
 function HadamardMPS(rank::T) where T <: Union{Vector, NTuple} 
-    MPS(fill(1, r) ./ sqrt(r) for r ∈ rank)
+    vec = [ fill(1, r) ./ sqrt(r) for r ∈ rank ]
+    MPS(vec)
 end
-HadamardMPS(L::Int) = MPS(fill([1., 1.] / sqrt(2), L))
+
+HadamardMPS(L::Int) = MPS(fill(2, L))
 
 function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int, args...) 
     fact = pqrfact(M, rank=Dcut, args...)

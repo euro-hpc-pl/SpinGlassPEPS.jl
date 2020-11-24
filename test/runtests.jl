@@ -13,7 +13,7 @@ function reshape_row(A::AbstractArray{T}, dims::Tuple) where {T <: Number}
 end 
 
 my_tests = []
-if CUDA.functional() && CUDA.has_cutensor() && false
+if CUDA.functional() && CUDA.has_cutensor()
     push!(my_tests,
     "cuda/base.jl",
     "cuda/contractions.jl",
@@ -23,10 +23,10 @@ end
 
 push!(my_tests,
     "base.jl",
-    "contractions.jl",
-    "compressions.jl",
-    "ising.jl",
-    "search.jl"
+   "contractions.jl",
+   "compressions.jl",
+   "ising.jl",
+   "search.jl"
 )
 
 for my_test in my_tests
