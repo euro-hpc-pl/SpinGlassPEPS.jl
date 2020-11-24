@@ -1,8 +1,6 @@
 export ising_graph, energy
-export gibbs_tensor
-export GibbsControl
-export brute_force
-export brute_force_lazy
+export gibbs_tensor, brute_force
+export State
 
 const State = Union{Vector, NTuple}
 
