@@ -22,11 +22,12 @@ if CUDA.functional() && CUDA.has_cutensor()
 end
 
 push!(my_tests,
-    "base.jl",
-   "contractions.jl",
-   "compressions.jl",
-   "ising.jl",
-   "search.jl"
+#    "base.jl",
+#   "contractions.jl",
+#   "compressions.jl",
+#   "ising.jl",
+#   "search.jl"
+   "chimera.jl"
 )
 
 for my_test in my_tests
