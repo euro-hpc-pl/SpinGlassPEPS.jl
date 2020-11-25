@@ -30,7 +30,7 @@ const MPSorMPO = Union{MPS, MPO}
 Base.:(==)(a::AbstractMPSorMPO, b::AbstractMPSorMPO) = a.tensors == b.tensors
 Base.:(≈)(a::AbstractMPSorMPO, b::AbstractMPSorMPO)  = a.tensors ≈ b.tensors
 
-Base.getindex(a::AbstractMPSorMPO, i::Int) = getindex(a.tensors, i)
+Base.getindex(a::AbstractMPSorMPO, i) = getindex(a.tensors, i)
 Base.iterate(a::AbstractMPSorMPO) = iterate(a.tensors)
 Base.iterate(a::AbstractMPSorMPO, state) = iterate(a.tensors, state)
 Base.lastindex(a::AbstractMPSorMPO) = lastindex(a.tensors)
