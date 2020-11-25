@@ -13,17 +13,6 @@ using NPZ
 
 disable_logging(LogLevel(0))
 
-#path = "/home/kdomino/Dokumenty/julia_modules/"
-#try
-#    include(path*"MPStates.jl/src/MPStates.jl")
-#    include(path*"MPStates.jl/src/mps.jl")
-#    include(path*"MPStates.jl/src/mps_operations.jl")
-#    include(path*"MPStates.jl/src/cache.jl")
-#    include(path*"MPStates.jl/src/tensor_contractions.jl")
-#    include(path*"MPStates.jl/src/tensor_factorizations.jl")
-#catch
-#    println("no MPStates.jl in", path)
-#end
 
 include("utils.jl")
 include("base.jl")
@@ -45,6 +34,3 @@ include("tests/mps_tests.jl")
 
 include("tests/tests_on_data.jl")
 include("tests/tests_of_solvers.jl")
-
-#include("compression.jl")
-#include("tests/compression_tests.jl")

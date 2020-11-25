@@ -1,7 +1,6 @@
 using TensorOperations
 using LinearAlgebra
 using GenericLinearAlgebra
-#using SharedArrays
 using Distributed
 
 
@@ -254,14 +253,14 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
 end
 
 function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mps::MPS{T},
-                                            upper_mpo::Vector{Array{T,5}}) where T <: AbstractFloat
+                                            vec_of_T::Vector{Array{T,5}}) where T <: AbstractFloat
 
     upper_left, upper_right = spin_indices_from_above(gg, ps, j)
     left_s = spin_index_from_left(gg, ps, j)
     l = props(gg, j)[:column]
     grid = props(gg)[:grid]
 
-    M = [upper_mpo[k][:,upper_right[k-l+1],:,:,:] for k in l:size(grid,2)]
+    M = [vec_of_T[k][:,upper_right[k-l+1],:,:,:] for k in l:size(grid,2)]
     # move to mps notation
     M = [permutedims(e, (1,3,2,4)) for e in M]
     upper_mps = set_spin_from_letf(M, left_s)
@@ -290,14 +289,14 @@ function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
         #this may be cashed
         lower_mps = make_lower_mps(gg, row + 1, β, χ, threshold)
 
-        upper_mpo = [compute_single_tensor(gg, j, β) for j in grid[row,:]]
+        vec_of_T = [compute_single_tensor(gg, j, β) for j in grid[row,:]]
 
         for j in grid[row,:]
 
             partial_s_temp = Partial_sol{T}[]
             for ps in partial_s
 
-                objectives = conditional_probabs(gg, ps, j, lower_mps, upper_mpo)
+                objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
 
                 for l in 1:length(objectives)
                     push!(partial_s_temp, update_partial_solution(ps, l, ps.objective*objectives[l]))

@@ -1,5 +1,5 @@
 using TensorOperations
-
+using LightGraphs
 
 function make_interactions_full()
     L = 5
@@ -23,21 +23,21 @@ function make_interactions_full()
     ig
 end
 
-@testset "axiliary, testing grouping of connections" begin
-    #b = scalar_prod_with_itself([ones(1,2,2), ones(2,1,2)])
-    #@test b == 16.0*ones(1,1)
+# will be done in graphs
+
+@testset "grouping of connections" begin
 
     g = make_interactions_full()
 
-    b_node, c_nodes = connections_for_mps(g)
-    @test b_node == [1,2,3,4]
-    @test c_nodes == [[2,3,4,5], [3,4,5], [4,5], [5]]
-    b_nodes_in_mpses, c_nodes_in_mpses = cluster_conncetions(b_node, c_nodes)
-    @test b_nodes_in_mpses == [[1], [2], [3], [4]]
-    @test c_nodes_in_mpses == [[[2, 3, 4, 5]], [[3, 4, 5]], [[4, 5]], [[5]]]
-    # 1 mps 1 (B) conceted with 2,3,4 and 5 (C)
-    # 2 mps 2 (B) conected with 3,4 and 5
-    # ....
+    v = connections_for_mps(g)
+
+    e1 = [Edge(1, 2), Edge(1, 3), Edge(1, 4), Edge(1, 5)]
+    e2 = [Edge(2, 3), Edge(2, 4), Edge(2, 5)]
+    e3 = [Edge(3, 4), Edge(3, 5)]
+    e4 = [Edge(4, 5)]
+
+    @test v == [e1, e2, e3, e4]
+
 end
 
 function make_interactions_case1()
@@ -115,8 +115,11 @@ end
     @tensor begin
         B[x,y] = A[a,x,b]*A[c,y,d]*v[a]*v[c]*M[b,d]
     end
+    prob_v = diag(B)
 
-    @test compute_probs(mps, [1,1]) ≈ diag(B)
+    @test contract4probability(A,M,v) ≈ prob_v
+
+    @test compute_probs(mps, [1,1]) ≈ prob_v
 
 
     @test compute_probs(mps, [1,1]) ≈ sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))

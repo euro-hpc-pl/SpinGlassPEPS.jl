@@ -70,12 +70,12 @@ fullM2grid!(Mq, (2,2))
     g1 = graph4peps(g, (1,1))
 
     no_spins, tensor_size, right, down, M_left, M_up = get_parameters_for_T(g1, 1)
-    println(no_spins == 1)
-    println(tensor_size == [1, 1, 2, 2, 2])
-    println(right == [1])
-    println(down == [1])
-    println(M_left == [0.0 0.0])
-    println(M_up == [0.0 0.0])
+    @test no_spins == 1
+    @test tensor_size == [1, 1, 2, 2, 2]
+    @test right == [1]
+    @test down == [1]
+    @test M_left == [0.0 0.0]
+    @test M_up == [0.0 0.0]
 
     t1 = compute_single_tensor(g1, 1, β, sum_over_last = true)
     t2 = compute_single_tensor(g1, 2, β, sum_over_last = true)
@@ -172,10 +172,12 @@ end
     @test compute_scalar_prod(mps1, mps2) == [16.0 16.0; 16.0 16.0]
 
     Ms = [ones(1,2), ones(2,2), ones(2,2)]
-    println(Mprod(Ms))
+    @test Mprod(Ms) == [4.0 4.0]
 
     mpo = [ones(2,2,2,2), ones(2,2,2,2)]
-    println(set_spin_from_letf(mpo, 1))
+    mps = set_spin_from_letf(mpo, 1)
+    @test mps[1] == ones(2,2,2)
+    @test mps[2] == 2*ones(2,2,2)
 
     β = 3.
     g = M2graph(Mq)
