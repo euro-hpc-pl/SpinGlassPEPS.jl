@@ -191,9 +191,8 @@ function compute_probs(mps::MPS{T}, spins::Vector{Int}) where T <: AbstractFloat
 
     right_m = ones(T,1,1)
     if k+1 < length(mps)
-        # TODO should be simpyfied
-        mps1 = MPS([mps[i] for i in k+2:length(mps)])
-        right_m = compute_scalar_prod(mps1, mps1)
+
+        right_m = compute_scalar_prod(MPS(mps[k+2:end]), MPS(mps[k+2:end]))
     end
     contract4probability(mps[k+1], right_m, left_v)
 end

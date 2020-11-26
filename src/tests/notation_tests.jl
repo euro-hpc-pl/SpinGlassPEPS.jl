@@ -221,6 +221,12 @@ end
     @test v2energy(M,v) == -3.
 
     spins, energies = brute_force_solve(M, 2)
+    ig = M2graph(M)
+    spins1, energies1 = _brute_force(ig,4)
+    println(energies)
+    println(energies1)
+    println(spins)
+    println(spins1)
     @test spins == [[1, 1, 1], [-1, -1, -1]]
     @test energies == [-9.0, -3.0]
 

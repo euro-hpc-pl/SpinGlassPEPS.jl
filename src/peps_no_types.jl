@@ -265,9 +265,8 @@ function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mp
     M = [permutedims(e, (1,3,2,4)) for e in M]
     upper_mps = set_spin_from_letf(M, left_s)
 
-    lower_mps_right = MPS([lower_mps[i] for i in l:size(grid,2)])
-    partial_scalar_prod = compute_scalar_prod(lower_mps_right, upper_mps)
-    # up 1 down 2
+    partial_scalar_prod = compute_scalar_prod(MPS(lower_mps[l:end]), upper_mps)
+    
     lower_mps_left = [lower_mps[i][:,upper_left[i],:] for i in 1:l-1]
     weight = Mprod(lower_mps_left)
     probs_unnormed = partial_scalar_prod*transpose(weight)

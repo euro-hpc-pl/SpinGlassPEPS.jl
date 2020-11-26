@@ -61,7 +61,7 @@ println(folder)
 problem_size = parse_args(s)["size"]
 β = parse_args(s)["beta"]
 χ = parse_args(s)["chi"]
-#si = parse_args(s)["size"]
+si = parse_args(s)["size"]
 
 function make_graph(data::Array{Array{Any,1},1})
     L = Int(maximum(maximum(data)))
@@ -88,15 +88,27 @@ function make_graph(data::Array{Array{Any,1},1})
     ig, M
 end
 
-
-# TODO this does not work
-#ig = ising_graph(fi, size)
+# TODO ising_graph() does not read linear elements (h)
+#TODO make possible reverse the convention
+ig = ising_graph(fi, si)
 
 # reading data from txt
 data = (x-> Array{Any}([parse(Int, x[1]), parse(Int, x[2]), parse(Float64, x[3])])).(split.(readlines(open(fi))[2:end]))
 
-
 g, M = make_graph(data)
+
+
+
+println(props(ig, 1,5))
+println(props(ig, 1))
+println(props(g,1,5))
+println(props(g,1))
+
+#println("aaaaaaaaaaaaaaaa")
+#println(M)
+#println("--------------")
+#println(M1)
+#println("------------")3
 
 @time spins, objective = solve(g, 10; β=β, χ = χ, threshold = 1e-8)
 
