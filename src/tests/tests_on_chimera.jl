@@ -1,26 +1,33 @@
+using LinearAlgebra
+using Requires
+using TensorOperations, TensorCast
+using LowRankApprox
+using LightGraphs
+using MetaGraphs
+using CSV
+using CUDA
+using LinearAlgebra
+using DocStringExtensions
+const product = Iterators.product
+
 using NPZ
+using Logging
 using ArgParse
 using CSV
-using TensorCast
-using LightGraphs
-using LinearAlgebra
-using MetaGraphs
-using TensorOperations
-using LowRankApprox
-using Logging
 
 disable_logging(LogLevel(0))
 
-include("../utils.jl")
 include("../base.jl")
-include("../contractions.jl")
 include("../compressions.jl")
+include("../contractions.jl")
 include("../ising.jl")
+include("../graph.jl")
+include("../PEPS.jl")
 include("../search.jl")
+include("../utils.jl")
 
 include("../notation.jl")
 include("../brute_force.jl")
-#include("../compression.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 

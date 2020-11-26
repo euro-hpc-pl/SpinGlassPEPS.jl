@@ -30,11 +30,11 @@ end
     g = make_interactions_full()
 
     v = connections_for_mps(g)
-
-    e1 = [Edge(1, 2), Edge(1, 3), Edge(1, 4), Edge(1, 5)]
-    e2 = [Edge(2, 3), Edge(2, 4), Edge(2, 5)]
-    e3 = [Edge(3, 4), Edge(3, 5)]
-    e4 = [Edge(4, 5)]
+    E = LightGraphs.SimpleGraphs.SimpleEdge
+    e1 = [E(1, 2), E(1, 3), E(1, 4), E(1, 5)]
+    e2 = [E(2, 3), E(2, 4), E(2, 5)]
+    e3 = [E(3, 4), E(3, 5)]
+    e4 = [E(4, 5)]
 
     @test v == [e1, e2, e3, e4]
 

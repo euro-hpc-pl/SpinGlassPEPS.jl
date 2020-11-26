@@ -54,7 +54,8 @@ function Ctensor(T::Type, J::Float64, d::Int, most_right::Bool = false)
     ret
 end
 
-function add_MPO!(mpo::MPO{T}, iij::Vector{Edge{Int64}}, g::MetaGraph, β::T) where T<: AbstractFloat
+VE = Vector{LightGraphs.SimpleGraphs.SimpleEdge{Int}}
+function add_MPO!(mpo::MPO{T}, iij::VE, g::MetaGraph, β::T) where T<: AbstractFloat
 
     i = src(iij[1])
     d = length(props(g, i)[:energy])
@@ -86,7 +87,7 @@ function add_phase!(mps::MPS{T}, g::MetaGraph, β::T) where T<: AbstractFloat
 end
 
 
-function construct_mps_step(mps::MPS{T}, g::MetaGraph, β::T, edges_sets::Vector{Edge{Int64}}) where T<: AbstractFloat
+function construct_mps_step(mps::MPS{T}, g::MetaGraph, β::T, edges_sets::VE) where T<: AbstractFloat
 
     phys_dims = size(mps[1], 2)
 
@@ -104,7 +105,7 @@ end
 function connections_for_mps(g::MetaGraph)
 
      g1 = copy(g)
-     connections = Vector{Edge{Int64}}[]
+     connections = Vector{LightGraphs.SimpleGraphs.SimpleEdge{Int}}[]
      for v in vertices(g1)
          es = edges(g1)
          pe = filter(x -> src(x) == v, collect(es))

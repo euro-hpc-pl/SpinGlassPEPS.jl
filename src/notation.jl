@@ -309,23 +309,23 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
 
         if g_element.column < size(M, 2)
             ip = M[g_element.row, g_element.column+1]
-            e = Edge(i, ip)
-            add_edge!(g, e) || error("Not a grid - cannot add Egde $e")
-            set_prop!(g, e, :inds, g_element.right)
+
+            add_edge!(g, i, ip) || error("Not a grid - cannot add Egde $e")
+            set_prop!(g, i, ip, :inds, g_element.right)
         end
 
         if g_element.column > 1
             ip = M[g_element.row, g_element.column-1]
-            e = Edge(i, ip)
+
             M_left = M_of_interaction(g_element, g_elements[ip], ig)
             set_prop!(g, i, ip, :M, M_left)
         end
 
         if g_element.row < size(M, 1)
             ip = M[g_element.row+1, g_element.column]
-            e = Edge(i, ip)
-            add_edge!(g, e) || error("Not a grid - cannot add Egde $e")
-            set_prop!(g, e, :inds, g_element.down)
+
+            add_edge!(g, i, ip) || error("Not a grid - cannot add Egde $e")
+            set_prop!(g, i, ip, :inds, g_element.down)
         end
 
         if g_element.row > 1

@@ -68,7 +68,28 @@ function right_env(ϕ::MPS, ψ::MPS)
     R
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Calculates the norm of an MPS \$\\ket{\\phi}\$
+"""
 LinearAlgebra.norm(ψ::AbstractMPS) = sqrt(abs(dot(ψ, ψ)))
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Calculates \$\\bra{\\phi} O \\ket{\\psi}\$
+
+# Details
+
+Calculates the matrix element of \$O\$
+```math
+\\bra{\\phi} O \\ket{\\psi}
+```
+in one pass, utlizing `TensorOperations`.
+"""
 
 function LinearAlgebra.dot(ϕ::MPS, O::Union{Vector, NTuple}, ψ::MPS) #where T <: AbstractMatrix
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
@@ -82,6 +103,7 @@ function LinearAlgebra.dot(ϕ::MPS, O::Union{Vector, NTuple}, ψ::MPS) #where T 
     end
     tr(C)
 end
+
 
 function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}
     L = length(ψ)

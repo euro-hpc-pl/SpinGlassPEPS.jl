@@ -104,6 +104,7 @@ end
     # graph for mps
     g = M2graph(M)
     @test collect(vertices(g)) == [1,2]
+    #println(collect(edges(g)))
     @test props(g, 1)[:h] == 1
     @test props(g, 2)[:h] == 1
     @test props(g, 1,2)[:J] == 1
@@ -111,7 +112,8 @@ end
     g1 = graph4mps(g)
     @test degree(g1) == [1,1]
     @test props(g1, 1)[:energy] == [1., -1.]
-    @test props(g1, Edge(1,2))[:J] == 1
+    @test props(g1, 1,2)[:J] == 1
+    #println(collect(edges(g1)))
 
     # graph for peps
     M = ones(4,4)
@@ -119,24 +121,24 @@ end
     ig = M2graph(M)
 
     g1 = graph4peps(ig, (1,1))
-    @test props(g1, Edge(1,2))[:M] == [-2.0 2.0; 2.0 -2.0]
-    @test props(g1, Edge(2,4))[:M] == [-2.0 2.0; 2.0 -2.0]
+    @test props(g1, 1,2)[:M] == [-2.0 2.0; 2.0 -2.0]
+    @test props(g1, 2,4)[:M] == [-2.0 2.0; 2.0 -2.0]
     @test props(g1, 1)[:energy] == [1., -1.]
     @test props(g1, 2)[:energy] == [1., -1.]
-    @test props(g1, Edge(1,2))[:inds] == [1]
+    @test props(g1, 1,2)[:inds] == [1]
 
     M = ones(16,16)
     fullM2grid!(M, (4,4))
     ig = M2graph(M)
     g1 = graph4peps(ig, (2,2))
 
-    M = props(g1, Edge(1,2))[:M]
+    M = props(g1, 1,2)[:M]
     @test size(M) == (4,16)
     @test M[:,1] == [-4.0, 0.0, 0.0, 4.0]
     e = [-4.0, 2.0, 2.0, 0.0, 2.0, 0.0, 8.0, -2.0, 2.0, 8.0, 0.0, -2.0, 0.0, -2.0, -2.0, -12.0]
     @test props(g1, 1)[:energy] == e
-    @test props(g1, Edge(1,2))[:inds] == [3, 4]
-    @test props(g1, Edge(1,3))[:inds] == [2, 4]
+    @test props(g1, 1,2)[:inds] == [3, 4]
+    @test props(g1, 1,3)[:inds] == [2, 4]
 
 end
 

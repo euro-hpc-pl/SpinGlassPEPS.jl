@@ -1,25 +1,33 @@
-using Test
 using LinearAlgebra
-using TensorOperations
-using TensorCast
-using Random
-using Statistics
+using Requires
+using TensorOperations, TensorCast
+using LowRankApprox
 using LightGraphs
 using MetaGraphs
-using LowRankApprox
+using CSV
+using CUDA
+using LinearAlgebra
+using DocStringExtensions
+const product = Iterators.product
+
 using Logging
 using NPZ
+using Test
+using Random
+using Statistics
 
 
 disable_logging(LogLevel(0))
 
-
-include("utils.jl")
 include("base.jl")
-include("contractions.jl")
 include("compressions.jl")
+include("contractions.jl")
 include("ising.jl")
+include("graph.jl")
+include("PEPS.jl")
 include("search.jl")
+include("utils.jl")
+
 include("tests/test_helpers.jl")
 
 include("notation.jl")
