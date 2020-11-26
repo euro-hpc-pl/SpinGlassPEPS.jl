@@ -94,7 +94,7 @@ function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1)
 
     # load the Ising instance
     if typeof(instance) == String
-        ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
+        ising = CSV.File(instance, types = [Int, Int, Float64], header=0, comment = "#")
     else
         ising = [ (i, j, J) for ((i, j), J) ∈ instance ] 
     end
@@ -104,7 +104,7 @@ function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1)
 
     # setup the model (J_ij, h_i)
     for (i, j, v) ∈ ising 
-        println( (i, j, v) )
+
         if i == j
             set_prop!(ig, i, :h, v) || error("Node $i missing!")
         else
