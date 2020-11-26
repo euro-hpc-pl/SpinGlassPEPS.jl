@@ -13,13 +13,70 @@ struct MPSControl
     max_sweeps::Int
 end
 
+function spectrum2(ψ::MPS, keep::Int) 
+    @assert keep > 0 "Number of states has to be > 0"
+    T = eltype(ψ)
+    
+    keep_extra = keep
+    pCut = prob = 0.
+    k = 1
+
+    if keep < prod(rank(ψ))
+        keep_extra += 1
+    end
+
+    states = fill([], 1, k)
+    left_env = ones(T, 1, 1, k)
+
+    for (i, M) ∈ enumerate(ψ)
+        _, d, β = size(M)
+
+        pdo = zeros(T, k, d)
+        LL = zeros(T, β, β, k, d)
+        config = zeros(Int, i, k, d)
+
+        for j ∈ 1:k 
+            L = left_env[:, :, j]
+
+            for σ ∈ local_basis(d)
+                m = idx(σ)
+
+                LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
+                println(LL[:, :, j, m])
+                println(M[:, m, :])
+                pdo[j, m] = tr(LL[:, :, j, m])
+                println(pdo[j, m])
+                config[:, j, m] = vcat(states[:, j]..., σ)
+            end  
+        end
+
+        perm = collect(1: k * d)
+        k = min(k * d, keep_extra)
+
+        if k >= keep_extra
+            partialsortperm!(perm, vec(pdo), 1:k, rev=true)   
+            prob = vec(pdo)[perm]
+            pCut < last(prob) ? pCut = last(prob) : ()
+        end
+
+        @cast A[α, β, (l, d)] |= LL[α, β, l, d] 
+        left_env = A[:, :, perm]
+        println(left_env)
+
+        @cast B[α, (l, d)] |= config[α, l, d]
+        states = B[:, perm]
+    end
+    states[:, 1:keep], prob[1:keep], pCut
+end
+
 # ρ needs to be in the right canonical form
 function spectrum(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
     
     keep_extra = keep
-    pCut = prob = 0.
+    pCut = 1e-6
+    prob = 1 
     k = 1
 
     if keep < (*)(rank(ψ)...)
@@ -32,10 +89,11 @@ function spectrum(ψ::MPS, keep::Int)
     for (i, M) ∈ enumerate(ψ)
         _, d, β = size(M)
 
-        pdo = zeros(T, k, d)
-        pcond = zeros(T, k, d)
-        LL = zeros(T, β, β, k, d)
-        LLnew = zeros(T, β, β, k, d)
+        pdo = ones(T, k, d)
+        lpdo = zeros(T, k, d)
+        #pcond = ones(T, k, d)
+        LL = zeros(T, β, k, d)
+        LLnew = zeros(T, β, k, d)
         config = zeros(Int, i, k, d)
 
         for j ∈ 1:k 
@@ -43,30 +101,31 @@ function spectrum(ψ::MPS, keep::Int)
 
             for σ ∈ local_basis(d)
                 m = idx(σ)
-
-                LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
-                pdo[j, m] = tr(LL[:, :, j, m])
-                pcond[j,m] = pdo[j, m]^2
+                LL[:,j, m] = L' * M[:, m, :]
+                pdo[j, m] = dot(LL[:, j, m], LL[:, j, m])
+                lpdo[j, m] = log(pdo[j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
-                LLnew[:, :, j, m] = LL[:, :, j, m]/pdo[j,m]
+                LLnew[:, j, m] = LL[:, j, m]/sqrt(pdo[j, m])
+                #println(lpdo)
+                #println(pdo) 
+                #println(config[:, j, m])
             end
-            L = LLnew
+
         end
+
         perm = collect(1: k * d)
         k = min(k * d, keep_extra)
 
         if k >= keep_extra
-            partialsortperm!(perm, vec(pcond), 1:k, rev=true)   
-            prob = vec(pcond)[perm]
+            partialsortperm!(perm, vec(pdo), 1:k, rev=true)  
+            prob = vec(pdo)[perm]
+            lpCut = log(pCut)
             pCut < last(prob) ? pCut = last(prob) : ()
         end
 
-        @cast A[α, β, (l, d)] |= LLnew[α, β, l, d]
-        left_env = A[:, :, perm] 
-
+        left_env = LLnew[ :, :, perm]
         @cast B[β, (l, d)] |= config[β, l, d]
         states = B[:, perm]
-        println(prob)
     end
     states[:, 1:keep], prob[1:keep], pCut
 end
