@@ -223,26 +223,22 @@ end
 
 #####  graph representation #########
 
-function M2graph(M::Matrix{Float64})
+
+function M2graph(M::Matrix{Float64}, sgn::Int = 1)
     size(M,1) == size(M,2) || error("matrix not squared")
     L = size(M,1)
     #TODO is symmetric
-    ig = MetaGraph(L, 0.0)
-
-    set_prop!(ig, :description, "The Ising model.")
 
     # takes lower triangular
-    for i in 1:size(M, 1)
-        for j in 1:i
-            if i == j
-                set_prop!(ig, i, :h, M[i,i]) || error("Node $i missing!")
-            elseif M[i,j] != 0.
-                add_edge!(ig, i, j) &&
-                set_prop!(ig, i, j, :J, M[i,j]) || error("Cannot add Egde ($i, $j)")
+    D = Dict{Tuple{Int64,Int64},Float64}()
+    for j in 1:size(M, 1)
+        for i in 1:j
+            if (i == j) | (M[j,i] != 0.)
+                push!(D, (i,j) => M[j,i])
             end
         end
     end
-    ig
+    ising_graph(D, L, 1, sgn)
 end
 
 

@@ -46,3 +46,74 @@ function contract3x3by_ncon(M::Matrix{Array{Float64, 5}})
 
     ncon(tensors, indexes)
 end
+
+"""
+    function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
+
+return energy Float given a matrix of interacrions and vector of spins
+"""
+function v2energy(M::Matrix{T}, v::Vector{Int}) where T <: AbstractFloat
+    d =  diag(M)
+    M = M .- diagm(d)
+    -transpose(v)*M*v - transpose(v)*d
+end
+
+function make_interactions_case1()
+    L = 9
+
+    D = Dict{Tuple{Int64,Int64},Float64}()
+    push!(D, (1, 1) => .5)
+    push!(D, (1, 2) => -0.5)
+    push!(D, (1, 4) => -1.5)
+    push!(D, (2, 2) => -1.)
+    push!(D, (2, 3) => -1.5)
+    push!(D, (2,5) => -0.5)
+    push!(D, (3,3) => 2.)
+    push!(D, (3,6) => 1.5)
+    push!(D, (5,6) => -0.25)
+    push!(D, (4,5) => 0.5)
+    push!(D, (6,6) =>  .05)
+    push!(D, (6,9) => -0.52)
+    push!(D, (5,5) => 0.75)
+    push!(D, (5,8) => 0.5)
+    push!(D, (4,4) => 0.)
+    push!(D, (4,7) => -0.01)
+    push!(D, (7,7) => 0.35)
+    push!(D, (7,8) => 0.7)
+    push!(D, (8,8) => -0.08)
+    push!(D, (8,9) => -0.05)
+    push!(D, (9,9) => 0.33)
+
+    ising_graph(D, L, 1, -1)
+end
+
+
+function interactions_case2()
+    css = -2.
+    D = Dict{Tuple{Int64,Int64},Float64}()
+    push!(D, (1,1) => -1.25)
+    push!(D, (1,2) => 1.75)
+    push!(D, (1,4) => css)
+    push!(D, (2,2) => -1.75)
+    push!(D, (2,3) => 1.75)
+    push!(D, (2,5) => 0.)
+    push!(D, (3,3) => -1.75)
+    push!(D, (3,6) => css)
+    push!(D, (5,6) => 1.75)
+    push!(D, (4,5) => 1.75)
+    push!(D, (6,6) => 0.)
+    push!(D, (6,9) => 0.)
+    push!(D, (5,5) => -0.75)
+    push!(D, (5,8) => 0.)
+    push!(D, (4,4) => 0.)
+    push!(D, (4,7) => 0.)
+    push!(D, (7,7) => css)
+    push!(D, (7,8) => 0.)
+    push!(D, (8,8) => css)
+    push!(D, (8,9) => 0.)
+    push!(D, (9,9) => css)
+
+    L = 9
+
+    ising_graph(D, L, 1, -1)
+end

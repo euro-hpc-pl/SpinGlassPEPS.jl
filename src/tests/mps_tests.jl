@@ -40,29 +40,6 @@ end
 
 end
 
-function make_interactions_case1()
-    L = 9
-    J_h = [1 1 .5; 1 2 -0.5; 1 4 -1.5; 2 2 -1.; 2 3 -1.5; 2 5 -0.5; 3 3 2.; 3 6 1.5]
-    J_h = vcat(J_h, [6 6 .05; 5 6 -0.25; 6 9 -0.52; 5 5 0.75; 4 5 0.5; 5 8 0.5; 4 4 0.; 4 7 -0.01])
-    J_h = vcat(J_h, [7 7 0.35; 7 8 0.5; 8 8 -0.08; 8 9 -0.05; 9 9 0.33])
-    ig = MetaGraph(L, 0.0)
-
-    set_prop!(ig, :description, "The Ising model.")
-
-    for k in 1:size(J_h, 1)
-        i, j, v = J_h[k,:]
-        i = Int(i)
-        j = Int(j)
-        if i == j
-            set_prop!(ig, i, :h, v) || error("Node $i missing!")
-        else
-            add_edge!(ig, i, j) &&
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
-        end
-    end
-    ig
-end
-
 
 @testset "MPS computing" begin
 
@@ -145,32 +122,7 @@ end
     @test ps/sum(ps) ≈ pp/sum(pp)
 end
 
-function interactions_case2()
-    L = 9
-    css = -2.
-    J_h = [1 1 -1.25; 1 2 1.75; 1 4 css; 2 2 -1.75; 2 3 1.75; 2 5 0.; 3 3 -1.75; 3 6 css]
-    J_h = vcat(J_h, [6 6 0.; 6 5 1.75; 6 9 0.; 5 5 -0.75; 5 4 1.75; 5 8 0.; 4 4 0.; 4 7 0.])
-    J_h = vcat(J_h, [7 7 css; 7 8 0.; 8 8 css; 8 9 0.; 9 9 css])
 
-    ig = MetaGraph(L, 0.0)
-
-    set_prop!(ig, :description, "The Ising model.")
-
-    for k in 1:size(J_h, 1)
-        i, j, v = J_h[k,:]
-        #convention
-        v = -v
-        i = Int(i)
-        j = Int(j)
-        if i == j
-            set_prop!(ig, i, :h, v) || error("Node $i missing!")
-        else
-            add_edge!(ig, i, j) &&
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
-        end
-    end
-    ig
-end
 
 @testset "MPS - solving simple problem" begin
 

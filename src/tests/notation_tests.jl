@@ -211,7 +211,7 @@ end
 end
 
 
-@testset "brute force testing" begin
+@testset "hepers and brute force testing" begin
     M = ones(3,3)
 
     v = [1,1,1]
@@ -222,11 +222,12 @@ end
 
     spins, energies = brute_force_solve(M, 2)
     ig = M2graph(M)
-    spins1, energies1 = _brute_force(ig,4)
+    spins1, energies1 = brute_force(ig,2)
     println(energies)
     println(energies1)
     println(spins)
     println(spins1)
+
     @test spins == [[1, 1, 1], [-1, -1, -1]]
     @test energies == [-9.0, -3.0]
 
@@ -235,8 +236,11 @@ end
     M = 0.01*R*transpose(R)
     M[1,1] = M[1,2] = M[2,1] = M[2,2] = 2
     spins, _ = brute_force_solve(M, 10)
+    ig = M2graph(M)
+    spins1, _ = brute_force(ig,10)
     for i in 1:10
         @test spins[i][1:2] == [1,1]
+        @test spins1[i][1:2] == [1,1]
     end
 
 end

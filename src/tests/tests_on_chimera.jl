@@ -63,57 +63,11 @@ problem_size = parse_args(s)["size"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
 
-function make_graph(data::Array{Array{Any,1},1})
-    L = Int(maximum(maximum(data)))
-    M = zeros(L,L)
-    println("problem size = ", size(data,1))
+ig = ising_graph(fi, si, 1, -1)
 
-    ig = MetaGraph(L, 0.0)
+@time spins, objective = solve(ig, 10; β=β, χ = χ, threshold = 1e-8)
 
-    set_prop!(ig, :description, "The Ising model.")
-
-    for k in 1:size(data,1)
-        i = Int(data[k][1])
-        j = Int(data[k][2])
-        # conventoion
-        v = -Float64(data[k][3])
-        if i == j
-            set_prop!(ig, i, :h, v) || error("Node $i missing!")
-        else
-            add_edge!(ig, i, j) &&
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
-        end
-        M[i,j] = M[j,i] = v
-    end
-    ig, M
-end
-
-# TODO ising_graph() does not read linear elements (h)
-#TODO make possible reverse the convention
-ig = ising_graph(fi, si)
-
-# reading data from txt
-data = (x-> Array{Any}([parse(Int, x[1]), parse(Int, x[2]), parse(Float64, x[3])])).(split.(readlines(open(fi))[2:end]))
-
-g, M = make_graph(data)
-
-
-
-println(props(ig, 1,5))
-println(props(ig, 1))
-println(props(g,1,5))
-println(props(g,1))
-
-#println("aaaaaaaaaaaaaaaa")
-#println(M)
-#println("--------------")
-#println(M1)
-#println("------------")3
-
-@time spins, objective = solve(g, 10; β=β, χ = χ, threshold = 1e-8)
-
-energies = [v2energy(M, s) for s in spins]
-
+energies = [energy(s, ig) for s in spins]
 println("energies from peps")
 for i in 1:10
     println(energies[i])
@@ -125,9 +79,10 @@ data = split.(readlines(open(fil)))
 i = findall(x->x[1]==file, data)[1]
 ground_ref = [parse(Int, el) for el in data[i][4:end]]
 ground_spins = binary2spins(ground_ref)
+energy_ref = energy(ground_spins, ig)
 
-energy_ref = v2energy(M, ground_spins)
-println("reference energy = ", energy_ref)
+println("reference energy form data = ", energy_ref)
+println("reference energy form file = ", data[i][3])
 
 spins_mat = vecvec2matrix(spins)
 
