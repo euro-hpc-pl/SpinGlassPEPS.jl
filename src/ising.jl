@@ -104,6 +104,7 @@ function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1)
 
     # setup the model (J_ij, h_i)
     for (i, j, v) ∈ ising 
+        println( (i, j, v) )
         if i == j
             set_prop!(ig, i, :h, v) || error("Node $i missing!")
         else
