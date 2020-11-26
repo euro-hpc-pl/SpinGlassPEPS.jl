@@ -90,7 +90,7 @@ Create the Ising spin glass model.
 
 Store extra information
 """
-function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1)
+function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1, sgn::Number=1)
 
     # load the Ising instance
     if typeof(instance) == String
@@ -104,12 +104,11 @@ function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1)
 
     # setup the model (J_ij, h_i)
     for (i, j, v) ∈ ising 
-
         if i == j
-            set_prop!(ig, i, :h, v) || error("Node $i missing!")
+            set_prop!(ig, i, :h, sgn * v) || error("Node $i missing!")
         else
             add_edge!(ig, i, j) && 
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)") 
+            set_prop!(ig, i, j, :J, sgn * v) || error("Cannot add Egde ($i, $j)") 
         end    
     end   
 
