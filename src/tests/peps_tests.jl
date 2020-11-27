@@ -81,32 +81,29 @@ fullM2grid!(Mq, (2,2))
     t2 = compute_single_tensor(g1, 2, β, sum_over_last = true)
     t3 = compute_single_tensor(g1, 3, β, sum_over_last = true)
 
-    t1 = permutedims(t1, (1,3,2,4))
-    t2 = permutedims(t2, (1,3,2,4))
-    t3 = permutedims(t3, (1,3,2,4))
-    # all are on the egde from left or right
 
-    @test size(t1) == (1, 2, 1, 2)
-    @test t1[1,:,1,:] ≈ [exp(-1*β) 0.; 0. exp(1*β)]
+    @test size(t1) == (1, 1, 2, 2)
+    @test t1[1,1,:,:] ≈ [exp(-1*β) 0.; 0. exp(1*β)]
 
     @test size(t2) == (2,1,1,2)
     @test t2[:,1,1,:] ≈ [exp(1*β) exp(-1*β); exp(-3*β) exp(3*β)]
 
     @test size(t3) == (1,2,2,1)
-    @test t3[1,:,:,1] ≈ [exp(1*β) exp(-3*β); exp(-1*β) exp(3*β)]
+    @test t3[1,:,:,1] ≈ [exp(1*β) exp(-1*β); exp(-3*β) exp(3*β)]
 
     t = compute_single_tensor(g1, 1, β)
-    t = permutedims(t, (1,3,2,4,5))
+
     @test t1 ≈ t[:,:,:,:,1]+t[:,:,:,:,2]
 
     #used to construct a larger tensor of 2x2 nodes
-    tensors = [t1[:,:,1,:], t2[:,:,1,:]]
+    tensors = [t1[:,1,:,:], t2[:,1,:,:]]
     modes = [[-1, 1,-3], [1, -2, -4]]
     T2 = ncon(tensors, modes)
 
     gg = graph4peps(g, (2,1))
     T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
-    T1 = permutedims(T1, (1,3,2,4))
+    # TODO last permutedims to be removed
+    T2 = permutedims(T2, (1,3,2,4))
     @test vec(T1) ≈ vec(T2)
 end
 
@@ -149,13 +146,13 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     v = [-1 for _ in 1:9]
 
-    @test exp.(-β*v2energy(Mq, v)) ≈ cc[1,1,1,1,1,1,1,1,1]
+    @test exp.(-β*energy(v, g)) ≈ cc[1,1,1,1,1,1,1,1,1]
 
     v[1] = 1
-    @test exp.(-β*v2energy(Mq, v)) ≈ cc[2,1,1,1,1,1,1,1,1]
+    @test exp.(-β*energy(v, g)) ≈ cc[2,1,1,1,1,1,1,1,1]
 
     v = [1, -1, 1, -1, 1, -1, 1, -1, 1]
-    @test exp.(-β*v2energy(Mq, v)) ≈ cc[2,1,2,1,2,1,2,1,2]
+    @test exp.(-β*energy(v, g)) ≈ cc[2,1,2,1,2,1,2,1,2]
 end
 
 # TODO this will be the ilustative step by step how does the probability computation work
@@ -164,15 +161,6 @@ end
 
     ####   conditional probability implementation
 
-    a = scalar_prod_step(ones(2,2,2), ones(2,2,2), ones(2,2))
-    @test a == [8.0 8.0; 8.0 8.0]
-
-    mps1 = MPS([ones(2,2,2), ones(2,2,1)])
-    mps2 = MPS([ones(2,2,2), ones(2,2,1)])
-    @test compute_scalar_prod(mps1, mps2) == [16.0 16.0; 16.0 16.0]
-
-    Ms = [ones(1,2), ones(2,2), ones(2,2)]
-    @test Mprod(Ms) == [4.0 4.0]
 
     mpo = [ones(2,2,2,2), ones(2,2,2,2)]
     mps = set_spin_from_letf(mpo, 1)
@@ -246,9 +234,9 @@ end
 
 
     # introduce degeneracy
-    set_prop!(g, 7, :h, 0.1)
-    set_prop!(g, 8, :h, 0.1)
-    set_prop!(g, 9, :h, 0.1)
+    set_prop!(g, 7, :h, 0.2)
+    set_prop!(g, 8, :h, 0.2)
+    set_prop!(g, 9, :h, 0.2)
 
     spins, objective = solve(g, 16; β = 1., threshold = 0.)
     spins_l, objective_l = solve(g, 16; β = 1., threshold = 0., node_size = (2,2))
@@ -258,8 +246,8 @@ end
     @test spins_l[1] == spins[1]
     @test spins_a[1] == spins[1]
     @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
-    @test objective[1] ≈ 0.12151449832031348
-    @test objective_a[1] ≈ 0.12151449832031348
+    @test objective[1] ≈  0.1885492102563634
+    @test objective_a[1] ≈  0.1885492102563634
 
     first_deg = [[1, -1, 1, 1, -1, 1, -1, 1, 1], [1, -1, 1, 1, -1, 1, 1, -1, 1], [1, -1, 1, 1, -1, 1, 1, 1, -1]]
     @test spins[2] in first_deg
@@ -274,9 +262,9 @@ end
     @test spins_a[3] in first_deg
     @test spins_a[4] in first_deg
 
-    @test objective[2] ≈ 0.09948765671968342
-    @test objective[3] ≈ 0.09948765671968342
-    @test objective[4] ≈ 0.09948765671968342
+    @test objective[2] ≈ 0.12638831529902897
+    @test objective[3] ≈ 0.12638831529902897
+    @test objective[4] ≈ 0.12638831529902897
 
     second_deg = [[1, -1, 1, 1, -1, 1, -1, 1, -1], [1, -1, 1, 1, -1, 1, -1, -1, 1], [1, -1, 1, 1, -1, 1, 1, -1, -1]]
     @test spins[5] in second_deg
@@ -291,14 +279,14 @@ end
     @test spins_a[6] in second_deg
     @test spins_a[7] in second_deg
 
-    @test objective[5] ≈ 0.08145360410807015
-    @test objective[6] ≈ 0.08145360410807015
-    @test objective[7] ≈ 0.08145360410807015
+    @test objective[5] ≈ 0.08472062132961197
+    @test objective[6] ≈ 0.08472062132961197
+    @test objective[7] ≈ 0.08472062132961197
 
     @test spins[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
     @test spins_l[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
     @test spins_a[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
-    @test objective[8] ≈ 0.06668857063231606
+    @test objective[8] ≈ 0.05678993078983346
 
     for i in 1:10
         @test objective[i] ≈ objective_l[i]
@@ -322,31 +310,6 @@ end
     @test typeof(objective[1]) == Float32
 end
 
-function make_interactions_large()
-    L = 16
-    J_h = [1 1 -2.8; 1 2 0.3; 1 5 0.2; 2 2 2.7; 2 3 0.255; 2 6 0.21; 3 3 -2.6; 3 4 0.222; 3 7 0.213; 4 4 2.5; 4 8 0.2]
-    J_h = vcat(J_h, [5 5 -2.4; 5 6 0.15; 5 9 0.211; 6 6 2.3; 6 7 0.2; 6 10 0.15; 7 7 -2.2; 7 8 0.11; 7 11 0.35; 8 8 2.1; 8 12 0.19])
-    J_h = vcat(J_h, [9 9 -2.; 9 10 0.222; 9 13 0.15; 10 10 1.9; 10 11 0.28; 10 14 0.21; 11 11 -1.8; 11 12 0.19; 11 15 0.18; 12 12 1.7; 12 16 0.27])
-    J_h = vcat(J_h, [13 13 -1.6; 13 14 0.32; 14 14 1.5; 14 15 0.19; 15 15 -1.4; 15 16 0.21; 16 16 1.3])
-
-    ig = MetaGraph(L, 0.0)
-
-    set_prop!(ig, :description, "The Ising model.")
-
-    for k in 1:size(J_h, 1)
-        i, j, v = J_h[k,:]
-        v = -v
-        i = Int(i)
-        j = Int(j)
-        if i == j
-            set_prop!(ig, i, :h, v) || error("Node $i missing!")
-        else
-            add_edge!(ig, i, j) &&
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
-        end
-    end
-    ig
-end
 
 @testset "larger system " begin
 

@@ -27,9 +27,8 @@ include("../PEPS.jl")
 include("../search.jl")
 include("../utils.jl")
 
-include("test_helpers.jl")
+
 include("../notation.jl")
-include("../brute_force.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 
@@ -94,7 +93,7 @@ for k in 1:examples
 
     for i in 1:number_of_states
 
-        @test v2energy(Mat_of_interactions, spins[i]) ≈ energies_given[i]
+        @test energy(spins[i], g) ≈ energies_given[i]
 
         if states_given != 0
             @test states_given[i,:] == spins[i]
@@ -110,7 +109,7 @@ for k in 1:examples
 
     for i in 1:number_of_states
 
-        @test v2energy(Mat_of_interactions, spins_approx[i]) ≈ energies_given[i]
+        @test energy(spins_approx[i], g) ≈ energies_given[i]
 
         if states_given != 0
             @test states_given[i,:] == spins_approx[i]
@@ -125,7 +124,7 @@ for k in 1:examples
 
     for i in 1:number_of_states
 
-        @test v2energy(Mat_of_interactions, spins_larger_nodes[i]) ≈ energies_given[i]
+        @test energy(spins_larger_nodes[i], g) ≈ energies_given[i]
 
         if states_given != 0
             @test states_given[i,:] == spins_larger_nodes[i]
@@ -146,7 +145,7 @@ for k in 1:examples
     @time spins_mps, objective_mps = solve_mps(g, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-14)
 
     # sorting improves the oputput
-    energies_mps = [v2energy(Mat_of_interactions, spins) for spins in spins_mps]
+    energies_mps = [energy(spins, g) for spins in spins_mps]
     p = sortperm(energies_mps)
 
     spins_mps = spins_mps[p]
@@ -154,7 +153,7 @@ for k in 1:examples
 
     for i in 1:number_of_states
 
-        @test v2energy(Mat_of_interactions, spins_mps[i]) ≈ energies_given[i]
+        @test energy(spins_mps[i], g) ≈ energies_given[i]
 
         if states_given != 0
             @test states_given[i,:] == spins_mps[i]

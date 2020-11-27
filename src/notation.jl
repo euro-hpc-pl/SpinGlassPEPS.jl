@@ -227,14 +227,15 @@ end
 function M2graph(M::Matrix{Float64}, sgn::Int = 1)
     size(M,1) == size(M,2) || error("matrix not squared")
     L = size(M,1)
-    #TODO is symmetric
+    #TODO we do not require symmetric, is it ok?
 
-    # takes lower triangular
     D = Dict{Tuple{Int64,Int64},Float64}()
     for j in 1:size(M, 1)
         for i in 1:j
-            if (i == j) | (M[j,i] != 0.)
+            if (i == j)
                 push!(D, (i,j) => M[j,i])
+            elseif M[j,i] != 0.
+                push!(D, (i,j) => M[i,j]+M[j,i])
             end
         end
     end
@@ -348,7 +349,8 @@ function internal_energy(g::EE, ig::MetaGraph)
             J = props(ig, pair[1], pair[2])[:J]
             i1 = position_in_cluster(g.spins_inds, pair[1])
             i2 = position_in_cluster(g.spins_inds, pair[2])
-            e = e - 2*σs[i1]*σs[i2]*J
+            #e = e - 2*σs[i1]*σs[i2]*J
+            e = e - σs[i1]*σs[i2]*J
         end
         energy[i] = e
     end
@@ -394,7 +396,8 @@ function M_of_interaction(g::EE, g1::EE, ig::MetaGraph)
         σ_cluster = ind2spin(i, no_spins)
         for j in 1:2^subset_size
             σ = ind2spin(j, subset_size)
-            @inbounds energy[j,i] = -2*sum(J.*σ.*σ_cluster[spin_subset])
+            @inbounds energy[j,i] = -sum(J.*σ.*σ_cluster[spin_subset])
+            #@inbounds energy[j,i] = -2*sum(J.*σ.*σ_cluster[spin_subset])
         end
     end
     energy

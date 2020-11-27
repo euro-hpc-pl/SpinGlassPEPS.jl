@@ -104,16 +104,16 @@ end
     # graph for mps
     g = M2graph(M)
     @test collect(vertices(g)) == [1,2]
-    #println(collect(edges(g)))
-    @test props(g, 1)[:h] == 1
-    @test props(g, 2)[:h] == 1
-    @test props(g, 1,2)[:J] == 1
+
+    @test props(g, 1)[:h] == 1.
+    @test props(g, 2)[:h] == 1.
+    @test props(g, 1,2)[:J] == 2.
 
     g1 = graph4mps(g)
     @test degree(g1) == [1,1]
     @test props(g1, 1)[:energy] == [1., -1.]
-    @test props(g1, 1,2)[:J] == 1
-    #println(collect(edges(g1)))
+    @test props(g1, 1,2)[:J] == 2.
+
 
     # graph for peps
     M = ones(4,4)
@@ -158,7 +158,7 @@ end
 
     e =  [-4.0, 2.0, 2.0, 0.0, 2.0, 0.0, 8.0, -2.0, 2.0, 8.0, 0.0, -2.0, 0.0, -2.0, -2.0, -12.0]
     @test internal_energy(v1, ig) ≈ e
-    @test get_Js(v2, v1, ig) == [1.0, 1.0]
+    @test get_Js(v2, v1, ig) == [2.0, 2.0]
     M = M_of_interaction(v2, v1, ig)
     @test size(M) == (4, 16)
     @test M[:,1] == [-4.0, 0.0, 0.0, 4.0]
@@ -208,39 +208,4 @@ end
 
     vecvec = [[1,1,-1],[1,-1,1]]
     @test vecvec2matrix(vecvec) == [1 1; 1 -1; -1 1]
-end
-
-
-@testset "hepers and brute force testing" begin
-    M = ones(3,3)
-
-    v = [1,1,1]
-    @test v2energy(M,v) == -9.
-
-    v = [-1,-1,-1]
-    @test v2energy(M,v) == -3.
-
-    spins, energies = brute_force_solve(M, 2)
-    ig = M2graph(M)
-    spins1, energies1 = brute_force(ig,2)
-    println(energies)
-    println(energies1)
-    println(spins)
-    println(spins1)
-
-    @test spins == [[1, 1, 1], [-1, -1, -1]]
-    @test energies == [-9.0, -3.0]
-
-    # first 2 spins must be 1 and others are tho noice
-    R = rand(9,9)
-    M = 0.01*R*transpose(R)
-    M[1,1] = M[1,2] = M[2,1] = M[2,2] = 2
-    spins, _ = brute_force_solve(M, 10)
-    ig = M2graph(M)
-    spins1, _ = brute_force(ig,10)
-    for i in 1:10
-        @test spins[i][1:2] == [1,1]
-        @test spins1[i][1:2] == [1,1]
-    end
-
 end

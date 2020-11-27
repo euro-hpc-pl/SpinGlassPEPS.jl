@@ -27,7 +27,6 @@ include("../search.jl")
 include("../utils.jl")
 
 include("../notation.jl")
-include("../brute_force.jl")
 include("../peps_no_types.jl")
 include("../mps_implementation.jl")
 

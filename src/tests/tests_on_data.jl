@@ -18,7 +18,7 @@
         spins_exact, objective_exact = solve(g, 10; β = β, χ = 0, threshold = 0.)
 
         for i in 1:10
-            @test v2energy(QM, spins_exact[i]) ≈ ens[i]
+            @test energy(spins_exact[i], g) ≈ ens[i]
             @test spins_exact[i] == Int.(states[i,:])
         end
 
@@ -28,7 +28,7 @@
         spins_approx, objective_approx = solve(g, 10; β = β, χ = χ, threshold = 1e-10)
 
         for i in 1:10
-            @test v2energy(QM, spins_approx[i]) ≈ ens[i]
+            @test energy(spins_approx[i], g) ≈ ens[i]
             @test spins_approx[i] == Int.(states[i,:])
         end
 
@@ -45,7 +45,7 @@
         spins_l, objective_l = solve(g, 10; β = β, χ = χ, threshold = 1e-10, node_size = (2,2))
 
         for i in 1:10
-            @test v2energy(QM, spins_l[i]) ≈ ens[i]
+            @test energy(spins_l[i], g) ≈ ens[i]
             @test spins_l[i] == Int.(states[i,:])
         end
 
@@ -63,7 +63,7 @@
         spins_mps, objective_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-8)
 
         for i in 1:10
-            @test v2energy(QM, spins_mps[i]) ≈ ens[i]
+            @test energy(spins_mps[i], g) ≈ ens[i]
             @test spins_mps[i] == Int.(states[i,:])
         end
     end
@@ -79,7 +79,7 @@ function Qubo2M(Q::Matrix{T}) where T <: AbstractFloat
     - J - h
 end
 
-
+# TODO this will need to be corrected
 @testset "mpo-mps small instance of rail dispratching problem" begin
 
     # testing converts

@@ -11,13 +11,13 @@
         X = rand(system_size, system_size)
         M = cov(X)
 
-        χ = 10
+        χ = 15
         β_step = 2
         β = 2.
 
         g = M2graph(M)
 
-        spins_brute1, energies_brute1 = brute_force(g, sols)
+        spins_brute, energies_brute = brute_force(g, sols)
 
         spins_mps, objectives_mps = solve_mps(g, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
@@ -26,8 +26,8 @@
         spins_mps = spins_mps[p]
         energies_mps = energies_mps[p]
 
-        @test spins_mps[1:3] ≈ spins_brute1[1:3]
-        @test energies_mps[1:3] ≈ energies_brute1[1:3]
+        @test spins_mps[1:8] ≈ spins_brute[1:8]
+        @test energies_mps[1:8] ≈ energies_brute[1:8]
     end
 
 
@@ -41,32 +41,27 @@
         X = rand(system_size, system_size)
         M = cov(X)
 
-        spins_brute, energies_brute = brute_force_solve(M, sols)
 
-        # parametrising for mps
         g = M2graph(M)
 
-        spins_brute1, energies_brute1 = brute_force(g, sols)
+        spins_brute, energies_brute = brute_force(g, sols)
 
-        println(sort([energy(spins, g) for spins in spins_brute]))
-        println([energy(spins, g) for spins in spins_brute1])
-        println(energies_brute1)
-
-        χ = 10
-        β_step = 3
-        β = 9.
+        χ = 15
+        β_step = 2
+        β = 2.
 
         spins_mps, objectives_mps = solve_mps(g, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
         # sorting improve order of output that are a bit shufled
-        energies_mps = [v2energy(M, spins) for spins in spins_mps]
+        energies_mps = [energy(spins, g) for spins in spins_mps]
         p = sortperm(energies_mps)
         spins_mps = spins_mps[p]
         energies_mps = energies_mps[p]
 
+
         # energies are computed from spins
-        @test spins_mps[1:2] ≈ spins_brute[1:2]
-        @test energies_mps[1:2] ≈ energies_brute[1:2]
+        @test spins_mps[1:6] ≈ spins_brute[1:6]
+        @test energies_mps[1:6] ≈ energies_brute[1:6]
     end
 
     @testset "L = 64" begin
@@ -78,7 +73,7 @@
         M[5,5] = M[5,6] = M[6,5] = M[1,6] = M[6,1] = M[2,6] = M[6,2] = M[6,6] = 2.
         # the output expected is [1,1,x,x,1,1,x,.....]
 
-        χ = 25
+        χ = 10
         β = 0.1
         β_step = 4
 
@@ -103,7 +98,7 @@
 
         g = M2graph(M1)
 
-        χ = 25
+        χ = 10
         β = 0.1
         β_step = 4
 
@@ -150,17 +145,11 @@ end
     spins_mps, objectives_mps = solve_mps(g, sols+25; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
     # sorting according to energies improve outcome
-    energies_mps = [v2energy(M, spins) for spins in spins_mps]
+    energies_mps = [energy(spins, g) for spins in spins_mps]
     p = sortperm(energies_mps)
     spins_mps = spins_mps[p]
 
-    spins_brute, energies_brute = brute_force_solve(M, sols)
-    spins_brute1, energies_brute1 = brute_force(g, sols)
-
-    println([energy(spins, g) for spins in spins_brute])
-    println([energy(spins, g) for spins in spins_brute1])
-    println(energies_brute1)
-
+    spins_brute, energies_brute = brute_force(g, sols)
 
     @test spins_exact[1:sols] == spins_approx[1:sols]
     @test spins_approx[1:sols] == spins_l[1:sols]

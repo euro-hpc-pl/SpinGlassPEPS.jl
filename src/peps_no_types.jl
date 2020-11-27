@@ -95,35 +95,6 @@ end
 
 
 """
-    function compute_scalar_prod(mps_down::MPS{T}, mps_up::MPS{T}) where T <: AbstractFloat
-
-Returns matrix, the scalar product of two mpses, with open two legs of first elements.
-"""
-function compute_scalar_prod(mps_down::MPS{T}, mps_up::MPS{T}) where T <: AbstractFloat
-    env = ones(T, 1,1)
-    for i in length(mps_up):-1:1
-        env = scalar_prod_step(mps_down[i], mps_up[i], env)
-    end
-    env
-end
-
-"""
-    function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
-
-Returns matrix
-"""
-
-function scalar_prod_step(mps_down::Array{T, 3}, mps_up::Array{T, 3}, env::Array{T, 2}) where T <: AbstractFloat
-    C = zeros(T, size(mps_up, 1), size(mps_down, 1))
-
-    @tensor begin
-        C[a,b] = mps_up[a,z,x]*mps_down[b,z,y]*env[x,y]
-    end
-    C
-end
-
-
-"""
     function set_spin_from_letf(mpo::Vector{Array{T,4}}, new_s::Int) where T <: AbstractFloat
 
 Given mpo, returns a vector of 3-mode arrays
@@ -138,15 +109,6 @@ function set_spin_from_letf(mpo::Vector{Array{T,4}}, new_s::Int) where T <: Abst
     B = permutedims(B, (3,1,2))
     mps = vcat([B], [sum_over_last(el) for el in mpo[2:end]])
     MPS(mps)
-end
-
-
-function Mprod(Ms::Vector{Array{T, 2}}) where T <: AbstractFloat
-    env = ones(T, 1,1)
-    for M in Ms
-        env = env*M
-    end
-    env
 end
 
 
@@ -264,12 +226,14 @@ function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mp
     # move to mps notation
     M = [permutedims(e, (1,3,2,4)) for e in M]
     upper_mps = set_spin_from_letf(M, left_s)
+    pp = right_env(MPS(lower_mps[l:end]), upper_mps)[1]
 
-    partial_scalar_prod = compute_scalar_prod(MPS(lower_mps[l:end]), upper_mps)
-    
     lower_mps_left = [lower_mps[i][:,upper_left[i],:] for i in 1:l-1]
-    weight = Mprod(lower_mps_left)
-    probs_unnormed = partial_scalar_prod*transpose(weight)
+    weight = ones(T, 1,1)
+    if l > 1
+        weight = prod(lower_mps_left)
+    end
+    probs_unnormed = pp*transpose(weight)
 
     probs_unnormed./sum(probs_unnormed)
 end

@@ -31,7 +31,8 @@ include("utils.jl")
 include("tests/test_helpers.jl")
 
 include("notation.jl")
-include("brute_force.jl")
+#include("brute_force.jl")
+
 include("tests/notation_tests.jl")
 
 include("peps_no_types.jl")

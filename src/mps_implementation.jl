@@ -68,8 +68,8 @@ function add_MPO!(mpo::MPO{T}, iij::VE, g::MetaGraph, β::T) where T<: AbstractF
     mpo[i] = Btensor(T, d)
     for e in iij
         j = dst(e)
-        # minus for convention
-        J = -props(g, e)[:J]
+        # minus for convention 1/2 since each is taken doubled in the product
+        J = -1/2*props(g, e)[:J]
         # minus for probability
         mpo[j] = Ctensor(T, -J*β, d, j==l)
     end
@@ -187,12 +187,16 @@ function compute_probs(mps::MPS{T}, spins::Vector{Int}) where T <: AbstractFloat
 
     k = length(spins)
     mm = [mps[i][:,spins[i],:] for i in 1:k]
-    left_v = Mprod(mm)[1,:]
+
+    left_v = ones(T,1)
+    if k > 0
+        left_v = prod(mm)[1,:]
+    end
 
     right_m = ones(T,1,1)
     if k+1 < length(mps)
-
-        right_m = compute_scalar_prod(MPS(mps[k+2:end]), MPS(mps[k+2:end]))
+        right_m = right_env(mps, mps)[k+2]
+        #right_m1 = compute_scalar_prod(MPS(mps[k+2:end]), MPS(mps[k+2:end]))
     end
     contract4probability(mps[k+1], right_m, left_v)
 end
