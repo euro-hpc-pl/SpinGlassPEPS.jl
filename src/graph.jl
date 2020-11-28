@@ -1,12 +1,39 @@
-export Edge, Node, Grid
+struct Chimera
+    size::NTuple
+    graph::MetaGraph
+end
 
-const Node = Int
-const Edge = Tuple{Node, Node}
+"""
+$(TYPEDSIGNATURES)
 
-const IsingInstance = Dict{Edge, Float64}
+Returns Chimera's unit cell at \$(i, j)\$ on a grid.
 
-struct Cluster
-    instance::IsingInstance
-    nodes::Vector{Node}
-    legs::Dict{Symbol, Dict{Node, Vector{Node}}}
+"""
+function chimera_cell(chimera::Chimera, i::Int, j::Int)
+    N, M, T = chimera.size
+    C = N * M
+
+    @assert i <= N & j <= M "Cell ($i, $j) is outside the graph C$C."
+
+    vlist = [ chimera_to_linear(i, j, u, k) for u ∈ 1:T for k ∈ [0, 1] ]
+    cell, vmap = induced_subgraph(chimera.graph, vlist)
+
+    for (i, v) ∈ zip(nv(cell), vmap)
+        set_prop!(cell, i, :global, v)
+
+        nbrs = unique_neighbors(chimera.graph, v)
+
+        for w ∈ intersect(vlist, nbrs)
+            J = get_prop(chimera.graph, v, w, :J)
+            set_prop!(cell, i, j, :J, J)
+        end
+
+        h = get_prop(chimera.graph, v, :h)
+        set_prop!(cell, i, :h, h)
+    end
+    
+    set_prop!(cell, :description, "Unit cell ($i, $j) of Chimera $C.") 
+    cell
+end
+
 end
