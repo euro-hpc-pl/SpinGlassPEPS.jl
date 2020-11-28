@@ -7,3 +7,4 @@
 *.pdf
 results
 docs/build
+**/.DS_Store
