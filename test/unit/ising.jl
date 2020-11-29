@@ -7,7 +7,7 @@ using CSV
 
     L = 4
     N = L^2 
-    instance = "$(@__DIR__)/instances/$(N)_001.txt"  
+    instance = "$(@__DIR__)/../instances/$(N)_001.txt"  
 
     ig = ising_graph(instance, N)
 
@@ -79,7 +79,7 @@ using CSV
 
     @testset "Naive brute force for general spins" begin
         L = 4 
-        instance = "$(@__DIR__)/instances/$(L)_001.txt"  
+        instance = "$(@__DIR__)/../instances/$(L)_001.txt"  
 
         ig = ising_graph(instance, L)
 
@@ -100,6 +100,7 @@ using CSV
 
     @testset "Reading from Dict" begin
         instance_dict = Dict()
+        @show instance
         ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
 
         for (i, j, v) ∈ ising

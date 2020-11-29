@@ -5,7 +5,7 @@ using GraphPlot
 L = 2
 N = L^2
 
-instance = "$(@__DIR__)/instances/$(N)_001.txt"  
+instance = "$(@__DIR__)/../instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
 set_prop!(ig, :β, 1.)#rand(Float64))
