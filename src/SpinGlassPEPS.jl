@@ -15,7 +15,7 @@ module SpinGlassPEPS
     include("contractions.jl")   
     include("ising.jl")
     include("graph.jl")
-    include("PEPS.jl")
+    # include("PEPS.jl")
     include("search.jl")
     include("utils.jl")
 
