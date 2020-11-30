@@ -4,7 +4,7 @@ struct Chimera
     graph::MetaGraph
 end
 
-function chimera(chimera::Chimera)
+function cluster!(chimera::Chimera)
     N, M, _ = chimera.size
     linear = LinearIndices((1:N, 1:M))
 
@@ -22,7 +22,6 @@ function chimera(chimera::Chimera)
         end
     end
 end
-
 
 function Chimera(m::Int, n::Int=m, t::Int=4)
     max_size = m * n * 2 * t

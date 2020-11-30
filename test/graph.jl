@@ -22,7 +22,14 @@ end
      C = 2 * N * M * T
 
      instance = "$(@__DIR__)/instances/chimera_droplets/$(C)power/001.txt"  
-     ig = ising_graph(instance, N)
+     ig = ising_graph(instance, C)
      chimera = Chimera((M, N, T), ig)
 
- end
+     for e ∈ edges(chimera)
+        get_prop(chimera, e, :J) ≈ get_prop(ig, e, :J) 
+     end
+
+     for v ∈ vertices(chimera)
+        get_prop(chimera, v, :h) ≈ get_prop(ig, v, :h) 
+     end
+end
