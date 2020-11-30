@@ -42,10 +42,7 @@ function spectrum2(ψ::MPS, keep::Int)
                 m = idx(σ)
 
                 LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
-                println(LL[:, :, j, m])
-                println(M[:, m, :])
                 pdo[j, m] = tr(LL[:, :, j, m])
-                println(pdo[j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
             end  
         end
@@ -61,7 +58,6 @@ function spectrum2(ψ::MPS, keep::Int)
 
         @cast A[α, β, (l, d)] |= LL[α, β, l, d] 
         left_env = A[:, :, perm]
-        println(left_env)
 
         @cast B[α, (l, d)] |= config[α, l, d]
         states = B[:, perm]
@@ -76,58 +72,53 @@ function spectrum(ψ::MPS, keep::Int)
     
     keep_extra = keep
     pCut = 1e-6
-    prob = 1 
+    lpCut = log(pCut)
     k = 1
 
     if keep < (*)(rank(ψ)...)
         keep_extra += 1
     end
- 
+    lprob=zeros(T,k)
     states = fill([], 1, k)
-    left_env = ones(T, 1, 1, k)
+    left_env = ones(T, 1, k)
 
     for (i, M) ∈ enumerate(ψ)
         _, d, β = size(M)
 
         pdo = ones(T, k, d)
         lpdo = zeros(T, k, d)
-        #pcond = ones(T, k, d)
         LL = zeros(T, β, k, d)
-        LLnew = zeros(T, β, k, d)
         config = zeros(Int, i, k, d)
 
         for j ∈ 1:k 
-            L = left_env[:, :, j]
+            L = left_env[:, j]
 
             for σ ∈ local_basis(d)
                 m = idx(σ)
                 LL[:,j, m] = L' * M[:, m, :]
                 pdo[j, m] = dot(LL[:, j, m], LL[:, j, m])
-                lpdo[j, m] = log(pdo[j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
-                LLnew[:, j, m] = LL[:, j, m]/sqrt(pdo[j, m])
-                #println(lpdo)
-                #println(pdo) 
-                #println(config[:, j, m])
+                LL[:, j, m] = LL[:, j, m]/sqrt(pdo[j, m])
             end
-
+        pdo[j,:]= pdo[j,:]/sum(pdo[j,:])
+        lpdo[j,:] = log.(pdo[j,:]) .+ lprob[j]
         end
 
         perm = collect(1: k * d)
         k = min(k * d, keep_extra)
 
         if k >= keep_extra
-            partialsortperm!(perm, vec(pdo), 1:k, rev=true)  
-            prob = vec(pdo)[perm]
-            lpCut = log(pCut)
-            pCut < last(prob) ? pCut = last(prob) : ()
+            partialsortperm!(perm, vec(lpdo), 1:k, rev=true)  
+            lprob = vec(lpdo)[perm]
+            lpCut < last(lprob) ? pCut = last(lprob) : ()
         end
 
-        left_env = LLnew[ :, :, perm]
+        @cast A[α, (l, d)] |= LL[α, l, d]
+        left_env = A[:, perm]
         @cast B[β, (l, d)] |= config[β, l, d]
         states = B[:, perm]
     end
-    states[:, 1:keep], prob[1:keep], pCut
+    states[:, 1:keep], lprob[1:keep], pCut
 end
 
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
