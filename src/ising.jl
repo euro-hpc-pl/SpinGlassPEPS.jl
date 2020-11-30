@@ -4,6 +4,7 @@ export State
 
 const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
+const EdgeIter = LightGraphs.SimpleGraphs.SimpleEdgeIter
 
 """
 $(TYPEDSIGNATURES)
@@ -65,7 +66,7 @@ function energy(σ::State, ig::MetaGraph, vertices, sgn::Float64=-1.0)
     sgn * energy   
 end
 
-function energy(σ::State, ig::MetaGraph, edges, sgn::Float64=-1.0)
+function energy(σ::State, ig::MetaGraph, edges::EdgeIter, sgn::Float64=-1.0)
     energy::Float64 = 0
     for e ∈ edges
         i, j = src(e), dst(e)         
