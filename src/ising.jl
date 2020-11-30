@@ -3,6 +3,7 @@ export gibbs_tensor, brute_force
 export State
 
 const State = Union{Vector, NTuple}
+const Instance = Union{String, Dict}
 
 """
 $(TYPEDSIGNATURES)
@@ -55,6 +56,25 @@ function gibbs_tensor(ig::MetaGraph)
 end
 
 
+function energy(σ::State, ig::MetaGraph, vertices, sgn::Float64=-1.0)
+    energy::Float64 = 0
+    for i ∈ vertices
+        h = get_prop(ig, i, :h)  
+        energy += h * σ[i]
+    end
+    sgn * energy   
+end
+
+function energy(σ::State, ig::MetaGraph, edges, sgn::Float64=-1.0)
+    energy::Float64 = 0
+    for e ∈ edges
+        i, j = src(e), dst(e)         
+        J = get_prop(ig, e, :J) 
+        energy += σ[i] * J * σ[j]   
+    end 
+    sgn * energy
+end
+
 """
 $(TYPEDSIGNATURES)
 
@@ -63,22 +83,9 @@ Calculate the Ising energy
 E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 ```
 """
-function energy(σ::State, ig::MetaGraph)
-    energy::Float64 = 0
-
-    # quadratic
-    for edge ∈ edges(ig)
-        i, j = src(edge), dst(edge)         
-        J = get_prop(ig, i, j, :J) 
-        energy += σ[i] * J * σ[j]   
-    end 
-
-    # linear
-    for i ∈ vertices(ig)
-        h = get_prop(ig, i, :h)  
-        energy += h * σ[i]
-    end    
-    -energy
+function energy(σ::State, ig::MetaGraph, sgn::Float64=-1.0)
+    energy = energy(σ, ig, edges(ig), sgn) 
+    energy += energy(σ, ig, vertices(ig), sgn)
 end
     
 """
@@ -90,7 +97,7 @@ Create the Ising spin glass model.
 
 Store extra information
 """
-function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1, sgn::Number=1)
+function ising_graph(instance::Instance, L::Int, β::Number=1, sgn::Number=1)
 
     # load the Ising instance
     if typeof(instance) == String
