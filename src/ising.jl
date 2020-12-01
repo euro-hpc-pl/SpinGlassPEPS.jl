@@ -85,8 +85,8 @@ E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 ```
 """
 function energy(σ::State, ig::MetaGraph, sgn::Float64=-1.0)
-    energy = energy(σ, ig, edges(ig), sgn) 
-    energy += energy(σ, ig, vertices(ig), sgn)
+    e = energy(σ, ig, edges(ig), sgn) 
+    e += energy(σ, ig, vertices(ig), sgn)
 end
     
 """
@@ -131,7 +131,7 @@ function ising_graph(instance::Instance, L::Int, β::Number=1, sgn::Number=1)
     state = 2(rand(L) .< 0.5) .- 1
 
     set_prop!(ig, :state, state)
-    #set_prop!(ig, :energy, energy(state, ig)) || error("Unable to calculate the Ising energy!")
+    set_prop!(ig, :energy, energy(state, ig)) || error("Unable to calculate the Ising energy!")
 
     # store extra information 
     set_prop!(ig, :β, β)
