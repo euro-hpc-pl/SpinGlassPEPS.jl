@@ -2,6 +2,16 @@ export Chimera
 struct Chimera
     size::NTuple{3, Int}
     graph::MetaGraph
+
+    function Chimera(size::NTuple{3, Int}, graph::MetaGraph)
+        c = new(size, graph)
+        m, n, t = size
+        for i=1:m, j=1:n, u=1:2, k=1:t
+            v = c[i, j, u, k]
+            set_prop!(c, v, :cluster, (i, j))
+        end
+        c
+    end
 end
 
 function cluster!(chimera::Chimera)
