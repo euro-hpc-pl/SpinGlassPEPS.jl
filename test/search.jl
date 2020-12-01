@@ -124,11 +124,13 @@ end
             @test ϱ[idx.(σ)...] ≈ p
         end 
 
-        for max_states ∈ [1, N, 2*N, N^2]
-            @info "Verifying low energy spectrum" max_states
+        for max_states ∈ [1, N, 2*N, N^2, N^2+1]
 
+            @info "Verifying low energy spectrum" max_states
             states, prob, pCut = spectrum(rψ, max_states)
-            states_bf, energies = brute_force(ig, max_states)
+            #states_bf, energies = brute_force(ig, max_states)
+            println(states)
+            #println(states_bf)
             #states, prob, pCut = spectrum2(rψ, max_states)
 
             @info "The largest discarded probability" pCut

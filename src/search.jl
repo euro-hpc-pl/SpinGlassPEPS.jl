@@ -71,8 +71,7 @@ function spectrum(ψ::MPS, keep::Int)
     T = eltype(ψ)
     
     keep_extra = keep
-    pCut = 1e-6
-    lpCut = log(pCut)
+    lpCut = -1000
     k = 1
 
     if keep < (*)(rank(ψ)...)
@@ -105,20 +104,27 @@ function spectrum(ψ::MPS, keep::Int)
         end
 
         perm = collect(1: k * d)
-        k = min(k * d, keep_extra)
+        k = k * d
 
-        if k >= keep_extra
-            partialsortperm!(perm, vec(lpdo), 1:k, rev=true)  
-            lprob = vec(lpdo)[perm]
-            lpCut < last(lprob) ? pCut = last(lprob) : ()
+        if k > keep_extra
+            k = keep_extra
+            partialsortperm!(perm, vec(lpdo), 1:k, rev=true) 
+            lpCut < last(lprob) ? lpCut = last(lprob) : () 
+            #if lpCut < last(lprob)
+            #    lpCut = last(lprob)
+            #else
+            #    lpCut = ()
+            #end
         end
 
+        lprob = vec(lpdo)[perm]
         @cast A[α, (l, d)] |= LL[α, l, d]
         left_env = A[:, perm]
         @cast B[β, (l, d)] |= config[β, l, d]
         states = B[:, perm]
     end
-    states[:, 1:keep], lprob[1:keep], pCut
+    states = states'
+    states, lprob, lpCut
 end
 
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
