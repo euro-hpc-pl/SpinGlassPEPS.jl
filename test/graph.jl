@@ -15,15 +15,15 @@ using CSV
 end
 
  @testset "Chimera graph" begin
-     M = 4
-     N = 4
-     T = 4
+     m = 4
+     n = 4
+     t = 4
 
-     C = 2 * N * M * T
+     C = 2 * m * n * t
 
      instance = "$(@__DIR__)/instances/chimera_droplets/$(C)power/001.txt"  
      ig = ising_graph(instance, C)
-     chimera = Chimera((M, N, T), ig)
+     chimera = Chimera((m, n, t), ig)
 
      for e ∈ edges(chimera)
         get_prop(chimera, e, :J) ≈ get_prop(ig, e, :J) 
@@ -32,4 +32,15 @@ end
      for v ∈ vertices(chimera)
         get_prop(chimera, v, :h) ≈ get_prop(ig, v, :h) 
      end
+
+     #=
+     linear = LinearIndices((1:m, 1:n))
+     for i ∈ 1:m 
+        for j ∈ 1:n
+            v = linear[i, j]
+            cluster = filter_vertices(chimera, :cluster, v)
+            println(cluster)
+        end
+    end
+    #=
 end
