@@ -51,16 +51,33 @@ function chimera_cell(i::Int, j::Int, size::Int)
     cel
 end
 
+function chimera_cells(i::Int, j::Int, size::Int, cell_size::Tuple{Int, Int})
+    cels = zeros(Int, 4*cell_size[1], 2*cell_size[2])
+    for k1 in 1:cell_size[1]
+        for k2 in 1:cell_size[2]
+            ip = k1+(i-1)*cell_size[1]
+            jp = k2+(j-1)*cell_size[2]
+            cels[(k1-1)*4+1:k1*4, (k2-1)*2+1:k2*2] = chimera_cell(ip, jp, size)
+        end
+    end
+    cels
+end
+
 # TODO this needs to be altered for larger chimera cell
-function form_a_chimera_grid(n::Int)
+function form_a_chimera_grid(n::Int, cell_size::Tuple{Int, Int})
     problem_size = 8*n^2
-    M = nxmgrid(n,n)
 
-    grid = Array{Array{Int}}(undef, (n,n))
+    n1 = ceil(Int, n/cell_size[1])
+    n2 = ceil(Int, n/cell_size[2])
+    M = nxmgrid(n1,n2)
 
-    for i in 1:n
-        for j in 1:n
-            grid[i,j] = chimera_cell(i,j, problem_size)
+    grid = Array{Array{Int}}(undef, (n1,n2))
+
+    for i in 1:n1
+        for j in 1:n2
+
+            #grid[i,j] = chimera_cell(i,j, problem_size)
+            grid[i,j] = chimera_cells(i,j, problem_size, cell_size)
         end
     end
     Array{Array{Int}}(grid), M
@@ -190,11 +207,41 @@ struct Element_of_chimera_grid
         column = r[2]
 
         internal_size = size(spins_inds)
-        internal_size == (4,2) || error("size $(internal_size) does not fit chimera cell")
+        internal_size[1] % 4 == 0 || error("size $(internal_size) does not fit chimera cell")
+        internal_size[2] % 2 == 0 || error("size $(internal_size) does not fit chimera cell")
+        cell_rows = div(internal_size[2], 2)
+        cell_columns = div(internal_size[1], 4)
 
-        for k1 in 1:4
-            for k2 in 1:4
-                push!(intra_struct, (spins_inds[k1,1], spins_inds[k2,2]))
+        # connections within cells
+        for c in 1:cell_columns
+            for r in 1:cell_rows
+                ofr = (r-1)*4
+                ofc = (c-1)*2
+                for k1 in ofr+1:ofr+4
+                    for k2 in ofr+1:ofr+4
+                        push!(intra_struct, (spins_inds[k1,ofc+1], spins_inds[k2,ofc+2]))
+                    end
+                end
+            end
+        end
+
+        #connections between cels in rows
+        if cell_columns > 1
+            for c in 1:cell_columns-1
+                for i in 1:internal_size[1]
+                    ofc = (c-1)*2
+                    push!(intra_struct, (spins_inds[i,ofc+2], spins_inds[i,ofc+4]))
+                end
+            end
+        end
+
+        #connections between cels in columns
+        if row > 1
+            for c in 1:cell_columns
+                for i in 1:internal_size[1]-4
+                    ofc = (c-1)*2
+                    push!(intra_struct, (spins_inds[i,ofc+1], spins_inds[i+4,ofc+1]))
+                end
             end
         end
 
@@ -202,13 +249,13 @@ struct Element_of_chimera_grid
         if column > 1
             left = positions_in_cluster(spins, spins_inds[:, 2])
         end
-        if column < size(grid, 2)
+        if cell_columns*column < size(grid, 2)
             right = positions_in_cluster(spins, spins_inds[:, 2])
         end
         if row > 1
             up = positions_in_cluster(spins, spins_inds[:, 1])
         end
-        if row < size(grid, 1)
+        if cell_rows*row < size(grid, 1)
             down = positions_in_cluster(spins, spins_inds[:, 1])
         end
 
@@ -285,7 +332,7 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
     elseif degree(ig, 1) == 5
         # error will be rised if not Int
         n = Int(sqrt(L/8))
-        grid, M = form_a_chimera_grid(n)
+        grid, M = form_a_chimera_grid(n, cell_size)
         g_elements = [Element_of_chimera_grid(i, M, grid) for i in 1:maximum(M)]
     else
         error("degree of first node = $degree(ig, 1), neither grid nor chimera")

@@ -25,7 +25,7 @@
     @test chimera_cell(2,1,512) == [65 69; 66 70; 67 71; 68 72]
 
 
-    grid, M = form_a_chimera_grid(2)
+    grid, M = form_a_chimera_grid(2, (1,1))
 
     @test grid[1,1] == [1 5; 2 6; 3 7; 4 8]
     @test grid[1,2] == [9 13; 10 14; 11 15; 12 16]
