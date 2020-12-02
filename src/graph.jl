@@ -1,8 +1,8 @@
-export Chimera
-struct Chimera
+export Chimera, outer_connections
+mutable struct Chimera
     size::NTuple{3, Int}
     graph::MetaGraph
-
+    outer_connections::Dict{Tuple, Vector}
     function Chimera(size::NTuple{3, Int}, graph::MetaGraph)
         c = new(size, graph)
         m, n, t = size
@@ -10,6 +10,24 @@ struct Chimera
             v = c[i, j, u, k]
             set_prop!(c, v, :cluster, (i, j))
         end
+
+        outer_connections = Dict{Tuple, Vector}()
+        for e in edges(c)
+            src_cluster = get_prop(c, src(e), :cluster)
+            dst_cluster = get_prop(c, dst(e), :cluster)
+            if src_cluster == dst_cluster
+                set_prop!(c, e, :outer, false)
+            else
+                key = (src_cluster, dst_cluster)
+                set_prop!(c, e, :outer, key)
+                if haskey(outer_connections, key)
+                    push!(outer_connections[key], e)
+                else
+                    outer_connections[key] = [e]
+                end
+            end
+        end
+        c.outer_connections = outer_connections
         c
     end
 end
@@ -94,3 +112,13 @@ function Base.getindex(c::Chimera, i::Int, j::Int)
     c.graph[idx]
 end
 
+
+outer_connections(c::Chimera, i, j, k, l) = outer_connections(c::Chimera, (i, j), (k, l))
+
+function outer_connections(c::Chimera, src, dst) 
+    ret = get(c.outer_connections, (src, dst), [])
+    @show ret
+    ret = length(ret) == 0 ? get(c.outer_connections, (dst, src), []) : ()
+    @show ret
+    ret
+end
