@@ -45,7 +45,7 @@ end
    end
 
 
-   out_edges = filter_edges(chimera.graph, :outer, (1,2))
+   out_edges = filter_edges(chimera.graph, :outer, (1, 2) )
    println(typeof(out_edges))
    σ = 2(rand(C) .< 0.5) .- 1
 
