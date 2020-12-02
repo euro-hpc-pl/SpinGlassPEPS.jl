@@ -33,7 +33,7 @@ function get_parameters_for_T(g::MetaGraph, i::Int)
 end
 
 """
-compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
+compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: Real
 
 Returns tensors, building blocks for a peps initialy tensor is 5 mode:
 
@@ -51,7 +51,7 @@ If sum_over_last -- summed over mode 5
 """
 
 
-function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: AbstractFloat
+function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: Real
     n = 0
     no_spins, tensor_size, right, down, M_left, M_up = get_parameters_for_T(g, i)
 
@@ -95,7 +95,7 @@ end
 
 
 """
-    function set_spin_from_letf(mpo::Vector{Array{T,4}}, new_s::Int) where T <: AbstractFloat
+    function set_spin_from_letf(mpo::AbstractMPO{T}, new_s::Int) where T <: Real
 
 Given mpo, returns a vector of 3-mode arrays
 
@@ -104,15 +104,30 @@ first mode index is set to new_s (this is the configuration of l-1 th element).
 
 Further are traced over the physical (last) dimension.
 """
-function set_spin_from_letf(mpo::Vector{Array{T,4}}, new_s::Int) where T <: AbstractFloat
+function set_spin_from_letf(mpo::AbstractMPO{T}, new_s::Int) where T <: Real
     B = mpo[1][new_s,:,:,:]
     B = permutedims(B, (3,1,2))
     mps = vcat([B], [sum_over_last(el) for el in mpo[2:end]])
     MPS(mps)
 end
 
+"""
+    set_spins_from_above(vec_of_T::Vector{Array{T,5}}, upper_right::Vector{Int})
+"""
+#      upper_right
+# α.     |                    |
+#    .   |                    |
+#    --- M ----   =>     ----- M ------
+#        |                    |
+#        |                    |α
 
-function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64) where T <: AbstractFloat
+function set_spins_from_above(vec_of_T::Vector{Array{T,5}}, upper_right::Vector{Int}) where T <: Real
+    l = length(vec_of_T) - length(upper_right)+1
+    M = [vec_of_T[k][:,upper_right[k-l+1],:,:,:] for k in l:length(vec_of_T)]
+    MPO([permutedims(e, (1,3,2,4)) for e in M])
+end
+
+function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64) where T <: Real
     grid = props(g)[:grid]
     s = size(grid,1)
     mps = MPS([ones(T, (1,1,1)) for _ in 1:size(grid,2)])
@@ -120,7 +135,7 @@ function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64
     for i in s:-1:k
         mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
         mps = MPO(mpo)*mps
-        if threshold > 0.
+        if (threshold > 0.) & (χ < size(mps[1], 3))
             mps = compress(mps, χ, threshold)
         end
     end
@@ -128,29 +143,29 @@ function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64
 end
 
 """
-    mutable struct Partial_sol{T <: AbstractFloat}
+    mutable struct Partial_sol{T <: Real}
 
 structure of the partial solution
 """
-mutable struct Partial_sol{T <: AbstractFloat}
+mutable struct Partial_sol{T <: Real}
     spins::Vector{Int}
     objective::T
-    function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T) where T <:AbstractFloat
+    function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T) where T <:Real
         new{T}(spins, objective)
     end
-    function(::Type{Partial_sol{T}})() where T <:AbstractFloat
+    function(::Type{Partial_sol{T}})() where T <:Real
         new{T}(Int[], 1.)
     end
 end
 
 
 """
-    update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
+    update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where T <: Real
 
 Add a spin and replace an objective function to Partial_sol{T} type
 """
 # TODO move particular type to solver
-function update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where T <: AbstractFloat
+function update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where T <: Real
     Partial_sol{T}(vcat(ps.spins, [s]), objective)
 end
 
@@ -214,33 +229,32 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
     1
 end
 
-function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mps::MPS{T},
-                                            vec_of_T::Vector{Array{T,5}}) where T <: AbstractFloat
+function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mps::AbstractMPS{T},
+                                            vec_of_T::Vector{Array{T,5}}) where T <: Real
 
     upper_left, upper_right = spin_indices_from_above(gg, ps, j)
     left_s = spin_index_from_left(gg, ps, j)
     l = props(gg, j)[:column]
     grid = props(gg)[:grid]
 
-    M = [vec_of_T[k][:,upper_right[k-l+1],:,:,:] for k in l:size(grid,2)]
-    # move to mps notation
-    M = [permutedims(e, (1,3,2,4)) for e in M]
-    upper_mps = set_spin_from_letf(M, left_s)
-    pp = right_env(MPS(lower_mps[l:end]), upper_mps)[1]
+    upper_mpo = set_spins_from_above(vec_of_T, upper_right)
+    upper_mps = set_spin_from_letf(upper_mpo, left_s)
+    re = right_env(MPS(lower_mps[l:end]), upper_mps)[1]
 
-    lower_mps_left = [lower_mps[i][:,upper_left[i],:] for i in 1:l-1]
     weight = ones(T, 1,1)
     if l > 1
-        weight = prod(lower_mps_left)
+        Mat = [lower_mps[i][:,upper_left[i],:] for i in 1:l-1]
+        weight = prod(Mat)
     end
-    probs_unnormed = pp*transpose(weight)
+    probs_unnormed = re*transpose(weight)
 
     probs_unnormed./sum(probs_unnormed)
 end
 
 
-function solve(g::MetaGraph, no_sols::Int = 2; β::T, χ::Int = 0,
-                threshold::Float64 = 1e-14, node_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
+function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1),
+                                               β::T, χ::Int = 2^prod(node_size),
+                                               threshold::Float64 = 0.) where T <: Real
 
     gg = graph4peps(g, node_size)
 
@@ -281,7 +295,7 @@ end
 return final solutions sorted backwards in form Vector{Partial_sol{T}}
 spins are given in -1,1
 """
-function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  where T <: AbstractFloat
+function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  where T <: Real
 
     l = length(partial_s)
     objective = zeros(T, l)
@@ -308,11 +322,11 @@ function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  wh
 end
 
 """
-    select_best_solutions(partial_s_temp::Vector{Partial_sol{T}}, no_sols::Int) where T <:AbstractFloat
+    select_best_solutions(partial_s_temp::Vector{Partial_sol{T}}, no_sols::Int) where T <:Real
 
 returns Vector{Partial_sol{T}}, a vector of no_sols best solutions
 """
-function select_best_solutions(partial_s_temp::Vector{Partial_sol{T}}, no_sols::Int) where T <:AbstractFloat
+function select_best_solutions(partial_s_temp::Vector{Partial_sol{T}}, no_sols::Int) where T <:Real
     obj = [ps.objective for ps in partial_s_temp]
     perm = sortperm(obj)
     p = last_m_els(perm, no_sols)

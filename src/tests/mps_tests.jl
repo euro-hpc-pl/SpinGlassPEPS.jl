@@ -24,9 +24,11 @@ end
 
     #interactions matrix
     M = [1. 1. 1.; 1. 1. 0.; 1. 0. 1.]
-    # construct MPS form tha matrix of interacion
-    mps1 = construct_mps(M, 1., 1, 2, 1e-8)
-    #mps modes 1 - left, 2 - right, 3 - physical
+    g = M2graph(M)
+    g = graph4mps(g)
+    # construct MPS form tha graph of interacion
+    mps1 = construct_mps(g, 1., 1, 2, 1e-8)
+    #mps modes 1 - left, 3 - right, 2 - physical
 
     @test length(mps1) == 3
     # this is B type tensor, only internal energy (± h/2)
@@ -37,14 +39,7 @@ end
     @test mps1[2][2,:,:] ≈ [0. exp(-1)*exp(-1/2); 0. exp(1)*exp(1/2)]
     @test mps1[3][:,:,1] ≈ [exp(1/2) exp(-1/2); exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
 
-    # the same, detailed
-
-    g = M2graph(M)
-    g = graph4mps(g)
-
-    # computed mps, β = 1., β_step = 1   χ = 2, threshold = 1e-8
-    mps = construct_mps(g, 1., 1, 2, 1e-8)
-    @test mps ≈ mps1
+    ####### compute probability ######
 
     β = 2.
     d = 2

@@ -49,6 +49,10 @@ s = ArgParseSettings("description")
     default = 20
     arg_type = Int
     help = "cutoff size"
+    "--n_sols", "-n"
+    default = 10
+    arg_type = Int
+    help = "number of solutions"
   end
 
 fi = parse_args(s)["file"]
@@ -64,12 +68,14 @@ si = parse_args(s)["size"]
 
 ig = ising_graph(fi, si, 1, -1)
 
-@time spins, objective = solve(ig, 10; β=β, χ = χ, threshold = 1e-8)
+n_sols = parse_args(s)["n_sols"]
+
+@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8)
 
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")
-for i in 1:10
-    println(energies[i])
+for energy in energies
+    println(energy)
 end
 
 fil = folder*"groundstates_otn2d.txt"

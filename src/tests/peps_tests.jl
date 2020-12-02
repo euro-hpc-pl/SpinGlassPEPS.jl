@@ -62,7 +62,6 @@ fullM2grid!(Mq, (2,2))
 
 @testset "tensor construction" begin
 
-    #TODO clear permutedims
 
     g = M2graph(Mq)
     β = 2.
@@ -97,13 +96,12 @@ fullM2grid!(Mq, (2,2))
 
     #used to construct a larger tensor of 2x2 nodes
     tensors = [t1[:,1,:,:], t2[:,1,:,:]]
-    modes = [[-1, 1,-3], [1, -2, -4]]
+    modes = [[-1, 1,-2], [1, -3, -4]]
     T2 = ncon(tensors, modes)
 
     gg = graph4peps(g, (2,1))
     T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
-    # TODO last permutedims to be removed
-    T2 = permutedims(T2, (1,3,2,4))
+
     @test vec(T1) ≈ vec(T2)
 end
 
@@ -162,7 +160,7 @@ end
     ####   conditional probability implementation
 
 
-    mpo = [ones(2,2,2,2), ones(2,2,2,2)]
+    mpo = MPO([ones(2,2,2,2), ones(2,2,2,2)])
     mps = set_spin_from_letf(mpo, 1)
     @test mps[1] == ones(2,2,2)
     @test mps[2] == 2*ones(2,2,2)

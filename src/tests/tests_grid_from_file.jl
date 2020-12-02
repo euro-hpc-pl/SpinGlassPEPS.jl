@@ -89,7 +89,7 @@ for k in 1:examples
 
 
     number = number_of_states + more_states_for_peps
-    @time spins, objective = solve(g, number ; β = T(β), χ = 0, threshold = 0.)
+    @time spins, objective = solve(g, number ; β = T(β), threshold = 0.)
 
     for i in 1:number_of_states
 

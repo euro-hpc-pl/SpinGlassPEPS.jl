@@ -15,7 +15,7 @@
 
     @testset "peps exact and approximated one spin nodes" begin
 
-        spins_exact, objective_exact = solve(g, 10; β = β, χ = 0, threshold = 0.)
+        spins_exact, objective_exact = solve(g, 10; β = β, threshold = 0.)
 
         for i in 1:10
             @test energy(spins_exact[i], g) ≈ ens[i]
@@ -71,7 +71,7 @@ end
 
 
 function Qubo2M(Q::Matrix{T}) where T <: AbstractFloat
-    # TODO this needs by be specified, why 2v not v
+
     J = (Q - diagm(diag(Q)))/4
     v = dropdims(sum(J; dims=1); dims = 1)
     h = diagm(diag(Q)/2 + v*2)

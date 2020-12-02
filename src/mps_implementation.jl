@@ -55,18 +55,18 @@ function Ctensor(T::Type, J::Float64, d::Int, most_right::Bool = false)
 end
 
 VE = Vector{LightGraphs.SimpleGraphs.SimpleEdge{Int}}
-function add_MPO!(mpo::MPO{T}, iij::VE, g::MetaGraph, β::T) where T<: AbstractFloat
+function add_MPO!(mpo::AbstractMPO{T}, vec_edges::VE, g::MetaGraph, β::T) where T<: Real
 
-    i = src(iij[1])
+    i = src(vec_edges[1])
     d = length(props(g, i)[:energy])
 
-    l = dst(iij[end])
-    for j in src(iij[1]):dst(iij[end])
+    l = dst(vec_edges[end])
+    for j in src(vec_edges[1]):dst(vec_edges[end])
         mpo[j] = ones13_24(T, d)
     end
 
     mpo[i] = Btensor(T, d)
-    for e in iij
+    for e in vec_edges
         j = dst(e)
         # minus for convention 1/2 since each is taken doubled in the product
         J = -1/2*props(g, e)[:J]
@@ -76,7 +76,7 @@ function add_MPO!(mpo::MPO{T}, iij::VE, g::MetaGraph, β::T) where T<: AbstractF
 end
 
 
-function add_phase!(mps::MPS{T}, g::MetaGraph, β::T) where T<: AbstractFloat
+function add_phase!(mps::AbstractMPS{T}, g::MetaGraph, β::T) where T<: Real
 
     for i in 1:length(mps)
         internal_e = props(g, i)[:energy]
@@ -87,7 +87,7 @@ function add_phase!(mps::MPS{T}, g::MetaGraph, β::T) where T<: AbstractFloat
 end
 
 
-function construct_mps_step(mps::MPS{T}, g::MetaGraph, β::T, edges_sets::VE) where T<: AbstractFloat
+function construct_mps_step(mps::AbstractMPS{T}, g::MetaGraph, β::T, edges_sets::VE) where T<: Real
 
     phys_dims = size(mps[1], 2)
 
@@ -127,16 +127,8 @@ function connections_for_mps(g::MetaGraph)
 end
 
 
-function construct_mps(M::Matrix{Float64}, β::T, β_step::Int, χ::Int, threshold::Float64) where T<: AbstractFloat
-    g = M2graph(M)
-    g = graph4mps(g)
 
-    construct_mps(g, β, β_step, χ, threshold)
-end
-
-
-
-function construct_mps(g::MetaGraph, β::T, β_step::Int, χ::Int, threshold::T) where T<: AbstractFloat
+function construct_mps(g::MetaGraph, β::T, β_step::Int, χ::Int, threshold::T) where T<: Real
 
     v = connections_for_mps(g)
 
@@ -148,7 +140,7 @@ function construct_mps(g::MetaGraph, β::T, β_step::Int, χ::Int, threshold::T)
         for el in v
             mps = construct_mps_step(mps, g,  β/β_step, el)
             s = maximum([size(e, 1) for e in mps])
-            if ((threshold > 0) * (s > χ))
+            if ((threshold > 0) && (s > χ))
                 mps = compress(mps, χ, threshold)
             end
         end
@@ -173,7 +165,7 @@ return vector diag(prob) the result of the following contraction
 
 """
 
-function contract4probability(A::Array{T,3}, M::Matrix{T}, v::Vector{T}) where T <: AbstractFloat
+function contract4probability(A::Array{T,3}, M::Matrix{T}, v::Vector{T}) where T <: Real
     probs = zeros(T, size(A,2))
     for i in 1:size(A,2)
         @inbounds A1 = A[:,i,:]
@@ -183,7 +175,7 @@ function contract4probability(A::Array{T,3}, M::Matrix{T}, v::Vector{T}) where T
 end
 
 
-function compute_probs(mps::MPS{T}, spins::Vector{Int}) where T <: AbstractFloat
+function compute_probs(mps::AbstractMPS{T}, spins::Vector{Int}) where T <: Real
 
     k = length(spins)
     mm = [mps[i][:,spins[i],:] for i in 1:k]
@@ -196,13 +188,13 @@ function compute_probs(mps::MPS{T}, spins::Vector{Int}) where T <: AbstractFloat
     right_m = ones(T,1,1)
     if k+1 < length(mps)
         right_m = right_env(mps, mps)[k+2]
-        #right_m1 = compute_scalar_prod(MPS(mps[k+2:end]), MPS(mps[k+2:end]))
+
     end
     contract4probability(mps[k+1], right_m, left_v)
 end
 
 
-function solve_mps(g::MetaGraph, no_sols::Int; β::T, β_step::Int, χ::Int = 0, threshold::T = T(0.)) where T <: AbstractFloat
+function solve_mps(g::MetaGraph, no_sols::Int; β::T, β_step::Int, χ::Int = 100, threshold::Float64 = 0.) where T <: Real
 
     g = graph4mps(g)
     problem_size = nv(g)

@@ -134,7 +134,7 @@ end
     χ = 12
     β = 2.
 
-    spins_exact, objectives_exact = solve(g, sols+10; β=β, χ=0, threshold = 0.)
+    spins_exact, objectives_exact = solve(g, sols+10; β=β, threshold = 0.)
 
     spins_approx, objectives_approx = solve(g, sols+10; β=β, χ=χ, threshold = 1.e-12)
 
