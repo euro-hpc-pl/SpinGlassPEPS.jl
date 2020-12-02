@@ -25,9 +25,9 @@ push!(my_tests,
 #    "base.jl",
 #   "contractions.jl",
 #   "compressions.jl",
-   "ising.jl",
+#   "ising.jl",
 #   "search.jl"
-#   "graph.jl"
+   "graph.jl"
 )
 
 for my_test in my_tests

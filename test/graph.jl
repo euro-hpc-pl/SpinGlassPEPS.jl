@@ -17,6 +17,12 @@ end
 @testset "Chimera outer connections" begin
    @test length(outer_connections(g, 1, 1, 3, 3)) == 0
    @test all(outer_connections(g, 1, 1, 1, 2) .== outer_connections(g, 1, 2, 1, 1))
+
+   println(outer_connections(g, 1, 1, 1, 2))
+   println(typeof(g))
+
+   edges = filter_edges(g.graph, :outer, (1,2))
+   println(collect(edges))
 end
 
 @testset "Chimera graph" begin
@@ -37,4 +43,13 @@ end
    for v ∈ vertices(chimera)
       get_prop(chimera, v, :h) ≈ get_prop(ig, v, :h) 
    end
+
+
+   out_edges = filter_edges(chimera.graph, :outer, (1,2))
+   println(typeof(out_edges))
+   σ = 2(rand(C) .< 0.5) .- 1
+
+   e = energy(σ, chimera.graph, out_edges)
+   println(e)
+ 
 end

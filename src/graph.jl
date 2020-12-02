@@ -3,6 +3,7 @@ mutable struct Chimera
     size::NTuple{3, Int}
     graph::MetaGraph
     outer_connections::Dict{Tuple, Vector}
+    
     function Chimera(size::NTuple{3, Int}, graph::MetaGraph)
         c = new(size, graph)
         m, n, t = size
