@@ -100,7 +100,7 @@ using CSV
 
     @testset "Reading from Dict" begin
         instance_dict = Dict()
-        ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
+        ising = CSV.File(instance, types=[Int, Int, Float64], header=0, comment = "#")
 
         for (i, j, v) ∈ ising
             push!(instance_dict, (i, j) => v)

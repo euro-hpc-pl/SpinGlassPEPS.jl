@@ -33,7 +33,7 @@ end
         get_prop(chimera, v, :h) ≈ get_prop(ig, v, :h) 
      end
 
-     #=
+
      linear = LinearIndices((1:m, 1:n))
      for i ∈ 1:m 
         for j ∈ 1:n
@@ -42,5 +42,5 @@ end
             println(cluster)
         end
     end
-    #=
+    
 end
