@@ -16,8 +16,6 @@ end
 
 @testset "Chimera outer connections" begin
    @test length(outer_connections(g, 1, 1, 3, 3)) == 0
-   # @show g.outer_connections[((1, 2), (1, 1))]
-   @show g.outer_connections[((1, 1), (1, 2))]
    @test all(outer_connections(g, 1, 1, 1, 2) .== outer_connections(g, 1, 2, 1, 1))
 end
 

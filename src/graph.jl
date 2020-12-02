@@ -121,8 +121,8 @@ outer_connections(c::Chimera, i, j, k, l) = outer_connections(c::Chimera, (i, j)
 
 function outer_connections(c::Chimera, src, dst) 
     ret = get(c.outer_connections, (src, dst), [])
-    @show ret
-    ret = length(ret) == 0 ? get(c.outer_connections, (dst, src), []) : ()
-    @show ret
+    if length(ret) == 0
+        ret = get(c.outer_connections, (dst, src), [])
+    end
     ret
 end
