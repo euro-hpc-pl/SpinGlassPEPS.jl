@@ -1,6 +1,7 @@
 export MPS_from_gates, unique_neighbors
 export MPSControl
 export spectrum
+export spectrum_new
 
 export _apply_bias!
 export _apply_exponent!
@@ -66,7 +67,7 @@ function spectrum2(ψ::MPS, keep::Int)
 end
 
 # ρ needs to be in the right canonical form
-function spectrum(ψ::MPS, keep::Int) 
+function spectrum_new(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
     
@@ -125,7 +126,7 @@ function spectrum(ψ::MPS, keep::Int)
     end
     states = states'
     states, lprob, lpCut
-end
+end 
 
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     M = ψ[i]
