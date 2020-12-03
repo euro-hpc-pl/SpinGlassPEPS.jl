@@ -53,6 +53,14 @@ s = ArgParseSettings("description")
     default = 10
     arg_type = Int
     help = "number of solutions"
+    "--node_size1", "-r"
+    default = 1
+    arg_type = Int
+    help = "chimera node size in rows"
+    "--node_size2", "-o"
+    default = 1
+    arg_type = Int
+    help = "chimera node size in columns"
   end
 
 fi = parse_args(s)["file"]
@@ -69,8 +77,10 @@ si = parse_args(s)["size"]
 ig = ising_graph(fi, si, 1, -1)
 
 n_sols = parse_args(s)["n_sols"]
+node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
+println(node_size)
 
-@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8)
+@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size)
 
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")

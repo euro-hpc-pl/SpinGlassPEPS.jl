@@ -34,11 +34,11 @@ include("notation.jl")
 
 include("tests/notation_tests.jl")
 
-include("peps_no_types.jl")
-include("tests/peps_tests.jl")
+#include("peps_no_types.jl")
+#include("tests/peps_tests.jl")
 
-include("mps_implementation.jl")
-include("tests/mps_tests.jl")
+#include("mps_implementation.jl")
+#include("tests/mps_tests.jl")
 
-include("tests/tests_on_data.jl")
-include("tests/tests_of_solvers.jl")
+#include("tests/tests_on_data.jl")
+#include("tests/tests_of_solvers.jl")

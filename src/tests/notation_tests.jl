@@ -31,6 +31,19 @@
     @test grid[1,2] == [9 13; 10 14; 11 15; 12 16]
     @test M == [1 2; 3 4]
 
+    grid, M = form_a_chimera_grid(2, (1,2))
+    println(grid)
+    println(M)
+
+    grid, M = form_a_chimera_grid(2, (2,1))
+    println(grid)
+    println(M)
+
+
+    grid, M = form_a_chimera_grid(2, (2,2))
+    println(grid)
+    println(M)
+
     M = ones(4,4)
     fullM2grid!(M, (2,2))
     @test M == [1.0 1.0 1.0 0.0; 1.0 1.0 0.0 1.0; 1.0 0.0 1.0 1.0; 0.0 1.0 1.0 1.0]

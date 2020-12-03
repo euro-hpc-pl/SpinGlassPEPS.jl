@@ -209,8 +209,9 @@ struct Element_of_chimera_grid
         internal_size = size(spins_inds)
         internal_size[1] % 4 == 0 || error("size $(internal_size) does not fit chimera cell")
         internal_size[2] % 2 == 0 || error("size $(internal_size) does not fit chimera cell")
-        cell_rows = div(internal_size[2], 2)
-        cell_columns = div(internal_size[1], 4)
+
+        cell_columns = div(internal_size[2], 2)
+        cell_rows = div(internal_size[1], 4)
 
         # connections within cells
         for c in 1:cell_columns
@@ -249,14 +250,20 @@ struct Element_of_chimera_grid
         if column > 1
             left = positions_in_cluster(spins, spins_inds[:, 2])
         end
-        if cell_columns*column < size(grid, 2)
-            right = positions_in_cluster(spins, spins_inds[:, 2])
+        if column < size(grid, 2)*cell_columns
+            right = positions_in_cluster(spins, spins_inds[:, end])
         end
         if row > 1
-            up = positions_in_cluster(spins, spins_inds[:, 1])
+            up = Int[]
+            for i in 1:cell_columns
+                 up = vcat(up, positions_in_cluster(spins, spins_inds[1:4, 2*i-1]))
+            end
         end
-        if cell_rows*row < size(grid, 1)
-            down = positions_in_cluster(spins, spins_inds[:, 1])
+        if row < size(grid, 1)*cell_rows
+            down = Int[]
+            for i in 1:cell_columns
+                 down = vcat(down, positions_in_cluster(spins, spins_inds[end-3:end, 2*i-1]))
+            end
         end
 
         new(row, column, spins, intra_struct, left, right, up, down)
@@ -343,7 +350,9 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
     set_prop!(g, :grid, M)
 
     for i in 1:L1
+
         g_element = g_elements[i]
+
         set_prop!(g, i, :row, g_element.row)
         set_prop!(g, i, :column, g_element.column)
         set_prop!(g, i, :spins, g_element.spins_inds)
