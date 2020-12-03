@@ -14,7 +14,7 @@ struct MPSControl
     max_sweeps::Int
 end
 
-function spectrum2(ψ::MPS, keep::Int) 
+function spectrum(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
     
