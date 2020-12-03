@@ -1,45 +1,71 @@
 export ising_graph, energy
-export gibbs_tensor
-export GibbsControl
-export brute_force
-export brute_force_lazy
+export gibbs_tensor, brute_force
+export State
 
-struct GibbsControl 
-    β::Number
-    β_schedule::Vector{<:Number}
-end
+const State = Union{Vector, NTuple}
 
-function brute_force_lazy(ig::MetaGraph, k::Int=1)
-    L = nv(ig)
-    states = product(fill([-1, 1], L)...)
+"""
+$(TYPEDSIGNATURES)
+
+Return the low energy spectrum
+
+# Details
+
+Calculates \$k\$ lowest energy states 
+together with the coresponding energies 
+of a classical Ising Hamiltonian
+"""
+
+function brute_force(ig::MetaGraph, k::Int=1)
+    states = all_states(get_prop(ig, :rank))
     energies = vec(energy.(states, Ref(ig)))
     perm = partialsortperm(energies, 1:k) 
     collect.(states)[perm], energies[perm]
 end    
 
-function brute_force(ig::MetaGraph, k::Int=1)
+_ising(σ::State) = 2 .* σ .- 1
+
+function _brute_force(ig::MetaGraph, k::Int=1)
     L = nv(ig)
-    states = ising.(digits.(0:2^L-1, base=2, pad=L))
+    states = _ising.(digits.(0:2^L-1, base=2, pad=L))
     energies = energy.(states, Ref(ig))
     perm = partialsortperm(energies, 1:k) 
     states[perm], energies[perm]
 end  
 
-function gibbs_tensor(ig::MetaGraph, opts::GibbsControl)
-    L = nv(ig)
-    β = opts.β
-    states = product(fill([-1, 1], L)...)
-    ρ = exp.(-β .* energy.(states, Ref(ig)))
+
+"""
+$(TYPEDSIGNATURES)
+
+Calculates Gibbs state of a classical Ising Hamiltonian
+
+# Details
+
+Calculates matrix elements (probabilities) of \$\\rho\$ 
+```math
+\$\\bra{\\σ}\\rho\\ket{\\sigma}\$
+```
+for all possible configurations \$\\σ\$.
+"""
+function gibbs_tensor(ig::MetaGraph)
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
+    ρ = exp.(-β .* energy.(all_states(rank), Ref(ig)))
     ρ ./ sum(ρ)
 end
 
 
 """
-Calculate the Ising energy as E = -sum_<i,j> s_i * J_ij * s_j - sum_j h_i * s_j.
-"""
-function energy(σ::Union{Vector, NTuple}, ig::MetaGraph)
+$(TYPEDSIGNATURES)
 
-    energy = 0
+Calculate the Ising energy 
+```math
+E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
+```
+"""
+function energy(σ::State, ig::MetaGraph)
+    energy::Float64 = 0
+
     # quadratic
     for edge ∈ edges(ig)
         i, j = src(edge), dst(edge)         
@@ -56,19 +82,28 @@ function energy(σ::Union{Vector, NTuple}, ig::MetaGraph)
 end
     
 """
-Create a graph that represents the Ising Hamiltonian.
+$(TYPEDSIGNATURES)
+
+Create the Ising spin glass model.
+
+# Details
+
+Store extra information
 """
-function ising_graph(instance::String, L::Int, β::Number=1)
+function ising_graph(instance::Union{String, Dict}, L::Int, β::Number=1)
 
     # load the Ising instance
-    ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
-    ig = MetaGraph(L, 0.0)
+    if typeof(instance) == String
+        ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
+    else
+        ising = [ (i, j, J) for ((i, j), J) ∈ instance ] 
+    end
 
+    ig = MetaGraph(L, 0.0)
     set_prop!(ig, :description, "The Ising model.")
 
     # setup the model (J_ij, h_i)
-    for row ∈ ising 
-        i, j, v = row
+    for (i, j, v) ∈ ising 
         if i == j
             set_prop!(ig, i, :h, v) || error("Node $i missing!")
         else
@@ -84,18 +119,29 @@ function ising_graph(instance::String, L::Int, β::Number=1)
         end 
     end
     
-    # state and corresponding energy
+    # state (random by default) and corresponding energy
     state = 2(rand(L) .< 0.5) .- 1
 
     set_prop!(ig, :state, state)
     set_prop!(ig, :energy, energy(state, ig)) || error("Unable to calculate the Ising energy!")
 
-    # store extra information
+    # store extra information 
     set_prop!(ig, :β, β)
-    
+    set_prop!(ig, :rank, fill(2, L))
+
     ig
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Calculate unique neighbors of node \$i\$
+
+# Details
+
+This is equivalent of taking the upper 
+diagonal of the adjacency matrix
+"""
 function unique_neighbors(ig::MetaGraph, i::Int)
     nbrs = neighbors(ig::MetaGraph, i::Int)
     filter(j -> j > i, nbrs)

@@ -30,7 +30,7 @@ const MPSorMPO = Union{MPS, MPO}
 Base.:(==)(a::AbstractMPSorMPO, b::AbstractMPSorMPO) = a.tensors == b.tensors
 Base.:(≈)(a::AbstractMPSorMPO, b::AbstractMPSorMPO)  = a.tensors ≈ b.tensors
 
-Base.getindex(a::AbstractMPSorMPO, i::Int) = getindex(a.tensors, i)
+Base.getindex(a::AbstractMPSorMPO, i) = getindex(a.tensors, i)
 Base.iterate(a::AbstractMPSorMPO) = iterate(a.tensors)
 Base.iterate(a::AbstractMPSorMPO, state) = iterate(a.tensors, state)
 Base.lastindex(a::AbstractMPSorMPO) = lastindex(a.tensors)
@@ -146,6 +146,17 @@ function MPS(O::MPO)
     ψ
 end  
 
+function Base.randn(::Type{MPS{T}}, D::Int, rank::Union{Vector, NTuple}) where {T}
+    L = length(rank)
+    ψ = MPS(T, L)
+    ψ[1] = randn(T, 1, rank[1], D)
+    for i ∈ 2:(L-1)
+        ψ[i] = randn(T, D, rank[i], D)
+    end
+    ψ[end] = randn(T, D, rank[end], 1)
+    ψ
+end
+
 function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
     ψ = MPS(T, L)
     ψ[1] = randn(T, 1, d, D)
@@ -207,7 +218,7 @@ end
 
 function Base.show(::IO, ψ::AbstractMPS)
     L = length(ψ)
-    dims = [size(ψ[i]) for i ∈ 1:L] 
+    dims = [size(A) for A in ψ]
 
     @info "Matrix product state on $L sites:" 
     _show_sizes(dims)

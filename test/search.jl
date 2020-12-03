@@ -6,66 +6,80 @@ L = 2
 N = L^2
 
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
+
 ig = ising_graph(instance, N)
+set_prop!(ig, :β, 1.)#rand(Float64))
+r = (3, 2, 5, 4)
+set_prop!(ig, :rank, r)
 
-ϵ = 1E-14
+ϵ = 1E-8
+D = prod(r) + 1
+var_ϵ = 1E-8
+sweeps = 4
+schedule = [get_prop(ig, :β)]
+control = MPSControl(D, var_ϵ, sweeps, schedule) 
 
-Dcut = N^2 + 1
-var_tol = 1E-8
-max_sweeps = 4
-
-β = 1
-dβ = 0.25
-β_schedule = [β] #[dβ for _ ∈ 1:4]
+states = all_states(get_prop(ig, :rank))
+ϱ = gibbs_tensor(ig)
+@test sum(ϱ) ≈ 1
 
 @testset "Verifying gate operations" begin
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
 
-    @info "Applying nothing" ϵ 
+    χ = HadamardMPS(rank)
+    T = ones(rank...) ./ prod(rank)
 
-    ψ = HadamardMPS(N)
-    ϕ = copy(ψ)
-
-    @test dot(ψ, ψ) ≈ 1
-    @test dot(ϕ, ϕ) ≈ 1
-
-    for i ∈ 1:N
-        _apply_nothing!(ψ, i)
-    end
-
-    @test dot(ψ, ψ) ≈ 1
-    @test abs(1 - abs(dot(ψ, ϕ))) < ϵ
-
-    @info "Applying bias"
-    χ = copy(ϕ)
-    bias = [get_prop(ig, i, :h) for i ∈ 1:N]
+    show(χ)
+    @test sum(T) ≈ 1
 
     for i ∈ 1:N
-        _apply_bias!(ϕ, ig, β, i)
+        SpinGlassPEPS._apply_bias!(χ, ig, β, i)
+
+        h = get_prop(ig, i, :h)
+        for σ ∈ states
+            T[idx.(σ)...] *= exp(β * σ[i] * h) 
+        end
+
+        nbrs = unique_neighbors(ig, i)
+
+        if !isempty(nbrs)
+
+            SpinGlassPEPS._apply_projector!(χ, i)
+            for j ∈ nbrs 
+                SpinGlassPEPS._apply_exponent!(χ, ig, β, i, j, last(nbrs)) 
+
+                J = get_prop(ig, i, j, :J)
+                for σ ∈ states
+                    T[idx.(σ)...] *= exp(β * σ[i] * J * σ[j]) 
+                end
+            end
+
+            for l ∈ SpinGlassPEPS._holes(nbrs) 
+                SpinGlassPEPS._apply_nothing!(χ, l, i) 
+            end
+        end
+        
+        show(χ)
+        verify_bonds(χ)
+
+        @test abs(dot(χ, χ) - sum(T)) < ϵ
     end
-    
-    @test dot(ϕ, ϕ) ≈ prod(cosh(β * h) for h ∈ bias)
 
-    @info "Applying interaction"
-
+    @test T ./ sum(T) ≈ ϱ 
 end
+
 
 @testset "MPS from gates" begin
 
-    gibbs_param = GibbsControl(β, β_schedule)
-    mps_param = MPSControl(Dcut, var_tol, max_sweeps) 
-
     @testset "Exact Gibbs pure state (MPS)" begin
-        d = 2
         L = nv(ig)
-        dims = fill(d, L)
+        β = get_prop(ig, :β)
+        rank = get_prop(ig, :rank)
 
-        @info "Generating Gibbs state - |ρ>" d L dims β ϵ
+        @info "Generating Gibbs state - |ρ>" L rank β ϵ
 
-        ϱ = gibbs_tensor(ig, gibbs_param)
-        @test sum(ϱ) ≈ 1
-
-        states = all_states(dims) 
-        ψ = ones(dims...)
+        ψ = ones(rank...)
 
         for σ ∈ states
             for i ∈ 1:L
@@ -101,10 +115,9 @@ end
         @test abs(1 - abs(dot(vlψ, vrψ))) < ϵ
         @test abs(1 - abs(dot(vlψ, vψ))) < ϵ
 
-        #=
         @info "Verifying MPS from gates"
 
-        Gψ = MPS(ig, mps_param, gibbs_param) 
+        Gψ = MPS(ig, control) 
 
         @test_nowarn is_right_normalized(Gψ)
         @test bond_dimension(Gψ) > 1
@@ -112,13 +125,12 @@ end
         @test_nowarn verify_bonds(Gψ)
 
         @test abs(1 - abs(dot(Gψ, rψ))) < ϵ 
-        =#
 
         @info "Verifying probabilities" L β
 
         for σ ∈ states
             p = dot(rψ, σ) 
-            r = dot(rψ, proj(σ, dims), rψ)
+            r = dot(rψ, proj(σ, rank), rψ)
 
             @test p ≈ r 
             @test ϱ[idx.(σ)...] ≈ p

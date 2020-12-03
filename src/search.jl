@@ -3,15 +3,11 @@ export MPSControl
 export spectrum
 export spectrum_new
 
-export _apply_bias!
-export _apply_exponent!
-export _apply_projector!
-export _apply_nothing!
-
 struct MPSControl 
     max_bond::Int
     var_ϵ::Number
     max_sweeps::Int
+    β::Vector
 end
 
 function spectrum(ψ::MPS, keep::Int) 
@@ -139,57 +135,57 @@ function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     ψ[i] = M
 end
 
-function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j::Int)
+function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j::Int, last::Int)
     M = ψ[j]
-
-    d = size(M, 2)
-    basis = local_basis(d)
-
+    D = I(ψ, i)
+    
     J = get_prop(ig, i, j, :J)  
-    C = [exp(0.5 * dβ * k * J * l) for k ∈ basis, l ∈ basis]
-    D = Array(I(d))
+    C = [ exp(0.5 * dβ * k * J * l) for k ∈ local_basis(ψ, i), l ∈ local_basis(ψ, j) ]
 
-    δ = j == length(ψ) ? D[:, 1:1] : D
+    if j == last
+        @cast M̃[(x, a), σ, b] := C[x, σ] * M[a, σ, b]   
+    else
+        @cast M̃[(x, a), σ, (y, b)] := C[x, σ] * D[x, y] * M[a, σ, b]   
+    end     
 
-    @cast M̃[(x, a), σ, (y, b)] := C[σ, x] * δ[x, y] * M[a, σ, b]                      
     ψ[j] = M̃
 end
 
 function _apply_projector!(ψ::AbstractMPS, i::Int)
     M = ψ[i]
-    D = Array(I(size(M, 2)))
+    D = I(ψ, i)
 
-    δ = i == 1 ? D[1:1,:] : D
-
-    @cast M̃[(x, a), σ, (y, b)] := D[σ, y] * δ[x, y] * M[a, σ, b]
+    @cast M̃[a, σ, (y, b)] := D[σ, y] * M[a, σ, b]
     ψ[i] = M̃
 end
 
-function _apply_nothing!(ψ::AbstractMPS, i::Int) 
-    M = ψ[i] 
-    D = Array(I(size(M, 2)))
+function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int) 
+    M = ψ[l] 
+    D = I(ψ, i)
 
-    if i == 1  δ = D[1:1,:]  elseif  i == length(ψ)  δ = D[:,1:1]  else  δ = D end  
-
-    @cast M̃[(x, a), σ, (y, b)] := δ[x, y] * M[a, σ, b] 
-    ψ[i] = M̃    
+    @cast M̃[(x, a), σ, (y, b)] := D[x, y] * M[a, σ, b] 
+    ψ[l] = M̃    
 end
 
-function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
+_holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
+
+
+function MPS(ig::MetaGraph, control::MPSControl)
     L = nv(ig)
 
-    Dcut = mps.max_bond
-    tol = mps.var_ϵ
-    max_sweeps = mps.max_sweeps
+    Dcut = control.max_bond
+    tol = control.var_ϵ
+    max_sweeps = control.max_sweeps
+    schedule = control.β
     @info "Set control parameters for MPS" Dcut tol max_sweeps
 
-    β = gibbs.β
-    schedule = gibbs.β_schedule
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
 
     @assert β ≈ sum(schedule) "Incorrect β schedule."
 
     @info "Preparing Hadamard state as MPS"
-    ρ = HadamardMPS(L)
+    ρ = HadamardMPS(rank)
     is_right = true
 
     @info "Sweeping through β and σ" schedule
@@ -199,16 +195,14 @@ function MPS(ig::MetaGraph, mps::MPSControl, gibbs::GibbsControl)
 
         nbrs = unique_neighbors(ig, i)
         if !isempty(nbrs)
-
-            @info "Applying outgoing gates from $i"
             _apply_projector!(ρ, i)
 
             for j ∈ nbrs 
-                _apply_exponent!(ρ, ig, dβ, i, j) 
+                _apply_exponent!(ρ, ig, dβ, i, j, last(nbrs)) 
             end
 
-            for l ∈ setdiff(1:L, union(i, nbrs))
-                _apply_nothing!(ρ, l) 
+            for l ∈ _holes(nbrs) 
+                _apply_nothing!(χ, l, i) 
             end
         end
 
