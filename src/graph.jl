@@ -131,7 +131,6 @@ function factor_graph(c::Chimera)
         vv = filter_vertices(c.graph, :cluster, v)
         ve = filter_edges(c.graph, :outer, (v, v))
 
-
         cl = Cluster(vv, ve)
         sp = all_states(rank[collect(vv)])
 
@@ -142,22 +141,18 @@ function factor_graph(c::Chimera)
         set_prop!(fg, v, :energy, en)
     end
 
-    #=
     for v ∈ vertices(fg)
-        for w ∈ unique_neighbors(c.graph, v)
-            edges = filter_edges(c.graph, :outer, (v, w))
-            #=
-            int_en = []
-            for σ ∈ get_prop(fg, v, :spec)
-                for η ∈ get_prop(fg, w, :spec)
-                    push!(int_en, energy(σ, c.graph, edges, η))
-                end
+        for w ∈ unique_neighbors(fg, v)
+            vw = filter_edges(c.graph, :outer, (v, w))
+
+            en = []
+            for η ∈ get_prop(fg, v, :spec)
+                σ = get_prop(fg, w, :spec)
+                push!(en, energy.(σ, c.graph, vw, η))
             end
-            set_prop!(fg, v, w, :energy, int_en)
-            =#
+            set_prop!(fg, v, w, :energy, en)
         end
     end
-    =#
     fg
 end
 
