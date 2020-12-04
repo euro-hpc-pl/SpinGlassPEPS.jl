@@ -1,9 +1,4 @@
 export Chimera, outer_connections, factor_graph
-struct Cluster
-    vertices
-    edges::EdgeIter
-end
-
 mutable struct Chimera
     size::NTuple{3, Int}
     graph::MetaGraph
@@ -113,6 +108,7 @@ function outer_connections(c::Chimera, src, dst)
     ret
 end
 
+#=
 function energy(σ::State, ig::MetaGraph, cl::Cluster; sgn::Float64=-1.0)
     for e ∈ cl.edges
         println(typeof(e), "->", e)
@@ -120,19 +116,26 @@ function energy(σ::State, ig::MetaGraph, cl::Cluster; sgn::Float64=-1.0)
     e = energy(σ, ig, cl.edges, sgn=sgn) 
     e += energy(σ, ig, cl.vertices, sgn=sgn)
 end
+=#
+
+function cluster(c::Chimera, v::Int) 
+    vv = filter_vertices(c.graph, :cluster, v)
+    ve = filter_edges(c.graph, :cluster, (v, v))
+    Cluster(vv, ve)
+end
+
+function spectrum(c::Chimera, cl::Cluster)
+    rank = get_prop(c.graph, :rank)
+    all_states(rank[collect(cl.vertices)])
+end
 
 function factor_graph(c::Chimera)
-    m, n, t = c.size
-
-    rank = get_prop(c.graph, :rank)
+    m, n, _ = c.size
     fg = MetaGraph(grid([m, n]))
 
     for v ∈ vertices(fg)
-        vv = filter_vertices(c.graph, :cluster, v)
-        ve = filter_edges(c.graph, :cluster, (v, v))
-
-        cl = Cluster(vv, ve)
-        sp = all_states(rank[collect(vv)])
+        cl = cluster(c, v)
+        sp = spectrum(c, cl)
 
         set_prop!(fg, v, :states, sp)
         set_prop!(fg, v, :cluster, cl)
@@ -141,17 +144,19 @@ function factor_graph(c::Chimera)
         set_prop!(fg, v, :energy, en)
     end
 
+    #=
     for v ∈ vertices(fg)
         for w ∈ unique_neighbors(fg, v)
-            vw = filter_edges(c.graph, :cluster, (v, w))
+            cl = Cluster([], filter_edges(c.graph, :cluster, (v, w)))
             en = []
             for η ∈ get_prop(fg, v, :states)
                 σ = get_prop(fg, w, :states)
-                push!(en, energy.(σ, c.graph, vw, η))
+                push!(en, energy.(σ, Ref(c.graph), Ref(cl), Ref(η)))
             end
             set_prop!(fg, v, w, :energy, en)
         end
     end
+    =#
     fg
 end
 

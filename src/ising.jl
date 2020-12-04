@@ -6,6 +6,16 @@ const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
 
+mutable struct Cluster
+    vertices
+    edges::EdgeIter
+    indices::Dict{Int, Int}
+
+    function Cluster(vertices, edges::EdgeIter)
+        cl = new(vertices, edges)
+        cl.indices = Dict(v => i for (i, v) ∈ enumerate(cl.vertices))
+    end
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -57,7 +67,21 @@ function gibbs_tensor(ig::MetaGraph)
     ρ ./ sum(ρ)
 end
 
+function energy(σ::State, ig::MetaGraph, cl::Cluster, η::State=σ; sgn::Float64=-1.0)
+    en::Float64 = 0
+    for v ∈ cl.vertices
+        h = get_prop(ig, v, :h)  
+        en += h * σ[cl.indices[v]]
+    end
 
+    for e ∈ cl.edges        
+        J = get_prop(ig, e, :J) 
+        en += σ[cl.indices[src(e)]] * J * η[cl.indices[dst(e)]]   
+    end 
+    sgn * en
+end
+
+#=
 function energy(σ::State, ig::MetaGraph, vertices; sgn::Float64=-1.0)
     en::Float64 = 0
     for i ∈ vertices
@@ -76,6 +100,7 @@ function energy(σ::State, ig::MetaGraph, edges::EdgeIter, η::State=σ; sgn::Fl
     end 
     sgn * en
 end
+=#
 
 """
 $(TYPEDSIGNATURES)
@@ -86,8 +111,8 @@ E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 ```
 """
 function energy(σ::State, ig::MetaGraph; sgn::Float64=-1.0)
-    e = energy(σ, ig, edges(ig), sgn=sgn) 
-    e += energy(σ, ig, vertices(ig), sgn=sgn)
+    cl = Cluster(vertices(ig), edges(ig))
+    energy(σ, ig, cl, sgn=sgn) 
 end
     
 """
