@@ -116,7 +116,9 @@ end
 
 function spectrum(c::Chimera, cl::Cluster)
     rank = get_prop(c.graph, :rank)
-    all_states(rank[collect(cl.vertices)])
+    sp = all_states(rank[collect(cl.vertices)])
+    en = energy.(sp, Ref(c.graph), Ref(cl))
+    en, sp
 end
 
 function factor_graph(c::Chimera)
@@ -125,12 +127,10 @@ function factor_graph(c::Chimera)
 
     for v ∈ vertices(fg)
         cl = cluster(c, v)
-        sp = spectrum(c, cl)
+        en, sp = spectrum(c, cl)
 
         set_prop!(fg, v, :states, sp)
         set_prop!(fg, v, :cluster, cl)
-
-        en = energy.(sp, Ref(c.graph), Ref(cl))
         set_prop!(fg, v, :energy, en)
     end
 
@@ -139,10 +139,10 @@ function factor_graph(c::Chimera)
             @info v, w
             cl = cluster(c, w)
             en = []
-            for η ∈ get_prop(fg, v, :states)
-                σ = get_prop(fg, w, :states)
-                push!(en, energy.(σ, Ref(c.graph), Ref(cl), Ref(η)))
-            end
+            #for η ∈ get_prop(fg, v, :states)
+            #    σ = get_prop(fg, w, :states)
+            #    push!(en, energy.(σ, Ref(c.graph), Ref(cl), Ref(η)))
+            #end
             set_prop!(fg, v, w, :energy, en)
         end
     end
