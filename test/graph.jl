@@ -40,14 +40,4 @@ end
 
    fg = factor_graph(cg)
    #fg = MetaGraph(grid([m, n]))
-
-   #=
-   for v ∈ vertices(fg)
-      @info "vertex" v
-      vv = filter_edges(cg.graph, :outer, (v, v))
-      for e ∈ vv
-         println(typeof(e), "->", e)
-      end
-   end
-   =#
 end

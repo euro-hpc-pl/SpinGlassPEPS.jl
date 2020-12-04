@@ -108,16 +108,6 @@ function outer_connections(c::Chimera, src, dst)
     ret
 end
 
-#=
-function energy(σ::State, ig::MetaGraph, cl::Cluster; sgn::Float64=-1.0)
-    for e ∈ cl.edges
-        println(typeof(e), "->", e)
-    end
-    e = energy(σ, ig, cl.edges, sgn=sgn) 
-    e += energy(σ, ig, cl.vertices, sgn=sgn)
-end
-=#
-
 function cluster(c::Chimera, v::Int) 
     vv = filter_vertices(c.graph, :cluster, v)
     ve = filter_edges(c.graph, :cluster, (v, v))
@@ -144,10 +134,9 @@ function factor_graph(c::Chimera)
         set_prop!(fg, v, :energy, en)
     end
 
-    #=
     for v ∈ vertices(fg)
         for w ∈ unique_neighbors(fg, v)
-            cl = Cluster([], filter_edges(c.graph, :cluster, (v, w)))
+            cl = cluster(c, w)
             en = []
             for η ∈ get_prop(fg, v, :states)
                 σ = get_prop(fg, w, :states)
@@ -156,7 +145,6 @@ function factor_graph(c::Chimera)
             set_prop!(fg, v, w, :energy, en)
         end
     end
-    =#
     fg
 end
 
