@@ -18,6 +18,7 @@ end
    @test length(outer_connections(g, 1, 1, 3, 3)) == 0
    @test all(outer_connections(g, 1, 1, 1, 2) .== outer_connections(g, 1, 2, 1, 1))
 
+   # This still does not work
    println(outer_connections(g, 1, 1, 1, 2))
    println(typeof(g))
 
@@ -26,21 +27,27 @@ end
 end
 
 @testset "Chimera/factor graph" begin
-   M = 4
-   N = 4
-   T = 4
+   m = 4
+   n = 4
+   t = 4
 
-   C = 2 * N * M * T
+   L = 2 * n * m * t
 
-   instance = "$(@__DIR__)/instances/chimera_droplets/$(C)power/001.txt" 
+   instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
 
-   ig = ising_graph(instance, C)
-   cg = Chimera((M, N, T), ig)
+   ig = ising_graph(instance, L)
+   cg = Chimera((m, n, t), ig)
 
-   #fg = factor_graph(cg)
+   fg = factor_graph(cg)
+   #fg = MetaGraph(grid([m, n]))
 
-   for v ∈ vertices(cg)
+   #=
+   for v ∈ vertices(fg)
+      @info "vertex" v
       vv = filter_edges(cg.graph, :outer, (v, v))
-      println(collect(vv))
+      for e ∈ vv
+         println(typeof(e), "->", e)
+      end
    end
+   =#
 end
