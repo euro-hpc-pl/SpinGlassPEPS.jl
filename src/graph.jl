@@ -136,6 +136,7 @@ function factor_graph(c::Chimera)
 
     for v ∈ vertices(fg)
         for w ∈ unique_neighbors(fg, v)
+            @info v, w
             cl = cluster(c, w)
             en = []
             for η ∈ get_prop(fg, v, :states)

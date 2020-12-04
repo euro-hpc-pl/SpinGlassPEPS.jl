@@ -14,6 +14,7 @@ mutable struct Cluster
     function Cluster(vertices, edges::EdgeIter)
         cl = new(vertices, edges)
         cl.indices = Dict(v => i for (i, v) ∈ enumerate(cl.vertices))
+        cl
     end
 end
 

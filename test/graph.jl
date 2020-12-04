@@ -39,5 +39,4 @@ end
    cg = Chimera((m, n, t), ig)
 
    fg = factor_graph(cg)
-   #fg = MetaGraph(grid([m, n]))
 end
