@@ -188,6 +188,9 @@ end
     @test spins2ind([-1,-1,-1,-1]) == 1
     @test spins2ind([1,-1,-1,-1]) == 2
     @test spins2ind([-1,1,-1,-1]) == 3
+    @test spins2ind([-1,1,-1,-1], [2, 8]) == 2
+    @test spins2ind([-1,1,-1,-1], [1,2,6,8,9]) == 1
+
 
     no_spins = 4
     s = ind2spin(7, no_spins)

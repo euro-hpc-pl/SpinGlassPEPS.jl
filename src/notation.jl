@@ -436,18 +436,30 @@ function ind2spin(i::Int, no_spins::Int = 1)
     return [1-2*Int((i-1)%j < div(j,2)) for j in s]
 end
 
+function ind2spin(i::Int, no_spins::Int, removed_indexes::Vector{Int})
+    i = i + count(i .> removed_indexes)
+    spins = ind2spin(i::Int, no_spins)
+end
+
 function spins2ind(s::Vector{Int})
     s = [Int(el == 1) for el in s]
     v = [2^i for i in 0:1:length(s)-1]
     transpose(s)*v+1
 end
 
-function reindex(i::Int, no_spins::Int, subset_ind::Vector{Int})
+function spins2ind(s::Vector{Int}, removed_indexes::Vector{Int})
+    i = spins2ind(s)
+    !(i in removed_indexes) || error("index $i has been removed")
+    i - count(i .> removed_indexes)
+end
+
+
+function reindex(i::Int, no_spins::Int, subset_ind::Vector{Int}, removed_indexes::Vector{Int} = Int[])
     if length(subset_ind) == 0
         return 1
     end
-    s = ind2spin(i, no_spins)
-    spins2ind(s[subset_ind])
+    s = ind2spin(i, no_spins, removed_indexes)
+    spins2ind(s[subset_ind], removed_indexes)
 end
 
 spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
