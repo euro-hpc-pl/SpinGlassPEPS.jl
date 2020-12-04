@@ -66,9 +66,8 @@ function energy(σ::State, ig::MetaGraph, vertices, sgn::Float64=-1.0)
     sgn * en  
 end
 
-#function energy(σ::State, η::State, ig::MetaGraph, edges::EdgeIter, sgn::Float64=-1.0)
-function energy(σ::State, ig::MetaGraph, edges::EdgeIter, η::State=σ, sgn::Float64=-1.0)
-en::Float64 = 0
+function energy(σ::State, η::State, ig::MetaGraph, edges::EdgeIter, sgn::Float64=-1.0)
+    en::Float64 = 0
     for e ∈ edges
         i, j = src(e), dst(e)         
         J = get_prop(ig, e, :J) 
@@ -76,6 +75,9 @@ en::Float64 = 0
     end 
     sgn * en
 end
+
+energy(σ::State, args...) = energy(σ, σ, args...)
+
 
 """
 $(TYPEDSIGNATURES)

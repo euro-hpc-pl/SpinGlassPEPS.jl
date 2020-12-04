@@ -109,4 +109,18 @@ function outer_connections(c::Chimera, src, dst)
 end
 
 
+function factor(c::Chimera)
+    m, n, t = c.size
+    fac = MetaGraph(Grid(m, n))
+
+    for v ∈ vertices(fac)
+        for w ∈ unique_neighbors(c.graph, v)
+
+            filter_edges(c.graph, :outer, (v, w))
+        end
+    end
+
+    fac
+end
+
 
