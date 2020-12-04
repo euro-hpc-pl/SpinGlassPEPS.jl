@@ -70,6 +70,7 @@ end
 function energy(σ::State, ig::MetaGraph, edges::EdgeIter, η::State=σ; sgn::Float64=-1.0)
     en::Float64 = 0
     for e ∈ edges
+        println(typeof(e), " ", e)
         i, j = src(e), dst(e)         
         J = get_prop(ig, e, :J) 
         en += σ[i] * J * η[j]   

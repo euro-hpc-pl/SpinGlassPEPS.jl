@@ -1,4 +1,4 @@
-export Chimera, outer_connections
+export Chimera, outer_connections, factor_graph
 struct Cluster
     vertices
     edges::EdgeIter
@@ -113,33 +113,39 @@ function outer_connections(c::Chimera, src, dst)
     ret
 end
 
+function energy(σ::State, ig::MetaGraph, cl::Cluster; sgn::Float64=-1.0)
+    e = energy(σ, ig, cl.edges, sgn=sgn) 
+    e += energy(σ, ig, cl.vertices, sgn=sgn)
+end
+
 function factor_graph(c::Chimera)
     m, n, t = c.size
 
     rank = get_prop(c.graph, :rank)
-    fg = MetaGraph(Grid(m, n))
+    fg = MetaGraph(grid([m, n]))
 
     for v ∈ vertices(fg)
-        vlist = filter_vertices(c.graph, :cluster, v)
-        elist = filter_edges(c.graph, :outer, (v, v))
+        vv = filter_vertices(c.graph, :cluster, v)
+        ve = filter_edges(c.graph, :outer, (v, v))
 
-        cl = Cluster(vlist, elist)
-        sp = all_states(rank[cl.vertices])
+        cl = Cluster(vv, ve)
+        sp = all_states(rank[collect(vv)])
 
         set_prop!(fg, v, :states, sp)
         set_prop!(fg, v, :cluster, cl)
 
-        local_en = []
-        for σ ∈ get_prop(fg, :spec)
-            push!(local_en, energy(σ, c.graph, cl.vertices, cl.edges))
+        cl_en = []
+        for σ ∈ sp
+            push!(cl_en, energy(σ, c.graph, cl))
         end
-        set_prop!(fg, v, :energy, local_en)
+        #cl_en = energy.(sp, Ref(c.graph), Ref(cl))
+        set_prop!(fg, v, :energy, cl_en)
     end
 
     for v ∈ vertices(fg)
         for w ∈ unique_neighbors(c.graph, v)
             edges = filter_edges(c.graph, :outer, (v, w))
-
+            #=
             int_en = []
             for σ ∈ get_prop(fg, v, :spec)
                 for η ∈ get_prop(fg, w, :spec)
@@ -147,6 +153,7 @@ function factor_graph(c::Chimera)
                 end
             end
             set_prop!(fg, v, w, :energy, int_en)
+            =#
         end
     end
     fg

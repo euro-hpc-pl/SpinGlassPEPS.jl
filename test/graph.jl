@@ -25,29 +25,22 @@ end
    println(collect(edges))
 end
 
-@testset "Chimera graph" begin
+@testset "Chimera/factor graph" begin
    M = 4
    N = 4
    T = 4
 
    C = 2 * N * M * T
 
-   instance = "$(@__DIR__)/instances/chimera_droplets/$(C)power/001.txt"  
+   instance = "$(@__DIR__)/instances/chimera_droplets/$(C)power/001.txt" 
+
    ig = ising_graph(instance, C)
-   chimera = Chimera((M, N, T), ig)
+   cg = Chimera((M, N, T), ig)
 
-   for e ∈ edges(chimera)
-      get_prop(chimera, e, :J) ≈ get_prop(ig, e, :J) 
+   #fg = factor_graph(cg)
+
+   for v ∈ vertices(cg)
+      vv = filter_edges(cg.graph, :outer, (v, v))
+      println(collect(vv))
    end
-
-   for v ∈ vertices(chimera)
-      get_prop(chimera, v, :h) ≈ get_prop(ig, v, :h) 
-   end
-
-   out_edges = filter_edges(chimera.graph, :outer, (1, 2) )
-   σ = 2(rand(C) .< 0.5) .- 1
-
-   #e = energy(σ, σ, chimera.graph, out_edges)
-   e = energy(σ, chimera.graph, out_edges)
-
 end
