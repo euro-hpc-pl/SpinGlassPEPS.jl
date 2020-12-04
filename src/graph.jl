@@ -24,17 +24,17 @@ mutable struct Chimera
         for e in edges(c)
             src_cluster = get_prop(c, src(e), :cluster)
             dst_cluster = get_prop(c, dst(e), :cluster)
-            if src_cluster == dst_cluster
-                set_prop!(c, e, :outer, false)
+            # if src_cluster == dst_cluster
+            #     set_prop!(c, e, :outer, false)
+            # else
+            key = (src_cluster, dst_cluster)
+            set_prop!(c, e, :outer, key)
+            if haskey(outer_connections, key)
+                push!(outer_connections[key], e)
             else
-                key = (src_cluster, dst_cluster)
-                set_prop!(c, e, :outer, key)
-                if haskey(outer_connections, key)
-                    push!(outer_connections[key], e)
-                else
-                    outer_connections[key] = [e]
-                end
+                outer_connections[key] = [e]
             end
+            # end
         end
         c.outer_connections = outer_connections
         c
