@@ -28,7 +28,7 @@ mutable struct Chimera
             #     set_prop!(c, e, :outer, false)
             # else
             key = (src_cluster, dst_cluster)
-            set_prop!(c, e, :outer, key)
+            set_prop!(c, e, :cluster, key)
             if haskey(outer_connections, key)
                 push!(outer_connections[key], e)
             else
@@ -129,7 +129,7 @@ function factor_graph(c::Chimera)
 
     for v ∈ vertices(fg)
         vv = filter_vertices(c.graph, :cluster, v)
-        ve = filter_edges(c.graph, :outer, (v, v))
+        ve = filter_edges(c.graph, :cluster, (v, v))
 
         cl = Cluster(vv, ve)
         sp = all_states(rank[collect(vv)])
@@ -143,11 +143,10 @@ function factor_graph(c::Chimera)
 
     for v ∈ vertices(fg)
         for w ∈ unique_neighbors(fg, v)
-            vw = filter_edges(c.graph, :outer, (v, w))
-
+            vw = filter_edges(c.graph, :cluster, (v, w))
             en = []
-            for η ∈ get_prop(fg, v, :spec)
-                σ = get_prop(fg, w, :spec)
+            for η ∈ get_prop(fg, v, :states)
+                σ = get_prop(fg, w, :states)
                 push!(en, energy.(σ, c.graph, vw, η))
             end
             set_prop!(fg, v, w, :energy, en)

@@ -22,7 +22,7 @@ end
    println(outer_connections(g, 1, 1, 1, 2))
    println(typeof(g))
 
-   edges = filter_edges(g.graph, :outer, (1, 2))
+   edges = filter_edges(g.graph, :cluster, (1, 2))
    println(collect(edges))
 end
 
