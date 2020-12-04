@@ -437,7 +437,10 @@ function ind2spin(i::Int, no_spins::Int = 1)
 end
 
 function ind2spin(i::Int, no_spins::Int, removed_indexes::Vector{Int})
-    i = i + count(i .> removed_indexes)
+    # TODO make to more efficient and check
+    for _ in 1:length(removed_indexes)
+        i = i + count(i .> removed_indexes)
+    end
     spins = ind2spin(i::Int, no_spins)
 end
 
