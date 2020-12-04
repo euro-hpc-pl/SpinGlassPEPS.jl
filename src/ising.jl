@@ -6,6 +6,7 @@ const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
 
+
 """
 $(TYPEDSIGNATURES)
 
