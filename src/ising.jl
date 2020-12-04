@@ -6,6 +6,11 @@ const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
 
+struct Spectrum
+    energies
+    states
+end
+
 mutable struct Cluster
     vertices
     edges::EdgeIter
@@ -81,27 +86,6 @@ function energy(σ::State, ig::MetaGraph, cl::Cluster, η::State=σ; sgn::Float6
     end 
     sgn * en
 end
-
-#=
-function energy(σ::State, ig::MetaGraph, vertices; sgn::Float64=-1.0)
-    en::Float64 = 0
-    for i ∈ vertices
-        h = get_prop(ig, i, :h)  
-        en += h * σ[i]
-    end
-    sgn * en  
-end
-
-function energy(σ::State, ig::MetaGraph, edges::EdgeIter, η::State=σ; sgn::Float64=-1.0)
-    en::Float64 = 0
-    for e ∈ edges
-        i, j = src(e), dst(e)         
-        J = get_prop(ig, e, :J) 
-        en += σ[i] * J * η[j]   
-    end 
-    sgn * en
-end
-=#
 
 """
 $(TYPEDSIGNATURES)
