@@ -57,7 +57,7 @@ function gibbs_tensor(ig::MetaGraph)
 end
 
 
-function energy(σ::State, ig::MetaGraph, vertices, sgn::Float64=-1.0)
+function energy(σ::State, ig::MetaGraph, vertices; sgn::Float64=-1.0)
     en::Float64 = 0
     for i ∈ vertices
         h = get_prop(ig, i, :h)  
@@ -66,7 +66,7 @@ function energy(σ::State, ig::MetaGraph, vertices, sgn::Float64=-1.0)
     sgn * en  
 end
 
-function energy(σ::State, η::State, ig::MetaGraph, edges::EdgeIter, sgn::Float64=-1.0)
+function energy(σ::State, ig::MetaGraph, edges::EdgeIter, η::State=σ; sgn::Float64=-1.0)
     en::Float64 = 0
     for e ∈ edges
         i, j = src(e), dst(e)         
@@ -76,9 +76,6 @@ function energy(σ::State, η::State, ig::MetaGraph, edges::EdgeIter, sgn::Float
     sgn * en
 end
 
-energy(σ::State, args...) = energy(σ, σ, args...)
-
-
 """
 $(TYPEDSIGNATURES)
 
@@ -87,9 +84,9 @@ Calculate the Ising energy
 E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 ```
 """
-function energy(σ::State, ig::MetaGraph, sgn::Float64=-1.0)
-    e = energy(σ, ig, edges(ig), sgn) 
-    e += energy(σ, ig, vertices(ig), sgn)
+function energy(σ::State, ig::MetaGraph; sgn::Float64=-1.0)
+    e = energy(σ, ig, edges(ig), sgn=sgn) 
+    e += energy(σ, ig, vertices(ig), sgn=sgn)
 end
     
 """
