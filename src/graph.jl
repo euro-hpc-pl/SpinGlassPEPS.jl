@@ -11,7 +11,8 @@ mutable struct Chimera
 
         for i=1:m, j=1:n, u=1:2, k=1:t
             v = c[i, j, u, k]
-            set_prop!(c, v, :cluster, linear[i, j])
+            ij = linear[i, j]
+            set_prop!(c, v, :cluster, ij)
         end
 
         outer_connections = Dict{Tuple, Vector}()
@@ -34,27 +35,6 @@ mutable struct Chimera
         c
     end
 end
-
-#=
-function cluster!(chimera::Chimera)
-    N, M, _ = chimera.size
-    linear = LinearIndices((1:N, 1:M))
-
-    for v ∈ vertices(chimera.graph)
-        i, j, u, k = linear_to_chimera(v, chimera.size)
-
-        set_prop!(chimera.graph, v, :chimera_index, (i, j, u, k))
-        x = linear[i, j]
-        set_prop!(chimera.graph, v, :cell_index, x)
-
-        for w ∈ unique_neighbors(chimera.graph, v)
-            ĩ, j̃, _, _ = linear_to_chimera(w, chimera.size)
-            y = linear[ĩ, j̃]
-            set_prop!(chimera.graph, v, w, :cells_edge, (x, y))
-        end
-    end
-end
-=#
 
 function Chimera(m::Int, n::Int=m, t::Int=4)
     max_size = m * n * 2 * t
@@ -127,3 +107,6 @@ function outer_connections(c::Chimera, src, dst)
     end
     ret
 end
+
+
+

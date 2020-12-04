@@ -21,7 +21,7 @@ end
    println(outer_connections(g, 1, 1, 1, 2))
    println(typeof(g))
 
-   edges = filter_edges(g.graph, :outer, (1,2))
+   edges = filter_edges(g.graph, :outer, (1, 2))
    println(collect(edges))
 end
 
@@ -44,12 +44,10 @@ end
       get_prop(chimera, v, :h) ≈ get_prop(ig, v, :h) 
    end
 
-
    out_edges = filter_edges(chimera.graph, :outer, (1, 2) )
-   println(typeof(out_edges))
    σ = 2(rand(C) .< 0.5) .- 1
 
+   #e = energy(σ, σ, chimera.graph, out_edges)
    e = energy(σ, chimera.graph, out_edges)
-   println(e)
- 
+
 end
