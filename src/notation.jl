@@ -76,7 +76,6 @@ function form_a_chimera_grid(n::Int, cell_size::Tuple{Int, Int})
     for i in 1:n1
         for j in 1:n2
 
-            #grid[i,j] = chimera_cell(i,j, problem_size)
             grid[i,j] = chimera_cells(i,j, problem_size, cell_size)
         end
     end
@@ -123,7 +122,7 @@ struct Element_of_square_grid
     row::Int
     column::Int
     spins_inds::Vector{Int}
-    intra_struct::Vector{Tuple{Int, Int}}
+
     left::Vector{Int}
     right::Vector{Int}
     up::Vector{Int}
@@ -131,8 +130,8 @@ struct Element_of_square_grid
 
     #construction from the grid
     function(::Type{Element_of_square_grid})(i::Int, grid::Matrix{Int}, spins_inds::Matrix{Int})
-        s = size(grid)
-        intra_struct = Tuple{Int, Int}[]
+        #s = size(grid)
+
         left = Int[]
         right = Int[]
         up = Int[]
@@ -143,17 +142,6 @@ struct Element_of_square_grid
         column = r[2]
 
         internal_size = size(spins_inds)
-
-        for k in 1:internal_size[1]
-            for l in 2:internal_size[2]
-                push!(intra_struct, (spins_inds[k,l-1], spins_inds[k,l]))
-            end
-        end
-        for l in 1:internal_size[2]
-            for k in 2:internal_size[1]
-                push!(intra_struct, (spins_inds[k-1,l], spins_inds[k,l]))
-            end
-        end
 
         spins = vec(spins_inds)
 
@@ -171,7 +159,7 @@ struct Element_of_square_grid
             down = positions_in_cluster(spins, spins_inds[end,:])
         end
 
-        new(row, column, spins, intra_struct, left, right, up, down)
+        new(row, column, spins, left, right, up, down)
     end
     function(::Type{Element_of_square_grid})(i::Int, grid::Matrix{Int})
         Element_of_square_grid(i, grid, reshape([i], (1,1)))
@@ -187,7 +175,7 @@ struct Element_of_chimera_grid
     row::Int
     column::Int
     spins_inds::Vector{Int}
-    intra_struct::Vector{Tuple{Int, Int}}
+
     left::Vector{Int}
     right::Vector{Int}
     up::Vector{Int}
@@ -195,8 +183,7 @@ struct Element_of_chimera_grid
 
     #construction from the grid
     function(::Type{Element_of_chimera_grid})(i::Int, grid::Matrix{Int}, spins_inds::Matrix{Int})
-        s = size(grid)
-        intra_struct = Tuple{Int, Int}[]
+        #s = size(grid)
         left = Int[]
         right = Int[]
         up = Int[]
@@ -213,38 +200,6 @@ struct Element_of_chimera_grid
         cell_columns = div(internal_size[2], 2)
         cell_rows = div(internal_size[1], 4)
 
-        # connections within cells
-        for c in 1:cell_columns
-            for r in 1:cell_rows
-                ofr = (r-1)*4
-                ofc = (c-1)*2
-                for k1 in ofr+1:ofr+4
-                    for k2 in ofr+1:ofr+4
-                        push!(intra_struct, (spins_inds[k1,ofc+1], spins_inds[k2,ofc+2]))
-                    end
-                end
-            end
-        end
-
-        #connections between cels in rows
-        if cell_columns > 1
-            for c in 1:cell_columns-1
-                for i in 1:internal_size[1]
-                    ofc = (c-1)*2
-                    push!(intra_struct, (spins_inds[i,ofc+2], spins_inds[i,ofc+4]))
-                end
-            end
-        end
-
-        #connections between cels in columns
-        if row > 1
-            for c in 1:cell_columns
-                for i in 1:internal_size[1]-4
-                    ofc = (c-1)*2
-                    push!(intra_struct, (spins_inds[i,ofc+1], spins_inds[i+4,ofc+1]))
-                end
-            end
-        end
 
         spins = vec(spins_inds)
         if column > 1
@@ -266,7 +221,7 @@ struct Element_of_chimera_grid
             end
         end
 
-        new(row, column, spins, intra_struct, left, right, up, down)
+        new(row, column, spins, left, right, up, down)
     end
     function(::Type{Element_of_chimera_grid})(i::Int, grid::Matrix{Int}, M::Array{Array{Int64,N} where N,2})
         r = findall(x->x==i, grid)[1]
@@ -309,20 +264,42 @@ end
 
 EE = Union{Element_of_square_grid, Element_of_chimera_grid}
 
-function is_grid(ig::MetaGraph, g_elements)
-    # TODO finish it
-    for i in vertices(ig)
-        a = g_elements[i]
-        println(i)
-        println(a.row, ",",  a.column)
-        for j in all_neighbors(ig, i)
-            b = g_elements[j]
-            println(b.row, ",", b.column)
+
+# TODO this is temporal
+function make_inner_graph(ig::MetaGraph, g_element::EE)
+    LL = length(g_element.spins_inds)
+
+    gg = MetaGraph(LL, 0.0)
+
+    p = props(ig)
+    set_props!(gg, p)
+    set_prop!(gg, :rank, fill(2, LL))
+
+    for i in 1:LL
+        v = g_element.spins_inds[i]
+        p = props(ig, v)
+        set_props!(gg, i, p)
+    end
+
+    for i in 1:LL
+        for j in i+1:LL
+            v1 =  g_element.spins_inds[i]
+            v2 =  g_element.spins_inds[j]
+
+            if v2 in all_neighbors(ig, v1)
+
+                p = props(ig, v1, v2)
+                add_edge!(gg, i,j)
+                set_props!(gg, i,j, p)
+
+            end
         end
     end
+    gg
 end
 
 
+#TODO this will be factor_graph
 function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
     L = nv(ig)
 
@@ -333,7 +310,7 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
         s2 = maximum(all_neighbors(ig, 1))-1
         # error will be rised if not Int
         s1 = Int(L/s2)
-        #is_grid(ig, (s1, s2))
+
         grid, M = form_a_grid(cell_size, (s1, s2))
         g_elements = [Element_of_square_grid(i, M, grid) for i in 1:maximum(M)]
     elseif degree(ig, 1) == 5
@@ -357,8 +334,17 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
         set_prop!(g, i, :column, g_element.column)
         set_prop!(g, i, :spins, g_element.spins_inds)
 
-        internal_e = internal_energy(g_element, ig)
-        set_prop!(g, i, :energy, internal_e)
+        gg = make_inner_graph(ig, g_element)
+
+        no_conf = 2^length(g_element.spins_inds)
+        # TODO no_conf can be reduced for approximate spectrum
+        # TODO this need however clever spins2ind(e)
+
+        s,e = brute_force(gg, no_conf)
+        # sorting is required for indexing
+        p = sortperm([spins2ind(e) for e in s])
+
+        set_prop!(g, i, :energy, e[p])
 
         if g_element.column < size(M, 2)
             ip = M[g_element.row, g_element.column+1]
@@ -390,28 +376,6 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
     g
 end
 
-
-function internal_energy(g::EE, ig::MetaGraph)
-
-    hs = [props(ig, i)[:h] for i in g.spins_inds]
-    no_spins = length(g.spins_inds)
-
-    energy = zeros(2^no_spins)
-
-    for i in 1:2^no_spins
-        σs = ind2spin(i, no_spins)
-        e = -sum(σs.*hs)
-        for pair in g.intra_struct
-            J = props(ig, pair[1], pair[2])[:J]
-            i1 = position_in_cluster(g.spins_inds, pair[1])
-            i2 = position_in_cluster(g.spins_inds, pair[2])
-            #e = e - 2*σs[i1]*σs[i2]*J
-            e = e - σs[i1]*σs[i2]*J
-        end
-        energy[i] = e
-    end
-    energy
-end
 
 function get_Js(g::EE, g1::EE, ig::MetaGraph)
     J = Float64[]
@@ -453,7 +417,6 @@ function M_of_interaction(g::EE, g1::EE, ig::MetaGraph)
         for j in 1:2^subset_size
             σ = ind2spin(j, subset_size)
             @inbounds energy[j,i] = -sum(J.*σ.*σ_cluster[spin_subset])
-            #@inbounds energy[j,i] = -2*sum(J.*σ.*σ_cluster[spin_subset])
         end
     end
     energy
