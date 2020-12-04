@@ -69,56 +69,20 @@
     end
 end
 
-
-function Qubo2M(Q::Matrix{T}) where T <: AbstractFloat
-
-    J = (Q - diagm(diag(Q)))/4
-    v = dropdims(sum(J; dims=1); dims = 1)
-    h = diagm(diag(Q)/2 + v*2)
-    # convention
-    - J - h
-end
-
-# TODO this will need to be corrected
 @testset "mpo-mps small instance of rail dispratching problem" begin
 
-    # testing converts
-
-    X = rand(10,10)
-    X = X*X'
-
-    J = Qubo2M(X)
-
-    Delta = 4J + X
-    @test maximum(abs.(Delta - diagm(diag(Delta)))) ≈ 0. atol = 1e-12
-
-    # a sum over interactions
-    Y = J - diagm(diag(J))
-    v = dropdims(sum(Y; dims=1); dims = 1)
-
-    b = -diag(X)
-    # TODO why 4v not 2v
-    @test maximum(abs.(2*diag(J) - 4*v - b)) ≈ 0. atol = 1e-12
+    # the matrix made from the disparching problem
+    JJ = [-2.625 -0.4375 -0.4375 -0.4375 -0.4375 0.0 0.0 0.0;
+    -0.4375 -2.71 -0.4375 -0.4375 0.0 -0.4375 0.0 0.0;
+    -0.4375 -0.4375 -2.79 -0.4375 0.0 0.0 -0.4375 0.0;
+    -0.4375 -0.4375 -0.4375 -2.875 0.0 0.0 0.0 -0.4375;
+    -0.4375 0.0 0.0 0.0 -2.625 -0.4375 -0.4375 -0.4375;
+    0.0 -0.4375 0.0 0.0 -0.4375 -2.79 -0.4375 -0.4375;
+    0.0 0.0 -0.4375 0.0 -0.4375 -0.4375 -2.96 -0.4375;
+    0.0 0.0 0.0 -0.4375 -0.4375 -0.4375 -0.4375 -3.125]
 
 
-    # tests on data
-    file = "tests/data/QUBO8qbits"
-    s = 8
-
-    # reading data from txt
-    data = (x-> Array{Any}([parse(Int, x[1]), parse(Int, x[2]), parse(Float64, x[3])])).(split.(readlines(open(file))))
-
-    # converting data
-    M = zeros(s,s)
-    for d in data
-        i = ceil(Int, d[1])+1
-        j = ceil(Int, d[2])+1
-        M[i,j] = d[3]
-    end
-
-    # TODO use the read function
-    J = Qubo2M(M)
-    g = M2graph(J)
+    g = M2graph(JJ)
 
     # parameters of the solver
     χ = 10
@@ -129,17 +93,16 @@ end
 
     @time spins_mps, objective_mps = solve_mps(g, 10; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
-    binary_mps = [spins2binary(el) for el in spins_mps]
-    enenrgies_from_binary = [transpose(x)*M*x for x in binary_mps]
+    e = [energy(spins, g) for spins in spins_mps[1:4]]
+    @test (e.-e[1]) ≈ [0.0, 0.16, 0.16, 0.33]
 
-    @test enenrgies_from_binary[1:4] ≈ [-3.33, -3.17, -3.17, -3.0]
     @test issorted(objective_mps, rev=true) == true
 
-    @test binary_mps[1] == [0,1,0,0,1,0,0,0]
+    @test spins_mps[1] == [-1,1,-1,-1,1,-1,-1,-1]
     # we have the degeneracy
-    @test binary_mps[2] in [[0, 0, 1, 0, 1, 0, 0, 0], [1, 0, 0, 0, 0, 1, 0, 0]]
-    @test binary_mps[3] in [[0, 0, 1, 0, 1, 0, 0, 0], [1, 0, 0, 0, 0, 1, 0, 0]]
+    @test spins_mps[2] in [[-1, -1, 1, -1, 1, -1, -1, -1], [1, -1, -1, -1, -1, 1, -1, -1]]
+    @test spins_mps[3] in [[-1, -1, 1, -1, 1, -1, -1, -1], [1, -1, -1, -1, -1, 1, -1, -1]]
 
-    @test binary_mps[4] == [0, 0, 0, 1, 1, 0, 0, 0]
+    @test spins_mps[4] == [-1, -1, -1, 1, 1, -1, -1, -1]
 
 end
