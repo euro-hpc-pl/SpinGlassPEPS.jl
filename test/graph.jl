@@ -38,5 +38,5 @@ end
    ig = ising_graph(instance, L)
    cg = Chimera((m, n, t), ig)
 
-   fg = factor_graph(cg)
+   @time fg = factor_graph(cg)
 end
