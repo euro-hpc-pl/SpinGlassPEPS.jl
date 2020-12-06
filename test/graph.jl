@@ -27,8 +27,8 @@ end
 end
 
 @testset "Chimera/factor graph" begin
-   m = 4
-   n = 4
+   m = 16
+   n = 16
    t = 4
 
    L = 2 * n * m * t
@@ -38,5 +38,12 @@ end
    ig = ising_graph(instance, L)
    cg = Chimera((m, n, t), ig)
 
-   @time fg = factor_graph(cg)
+   cl = cluster(cg, 1)
+   rank = get_prop(cg.graph, :rank)
+   sp = all_states(rank[collect(cl.vertices)])
+
+   @time en = energy.(sp, Ref(cg.graph), Ref(cl))
+
+   #@test en ≈ en2
+   #@time fg = factor_graph(cg)
 end

@@ -1,4 +1,4 @@
-export Chimera, outer_connections, factor_graph
+export Chimera, outer_connections, factor_graph, cluster
 mutable struct Chimera
     size::NTuple{3, Int}
     graph::MetaGraph
@@ -152,14 +152,15 @@ end
 function cluster(c::Chimera, v::Int, w::Int) 
     vv = filter_vertices(c.graph, :cluster, v)
     ve = filter_edges(c.graph, :cluster, (v, w))
-    Cluster(vv, ve)
+    inv = Dict(v => i for (i, v) ∈ enumerate(vv))
+    Cluster(inv, ve)
 end
 cluster(c::Chimera, v::Int) = cluster(c, v, v) 
 
 function spectrum(c::Chimera, cl::Cluster)
     rank = get_prop(c.graph, :rank)
     sp = all_states(rank[collect(cl.vertices)])
-    en = energy.(sp, Ref(c.graph), Ref(cl))
+    en = energy.(collect(sp), Ref(c.graph), Ref(cl))
     Spectrum(en, sp)
 end
 
