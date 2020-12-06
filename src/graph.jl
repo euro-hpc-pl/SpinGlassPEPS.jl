@@ -123,7 +123,7 @@ function spectrum(cl::Cluster)
     σ = collect.(all_states(cl.rank))
     states = reshape(σ, prod(cl.rank))
     energies = energy.(states, Ref(cl))
-    Spectrum(states, energies)    
+    Spectrum(energies, states)   
 end
 
 
