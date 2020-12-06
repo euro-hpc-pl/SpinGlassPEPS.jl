@@ -38,12 +38,5 @@ end
    ig = ising_graph(instance, L)
    cg = Chimera((m, n, t), ig)
 
-   cl = cluster(cg, 1)
-   rank = get_prop(cg.graph, :rank)
-   sp = all_states(rank[collect(cl.vertices)])
-
-   @time en = energy.(sp, Ref(cg.graph), Ref(cl))
-
-   #@test en ≈ en2
-   #@time fg = factor_graph(cg)
+   @time fg = factor_graph(cg)
 end

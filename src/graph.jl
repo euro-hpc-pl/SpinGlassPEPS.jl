@@ -108,20 +108,24 @@ function outer_connections(c::Chimera, src, dst)
     ret
 end
 
-#=
 function cluster(c::Chimera, v::Int, w::Int) 
-    vv = filter_vertices(c.graph, :cluster, v)
+    vv = collect(filter_vertices(c.graph, :cluster, v))
+    vw = collect(filter_vertices(c.graph, :cluster, w))
     ve = filter_edges(c.graph, :cluster, (v, w))
-    Cluster(vv, ve)
+    Cluster(c.graph, enum(union(vv, vw)), ve)
 end
+
 cluster(c::Chimera, v::Int) = cluster(c, v, v) 
 
-function spectrum(c::Chimera, cl::Cluster)
-    rank = get_prop(c.graph, :rank)
-    sp = all_states(rank[collect(cl.vertices)])
-    en = energy.(sp, Ref(c.graph), Ref(cl))
-    Spectrum(en, collect(sp))
+#spectrum(cl::Cluster) = brute_force(cl, num_states=256)
+
+function spectrum(cl::Cluster)
+    σ = collect.(all_states(cl.rank))
+    states = reshape(σ, prod(cl.rank))
+    energies = energy.(states, Ref(cl))
+    Spectrum(states, energies)    
 end
+
 
 function factor_graph(c::Chimera)
     m, n, _ = c.size
@@ -130,48 +134,7 @@ function factor_graph(c::Chimera)
     for v ∈ vertices(fg)
         cl = cluster(c, v)
         set_prop!(fg, v, :cluster, cl)
-        set_prop!(fg, v, :spectrum, spectrum(c, cl))
-    end
-
-    for v ∈ vertices(fg)
-        for w ∈ unique_neighbors(fg, v)
-            @info v, w
-            cl = cluster(c, v, w) # get rid linear 
-            en = []
-            for η ∈ get_prop(fg, v, :spectrum).states
-                σ = get_prop(fg, w, :spectrum).states
-                push!(en, energy.(σ, Ref(c.graph), Ref(cl), Ref(η)))
-            end
-            set_prop!(fg, v, w, :energy, en)
-        end
-    end
-    fg
-end
-=#
-
-function cluster(c::Chimera, v::Int, w::Int) 
-    vv = filter_vertices(c.graph, :cluster, v)
-    ve = filter_edges(c.graph, :cluster, (v, w))
-    inv = Dict(v => i for (i, v) ∈ enumerate(vv))
-    Cluster(inv, ve)
-end
-cluster(c::Chimera, v::Int) = cluster(c, v, v) 
-
-function spectrum(c::Chimera, cl::Cluster)
-    rank = get_prop(c.graph, :rank)
-    sp = all_states(rank[collect(cl.vertices)])
-    en = energy.(collect(sp), Ref(c.graph), Ref(cl))
-    Spectrum(en, sp)
-end
-
-function factor_graph(c::Chimera)
-    m, n, _ = c.size
-    fg = MetaGraph(grid([m, n]))
-
-    for v ∈ vertices(fg)
-        cl = cluster(c, v)
-        set_prop!(fg, v, :cluster, cl)
-        set_prop!(fg, v, :spectrum, spectrum(c, cl))
+        set_prop!(fg, v, :spectrum, spectrum(cl))
 
         for w ∈ unique_neighbors(fg, v)
             set_prop!(fg, v, w, :cluster, cluster(c, v, w))

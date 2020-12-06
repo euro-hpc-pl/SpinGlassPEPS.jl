@@ -1,9 +1,12 @@
 export idx, ising, proj
 export HadamardMPS, rq
 export all_states, local_basis
+export enum
 
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1 
+
+enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 
 LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
 

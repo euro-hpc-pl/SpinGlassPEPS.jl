@@ -8,8 +8,8 @@ N = L^2
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
-set_prop!(ig, :β, 1.)#rand(Float64))
-r = (3, 2, 5, 4)
+set_prop!(ig, :β, 1.) #rand(Float64))
+r = [3, 2, 5, 4]
 set_prop!(ig, :rank, r)
 
 ϵ = 1E-8
@@ -140,12 +140,12 @@ end
             @info "Verifying low energy spectrum" max_states
 
             states, prob, pCut = spectrum(rψ, max_states)
-            states_bf, energies = brute_force(ig, max_states)
+            sp = brute_force(ig, num_states=max_states)
 
             @info "The largest discarded probability" pCut
             @test maximum(prob) > pCut
 
-            for (j, (p, e)) ∈ enumerate(zip(prob, energies))
+            for (j, (p, e)) ∈ enumerate(zip(prob, sp.energies))
                 σ = states[:, j]
                 @test ϱ[idx.(σ)...] ≈ p
                 @test abs(energy(σ, ig) - e) < ϵ
