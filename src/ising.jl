@@ -1,24 +1,42 @@
 export ising_graph, energy
 export gibbs_tensor, brute_force
-export State
+export State, Cluster, Spectrum
 
 const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
 
 struct Spectrum
-    energies
-    states
+    energies::Vector{<:Number}
+    states::Vector{Vector{<:Number}}
 end
 
 mutable struct Cluster
-    vertices
+    vertices::Dict{Int,Int}
     edges::EdgeIter
-    indices::Dict{Int, Int}
+    rank::Vector
+    J::Matrix{<:Number}
+    h::Vector{<:Number}
 
-    function Cluster(vertices, edges::EdgeIter)
+    function Cluster(ig::MetaGraph, vertices::Dict, edges::EdgeIter)
         cl = new(vertices, edges)
-        cl.indices = Dict(v => i for (i, v) ∈ enumerate(cl.vertices))
+        L = length(cl.vertices)
+
+        cl.J = zeros(L, L)
+        for e ∈ cl.edges
+            i = cl.vertices[src(e)]
+            j = cl.vertices[dst(e)] 
+            cl.J[i, j] = get_prop(ig, e, :J)
+        end
+
+        rank = get_prop(ig, :rank)
+        cl.rank = rank[1:L]
+
+        cl.h = zeros(L)
+        for (v, i) ∈ cl.vertices
+            cl.h[i] = get_prop(ig, v, :h)
+            cl.rank[i] = rank[v]
+        end
         cl
     end
 end
@@ -35,12 +53,18 @@ together with the coresponding energies
 of a classical Ising Hamiltonian
 """
 
-function brute_force(ig::MetaGraph, k::Int=1)
-    states = all_states(get_prop(ig, :rank))
-    energies = vec(energy.(states, Ref(ig)))
-    perm = partialsortperm(energies, 1:k) 
-    collect.(states)[perm], energies[perm]
-end    
+function brute_force(ig::MetaGraph; num_states::Int=1)
+    cl = Cluster(ig, enum(vertices(ig)), edges(ig))
+    brute_force(cl, num_states=num_states)
+end 
+
+function brute_force(cl::Cluster; num_states::Int=1)
+    σ = collect.(all_states(cl.rank))
+    states = reshape(σ, prod(cl.rank))
+    energies = energy.(states, Ref(cl))
+    perm = partialsortperm(energies, 1:num_states) 
+    Spectrum(energies[perm], states[perm])
+end 
 
 _ising(σ::State) = 2 .* σ .- 1
 
@@ -69,22 +93,9 @@ for all possible configurations \$\\σ\$.
 function gibbs_tensor(ig::MetaGraph)
     β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
-    ρ = exp.(-β .* energy.(all_states(rank), Ref(ig)))
+    states = collect.(all_states(rank))
+    ρ = exp.(-β .* energy.(states, Ref(ig)))
     ρ ./ sum(ρ)
-end
-
-function energy(σ::State, ig::MetaGraph, cl::Cluster, η::State=σ; sgn::Float64=-1.0)
-    en::Float64 = 0
-    for v ∈ cl.vertices
-        h = get_prop(ig, v, :h)  
-        en += h * σ[cl.indices[v]]
-    end
-
-    for e ∈ cl.edges        
-        J = get_prop(ig, e, :J)
-        en += σ[cl.indices[src(e)]] * J * η[cl.indices[dst(e)]]   
-    end 
-    sgn * en
 end
 
 """
@@ -95,11 +106,24 @@ Calculate the Ising energy
 E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 ```
 """
-function energy(σ::State, ig::MetaGraph; sgn::Float64=-1.0)
-    cl = Cluster(vertices(ig), edges(ig))
-    energy(σ, ig, cl, sgn=sgn) 
+
+function energy(σ::Vector, J::Matrix, η::Vector=σ; sgn::Float64=-1.0) 
+    sgn * dot(σ, J, η)
 end
-    
+
+function energy(σ::Vector, h::Vector; sgn::Float64=-1.0) 
+    sgn * dot(h, σ)
+end
+
+function energy(σ::Vector, cl::Cluster, η::Vector=σ; sgn::Float64=-1.0) 
+    energy(σ, cl.J, η, sgn=sgn) + energy(cl.h, σ, sgn=sgn)
+end
+
+function energy(σ::Vector, ig::MetaGraph; sgn::Float64=-1.0) 
+    cl = Cluster(ig, enum(vertices(ig)), edges(ig))
+    energy(σ, cl, sgn=sgn) 
+end
+   
 """
 $(TYPEDSIGNATURES)
 
@@ -137,16 +161,16 @@ function ising_graph(instance::Instance, L::Int, β::Number=1, sgn::Number=1)
             set_prop!(ig, i, :h, 0.) || error("Cannot set bias at node $(i).")
         end 
     end
-    
-    # state (random by default) and corresponding energy
-    state = 2(rand(L) .< 0.5) .- 1
-
-    set_prop!(ig, :state, state)
-    set_prop!(ig, :energy, energy(state, ig)) || error("Unable to calculate the Ising energy!")
 
     # store extra information 
     set_prop!(ig, :β, β)
     set_prop!(ig, :rank, fill(2, L))
+
+    # state (random by default) and corresponding energy
+    σ = 2.0 * (rand(L) .< 0.5) .- 1.0
+
+    set_prop!(ig, :state, σ)
+    set_prop!(ig, :energy, energy(σ, ig)) || error("Unable to calculate the Ising energy!")
 
     ig
 end
