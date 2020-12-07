@@ -106,12 +106,8 @@ function spectrum_new(ψ::MPS, keep::Int)
         if k > keep_extra
             k = keep_extra
             partialsortperm!(perm, vec(lpdo), 1:k, rev=true) 
+            lprob = vec(lpdo)[perm]
             lpCut < last(lprob) ? lpCut = last(lprob) : () 
-            #if lpCut < last(lprob)
-            #    lpCut = last(lprob)
-            #else
-            #    lpCut = ()
-            #end
         end
 
         lprob = vec(lpdo)[perm]

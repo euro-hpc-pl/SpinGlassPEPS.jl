@@ -9,7 +9,7 @@ instance = "$(@__DIR__)/instances/$(N)_001.txt"
 
 ig = ising_graph(instance, N)
 set_prop!(ig, :β, 1.)#rand(Float64))
-r = (3, 2, 5, 4)
+r = (2, 2, 2, 2)
 set_prop!(ig, :rank, r)
 
 ϵ = 1E-8
@@ -149,13 +149,11 @@ end
             
             perm = partialsortperm(eng, 1:max_states)
             eng = eng[perm]
-            #println(eng)
             states = states[perm,:]
-            #println(states)
             prob = prob[perm]
-            #println(prob)
             state = states[1,:]
             @info "The largest discarded probability" pCut
+            @test maximum(prob) > pCut
             @info "State with the lowest energy" state
             @info "Probability of the state with the lowest energy" prob[1]
             @info "The lowest energy" eng[1]
