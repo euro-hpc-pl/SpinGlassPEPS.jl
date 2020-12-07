@@ -115,7 +115,7 @@ function Cluster(c::Chimera, v::Int, w::Int)
     Cluster(c.graph, enum(union(vv, vw)), ve)
 end
 
-cluster(c::Chimera, v::Int) = cluster(c, v, v) 
+Cluster(c::Chimera, v::Int) = Cluster(c, v, v) 
 
 #spectrum(cl::Cluster) = brute_force(cl, num_states=256)
 
@@ -137,7 +137,7 @@ function factor_graph(c::Chimera)
         set_prop!(fg, v, :spectrum, Spectrum(cl))
 
         for w ∈ unique_neighbors(fg, v)
-            set_prop!(fg, v, w, :cluster, cluster(c, v, w))
+            set_prop!(fg, v, w, :cluster, Cluster(c, v, w))
         end
     end
     fg
