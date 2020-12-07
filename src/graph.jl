@@ -108,7 +108,7 @@ function outer_connections(c::Chimera, src, dst)
     ret
 end
 
-function cluster(c::Chimera, v::Int) 
+function Cluster(c::Chimera, v::Int) 
     vv = filter_vertices(c.graph, :cluster, v)
     ve = filter_edges(c.graph, :cluster, (v, v))
     Cluster(vv, ve)
@@ -126,7 +126,7 @@ function factor_graph(c::Chimera)
     fg = MetaGraph(grid([m, n]))
 
     for v ∈ vertices(fg)
-        cl = cluster(c, v)
+        cl = Cluster(c, v)
         set_prop!(fg, v, :cluster, cl)
         set_prop!(fg, v, :spectrum, spectrum(c, cl))
     end
@@ -134,7 +134,7 @@ function factor_graph(c::Chimera)
     for v ∈ vertices(fg)
         for w ∈ unique_neighbors(fg, v)
             @info v, w
-            cl = cluster(c, w) 
+            cl = Cluster(c, w) 
             en = []
             for η ∈ get_prop(fg, v, :spectrum).states
                 σ = get_prop(fg, w, :spectrum).states

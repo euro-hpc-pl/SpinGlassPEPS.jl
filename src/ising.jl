@@ -81,7 +81,7 @@ function energy(σ::State, ig::MetaGraph, cl::Cluster, η::State=σ; sgn::Float6
     end
 
     for e ∈ cl.edges        
-        J = get_prop(ig, e, :J) 
+        J = get_prop(ig, e, :J)
         en += σ[cl.indices[src(e)]] * J * η[cl.indices[dst(e)]]   
     end 
     sgn * en
