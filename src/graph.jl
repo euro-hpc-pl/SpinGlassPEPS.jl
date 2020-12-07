@@ -117,7 +117,7 @@ end
 
 Cluster(c::Chimera, v::Int) = Cluster(c, v, v) 
 
-#spectrum(cl::Cluster) = brute_force(cl, num_states=256)
+#Spectrum(cl::Cluster) = brute_force(cl, num_states=256)
 
 function Spectrum(cl::Cluster)
     σ = collect.(all_states(cl.rank))
