@@ -10,7 +10,7 @@ function reshape_row(A::AbstractArray{T}, dims::Tuple) where {T <: Number}
 
     A = reshape(A, reverse(dims))
     permutedims(A, ord)
-end 
+end
 
 my_tests = []
 if CUDA.functional() && CUDA.has_cutensor() && false
@@ -22,12 +22,12 @@ if CUDA.functional() && CUDA.has_cutensor() && false
 end
 
 push!(my_tests,
-#    "base.jl",
-#   "contractions.jl",
-#   "compressions.jl",
-#   "ising.jl",
-#   "search.jl"
-   "graph.jl"
+    "base.jl",
+   "contractions.jl",
+   #"compressions.jl",
+   "ising.jl",
+   "search.jl"
+   #"chimera.jl"
 )
 
 for my_test in my_tests
