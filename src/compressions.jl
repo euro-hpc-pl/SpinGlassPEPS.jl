@@ -13,7 +13,7 @@ truncate!(ψ::AbstractMPS, s::Symbol, Dcut::Int) = truncate!(ψ, Val(s), Dcut)
 truncate!(ψ::AbstractMPS, ::Val{:right}, Dcut::Int) = _left_sweep_SVD!(ψ, Dcut)
 truncate!(ψ::AbstractMPS, ::Val{:left}, Dcut::Int) = _right_sweep_SVD!(ψ, Dcut)
 
-function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
+function _right_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
     Σ = V = ones(eltype(ψ), 1, 1)
 
     for i ∈ 1:length(ψ)
@@ -34,7 +34,7 @@ function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
     end
 end
 
-function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
+function _left_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
     Σ = U = ones(eltype(ψ), 1, 1)
 
     for i ∈ length(ψ):-1:1
@@ -88,7 +88,7 @@ function compress(ψ::AbstractMPS, Dcut::Int, tol::Number=1E-8, max_sweeps::Int=
     ϕ
 end
 
-function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
+function _left_sweep_var!!(ϕ::AbstractMPS, env::Vector{<:AbstractMatrix}, ψ::AbstractMPS, Dcut::Int)
     S = eltype(ϕ)
 
     # overwrite the overlap
@@ -118,7 +118,7 @@ function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut
     end
 end
 
-function _right_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
+function _right_sweep_var!!(ϕ::AbstractMPS, env::Vector{<:AbstractMatrix}, ψ::AbstractMPS, Dcut::Int)
     S = eltype(ϕ)
 
     # overwrite the overlap
