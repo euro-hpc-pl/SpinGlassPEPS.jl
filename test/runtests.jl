@@ -2,6 +2,10 @@ using CUDA
 using SpinGlassPEPS
 using LinearAlgebra
 using TensorOperations
+using TensorCast
+using LightGraphs
+using MetaGraphs
+#using DocStringExtensions
 
 using Test
 
@@ -22,12 +26,12 @@ if CUDA.functional() && CUDA.has_cutensor() && false
 end
 
 push!(my_tests,
-    "base.jl",
-   "contractions.jl",
+    #"base.jl",
+   #"contractions.jl",
    #"compressions.jl",
-   "ising.jl",
-   "search.jl"
-   #"chimera.jl"
+   #"ising.jl",
+   #"search.jl",
+   "notation_tests.jl"
 )
 
 for my_test in my_tests

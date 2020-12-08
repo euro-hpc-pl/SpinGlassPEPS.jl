@@ -340,7 +340,7 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
         # TODO no_conf can be reduced for approximate spectrum
         # TODO this need however clever spins2ind(e)
 
-        s,e = brute_force(gg, no_conf)
+        s,e = brute_force(gg; num_states = no_conf)
         # sorting is required for indexing
         p = sortperm([spins2ind(e) for e in s])
 

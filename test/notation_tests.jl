@@ -1,3 +1,6 @@
+include("../src/notation.jl")
+#include("../src/ising.jl")
+
 @testset "grids" begin
 
     # grid
