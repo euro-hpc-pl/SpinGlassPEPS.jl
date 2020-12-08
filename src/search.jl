@@ -26,10 +26,10 @@ function spectrum(ψ::MPS, keep::Int)
     left_env = ones(T, 1, 1, k)
 
     for (i, M) ∈ enumerate(ψ)
-        _, d, β = size(M)
+        _, d, b = size(M)
 
         pdo = zeros(T, k, d)
-        LL = zeros(T, β, β, k, d)
+        LL = zeros(T, b, b, k, d)
         config = zeros(Int, i, k, d)
 
         for j ∈ 1:k 
@@ -71,19 +71,19 @@ function spectrum_new(ψ::MPS, keep::Int)
     lpCut = -1000
     k = 1
 
-    if keep < (*)(rank(ψ)...)
+    if keep < prod(rank(ψ))
         keep_extra += 1
     end
-    lprob=zeros(T,k)
+    lprob = zeros(T, k)
     states = fill([], 1, k)
     left_env = ones(T, 1, k)
 
     for (i, M) ∈ enumerate(ψ)
-        _, d, β = size(M)
+        _, d, b = size(M)
 
         pdo = ones(T, k, d)
         lpdo = zeros(T, k, d)
-        LL = zeros(T, β, k, d)
+        LL = zeros(T, b, k, d)
         config = zeros(Int, i, k, d)
 
         for j ∈ 1:k 
@@ -91,16 +91,16 @@ function spectrum_new(ψ::MPS, keep::Int)
 
             for σ ∈ local_basis(d)
                 m = idx(σ)
-                LL[:,j, m] = L' * M[:, m, :]
+                LL[:, j, m] = L' * M[:, m, :]
                 pdo[j, m] = dot(LL[:, j, m], LL[:, j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
                 LL[:, j, m] = LL[:, j, m]/sqrt(pdo[j, m])
             end
-        pdo[j,:]= pdo[j,:]/sum(pdo[j,:])
-        lpdo[j,:] = log.(pdo[j,:]) .+ lprob[j]
+            pdo[j, :] = pdo[j, :]/sum(pdo[j, :])
+            lpdo[j, :] = log.(pdo[j, :]) .+ lprob[j]
         end
 
-        perm = collect(1: k * d)
+        perm = collect(1 : k * d)
         k = k * d
 
         if k > keep_extra
