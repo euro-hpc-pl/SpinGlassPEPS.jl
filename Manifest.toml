@@ -273,12 +273,6 @@ git-tree-sha1 = "945c7da49e1c999956b21b106b238f9bd7ab1a63"
 uuid = "898213cb-b102-5a47-900c-97e73b919f73"
 version = "0.4.1"
 
-[[MKL]]
-deps = ["Libdl", "MKL_jll", "PackageCompiler"]
-git-tree-sha1 = "e01175ff53c062c52b6cbe441a4382e132f7c82e"
-uuid = "33e6dc65-8f57-5167-99aa-e5a354878fb2"
-version = "0.3.0"
-
 [[MKL_jll]]
 deps = ["IntelOpenMP_jll", "Libdl", "Pkg"]
 git-tree-sha1 = "eb540ede3aabb8284cb482aa41d00d6ca850b1f8"
@@ -341,12 +335,6 @@ version = "1.3.1"
 git-tree-sha1 = "16c08bf5dba06609fe45e30860092d6fa41fde7b"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.3.1"
-
-[[PackageCompiler]]
-deps = ["Libdl", "Pkg", "UUIDs"]
-git-tree-sha1 = "3eee77c94646163f15bd8626acf494360897f890"
-uuid = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
-version = "1.2.3"
 
 [[Parsers]]
 deps = ["Dates"]
