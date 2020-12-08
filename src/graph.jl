@@ -121,11 +121,9 @@ Cluster(c::Chimera, v::Int) = Cluster(c, v, v)
 
 function Spectrum(cl::Cluster)
     σ = collect.(all_states(cl.rank))
-    states = reshape(σ, prod(cl.rank))
-    energies = energy.(states, Ref(cl))
-    Spectrum(energies, states)   
+    energies = energy.(σ, Ref(cl))
+    Spectrum(energies, σ)   
 end
-
 
 function factor_graph(c::Chimera)
     m, n, _ = c.size
@@ -136,10 +134,28 @@ function factor_graph(c::Chimera)
         set_prop!(fg, v, :cluster, cl)
         set_prop!(fg, v, :spectrum, Spectrum(cl))
 
+        
         for w ∈ unique_neighbors(fg, v)
             set_prop!(fg, v, w, :cluster, Cluster(c, v, w))
         end
+    
     end
+
+    #=
+    for v ∈ vertices(fg)
+        for w ∈ unique_neighbors(fg, v)
+            cl = Cluster(c, v, w)
+            set_prop!(fg, v, w, :cluster, cl)
+
+            σ = get_prop(fg, v, :spectrum)
+            η = get_prop(fg, w, :spectrum)
+
+            #E = [ energy(x, cl) for x ∈ σ.states ] 
+            E = energy.(σ.states, cl) 
+            #E = [ energy(x, cl, y) for x ∈ σ.states, y ∈ η.states ] 
+        end
+    end
+    =#
     fg
 end
 

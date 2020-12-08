@@ -7,8 +7,8 @@ const Instance = Union{String, Dict}
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
 
 struct Spectrum
-    energies::Vector{<:Number}
-    states::Vector{Vector{<:Number}}
+    energies::Array{<:Number}
+    states::Array{Vector{<:Number}}
 end
 
 mutable struct Cluster
