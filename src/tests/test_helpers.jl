@@ -78,37 +78,7 @@ function make_interactions_case1()
 end
 
 
-function interactions_case2()
-    css = -4.
-    D = Dict{Tuple{Int64,Int64},Float64}()
-    push!(D, (1,1) => -2.5)
-    push!(D, (1,2) => 3.)
-    push!(D, (1,4) => css)
-    push!(D, (2,2) => -3.5)
-    push!(D, (2,3) => 3.5)
-    push!(D, (2,5) => 0.)
-    push!(D, (3,3) => -3.5)
-    push!(D, (3,6) => css)
-    push!(D, (5,6) => 3.5)
-    push!(D, (4,5) => 3.5)
-    push!(D, (6,6) => 0.)
-    push!(D, (6,9) => 0.)
-    push!(D, (5,5) => -1.5)
-    push!(D, (5,8) => 0.)
-    push!(D, (4,4) => 0.)
-    push!(D, (4,7) => 0.)
-    push!(D, (7,7) => css)
-    push!(D, (7,8) => 0.)
-    push!(D, (8,8) => css)
-    push!(D, (8,9) => 0.)
-    push!(D, (9,9) => css)
-
-    L = 9
-
-    ising_graph(D, L, 1, -1)
-end
-
-function make_interactions_large()
+function make_interactions_case2()
     L = 16
     D1 =  Dict((1, 1) => -2.8, (1, 2) => 0.3, (1, 5) => 0.2, (2, 2) => 2.7, (2, 3) => 0.255, (2, 6) => 0.21, (3, 3) => -2.6)
     D12 = Dict((3, 4) => 0.222, (3, 7) => 0.213, (4, 4) => 2.5, (4, 8) => 0.2)

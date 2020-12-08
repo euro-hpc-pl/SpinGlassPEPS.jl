@@ -6,7 +6,6 @@ using LightGraphs
 using MetaGraphs
 using CSV
 using CUDA
-using LinearAlgebra
 using DocStringExtensions
 const product = Iterators.product
 
@@ -41,4 +40,4 @@ include("mps_implementation.jl")
 include("tests/mps_tests.jl")
 
 include("tests/tests_on_data.jl")
-include("tests/tests_of_solvers.jl")
+include("tests/tests_full_graph.jl")

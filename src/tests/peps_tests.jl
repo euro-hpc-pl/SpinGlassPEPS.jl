@@ -219,105 +219,30 @@ end
 end
 
 
-@testset "PEPS - solving simple train problem" begin
+@testset "test an exemple instance" begin
 
-    g = interactions_case2()
-
-    spins, objective = solve(g, 4; β = 1., χ = 2)
-
-    #first
-    @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
-    #ground
-    @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
-
-
-    # introduce degeneracy
-    set_prop!(g, 7, :h, 0.2)
-    set_prop!(g, 8, :h, 0.2)
-    set_prop!(g, 9, :h, 0.2)
-
-    spins, objective = solve(g, 16; β = 1., threshold = 0.)
-    spins_l, objective_l = solve(g, 16; β = 1., threshold = 0., node_size = (2,2))
-    spins_a, objective_a = solve(g, 16; β = 1., χ = 2)
-
-
-    @test spins_l[1] == spins[1]
-    @test spins_a[1] == spins[1]
-    @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
-    @test objective[1] ≈  0.1885492102563634
-    @test objective_a[1] ≈  0.1885492102563634
-
-    first_deg = [[1, -1, 1, 1, -1, 1, -1, 1, 1], [1, -1, 1, 1, -1, 1, 1, -1, 1], [1, -1, 1, 1, -1, 1, 1, 1, -1]]
-    @test spins[2] in first_deg
-    @test spins[3] in first_deg
-    @test spins[4] in first_deg
-
-    @test spins_l[2] in first_deg
-    @test spins_l[3] in first_deg
-    @test spins_l[4] in first_deg
-
-    @test spins_a[2] in first_deg
-    @test spins_a[3] in first_deg
-    @test spins_a[4] in first_deg
-
-    @test objective[2] ≈ 0.12638831529902897
-    @test objective[3] ≈ 0.12638831529902897
-    @test objective[4] ≈ 0.12638831529902897
-
-    second_deg = [[1, -1, 1, 1, -1, 1, -1, 1, -1], [1, -1, 1, 1, -1, 1, -1, -1, 1], [1, -1, 1, 1, -1, 1, 1, -1, -1]]
-    @test spins[5] in second_deg
-    @test spins[6] in second_deg
-    @test spins[7] in second_deg
-
-    @test spins_l[5] in second_deg
-    @test spins_l[6] in second_deg
-    @test spins_l[7] in second_deg
-
-    @test spins_a[5] in second_deg
-    @test spins_a[6] in second_deg
-    @test spins_a[7] in second_deg
-
-    @test objective[5] ≈ 0.08472062132961197
-    @test objective[6] ≈ 0.08472062132961197
-    @test objective[7] ≈ 0.08472062132961197
-
-    @test spins[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
-    @test spins_l[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
-    @test spins_a[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
-    @test objective[8] ≈ 0.05678993078983346
-
-    for i in 1:10
-        @test objective[i] ≈ objective_l[i]
-        @test objective[i] ≈ objective_a[i]
-    end
-end
-
-
-@testset "PEPS  - solving it on Float32" begin
-    T = Float32
-    g = interactions_case2()
-
-    spins, objective = solve(g, 4; β = T(2.), χ = 2, threshold = 1e-6)
-
-    #ground
-    @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
-
-    #first
-    @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
-
-    @test typeof(objective[1]) == Float32
-end
-
-
-@testset "larger system " begin
-
-    g = make_interactions_large()
+    g = make_interactions_case2()
     spins, objective = solve(g, 10; β = 3., χ = 2, threshold = 1e-11)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
     spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2))
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-8
+        @test spins[i] == spins_l[i]
+    end
+end
+
+
+@testset "test an exemple instance on Float32" begin
+
+    g = make_interactions_case2()
+    T = Float32
+    spins, objective = solve(g, 10; β = T(3.), χ = 2, threshold = 1e-11)
+    @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
+
+    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2))
+    for i in 1:10
+        @test objective[i] ≈ objective_l[i] atol=1e-5
         @test spins[i] == spins_l[i]
     end
 end

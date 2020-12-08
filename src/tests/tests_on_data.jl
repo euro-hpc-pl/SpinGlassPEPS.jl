@@ -42,7 +42,7 @@
 
         χ = 2
 
-        spins_l, objective_l = solve(g, 10; β = β, χ = χ, threshold = 1e-10, node_size = (2,2))
+        spins_l, objective_l = solve(g, 10; β = β, χ = χ, threshold = 1e-10, node_size = (3,2))
 
         for i in 1:10
             @test energy(spins_l[i], g) ≈ ens[i]

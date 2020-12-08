@@ -97,53 +97,9 @@ end
 end
 
 
+@testset "MPS vs PEPS test on an instance" begin
 
-@testset "MPS - solving simple problem" begin
-
-    g = interactions_case2()
-
-    spins, _ = solve_mps(g, 2; β=2., β_step=2, χ=2, threshold = 1e-14)
-
-    #ground
-    @test spins[1] == [1,-1,1,1,-1,1,1,1,1]
-
-    #first
-    @test spins[2] == [-1,1,-1,-1,1,-1,1,1,1]
-
-    # introduce degeneracy
-    set_prop!(g, 7, :h, 0.2)
-    set_prop!(g, 8, :h, 0.2)
-    set_prop!(g, 9, :h, 0.2)
-
-    spins, objective = solve_mps(g, 16; β=2., β_step=2, χ=2, threshold = 1e-14)
-
-    @test spins[1] == [1, -1, 1, 1, -1, 1, 1, 1, 1]
-    @test objective[1] ≈ 1.5332831372810425
-
-    first_deg = [[1, -1, 1, 1, -1, 1, -1, 1, 1], [1, -1, 1, 1, -1, 1, 1, -1, 1], [1, -1, 1, 1, -1, 1, 1, 1, -1]]
-    @test spins[2] in first_deg
-    @test spins[3] in first_deg
-    @test spins[4] in first_deg
-    @test objective[2] ≈ 0.6889485237728951
-    @test objective[3] ≈ 0.6889485237728951
-    @test objective[4] ≈ 0.6889485237728951
-
-    second_deg = [[1, -1, 1, 1, -1, 1, -1, 1, -1], [1, -1, 1, 1, -1, 1, -1, -1, 1], [1, -1, 1, 1, -1, 1, 1, -1, -1]]
-    @test spins[5] in second_deg
-    @test spins[6] in second_deg
-    @test spins[7] in second_deg
-    @test objective[5] ≈ 0.3095645265169637
-    @test objective[6] ≈ 0.3095645265169637
-    @test objective[7] ≈ 0.3095645265169637
-
-    @test spins[8] == [1, -1, 1, 1, -1, 1, -1, -1, -1]
-    @test objective[8] ≈ 0.13909630802730527
-end
-
-
-@testset "MPS vs PEPS larger system" begin
-
-    g = make_interactions_large()
+    g = make_interactions_case2()
 
     β = 0.5
     β_step = 2
@@ -167,45 +123,7 @@ end
 end
 
 
-function make_interactions_full()
-    J_h = [1 1 -0.1; 1 2 -1.; 1 3 -1.; 1 4 -0.2; 2 2 0.1; 2 3 -1.0; 2 4 -0.2]
-    J_h = vcat(J_h, [3 3 -0.2; 3 4 -0.2; 4 4 0.2])
-
-    L = 4
-    ig = MetaGraph(L, 0.0)
-
-    set_prop!(ig, :description, "The Ising model.")
-
-    for k in 1:size(J_h, 1)
-        i, j, v = J_h[k,:]
-        v = -v
-        i = Int(i)
-        j = Int(j)
-        if i == j
-            set_prop!(ig, i, :h, v) || error("Node $i missing!")
-        else
-            add_edge!(ig, i, j) &&
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
-        end
-    end
-    ig
-    0
-end
-
 @testset "MPS on full graph" begin
-
-    L = 4
-    D = Dict((1, 1) => -0.1, (1, 2) => -1., (1, 3) => -1., (1, 4) => -0.2, (2, 2) => 0.1)
-    D1 = Dict((2, 3) => -1.0, (2, 4) => -0.2, (3, 3) => -0.2, (3, 4) => -0.2, (4, 4) => 0.2)
-    D2 = merge!(+, D, D1)
-    g = ising_graph(D2, L, 1, -1)
-
-    spins, _ = solve_mps(g, 4; β=1., β_step=2, χ=12, threshold = 1.e-8)
-
-    @test spins[1] in [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
-    @test spins[2] in [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
-    @test spins[3] in [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
-    @test spins[4] in [[1, 1, 1, 1], [-1, -1, -1, -1], [1, 1, 1, -1], [-1, -1, -1, 1]]
 
     β = 0.1
     β_step = 4
@@ -217,6 +135,6 @@ end
 
     g = M2graph(M)
 
-    @time s, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=25, threshold = 1.e-12)
+    @time s, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=10, threshold = 1.e-12)
     @test length(s[1]) == 64
 end
