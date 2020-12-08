@@ -2,7 +2,7 @@
 
     β = 3.
     file = "example4tests.npz"
-    data = npzread("./tests/data/"*file)
+    data = npzread("./data/"*file)
     println(file)
 
     QM = data["Js"]

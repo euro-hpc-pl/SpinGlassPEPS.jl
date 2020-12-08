@@ -1,3 +1,7 @@
+include("../src/peps_no_types.jl")
+include("../src/notation.jl")
+include("test_helpers.jl")
+
 @testset "PEPS - axiliary functions" begin
 
     @testset "partial solution type" begin

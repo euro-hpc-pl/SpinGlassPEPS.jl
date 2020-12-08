@@ -339,8 +339,10 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
         no_conf = 2^length(g_element.spins_inds)
         # TODO no_conf can be reduced for approximate spectrum
         # TODO this need however clever spins2ind(e)
+        spectrum = brute_force(gg; num_states = no_conf)
+        e = spectrum.energies
+        s = spectrum.states
 
-        s,e = brute_force(gg; num_states = no_conf)
         # sorting is required for indexing
         p = sortperm([spins2ind(e) for e in s])
 
@@ -497,15 +499,4 @@ function last_m_els(vector::Vector{Int}, m::Int)
     else
         return vector[end-m+1:end]
     end
-end
-
-
-# this is axiliary function for npz write
-
-function vecvec2matrix(v::Vector{Vector{Int}})
-    M = v[1]
-    for i in 2:length(v)
-        M = hcat(M, v[i])
-    end
-    M
 end

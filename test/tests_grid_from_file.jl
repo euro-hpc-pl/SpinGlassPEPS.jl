@@ -1,36 +1,18 @@
 using LinearAlgebra
-using Requires
-using TensorOperations, TensorCast
-using LowRankApprox
 using LightGraphs
 using MetaGraphs
-using CSV
-using CUDA
-using LinearAlgebra
-using DocStringExtensions
-const product = Iterators.product
-
 using NPZ
+
+using SpinGlassPEPS
+
 using Logging
 using ArgParse
 using CSV
 using Test
 
+import SpinGlassPEPS: solve, solve_mps, M2graph
+
 disable_logging(LogLevel(0))
-
-include("../base.jl")
-include("../compressions.jl")
-include("../contractions.jl")
-include("../ising.jl")
-include("../graph.jl")
-include("../PEPS.jl")
-include("../search.jl")
-include("../utils.jl")
-
-
-include("../notation.jl")
-include("../peps_no_types.jl")
-include("../mps_implementation.jl")
 
 
 s = ArgParseSettings("description")

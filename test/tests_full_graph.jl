@@ -1,3 +1,7 @@
+include("../src/mps_implementation.jl")
+include("../src/peps_no_types.jl")
+include("../src/notation.jl")
+include("test_helpers.jl")
 
 @testset "mps on full graphs" begin
 
@@ -17,7 +21,10 @@
 
         g = M2graph(M)
 
-        spins_brute, energies_brute = brute_force(g, sols)
+        spectrum = brute_force(g; num_states=sols)
+
+        energies_brute = spectrum.energies
+        spins_brute = spectrum.states
 
         spins_mps, objectives_mps = solve_mps(g, sols; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
@@ -26,7 +33,14 @@
         spins_mps = spins_mps[p]
         energies_mps = energies_mps[p]
 
-        @test spins_mps[1:8] ≈ spins_brute[1:8]
+        @test spins_mps[1] ≈ spins_brute[1]
+        @test spins_mps[2] ≈ spins_brute[2]
+        @test spins_mps[3] ≈ spins_brute[3]
+        @test spins_mps[4] ≈ spins_brute[4]
+        @test spins_mps[5] ≈ spins_brute[5]
+        @test spins_mps[6] ≈ spins_brute[6]
+        @test spins_mps[7] ≈ spins_brute[7]
+        @test spins_mps[8] ≈ spins_brute[8]
         @test energies_mps[1:8] ≈ energies_brute[1:8]
     end
 

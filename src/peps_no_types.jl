@@ -1,8 +1,3 @@
-using TensorOperations
-using LinearAlgebra
-using GenericLinearAlgebra
-using Distributed
-
 
 # TODO β and interactions should be as Float64, if typechange, make it inside a solver
 

@@ -224,7 +224,4 @@ end
     ig = M2graph(M)
     g1 = graph4peps(ig, (2,2))
     @test get_system_size(g1) == 16
-
-    vecvec = [[1,1,-1],[1,-1,1]]
-    @test vecvec2matrix(vecvec) == [1 1; 1 -1; -1 1]
 end
