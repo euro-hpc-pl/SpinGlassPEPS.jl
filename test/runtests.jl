@@ -36,7 +36,7 @@ push!(my_tests,
     "compressions.jl",
     "ising.jl",
     "search.jl",
-    "graph.jl"
+    "graph.jl",
    "peps_tests.jl",
    "mps_tests.jl",
    "tests_full_graph.jl",
