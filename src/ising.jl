@@ -143,21 +143,13 @@ E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 ```
 """
 
-function energy(σ::Vector, J::Matrix, η::Vector=σ; sgn::Float64=-1.0) 
-    sgn * dot(σ, J, η)
-end
+energy(σ::Vector, J::Matrix, η::Vector=σ) = dot(σ, J, η)
+energy(σ::Vector, h::Vector) = dot(h, σ)
+energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(cl.h, σ)
 
-function energy(σ::Vector, h::Vector; sgn::Float64=-1.0) 
-    sgn * dot(h, σ)
-end
-
-function energy(σ::Vector, cl::Cluster, η::Vector=σ; sgn::Float64=-1.0) 
-    energy(σ, cl.J, η, sgn=sgn) + energy(cl.h, σ, sgn=sgn)
-end
-
-function energy(σ::Vector, ig::MetaGraph; sgn::Float64=-1.0) 
+function energy(σ::Vector, ig::MetaGraph) 
     cl = Cluster(ig, 0, enum(vertices(ig)), edges(ig))
-    energy(σ, cl, sgn=sgn) 
+    energy(σ, cl) 
 end
    
 function energy(fg::MetaGraph, edge::Edge) 
