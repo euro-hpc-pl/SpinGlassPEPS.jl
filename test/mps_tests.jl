@@ -123,16 +123,15 @@ end
 
 @testset "MPS on full graph" begin
 
-    β = 0.05
+    β = 0.1
     β_step = 4
 
-    #test if works on large graph 64 x 64
     Random.seed!(1234)
-    M = rand([-1.,-0.5,0.,0.5,1.], 64,64)
+    M = rand([-1.,-0.5,0.,0.5,1.], 32,32)
     M = M*(M')
 
     g = M2graph(M)
 
     @time s, _ = solve_mps(g, 4; β=β, β_step=β_step, χ=10, threshold = 1.e-12)
-    @test length(s[1]) == 64
+    @test length(s[1]) == 32
 end
