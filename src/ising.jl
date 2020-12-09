@@ -157,12 +157,7 @@ function energy(fg::MetaGraph, edge::Edge)
     vSp = get_prop(fg, v, :spectrum).states
     wSp = get_prop(fg, w, :spectrum).states
 
-    σ = vec(vSp)
-    η = vec(wSp)
-    # σ = reshape(vSp, prod(vSp))
-    # η = reshape(wSp, prod(wSp))
-
-    [ energy.(σ, Ref(edge.J), Ref(x)) for x ∈ η] 
+    [ energy.(vec(vSp), Ref(edge.J), Ref(η)) for η ∈ vec(wSp)] 
 end
 
 """

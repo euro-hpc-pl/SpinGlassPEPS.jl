@@ -116,14 +116,14 @@ function factor_graph(c::Chimera)
         v = get_prop(fg, src(e), :cluster)
         w = get_prop(fg, dst(e), :cluster)
 
-        edge = Edge(fg, v, w)
+        edge = Edge(c.graph, v, w)
         set_prop!(fg, e, :edge, edge)
         set_prop!(fg, e, :energy, energy(fg, edge))
     end
     fg
 end
 
-
+#=
 function peps_tensor(fg::MetaGraph, v::Int)
     T = Dict{String, AbstractArray}()
 
@@ -138,4 +138,4 @@ function peps_tensor(fg::MetaGraph, v::Int)
 
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
 end
-
+=#
