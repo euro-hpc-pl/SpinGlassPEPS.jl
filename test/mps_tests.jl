@@ -1,8 +1,6 @@
-include("../src/mps_implementation.jl")
-include("../src/peps_no_types.jl")
-include("../src/notation.jl")
-include("test_helpers.jl")
-
+import SpinGlassPEPS: connections_for_mps, construct_mps
+import SpinGlassPEPS: contract4probability, compute_probs
+import SpinGlassPEPS: solve_mps
 
 @testset "grouping of connections" begin
     M = ones(5,5)

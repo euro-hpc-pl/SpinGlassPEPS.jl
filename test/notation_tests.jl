@@ -1,5 +1,9 @@
-include("../src/notation.jl")
-#include("../src/ising.jl")
+import SpinGlassPEPS: nxmgrid, grid_cel, form_a_grid, chimera_cell, form_a_chimera_grid
+import SpinGlassPEPS: position_in_cluster, positions_in_cluster, Element_of_square_grid, Element_of_chimera_grid
+import SpinGlassPEPS: fullM2grid!, M2graph, graph4peps, graph4mps
+import SpinGlassPEPS: get_Js, M_of_interaction, ind2spin, spins2ind
+import SpinGlassPEPS: reindex, spins2binary, spins2binary, binary2spins, get_system_size
+import SpinGlassPEPS: sum_over_last, last_m_els
 
 @testset "grids" begin
 

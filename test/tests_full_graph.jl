@@ -1,8 +1,3 @@
-include("../src/mps_implementation.jl")
-include("../src/peps_no_types.jl")
-include("../src/notation.jl")
-include("test_helpers.jl")
-
 @testset "mps on full graphs" begin
 
     @testset "L = 15 testing with brute force" begin
