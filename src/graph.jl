@@ -118,20 +118,24 @@ function factor_graph(c::Chimera)
 
         edge = Edge(fg, v, w)
         set_prop!(fg, e, :edge, edge)
-
-        en = energy(fg, edge)
-        eexp = unique(en)
-        
-        set_prop!(fg, e, :exp, eexp)
-        set_prop!(fg, e, :proj, indexin(eexp, en))
+        set_prop!(fg, e, :energy, energy(fg, edge))
     end
     fg
 end
 
 
 function peps_tensor(fg::MetaGraph, v::Int)
+    T = Dict{String, AbstractArray}()
+
     for w ∈ unique_neighbors(fg, v)
+     
+        #to_exp = unique(en)
+
+        #set_prop!(fg, e, :energy, to_exp)
+        #set_prop!(fg, e, :projector, indexin(to_exp, en))
 
     end
+
+    @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
 end
 

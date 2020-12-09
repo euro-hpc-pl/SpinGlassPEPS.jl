@@ -16,8 +16,8 @@ end
 
 
 @testset "Chimera/factor graph" begin
-   m = 16
-   n = 16
+   m = 4
+   n = 4
    t = 4
 
    L = 2 * n * m * t
