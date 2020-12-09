@@ -23,10 +23,11 @@ end
 
 push!(my_tests,
     "base.jl",
-   "contractions.jl",
-   "compressions.jl",
-   "ising.jl",
-   "search.jl"
+    "contractions.jl",
+    "compressions.jl",
+    "ising.jl",
+    "search.jl",
+    "graph.jl"
 )
 
 for my_test in my_tests

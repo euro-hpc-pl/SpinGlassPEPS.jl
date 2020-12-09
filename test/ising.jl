@@ -45,20 +45,20 @@ using CSV
     @testset "Naive brute force for +/-1" begin
         k = 2^N
 
-        states, energies = brute_force(ig, k)
+        sp = brute_force(ig, num_states=k)
 
         s = 5
-        display(states[1:s])
+        display(sp.states[1:s])
         println("   ")
-        display(energies[1:s])
+        display(sp.energies[1:s])
         println("   ")
 
-        @test energies ≈ energy.(states, Ref(ig))
+        @test sp.energies ≈ energy.(sp.states, Ref(ig))
 
-        _states, _energies = SpinGlassPEPS._brute_force(ig, k)
+        states, energies = SpinGlassPEPS._brute_force(ig, k)
 
-        @test _energies ≈ energies
-        @test _states == states
+        @test energies ≈ sp.energies
+        @test states == sp.states
 
         set_prop!(ig, :β, rand(Float64))
         
@@ -68,13 +68,13 @@ using CSV
 
         β = get_prop(ig, :β)
 
-        r = exp.(-β .* energies)
+        r = exp.(-β .* sp.energies)
         R = r ./ sum(r)
 
         @test sum(R) ≈ 1
         @test sum(ρ) ≈ 1        
 
-        @test [ ρ[idx.(σ)...] for σ ∈ states ] ≈ R
+        @test [ ρ[idx.(σ)...] for σ ∈ sp.states ] ≈ R
     end
 
     @testset "Naive brute force for general spins" begin
@@ -83,24 +83,24 @@ using CSV
 
         ig = ising_graph(instance, L)
 
-        set_prop!(ig, :rank, (3,2,5,4))
+        set_prop!(ig, :rank, [3,2,5,4])
         rank = get_prop(ig, :rank)
 
         all = prod(rank)
-        states, energies = brute_force(ig, all)
+        sp = brute_force(ig, num_states=all)
 
         β = get_prop(ig, :β)
-        ρ = exp.(-β .* energies)
+        ρ = exp.(-β .* sp.energies)
 
         ϱ = ρ ./ sum(ρ) 
         ϱ̃ = gibbs_tensor(ig)
-
-        @test [ ϱ̃[idx.(σ)...] for σ ∈ states ] ≈ ϱ 
+ 
+        @test [ ϱ̃[idx.(σ)...] for σ ∈ sp.states ] ≈ ϱ 
     end
 
     @testset "Reading from Dict" begin
         instance_dict = Dict()
-        ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
+        ising = CSV.File(instance, types=[Int, Int, Float64], header=0, comment = "#")
 
         for (i, j, v) ∈ ising
             push!(instance_dict, (i, j) => v)
