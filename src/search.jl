@@ -1,6 +1,7 @@
 export MPS_from_gates, unique_neighbors
 export MPSControl
 export spectrum
+export spectrum_new
 
 struct MPSControl 
     max_bond::Int
@@ -9,7 +10,6 @@ struct MPSControl
     β::Vector
 end
 
-# ρ needs to be in the right canonical form
 function spectrum(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
@@ -26,10 +26,10 @@ function spectrum(ψ::MPS, keep::Int)
     left_env = ones(T, 1, 1, k)
 
     for (i, M) ∈ enumerate(ψ)
-        _, d, β = size(M)
+        _, d, b = size(M)
 
         pdo = zeros(T, k, d)
-        LL = zeros(T, β, β, k, d)
+        LL = zeros(T, b, b, k, d)
         config = zeros(Int, i, k, d)
 
         for j ∈ 1:k 
@@ -61,6 +61,64 @@ function spectrum(ψ::MPS, keep::Int)
     end
     states[:, 1:keep], prob[1:keep], pCut
 end
+
+# ρ needs to be in the right canonical form
+function spectrum_new(ψ::MPS, keep::Int) 
+    @assert keep > 0 "Number of states has to be > 0"
+    T = eltype(ψ)
+    
+    keep_extra = keep
+    lpCut = -1000
+    k = 1
+
+    if keep < prod(rank(ψ))
+        keep_extra += 1
+    end
+    lprob = zeros(T, k)
+    states = fill([], 1, k)
+    left_env = ones(T, 1, k)
+
+    for (i, M) ∈ enumerate(ψ)
+        _, d, b = size(M)
+
+        pdo = ones(T, k, d)
+        lpdo = zeros(T, k, d)
+        LL = zeros(T, b, k, d)
+        config = zeros(Int, i, k, d)
+
+        for j ∈ 1:k 
+            L = left_env[:, j]
+
+            for σ ∈ local_basis(d)
+                m = idx(σ)
+                LL[:, j, m] = L' * M[:, m, :]
+                pdo[j, m] = dot(LL[:, j, m], LL[:, j, m])
+                config[:, j, m] = vcat(states[:, j]..., σ)
+                LL[:, j, m] = LL[:, j, m]/sqrt(pdo[j, m])
+            end
+            pdo[j, :] = pdo[j, :]/sum(pdo[j, :])
+            lpdo[j, :] = log.(pdo[j, :]) .+ lprob[j]
+        end
+
+        perm = collect(1 : k * d)
+        k = k * d
+
+        if k > keep_extra
+            k = keep_extra
+            partialsortperm!(perm, vec(lpdo), 1:k, rev=true) 
+            lprob = vec(lpdo)[perm]
+            lpCut < last(lprob) ? lpCut = last(lprob) : () 
+        end
+
+        lprob = vec(lpdo)[perm]
+        @cast A[α, (l, d)] |= LL[α, l, d]
+        left_env = A[:, perm]
+        @cast B[β, (l, d)] |= config[β, l, d]
+        states = B[:, perm]
+    end
+    states = states'
+    states, lprob, lpCut
+end 
 
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     M = ψ[i]
@@ -157,4 +215,3 @@ function MPS(ig::MetaGraph, control::MPSControl)
     end
     ρ
 end
-
