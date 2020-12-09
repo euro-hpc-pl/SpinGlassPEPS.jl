@@ -139,24 +139,32 @@ end
         for max_states ∈ [1, N, 2*N, N^2]
 
             @info "Verifying low energy spectrum" max_states
-            states, prob, pCut = spectrum_new(rψ, max_states)            
+            states_new, prob_new, pCut_new = spectrum_new(rψ, max_states)            
+            states, prob, pCut = spectrum(rψ, max_states)
+            sp = brute_force(ig, num_states=max_states)
 
-            eng = zeros(length(prob))
-            for (j, p) ∈ enumerate(prob)
-                σ = states[j, :]
-                eng[j] = energy(σ, ig)
+            eng_new = zeros(length(prob_new))
+            for (j, p) ∈ enumerate(prob_new)
+                σ = states_new[j, :]
+                eng_new[j] = energy(σ, ig)
             end
             
-            perm = partialsortperm(eng, 1:max_states)
-            eng = eng[perm]
-            states = states[perm,:]
-            prob = prob[perm]
-            state = states[1,:]
-            @info "The largest discarded probability" pCut
-            @test maximum(prob) > pCut
+            perm = partialsortperm(eng_new, 1:max_states)
+            eng_new = eng_new[perm]
+            states_new = states_new[perm,:]
+            prob_new = prob_new[perm]
+            state = states_new[1,:]
+            @info "The largest discarded probability" pCut_new
+            @test maximum(prob_new) > pCut_new
             @info "State with the lowest energy" state
-            @info "Probability of the state with the lowest energy" prob[1]
-            @info "The lowest energy" eng[1]
+            @info "Probability of the state with the lowest energy" prob_new[1]
+            @info "The lowest energy" eng_new[1]
+
+            for (j, (p, e)) ∈ enumerate(zip(prob, sp.energies))
+                σ = states[:, j]
+                @test ϱ[idx.(σ)...] ≈ p
+                @test abs(energy(σ, ig) - e) < ϵ
+            end
            
         end
     end    
