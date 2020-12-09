@@ -123,7 +123,7 @@ function factor_graph(c::Chimera)
     fg
 end
 
-#=
+
 function peps_tensor(fg::MetaGraph, v::Int)
     T = Dict{String, AbstractArray}()
 
@@ -138,4 +138,4 @@ function peps_tensor(fg::MetaGraph, v::Int)
 
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
 end
-=#
+
