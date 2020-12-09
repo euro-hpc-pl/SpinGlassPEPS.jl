@@ -14,17 +14,6 @@ g = Chimera(m, n, t)
    @show g[1, 1]
 end
 
-@testset "Chimera outer connections" begin
-   @test length(outer_connections(g, 1, 1, 3, 3)) == 0
-   @test all(outer_connections(g, 1, 1, 1, 2) .== outer_connections(g, 1, 2, 1, 1))
-
-   # This still does not work
-   println(outer_connections(g, 1, 1, 1, 2))
-   println(typeof(g))
-
-   edges = filter_edges(g.graph, :cluster, (1, 2))
-   println(collect(edges))
-end
 
 @testset "Chimera/factor graph" begin
    m = 16
