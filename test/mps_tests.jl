@@ -123,7 +123,7 @@ end
 
 @testset "MPS on full graph" begin
 
-    β = 0.1
+    β = 0.05
     β_step = 4
 
     #test if works on large graph 64 x 64
