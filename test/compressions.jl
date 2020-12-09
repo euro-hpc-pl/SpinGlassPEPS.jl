@@ -1,5 +1,3 @@
-include("../src/compressions.jl")
-
 @testset "Canonisation and Compression" begin
 
 D = 10
