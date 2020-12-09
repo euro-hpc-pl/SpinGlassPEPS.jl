@@ -86,11 +86,13 @@ function Base.getindex(c::Chimera, i::Int, j::Int)
     c.graph[idx]
 end
 
-function Cluster(c::Chimera, v::Int)
+function unit_cell(c::Chimera, v::Int)
     elist = filter_edges(c.graph, :cells, (v, v))
     vlist = filter_vertices(c.graph, :cell, v)
     Cluster(c.graph, v, enum(vlist), elist)
 end
+
+Cluster(c::Chimera, v::Int) = unit_cell(c, v)
 
 #Spectrum(cl::Cluster) = brute_force(cl, num_states=256)
 
@@ -100,7 +102,7 @@ function Spectrum(cl::Cluster)
     Spectrum(energies, σ)   
 end
 
-function factor_graph(c::Chimera, cell::NTuple=(1,1))
+function factor_graph(c::Chimera)
     m, n, _ = c.size
     fg = MetaGraph(grid([m, n]))
 
@@ -116,8 +118,20 @@ function factor_graph(c::Chimera, cell::NTuple=(1,1))
 
         edge = Edge(fg, v, w)
         set_prop!(fg, e, :edge, edge)
-        set_prop!(fg, e, :energy, energy(fg, edge))
+
+        en = energy(fg, edge)
+        eexp = unique(en)
+        
+        set_prop!(fg, e, :exp, eexp)
+        set_prop!(fg, e, :proj, indexin(eexp, en))
     end
     fg
+end
+
+
+function peps_tensor(fg::MetaGraph, v::Int)
+    for w ∈ unique_neighbors(fg, v)
+
+    end
 end
 
