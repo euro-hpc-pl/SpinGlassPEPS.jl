@@ -139,3 +139,22 @@ function peps_tensor(fg::MetaGraph, v::Int)
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
 end
 
+function diGrid(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
+    dg = SimpleDiGraph(m * n)
+    linear = LinearIndices((1:width, 1:height))
+
+    for i ∈ 1:m
+        for j ∈ 1:n-1
+            v, w = linear[i, j], linear[i, j+1]
+            if hdir == 1 ? e = (v, w) : e = (w, e)
+            add_edge!(dg, e)
+        end
+    end
+
+    for i ∈ 1:n
+        for j ∈ 1:m-1
+            add_edge!(dg, vert_dir(linear[j+1, i], linear[j, i])...)
+        end
+    end
+    dg
+end
