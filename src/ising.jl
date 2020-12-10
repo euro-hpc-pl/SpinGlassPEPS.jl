@@ -1,11 +1,81 @@
 export ising_graph, energy
 export gibbs_tensor, brute_force
-export State
+export State, Cluster, Edge, Spectrum
 
 const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
-const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
+const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
+const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
 
+struct Spectrum
+    energies::Array{<:Number}
+    states::Array{Vector{<:Number}}
+end
+
+mutable struct Cluster
+    tag::Int
+    vertices::Dict{Int,Int}
+    edges::EdgeIter
+    rank::Vector
+    J::Matrix{<:Number}
+    h::Vector{<:Number}
+
+    function Cluster(ig::MetaGraph, v::Int, vertices::Dict, edges::EdgeIter)
+        cl = new(v, vertices, edges)
+        L = length(cl.vertices)
+
+        cl.J = zeros(L, L)
+        for e ∈ cl.edges
+            i = cl.vertices[src(e)]
+            j = cl.vertices[dst(e)] 
+            cl.J[i, j] = get_prop(ig, e, :J)
+        end
+
+        rank = get_prop(ig, :rank)
+        cl.rank = rank[1:L]
+
+        cl.h = zeros(L)
+        for (w, i) ∈ cl.vertices
+            cl.h[i] = get_prop(ig, w, :h)
+            cl.rank[i] = rank[w]
+        end
+        cl
+    end
+end
+
+function MetaGraphs.filter_edges(ig::MetaGraph, v::Cluster, w::Cluster)
+    edges = []
+    for i ∈ keys(v.vertices)
+        for j ∈ unique_neighbors(ig, i)
+            if j ∈ keys(w.vertices)
+                push!(edges, SimpleEdge(i, j))
+            end
+        end
+    end
+    edges
+end
+
+mutable struct Edge
+    tag::NTuple
+    edges::EdgeIter
+    J::Matrix{<:Number}
+
+    function Edge(ig::MetaGraph, v::Cluster, w::Cluster)
+        ed = new((v.tag, w.tag))
+        ed.edges = filter_edges(ig, v, w) 
+
+        m = length(v.vertices)
+        n = length(w.vertices)
+
+        ed.J = zeros(m, n)
+        for e ∈ ed.edges
+            i = v.vertices[src(e)]
+            j = w.vertices[dst(e)] 
+            ed.J[i, j] = get_prop(ig, e, :J)
+        end
+        ed
+    end
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -19,12 +89,18 @@ together with the coresponding energies
 of a classical Ising Hamiltonian
 """
 
-function brute_force(ig::MetaGraph, k::Int=1)
-    states = all_states(get_prop(ig, :rank))
-    energies = vec(energy.(states, Ref(ig)))
-    perm = partialsortperm(energies, 1:k) 
-    collect.(states)[perm], energies[perm]
-end    
+function brute_force(ig::MetaGraph; num_states::Int=1)
+    cl = Cluster(ig, 0, num(vertices(ig)), edges(ig))
+    brute_force(cl, num_states=num_states)
+end 
+
+function brute_force(cl::Cluster; num_states::Int=1)
+    σ = collect.(all_states(cl.rank))
+    states = reshape(σ, prod(cl.rank))
+    energies = energy.(states, Ref(cl))
+    perm = partialsortperm(energies, 1:num_states) 
+    Spectrum(energies[perm], states[perm])
+end 
 
 _ising(σ::State) = 2 .* σ .- 1
 
@@ -53,28 +129,9 @@ for all possible configurations \$\\σ\$.
 function gibbs_tensor(ig::MetaGraph)
     β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
-    ρ = exp.(-β .* energy.(all_states(rank), Ref(ig)))
+    states = collect.(all_states(rank))
+    ρ = exp.(-β .* energy.(states, Ref(ig)))
     ρ ./ sum(ρ)
-end
-
-
-function energy(σ::State, ig::MetaGraph, vertices; sgn::Float64=-1.0)
-    en::Float64 = 0
-    for i ∈ vertices
-        h = get_prop(ig, i, :h)  
-        en += h * σ[i]
-    end
-    sgn * en  
-end
-
-function energy(σ::State, ig::MetaGraph, edges::EdgeIter, η::State=σ; sgn::Float64=-1.0)
-    en::Float64 = 0
-    for e ∈ edges
-        i, j = src(e), dst(e)         
-        J = get_prop(ig, e, :J) 
-        en += σ[i] * J * η[j]   
-    end 
-    sgn * en
 end
 
 """
@@ -85,11 +142,24 @@ Calculate the Ising energy
 E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 ```
 """
-function energy(σ::State, ig::MetaGraph; sgn::Float64=-1.0)
-    e = energy(σ, ig, edges(ig), sgn=sgn) 
-    e += energy(σ, ig, vertices(ig), sgn=sgn)
+
+energy(σ::Vector, J::Matrix, η::Vector=σ) = dot(σ, J, η)
+energy(σ::Vector, h::Vector) = dot(h, σ)
+energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(cl.h, σ)
+
+function energy(σ::Vector, ig::MetaGraph) 
+    cl = Cluster(ig, 0, enum(vertices(ig)), edges(ig))
+    energy(σ, cl) 
 end
-    
+   
+function energy(fg::MetaGraph, edge::Edge) 
+    v, w = edge.tag
+    vSp = get_prop(fg, v, :spectrum).states
+    wSp = get_prop(fg, w, :spectrum).states
+
+    [ energy.(vec(vSp), Ref(edge.J), Ref(η)) for η ∈ vec(wSp)] 
+end
+
 """
 $(TYPEDSIGNATURES)
 
@@ -127,16 +197,16 @@ function ising_graph(instance::Instance, L::Int, β::Number=1, sgn::Number=1)
             set_prop!(ig, i, :h, 0.) || error("Cannot set bias at node $(i).")
         end 
     end
-    
-    # state (random by default) and corresponding energy
-    state = 2(rand(L) .< 0.5) .- 1
-
-    set_prop!(ig, :state, state)
-    set_prop!(ig, :energy, energy(state, ig)) || error("Unable to calculate the Ising energy!")
 
     # store extra information 
     set_prop!(ig, :β, β)
     set_prop!(ig, :rank, fill(2, L))
+
+    # state (random by default) and corresponding energy
+    σ = 2.0 * (rand(L) .< 0.5) .- 1.0
+
+    set_prop!(ig, :state, σ)
+    set_prop!(ig, :energy, energy(σ, ig)) || error("Unable to calculate the Ising energy!")
 
     ig
 end

@@ -14,40 +14,21 @@ g = Chimera(m, n, t)
    @show g[1, 1]
 end
 
-@testset "Chimera outer connections" begin
-   @test length(outer_connections(g, 1, 1, 3, 3)) == 0
-   @test all(outer_connections(g, 1, 1, 1, 2) .== outer_connections(g, 1, 2, 1, 1))
 
-   println(outer_connections(g, 1, 1, 1, 2))
-   println(typeof(g))
+@testset "Chimera/factor graph" begin
+   m = 16
+   n = 16
+   t = 4
 
-   edges = filter_edges(g.graph, :outer, (1, 2))
-   println(collect(edges))
-end
+   L = 2 * n * m * t
 
-@testset "Chimera graph" begin
-   M = 4
-   N = 4
-   T = 4
+   instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
 
-   C = 2 * N * M * T
+   ig = ising_graph(instance, L)
+   cg = Chimera((m, n, t), ig)
 
-   instance = "$(@__DIR__)/instances/chimera_droplets/$(C)power/001.txt"  
-   ig = ising_graph(instance, C)
-   chimera = Chimera((M, N, T), ig)
+   #cl = Cluster(cg, 2)
+   #@time Spectrum(cl)
 
-   for e ∈ edges(chimera)
-      get_prop(chimera, e, :J) ≈ get_prop(ig, e, :J) 
-   end
-
-   for v ∈ vertices(chimera)
-      get_prop(chimera, v, :h) ≈ get_prop(ig, v, :h) 
-   end
-
-   out_edges = filter_edges(chimera.graph, :outer, (1, 2) )
-   σ = 2(rand(C) .< 0.5) .- 1
-
-   #e = energy(σ, σ, chimera.graph, out_edges)
-   e = energy(σ, chimera.graph, out_edges)
-
+   @time fg = factor_graph(cg)
 end
