@@ -147,13 +147,15 @@ function factor_graph(c::Chimera)
 end
 
 
-#=
 function peps_tensor(fg::MetaGraph, v::Int)
     T = Dict{String, AbstractArray}()
 
-    for w ∈ unique_neighbors(fg, v)
+    for w ∈ inneighbors(fg, v)
      
-        #to_exp = unique(en)
+        #en = get_prop(fg, :energy)
+
+        # to_exp = unique(en)
+        # indexin(to_exp, en)
 
         #set_prop!(fg, e, :energy, to_exp)
         #set_prop!(fg, e, :projector, indexin(to_exp, en))
@@ -162,4 +164,3 @@ function peps_tensor(fg::MetaGraph, v::Int)
 
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
 end
-=#
