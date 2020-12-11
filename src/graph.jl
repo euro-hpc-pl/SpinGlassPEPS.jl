@@ -1,6 +1,16 @@
 export Chimera, factor_graph
 export Cluster, Spectrum
 
+@enum HorizontalDeirections begin
+    left_to_right = 1
+    right_to_left = -1
+end
+
+@enum VerticalDirections begin
+    top_to_bottom = -1
+    bottom_to_top = 1
+end
+
 mutable struct Chimera
     size::NTuple{3, Int}
     graph::MetaGraph
@@ -102,7 +112,11 @@ function Spectrum(cl::Cluster)
     Spectrum(energies, σ)   
 end
 
-function factor_graph(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
+function factor_graph(
+    m::Int, 
+    n::Int, 
+    hdir::HorizontalDeirections=HorizontalDeirections.left_to_right, 
+    vdir::VerticalDirections=VerticalDirections.bottom_to_top)
     dg = MetaGraph(SimpleDiGraph(m * n))
     set_prop!(dg, :order, (hdir, vdir))
 
@@ -112,6 +126,7 @@ function factor_graph(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
             v, w = linear[i, j], linear[i, j+1]
             hdir == 1 ? e = (v, w) : e = (w, v)
             add_edge!(dg, e)
+            set_prop!(dg, e, :orientation, "horizontal")
         end
     end
 
@@ -120,6 +135,7 @@ function factor_graph(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
             v, w = linear[i, j], linear[i, j+1]
             vdir == 1 ? e = (v, w) : e = (w, v)
             add_edge!(dg, e)
+            set_prop!(dg, e, :orientation, "vertical")
         end
     end
     dg
@@ -147,13 +163,30 @@ function factor_graph(c::Chimera)
 end
 
 
-#=
+function decompose_edges!(fg::MetaGraph, beta::AbstractFloat)
+    for edge ∈ edges(fg)
+        energies = get_prop(fg, edge, :energy)
+        truncated_energies, projector = rank_reveal(energies)
+        exponents = exp.(beta .* btruncated_energies)
+        set_prop!(fg, edge, :projector, projector)
+        set_prop!(fg, edge, :exponents, exponents)
+    end 
+end
+
+
 function peps_tensor(fg::MetaGraph, v::Int)
     T = Dict{String, AbstractArray}()
+    outgoing = outneighbors(fg, v)
+    incoming = inneighbours(fg, v)
+
+    hor_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "horizontal"]
+    hor_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "horizontal"]
+    ver_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "vertical"]
+    ver_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "vertical"]
 
     for w ∈ unique_neighbors(fg, v)
-     
-        #to_exp = unique(en)
+
+        #to_exp = unique(en)    
 
         #set_prop!(fg, e, :energy, to_exp)
         #set_prop!(fg, e, :projector, indexin(to_exp, en))
@@ -162,4 +195,3 @@ function peps_tensor(fg::MetaGraph, v::Int)
 
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
 end
-=#
