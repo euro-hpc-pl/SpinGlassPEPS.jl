@@ -112,6 +112,7 @@ function factor_graph(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
             v, w = linear[i, j], linear[i, j+1]
             hdir == 1 ? e = (v, w) : e = (w, v)
             add_edge!(dg, e)
+            set_prop!(fg, :orientation, "horizontal")
         end
     end
 
@@ -120,6 +121,7 @@ function factor_graph(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
             v, w = linear[i, j], linear[i, j+1]
             vdir == 1 ? e = (v, w) : e = (w, v)
             add_edge!(dg, e)
+            set_prop!(fg, :orientation, "vertical")
         end
     end
     dg
@@ -150,16 +152,9 @@ end
 function peps_tensor(fg::MetaGraph, v::Int)
     T = Dict{String, AbstractArray}()
 
+
     for w ∈ inneighbors(fg, v)
-     
-        #en = get_prop(fg, :energy)
-
-        # to_exp = unique(en)
-        # indexin(to_exp, en)
-
-        #set_prop!(fg, e, :energy, to_exp)
-        #set_prop!(fg, e, :projector, indexin(to_exp, en))
-
+        
     end
 
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
