@@ -165,24 +165,12 @@ end
 
 _holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
 
-
-function MPS(ig::MetaGraph, control::MPSControl)
+function _compress_MPS(ig::MetaGraph, ρ::AbstractMPS, control::MPSControl)
     L = nv(ig)
-
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
     schedule = control.β
-    @info "Set control parameters for MPS" Dcut tol max_sweeps
-
-    β = get_prop(ig, :β)
-    rank = get_prop(ig, :rank)
-
-    @assert β ≈ sum(schedule) "Incorrect β schedule."
-
-    @info "Preparing Hadamard state as MPS"
-    ρ = HadamardMPS(rank)
-    is_right = true
 
     @info "Sweeping through β and σ" schedule
     for dβ ∈ schedule, i ∈ 1:L
@@ -201,7 +189,7 @@ function MPS(ig::MetaGraph, control::MPSControl)
                 _apply_nothing!(χ, l, i) 
             end
         end
-
+        
         if bond_dimension(ρ) > Dcut
             @info "Compresing MPS" bond_dimension(ρ), Dcut
             ρ = compress(ρ, Dcut, tol, max_sweeps) 
@@ -214,4 +202,24 @@ function MPS(ig::MetaGraph, control::MPSControl)
         is_right = true
     end
     ρ
+end
+
+function MPS(ig::MetaGraph, control::MPSControl)
+
+    Dcut = control.max_bond
+    tol = control.var_ϵ
+    max_sweeps = control.max_sweeps
+    schedule = control.β
+    @info "Set control parameters for MPS" Dcut tol max_sweeps
+
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
+
+    @assert β ≈ sum(schedule) "Incorrect β schedule."
+
+    @info "Preparing Hadamard state as MPS"
+    ρ = HadamardMPS(rank)
+    is_right = true
+
+    ρ = _compress_MPS(ig, ρ, control)
 end
