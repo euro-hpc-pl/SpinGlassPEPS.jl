@@ -103,9 +103,10 @@ function Spectrum(cl::Cluster)
 end
 
 function factor_graph(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
-    dg = SimpleDiGraph(m * n)
-    linear = LinearIndices((1:m, 1:n))
+    dg = MetaGraph(SimpleDiGraph(m * n))
+    set_prop!(dg, :order, (hdir, vdir))
 
+    linear = LinearIndices((1:m, 1:n))
     for i ∈ 1:m
         for j ∈ 1:n-1
             v, w = linear[i, j], linear[i, j+1]
@@ -126,7 +127,7 @@ end
 
 function factor_graph(c::Chimera)
     m, n, _ = c.size
-    fg = MetaGraph(grid([m, n]))
+    fg = factor_graph(m, n)
 
     for v ∈ vertices(fg)
         cl = Cluster(c, v)
@@ -146,6 +147,7 @@ function factor_graph(c::Chimera)
 end
 
 
+#=
 function peps_tensor(fg::MetaGraph, v::Int)
     T = Dict{String, AbstractArray}()
 
@@ -160,3 +162,4 @@ function peps_tensor(fg::MetaGraph, v::Int)
 
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
 end
+=#
