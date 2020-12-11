@@ -117,6 +117,7 @@ function factor_graph(
     n::Int, 
     hdir::HorizontalDeirections=HorizontalDeirections.left_to_right, 
     vdir::VerticalDirections=VerticalDirections.bottom_to_top)
+
     dg = MetaGraph(SimpleDiGraph(m * n))
     set_prop!(dg, :order, (hdir, vdir))
 
@@ -179,6 +180,8 @@ function peps_tensor(fg::MetaGraph, v::Int)
     outgoing = outneighbors(fg, v)
     incoming = inneighbours(fg, v)
 
+    # do not like it -- too long. But first and formost, it does not solve the problem!
+    #Still no idea which is l, r, etc -- indexing matter
     hor_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "horizontal"]
     hor_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "horizontal"]
     ver_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "vertical"]
