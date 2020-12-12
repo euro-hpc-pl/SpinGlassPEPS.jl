@@ -112,7 +112,7 @@ function factor_graph(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
             v, w = linear[i, j], linear[i, j+1]
             hdir == 1 ? e = (v, w) : e = (w, v)
             add_edge!(dg, e)
-            set_prop!(fg, :orientation, "horizontal")
+            set_prop!(dg, :orientation, "horizontal")
         end
     end
 
@@ -121,7 +121,7 @@ function factor_graph(m::Int, n::Int, hdir::Int=1, vdir::Int=-1)
             v, w = linear[i, j], linear[i, j+1]
             vdir == 1 ? e = (v, w) : e = (w, v)
             add_edge!(dg, e)
-            set_prop!(fg, :orientation, "vertical")
+            set_prop!(dg, :orientation, "vertical")
         end
     end
     dg
@@ -148,7 +148,7 @@ function factor_graph(c::Chimera)
     fg
 end
 
-
+#=
 function peps_tensor(fg::MetaGraph, v::Int)
     T = Dict{String, AbstractArray}()
 
@@ -159,3 +159,4 @@ function peps_tensor(fg::MetaGraph, v::Int)
 
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
 end
+=#
