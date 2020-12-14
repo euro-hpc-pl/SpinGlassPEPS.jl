@@ -118,7 +118,6 @@ function Spectrum(cl::Cluster)
 end
 
 function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
-
     dg = MetaGraph(SimpleDiGraph(m * n))
     set_prop!(dg, :order, (hdir, vdir))
 
@@ -128,7 +127,6 @@ function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
             v, w = linear[i, j], linear[i, j+1]
             Int(hdir) == 1 ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
             add_edge!(dg, e)
-            println(e)
             set_prop!(dg, e, :orientation, "horizontal")
         end
     end
@@ -182,54 +180,3 @@ function decompose_edges!(fg::MetaGraph, order=P_then_E, beta::Float64=1.0)
     end 
 end
  
-mutable struct PepsTensor
-    left::AbstractArray
-    right::AbstractArray
-    up::AbstractArray
-    down::AbstractArray
-    tensor::AbstractArray
-
-    function PepsTensor(fg::MetaGraph, v::Int)
-        pc = new()
-        outgoing = outneighbors(fg, v)
-        incoming = inneighbours(fg, v)
-        
-        for u ∈ outgoing
-            if get_prop(fg, (v, u), :orientation) == "horizontal"
-                pc.right = last(get_prop(fg, (v, u), :decomposition))
-            else
-                pc.down = last(get_prop(fg, (v, u), :decomposition))
-            end 
-        end
-
-        for u ∈ incoming
-            if get_prop(fg, (u, v), :orientation) == "horizontal"
-                pc.left = first(get_prop(fg, (u, v), :decomposition))
-            else
-                pc.up = first(get_prop(fg, (u, v), :decomposition))
-            end 
-        end
-       
-        # open boundary conditions
-        if pc.left === nothing
-            pc.left = ones(1, size(pc.right, 1))
-        end
-
-        if pc.right === nothing
-            pc.right = ones(size(pc.left, 2), 1)
-        end
-
-        if pc.up === nothing
-            pc.up = ones(1, size(pc.down, 1))
-        end
-
-        if pc.down === nothing
-            pc.down = ones(size(pc.up, 2), 1)
-        end
-
-        pc.tensor[l, r, u, d, σ] |= pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
-
-        pc
-    end
-end
-

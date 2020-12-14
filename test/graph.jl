@@ -14,14 +14,26 @@ g = Chimera(m, n, t)
    @show g[1, 1]
 end
 
+@testset "Chimera graph" begin
+   m = 4
+   n = 4
+   t = 4
 
-@testset "Chimera/factor graph" begin
+   L = 2 * n * m * t
+   instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
+
+   ig = ising_graph(instance, L)
+   cg = Chimera((m, n, t), ig)
+
+   @time fg = factor_graph(cg)
+end
+
+@testset "Factor graph" begin
    m = 16
    n = 16
    t = 4
 
    L = 2 * n * m * t
-
    instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
 
    ig = ising_graph(instance, L)
