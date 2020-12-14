@@ -1,7 +1,12 @@
 export Chimera, factor_graph
-export Cluster, Spectrum
+export Cluster, Spectrum, PepsTensor
 
-@enum HorizontalDeirections begin
+@enum TensorsOrder begin
+    P_then_E = 1
+    E_then_P = -1
+end
+
+@enum HorizontalDirections begin
     left_to_right = 1
     right_to_left = -1
 end
@@ -112,11 +117,7 @@ function Spectrum(cl::Cluster)
     Spectrum(energies, σ)   
 end
 
-function factor_graph(
-    m::Int, 
-    n::Int, 
-    hdir::HorizontalDeirections=HorizontalDeirections.left_to_right, 
-    vdir::VerticalDirections=VerticalDirections.bottom_to_top)
+function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
 
     dg = MetaGraph(SimpleDiGraph(m * n))
     set_prop!(dg, :order, (hdir, vdir))
@@ -125,8 +126,9 @@ function factor_graph(
     for i ∈ 1:m
         for j ∈ 1:n-1
             v, w = linear[i, j], linear[i, j+1]
-            hdir == 1 ? e = (v, w) : e = (w, v)
+            Int(hdir) == 1 ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
             add_edge!(dg, e)
+            println(e)
             set_prop!(dg, e, :orientation, "horizontal")
         end
     end
@@ -134,7 +136,7 @@ function factor_graph(
     for i ∈ 1:n
         for j ∈ 1:m-1
             v, w = linear[i, j], linear[i, j+1]
-            vdir == 1 ? e = (v, w) : e = (w, v)
+            Int(vdir) == 1 ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
             add_edge!(dg, e)
             set_prop!(dg, e, :orientation, "vertical")
         end
@@ -164,28 +166,28 @@ function factor_graph(c::Chimera)
 end
 
 
-function decompose_edges!(fg::MetaGraph, order::Bool, beta::Float64=1.0)
+function decompose_edges!(fg::MetaGraph, order=P_then_E, beta::Float64=1.0)
+    set_prop!(dg, :tensorsOrder, order)
 
     for edge ∈ edges(fg)
         energies = get_prop(fg, edge, :energy)
         en, p = rank_reveal(energies)
 
-        if order
+        if Int(order) == 1
             dec = (exp.(beta .* en), p)
         else
             dec = (p, exp.(beta .* en))
         end
-        set_prop!(fg, edge, :dec, dec)
+        set_prop!(fg, edge, :decomposition, dec)
     end 
 end
  
-
-
 mutable struct PepsTensor
     left::AbstractArray
     right::AbstractArray
     up::AbstractArray
     down::AbstractArray
+    tensor::AbstractArray
 
     function PepsTensor(fg::MetaGraph, v::Int)
         pc = new()
@@ -194,20 +196,21 @@ mutable struct PepsTensor
         
         for u ∈ outgoing
             if get_prop(fg, (v, u), :orientation) == "horizontal"
-                pc.right = last(get_prop(fg, (v, u), :dec))
+                pc.right = last(get_prop(fg, (v, u), :decomposition))
             else
-                pc.dow = last(get_prop(fg, (v, u), :dec))
+                pc.down = last(get_prop(fg, (v, u), :decomposition))
             end 
         end
 
         for u ∈ incoming
             if get_prop(fg, (u, v), :orientation) == "horizontal"
-                pc.left = first(get_prop(fg, (u, v), :dec))
+                pc.left = first(get_prop(fg, (u, v), :decomposition))
             else
-                pc.up = first(get_prop(fg, (u, v), :dec))
+                pc.up = first(get_prop(fg, (u, v), :decomposition))
             end 
         end
        
+        # open boundary conditions
         if pc.left === nothing
             pc.left = ones(1, size(pc.right, 1))
         end
@@ -224,12 +227,9 @@ mutable struct PepsTensor
             pc.down = ones(size(pc.up, 2), 1)
         end
 
+        pc.tensor[l, r, u, d, σ] |= pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
+
         pc
     end
-end
-
-
-function peps_tensor(pc::PepsTensor)
-    @cast A[l, r, u, d, σ] |= pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
 end
 

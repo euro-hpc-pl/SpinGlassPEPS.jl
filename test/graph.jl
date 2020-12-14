@@ -27,8 +27,5 @@ end
    ig = ising_graph(instance, L)
    cg = Chimera((m, n, t), ig)
 
-   #cl = Cluster(cg, 2)
-   #@time Spectrum(cl)
-
    @time fg = factor_graph(cg)
 end
