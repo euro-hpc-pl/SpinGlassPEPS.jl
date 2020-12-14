@@ -178,39 +178,58 @@ function decompose_edges!(fg::MetaGraph, order::Bool, beta::Float64=1.0)
         set_prop!(fg, edge, :dec, dec)
     end 
 end
+ 
 
 
-function peps_tensor(fg::MetaGraph, v::Int)
-    hdir, vdir = get_prop!(dg, :order)
+mutable struct PepsTensor
+    left::AbstractArray
+    right::AbstractArray
+    up::AbstractArray
+    down::AbstractArray
 
-    outgoing = outneighbors(fg, v)
-    incoming = inneighbours(fg, v)
-
-    hor_outgoing = [u for u ∈ outgoing if get_prop!(fg, (v, u), :orientation) == "horizontal"]
-    hor_incoming = [u for u ∈ incoming if get_prop!(fg, (u, v), :orientation) == "horizontal"]
-    ver_outgoing = [u for u ∈ outgoing if get_prop!(fg, (v, u), :orientation) == "vertical"]
-    ver_incoming = [u for u ∈ incoming if get_prop!(fg, (u, v), :orientation) == "vertical"]
-
-    T = Dict{String, AbstractArray}()
-    for (u, w) ∈ zip(hor_outgoing, hor_incoming)
-        if hdir == 1
-            T["l"] = last(get_prop(fg, (w, v), :dec))
-            T["r"] = first(get_prop(fg, (u, v), :dec))
-        else
-            T["r"] = first(get_prop(fg, (w, v), :dec))
-            T["l"] = last(get_prop(fg, (u, v), :dec))
+    function PepsTensor(fg::MetaGraph, v::Int)
+        pc = new()
+        outgoing = outneighbors(fg, v)
+        incoming = inneighbours(fg, v)
+        
+        for u ∈ outgoing
+            if get_prop(fg, (v, u), :orientation) == "horizontal"
+                pc.right = last(get_prop(fg, (v, u), :dec))
+            else
+                pc.dow = last(get_prop(fg, (v, u), :dec))
+            end 
         end
-    end
 
-    for (u, w) ∈ zip(ver_outgoing, ver_incoming)
-        if vdir == 1
-            T["u"] = last(get_prop(fg, (w, v), :dec))
-            T["d"] = first(get_prop(fg, (u, v), :dec))
-        else
-            T["d"] = first(get_prop(fg, (w, v), :dec))
-            T["u"] = last(get_prop(fg, (u, v), :dec))
+        for u ∈ incoming
+            if get_prop(fg, (u, v), :orientation) == "horizontal"
+                pc.left = first(get_prop(fg, (u, v), :dec))
+            else
+                pc.up = first(get_prop(fg, (u, v), :dec))
+            end 
         end
-    end
+       
+        if pc.left === nothing
+            pc.left = ones(1, size(pc.right, 1))
+        end
 
-    @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][σ, r] * T["u"][u, σ] * T["d"][σ, d]
+        if pc.right === nothing
+            pc.right = ones(size(pc.left, 2), 1)
+        end
+
+        if pc.up === nothing
+            pc.up = ones(1, size(pc.down, 1))
+        end
+
+        if pc.down === nothing
+            pc.down = ones(size(pc.up, 2), 1)
+        end
+
+        pc
+    end
 end
+
+
+function peps_tensor(pc::PepsTensor)
+    @cast A[l, r, u, d, σ] |= pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
+end
+
