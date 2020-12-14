@@ -177,24 +177,19 @@ end
 
 function peps_tensor(fg::MetaGraph, v::Int)
     T = Dict{String, AbstractArray}()
-    outgoing = outneighbors(fg, v)
-    incoming = inneighbours(fg, v)
+    #outgoing = outneighbors(fg, v)
+    #incoming = inneighbours(fg, v)
 
     # do not like it -- too long. But first and formost, it does not solve the problem!
     #Still no idea which is l, r, etc -- indexing matter
-    hor_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "horizontal"]
-    hor_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "horizontal"]
-    ver_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "vertical"]
-    ver_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "vertical"]
+    #hor_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "horizontal"]
+    #hor_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "horizontal"]
+    #ver_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "vertical"]
+    #ver_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "vertical"]
 
-    for w ∈ unique_neighbors(fg, v)
+    nbrs = unique_neighbors(fg, v)
+    hor = [w for w ∈ nbrs if get_prop!(fg, (v, w), :orientation) == "horizontal"]
+    ver = [w for w ∈ nbrs if get_prop!(fg, (v, w), :orientation) == "vertical"]
 
-        #to_exp = unique(en)    
-
-        #set_prop!(fg, e, :energy, to_exp)
-        #set_prop!(fg, e, :projector, indexin(to_exp, en))
-
-    end
-
-    @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][r, σ] * T["d"][d, σ] * T["u"][u, σ]
+    @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][σ, r] * T["u"][u, σ] * T["d"][σ, d]
 end
