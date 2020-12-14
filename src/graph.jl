@@ -164,13 +164,18 @@ function factor_graph(c::Chimera)
 end
 
 
-function decompose_edges!(fg::MetaGraph, beta::AbstractFloat)
+function decompose_edges!(fg::MetaGraph, order::Bool, beta::Float64=1.0)
+
     for edge ∈ edges(fg)
         energies = get_prop(fg, edge, :energy)
-        truncated_energies, projector = rank_reveal(energies)
-        exponents = exp.(beta .* btruncated_energies)
-        set_prop!(fg, edge, :projector, projector)
-        set_prop!(fg, edge, :exponents, exponents)
+        en, p = rank_reveal(energies)
+
+        if order
+            dec = (exp.(beta .* en), p)
+        else
+            dec = (p, exp.(beta .* en))
+        end
+        set_prop!(fg, edge, :dec, dec)
     end 
 end
 
