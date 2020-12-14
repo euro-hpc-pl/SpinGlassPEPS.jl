@@ -176,20 +176,36 @@ end
 
 
 function peps_tensor(fg::MetaGraph, v::Int)
+    hdir, vdir = get_prop!(dg, :order)
+
+    outgoing = outneighbors(fg, v)
+    incoming = inneighbours(fg, v)
+
+    hor_outgoing = [u for u ∈ outgoing if get_prop!(fg, (v, u), :orientation) == "horizontal"]
+    hor_incoming = [u for u ∈ incoming if get_prop!(fg, (u, v), :orientation) == "horizontal"]
+    ver_outgoing = [u for u ∈ outgoing if get_prop!(fg, (v, u), :orientation) == "vertical"]
+    ver_incoming = [u for u ∈ incoming if get_prop!(fg, (u, v), :orientation) == "vertical"]
+
     T = Dict{String, AbstractArray}()
-    #outgoing = outneighbors(fg, v)
-    #incoming = inneighbours(fg, v)
+    for (u, w) ∈ zip(hor_outgoing, hor_incoming)
+        if hdir == 1
+            T["l"] = last(get_prop(fg, (w, v), :dec))
+            T["r"] = first(get_prop(fg, (u, v), :dec))
+        else
+            T["r"] = first(get_prop(fg, (w, v), :dec))
+            T["l"] = last(get_prop(fg, (u, v), :dec))
+        end
+    end
 
-    # do not like it -- too long. But first and formost, it does not solve the problem!
-    #Still no idea which is l, r, etc -- indexing matter
-    #hor_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "horizontal"]
-    #hor_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "horizontal"]
-    #ver_outgoing = [u for u in outgoing if get_prop!(fg, (v, u), :orientation) == "vertical"]
-    #ver_incoming = [u for u in incoming if get_prop!(fg, (u, v), :orientation) == "vertical"]
-
-    nbrs = unique_neighbors(fg, v)
-    hor = [w for w ∈ nbrs if get_prop!(fg, (v, w), :orientation) == "horizontal"]
-    ver = [w for w ∈ nbrs if get_prop!(fg, (v, w), :orientation) == "vertical"]
+    for (u, w) ∈ zip(ver_outgoing, ver_incoming)
+        if vdir == 1
+            T["u"] = last(get_prop(fg, (w, v), :dec))
+            T["d"] = first(get_prop(fg, (u, v), :dec))
+        else
+            T["d"] = first(get_prop(fg, (w, v), :dec))
+            T["u"] = last(get_prop(fg, (u, v), :dec))
+        end
+    end
 
     @cast A[l, r, u, d, σ] |= T["l"][l, σ] * T["r"][σ, r] * T["u"][u, σ] * T["d"][σ, d]
 end
