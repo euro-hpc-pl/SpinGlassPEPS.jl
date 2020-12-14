@@ -2,6 +2,7 @@ export MPS_from_gates, unique_neighbors
 export MPSControl
 export spectrum
 export spectrum_new
+export multiply_purifications
 
 struct MPSControl 
     max_bond::Int
@@ -165,18 +166,22 @@ end
 
 _holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
 
-function _compress_MPS(ig::MetaGraph, ρ::AbstractMPS, control::MPSControl)
-    L = nv(ig)
-    Dcut = control.max_bond
-    tol = control.var_ϵ
-    max_sweeps = control.max_sweeps
-    schedule = control.β
+function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, i::Int)
 
-    @info "Sweeping through β and σ" schedule
-    for dβ ∈ schedule, i ∈ 1:L
+    T = eltype(χ)
+    A1 = χ[i]
+    A2 = ϕ[i]
+    Dl1, d, Dr1 = size(A1)
+    Dl2, d, Dr2 = size(A2)
+
+    @cast B[Dl1⊗Dl2, b, Dr1⊗Dr2] := A1[Dl1, b, Dr1] * A2[Dl2, b, Dr2]
+
+end
+
+function _apply_layer_of_gates(ig::MetaGraph, ρ::AbstractMPS, L::Int, dβ::Number, Dcut::Number, tol::Number, max_sweeps::Int)
+    for i ∈ 1:L
         _apply_bias!(ρ, ig, dβ, i) 
         is_right = false
-
         nbrs = unique_neighbors(ig, i)
         if !isempty(nbrs)
             _apply_projector!(ρ, i)
@@ -189,14 +194,14 @@ function _compress_MPS(ig::MetaGraph, ρ::AbstractMPS, control::MPSControl)
                 _apply_nothing!(χ, l, i) 
             end
         end
-        
+    
         if bond_dimension(ρ) > Dcut
             @info "Compresing MPS" bond_dimension(ρ), Dcut
             ρ = compress(ρ, Dcut, tol, max_sweeps) 
             is_right = true
         end
-    end
-
+        
+    end 
     if !is_right
         canonise!(ρ, :right)
         is_right = true
@@ -205,7 +210,8 @@ function _compress_MPS(ig::MetaGraph, ρ::AbstractMPS, control::MPSControl)
 end
 
 function MPS(ig::MetaGraph, control::MPSControl)
-
+    
+    L = nv(ig)
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
@@ -220,6 +226,9 @@ function MPS(ig::MetaGraph, control::MPSControl)
     @info "Preparing Hadamard state as MPS"
     ρ = HadamardMPS(rank)
     is_right = true
-
-    ρ = _compress_MPS(ig, ρ, control)
+    @info "Sweeping through β and σ" schedule
+    for dβ ∈ schedule
+        ρ = _apply_layer_of_gates(ig, ρ, L, dβ, Dcut, tol, max_sweeps)
+    end
+    ρ
 end

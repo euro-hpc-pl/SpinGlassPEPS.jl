@@ -173,5 +173,10 @@ end
             @info "The lowest energy" eng_new[1]
             
         end
-    end    
+
+        for (i, M) ∈ enumerate(rψ)
+            multiply_purifications(rψ, rψ, i)
+        end
+
+    end
 end
