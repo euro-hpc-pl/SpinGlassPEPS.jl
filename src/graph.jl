@@ -1,5 +1,5 @@
-export Chimera, factor_graph
-export Cluster, Spectrum, PepsTensor
+export Chimera, factor_graph, decompose_edges!
+export Cluster, Spectrum
 
 @enum TensorsOrder begin
     P_then_E = 1
@@ -14,6 +14,18 @@ end
 @enum VerticalDirections begin
     top_to_bottom = -1
     bottom_to_top = 1
+end
+
+mutable struct Lattice
+    size::NTuple{3, Int}
+    graph::MetaGraph
+
+    function Lattice(m::Int, n::Int)
+        lt = new()
+        lt.size = (m, n, 0)
+        lt.graph = MetaGraph(grid([m, n]))
+        lt
+    end
 end
 
 mutable struct Chimera
@@ -63,6 +75,8 @@ function Chimera(m::Int, n::Int=m, t::Int=4)
     Chimera((m, n, t), g)
 end
 
+const Graph = Union{Chimera, Lattice}
+
 for op in [
     :nv,
     :ne,
@@ -72,7 +86,7 @@ for op in [
     :edges,
     ]
 
-    @eval LightGraphs.$op(c::Chimera) = $op(c.graph)
+    @eval LightGraphs.$op(c::Graph) = $op(c.graph)
 end
 
 for op in [
@@ -83,16 +97,21 @@ for op in [
     :outneighbors,
     :neighbors]
 
-    @eval MetaGraphs.$op(c::Chimera, args...) = $op(c.graph, args...)
+    @eval MetaGraphs.$op(c::Graph, args...) = $op(c.graph, args...)
 end
-@inline has_edge(g::Chimera, x...) = has_edge(g.graph, x...)
+@inline has_edge(g::Graph, x...) = has_edge(g.graph, x...)
 
-Base.size(c::Chimera) = c.size
-Base.size(c::Chimera, i::Int) = c.size[i]
+Base.size(c::Graph) = c.size
+Base.size(c::Graph, i::Int) = c.size[i]
 
 function Base.getindex(c::Chimera, i::Int, j::Int, u::Int, k::Int)
     _, n, t = size(c)
     t * (2 * (n * (i - 1) + j - 1) + u - 1) + k
+end
+
+function Base.getindex(l::Lattice, i::Int, j::Int)
+    m, n, _ = size(l)
+    LinearIndices((1:m, 1:n))[i, j]
 end
 
 function Base.getindex(c::Chimera, i::Int, j::Int)
@@ -101,16 +120,19 @@ function Base.getindex(c::Chimera, i::Int, j::Int)
     c.graph[idx]
 end
 
+function unit_cell(l::Lattice, v::Int)
+    Cluster(l.graph, v, enum([v]), [])
+end
+
 function unit_cell(c::Chimera, v::Int)
     elist = filter_edges(c.graph, :cells, (v, v))
     vlist = filter_vertices(c.graph, :cell, v)
     Cluster(c.graph, v, enum(vlist), elist)
 end
 
-Cluster(c::Chimera, v::Int) = unit_cell(c, v)
+Cluster(g::Graph, v::Int) = unit_cell(g, v)
 
 #Spectrum(cl::Cluster) = brute_force(cl, num_states=256)
-
 function Spectrum(cl::Cluster)
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
@@ -142,12 +164,12 @@ function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
     dg
 end
 
-function factor_graph(c::Chimera)
-    m, n, _ = c.size
+function factor_graph(g::Graph)
+    m, n, _ = g.size
     fg = factor_graph(m, n)
 
     for v ∈ vertices(fg)
-        cl = Cluster(c, v)
+        cl = Cluster(g, v)
         set_prop!(fg, v, :cluster, cl)
         set_prop!(fg, v, :spectrum, Spectrum(cl))
     end
@@ -156,7 +178,7 @@ function factor_graph(c::Chimera)
         v = get_prop(fg, src(e), :cluster)
         w = get_prop(fg, dst(e), :cluster)
 
-        edge = Edge(c.graph, v, w)
+        edge = Edge(g.graph, v, w)
         set_prop!(fg, e, :edge, edge)
         set_prop!(fg, e, :energy, energy(fg, edge))
     end
@@ -172,9 +194,9 @@ function decompose_edges!(fg::MetaGraph, order=P_then_E, beta::Float64=1.0)
         en, p = rank_reveal(energies)
 
         if Int(order) == 1
-            dec = (exp.(beta .* en), p)
-        else
             dec = (p, exp.(beta .* en))
+        else
+            dec = (exp.(beta .* en), p)
         end
         set_prop!(fg, edge, :decomposition, dec)
     end 
