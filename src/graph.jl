@@ -1,4 +1,5 @@
-export Chimera, factor_graph, decompose_edges!
+export Chimera, Lattice
+export factor_graph, decompose_edges!
 export Cluster, Spectrum
 
 @enum TensorsOrder begin
@@ -20,9 +21,9 @@ mutable struct Lattice
     size::NTuple{3, Int}
     graph::MetaGraph
 
-    function Lattice(m::Int, n::Int)
+    function Lattice(m::Int, n::Int, k::Int=0)
         lt = new()
-        lt.size = (m, n, 0)
+        lt.size = (m, n, k)
         lt.graph = MetaGraph(grid([m, n]))
         lt
     end

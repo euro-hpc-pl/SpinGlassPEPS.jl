@@ -26,6 +26,28 @@ end
    cg = Chimera((m, n, t), ig)
 
    @time fg = factor_graph(cg)
+
+   @test collect(vertices(fg)) == collect(1:m * n)
+   @test nv(fg) == m * n
+
+   @info "Verifying cluster properties for Chimera" m, n, t
+
+   clv = []
+   cle = []
+   rank = get_prop(ig, :rank)
+
+   for v ∈ vertices(fg)
+      cl = get_prop(fg, v, :cluster)
+      push!(clv, keys(cl.vertices))
+      push!(cle, collect(cl.edges))
+
+      for (g, l) ∈ cl.vertices
+         @test cl.rank[l] == rank[g]
+      end
+   end
+
+   println(intersect(clv)...)
+   #@test isempty(intersect(cle))
 end
 
 @testset "Factor graph" begin
