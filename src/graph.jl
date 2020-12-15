@@ -1,6 +1,8 @@
 export Chimera, Lattice
 export factor_graph, decompose_edges!
 export Cluster, Spectrum
+export rank_reveal
+export P_then_E, E_then_P
 
 @enum TensorsOrder begin
     P_then_E = 1
@@ -203,3 +205,18 @@ function decompose_edges!(fg::MetaGraph, order=P_then_E, beta::Float64=1.0)
     end 
 end
  
+
+function rank_reveal(energy, order=P_then_E) # or E_then_P
+    dim = order == P_then_E ? 1 : 2
+
+    E = unique(energy, dims=dim)
+    idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
+
+    P = order == P_then_E ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
+    
+    for (i, elements) ∈ enumerate(eachslice(P, dims=dim))
+        elements[idx[i]] = 1
+    end
+
+    order == P_then_E ? (P, E) : (E, P)
+end 

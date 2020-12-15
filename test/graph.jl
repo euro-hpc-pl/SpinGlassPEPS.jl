@@ -6,7 +6,7 @@ using CSV
 m = 6
 n = 7
 t = 4
-g = Chimera(m, n, t)
+@time g = Chimera(m, n, t)
 @testset "Chimera creation" begin
    @test nv(g) == 2m * n * t
    @test ne(g) == t^2 * m * n + m * (n -1) * t + (m - 1) * n * t
@@ -62,4 +62,20 @@ end
    cg = Chimera((m, n, t), ig)
 
    @time fg = factor_graph(cg)
+end
+
+@testset "Rank reveal correctly decomposes energy row-wise" begin
+   energy = [[1 2 3]; [0 -1 0]; [1 2 3]]
+   P, E = rank_reveal(energy, P_then_E)
+   @test size(P) == (3, 2)
+   @test size(E) == (2, 3)
+   @test P * E ≈ energy
+end
+
+@testset "Rank reveal correctly decomposes energy column-wise" begin
+   energy = [[1, 2, 3] [0, -1, 1] [1, 2, 3]]
+   E, P = rank_reveal(energy, E_then_P)
+   @test size(P) == (2, 3)
+   @test size(E) == (3, 2)
+   @test E * P ≈ energy
 end
