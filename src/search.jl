@@ -3,6 +3,7 @@ export MPSControl
 export spectrum
 export spectrum_new
 export multiply_purifications
+export MPS2
 
 struct MPSControl 
     max_bond::Int
@@ -171,10 +172,11 @@ function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, i::Int)
     T = eltype(χ)
     A1 = χ[i]
     A2 = ϕ[i]
-    Dl1, d, Dr1 = size(A1)
-    Dl2, d, Dr2 = size(A2)
+    #Dl1, d, Dr1 = size(A1)
+    #Dl2, d, Dr2 = size(A2)
 
     @cast B[Dl1⊗Dl2, b, Dr1⊗Dr2] := A1[Dl1, b, Dr1] * A2[Dl2, b, Dr2]
+    χ[i] = B
 
 end
 
@@ -229,6 +231,51 @@ function MPS(ig::MetaGraph, control::MPSControl)
     @info "Sweeping through β and σ" schedule
     for dβ ∈ schedule
         ρ = _apply_layer_of_gates(ig, ρ, L, dβ, Dcut, tol, max_sweeps)
+    end
+    ρ
+end
+
+function MPS2(ig::MetaGraph, control::MPSControl)
+    
+    L = nv(ig)
+    Dcut = control.max_bond
+    tol = control.var_ϵ
+    max_sweeps = control.max_sweeps
+    schedule = control.β
+    @info "Set control parameters for MPS" Dcut tol max_sweeps
+
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
+
+    @assert β ≈ sum(schedule) "Incorrect β schedule."
+
+    @info "Preparing Hadamard state as MPS"
+    ρ = HadamardMPS(rank)
+    is_right = true
+    @info "Sweeping through β and σ" schedule
+    β = 2
+    dβmax = 200
+
+    k = ceil(log(β)/log(dβmax))
+    println(k)
+    x = log(β/k)
+    println(x)
+    dβ = x^(1/k)
+    println(dβ)
+    ρ = _apply_layer_of_gates(ig, ρ, L, dβ, Dcut, tol, max_sweeps)
+    
+    for i ∈ 1:L
+        for j ∈ 1:k
+            ρ = multiply_purifications(ρ, ρ, i)
+        end
+        ρ
+
+        if bond_dimension(ρ) > Dcut
+            @info "Compresing MPS" bond_dimension(ρ), Dcut
+            ρ = compress(ρ, Dcut, tol, max_sweeps) 
+            is_right = true
+        end
+
     end
     ρ
 end

@@ -178,5 +178,7 @@ end
             multiply_purifications(rψ, rψ, i)
         end
 
+        rψ2 = MPS2(ig, control)
+
     end
 end
