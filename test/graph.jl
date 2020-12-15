@@ -46,8 +46,8 @@ end
       end
    end
 
-   println(intersect(clv)...)
-   #@test isempty(intersect(cle))
+   @test isempty(intersect(clv...))
+   @test isempty(intersect(cle...))
 end
 
 @testset "Factor graph" begin
