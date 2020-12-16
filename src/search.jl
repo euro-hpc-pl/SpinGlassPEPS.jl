@@ -169,19 +169,16 @@ _holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
 
 function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, L::Int)
     T = eltype(χ)
-    #ψ = MPS(T, L)
-    #ψ = MPS(L)
+    ψ = MPS(T, L)
 
     for i ∈ 1:L 
         A1 = χ[i]
         A2 = ϕ[i]
-        #B = ψ[i]
-        #Dl1, d, Dr1 = size(A1)
-        #Dl2, d, Dr2 = size(A2)
+        
         @cast B[Dl1⊗Dl2, d, Dr1⊗Dr2] := A1[Dl1, d, Dr1] * A2[Dl2, d, Dr2]
-        χ[i] = B
+        ψ[i] = B
     end
-    χ
+    ψ
 
 end
 
