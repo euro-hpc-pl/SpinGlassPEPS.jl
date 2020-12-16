@@ -66,7 +66,7 @@ end
 
 @testset "Rank reveal correctly decomposes energy row-wise" begin
    energy = [[1 2 3]; [0 -1 0]; [1 2 3]]
-   P, E = rank_reveal(energy, P_then_E)
+   P, E = rank_reveal(energy, :PE)
    @test size(P) == (3, 2)
    @test size(E) == (2, 3)
    @test P * E ≈ energy
@@ -74,7 +74,7 @@ end
 
 @testset "Rank reveal correctly decomposes energy column-wise" begin
    energy = [[1, 2, 3] [0, -1, 1] [1, 2, 3]]
-   E, P = rank_reveal(energy, E_then_P)
+   E, P = rank_reveal(energy, :EP)
    @test size(P) == (2, 3)
    @test size(E) == (3, 2)
    @test E * P ≈ energy

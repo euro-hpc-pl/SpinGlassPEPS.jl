@@ -2,83 +2,8 @@ export Chimera, Lattice
 export factor_graph, decompose_edges!
 export Cluster, Spectrum
 export rank_reveal
-export P_then_E, E_then_P
 
-@enum TensorsOrder begin
-    P_then_E = 1
-    E_then_P = -1
-end
 
-@enum HorizontalDirections begin
-    left_to_right = 1
-    right_to_left = -1
-end
-
-@enum VerticalDirections begin
-    top_to_bottom = -1
-    bottom_to_top = 1
-end
-
-mutable struct Lattice
-    size::NTuple{3, Int}
-    graph::MetaGraph
-
-    function Lattice(m::Int, n::Int, k::Int=0)
-        lt = new()
-        lt.size = (m, n, k)
-        lt.graph = MetaGraph(grid([m, n]))
-        lt
-    end
-end
-
-mutable struct Chimera
-    size::NTuple{3, Int}
-    graph::MetaGraph
-    
-    function Chimera(size::NTuple{3, Int}, graph::MetaGraph)
-        cg = new(size, graph)
-        m, n, t = size
-        linear = LinearIndices((1:m, 1:n))
-
-        for i=1:m, j=1:n, u=1:2, k=1:t
-            v = cg[i, j, u, k]
-            ij = linear[i, j]
-            set_prop!(cg, v, :cell, ij)
-        end
-
-        for e in edges(cg)
-            v = get_prop(cg, src(e), :cell)
-            w = get_prop(cg, dst(e), :cell)
-            set_prop!(cg, e, :cells, (v, w))
-        end
-        cg
-    end
-end
-
-function Chimera(m::Int, n::Int=m, t::Int=4)
-    max_size = m * n * 2 * t
-    g = MetaGraph(max_size)
-
-    hoff = 2t
-    voff = n * hoff
-    mi = m * voff
-    ni = n * hoff
-
-    for i=1:hoff:ni, j=i:voff:mi, k0=j:j+t-1, k1=j+t:j+2t-1
-        add_edge!(g, k0, k1)
-    end
-
-    for i=t:2t-1, j=i:hoff:ni-hoff-1, k=j+1:voff:mi-1
-        add_edge!(g, k, k+hoff-1)
-    end
-
-    for i=1:t, j=i:hoff:ni-1, k=j:voff:mi-voff-1
-        add_edge!(g, k, k+voff)
-    end
-    Chimera((m, n, t), g)
-end
-
-const Graph = Union{Chimera, Lattice}
 
 for op in [
     :nv,
@@ -89,7 +14,7 @@ for op in [
     :edges,
     ]
 
-    @eval LightGraphs.$op(c::Graph) = $op(c.graph)
+    @eval LightGraphs.$op(c::Model) = $op(c.graph)
 end
 
 for op in [
@@ -167,14 +92,19 @@ function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
     dg
 end
 
-function factor_graph(g::Graph)
+function factor_graph(
+    g::Graph, 
+    energy::Function=ising_energy, 
+    spectrum::Function=brute_force, 
+    create_cluster::Function=Cluster,
+) # how to add typing to functions?
     m, n, _ = g.size
     fg = factor_graph(m, n)
 
     for v ∈ vertices(fg)
-        cl = Cluster(g, v)
+        cl = create_cluster(g, v)
         set_prop!(fg, v, :cluster, cl)
-        set_prop!(fg, v, :spectrum, Spectrum(cl))
+        set_prop!(fg, v, :spectrum, spectrum(cl))
     end
 
     for e ∈ edges(fg)
@@ -206,17 +136,17 @@ function decompose_edges!(fg::MetaGraph, order=P_then_E, beta::Float64=1.0)
 end
  
 
-function rank_reveal(energy, order=P_then_E) # or E_then_P
-    dim = order == P_then_E ? 1 : 2
+function rank_reveal(energy, order=:PE) # or E_then_P
+    dim = order == :PE ? 1 : 2
 
     E = unique(energy, dims=dim)
     idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
 
-    P = order == P_then_E ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
+    P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
     
     for (i, elements) ∈ enumerate(eachslice(P, dims=dim))
         elements[idx[i]] = 1
     end
 
-    order == P_then_E ? (P, E) : (E, P)
+    order == :PE ? (P, E) : (E, P)
 end 
