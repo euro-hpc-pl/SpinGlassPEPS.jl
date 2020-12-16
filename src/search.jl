@@ -167,16 +167,21 @@ end
 
 _holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
 
-function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, i::Int)
-
+function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, L::Int)
     T = eltype(χ)
-    A1 = χ[i]
-    A2 = ϕ[i]
-    #Dl1, d, Dr1 = size(A1)
-    #Dl2, d, Dr2 = size(A2)
+    #ψ = MPS(T, L)
+    #ψ = MPS(L)
 
-    @cast B[Dl1⊗Dl2, b, Dr1⊗Dr2] := A1[Dl1, b, Dr1] * A2[Dl2, b, Dr2]
-    χ[i] = B
+    for i ∈ 1:L 
+        A1 = χ[i]
+        A2 = ϕ[i]
+        #B = ψ[i]
+        #Dl1, d, Dr1 = size(A1)
+        #Dl2, d, Dr2 = size(A2)
+        @cast B[Dl1⊗Dl2, d, Dr1⊗Dr2] := A1[Dl1, d, Dr1] * A2[Dl2, d, Dr2]
+        χ[i] = B
+    end
+    χ
 
 end
 
@@ -246,7 +251,6 @@ function MPS2(ig::MetaGraph, control::MPSControl)
 
     β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
-
     @assert β ≈ sum(schedule) "Incorrect β schedule."
 
     @info "Preparing Hadamard state as MPS"
@@ -257,25 +261,19 @@ function MPS2(ig::MetaGraph, control::MPSControl)
     dβmax = 200
 
     k = ceil(log(β)/log(dβmax))
-    println(k)
     x = log(β/k)
-    println(x)
     dβ = x^(1/k)
-    println(dβ)
     ρ = _apply_layer_of_gates(ig, ρ, L, dβ, Dcut, tol, max_sweeps)
     
-    for i ∈ 1:L
-        for j ∈ 1:k
-            ρ = multiply_purifications(ρ, ρ, i)
-        end
-        ρ
+    for j ∈ 1:k
+        ρ = multiply_purifications(ρ, ρ, L)
+    end
+    ρ
 
-        if bond_dimension(ρ) > Dcut
-            @info "Compresing MPS" bond_dimension(ρ), Dcut
-            ρ = compress(ρ, Dcut, tol, max_sweeps) 
-            is_right = true
-        end
-
+    if bond_dimension(ρ) > Dcut
+        @info "Compresing MPS" bond_dimension(ρ), Dcut
+        ρ = compress(ρ, Dcut, tol, max_sweeps) 
+        is_right = true
     end
     ρ
 end
