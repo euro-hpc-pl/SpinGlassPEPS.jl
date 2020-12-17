@@ -9,7 +9,7 @@ export left_env, right_env, dot!
 # ---------------------------------------------------------------
 #
 
-function LinearAlgebra.dot(ψ::MPS, state::Union{Vector, NTuple}) 
+function LinearAlgebra.dot(ψ::AbstractMPS, state::Union{Vector, NTuple}) 
     C = I
 
     for (M, σ) ∈ zip(ψ, state)        
@@ -19,7 +19,7 @@ function LinearAlgebra.dot(ψ::MPS, state::Union{Vector, NTuple})
     tr(C)
 end
 
-function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
+function LinearAlgebra.dot(ϕ::AbstractMPS, ψ::AbstractMPS)
     T = promote_type(eltype(ψ), eltype(ϕ))
     C = ones(T, 1, 1)
 
@@ -31,7 +31,7 @@ function LinearAlgebra.dot(ϕ::MPS, ψ::MPS)
     tr(C)
 end
 
-function left_env(ϕ::MPS, ψ::MPS) 
+function left_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
     l = length(ψ)
     T = promote_type(eltype(ψ), eltype(ϕ))
 
@@ -50,7 +50,7 @@ function left_env(ϕ::MPS, ψ::MPS)
 end
 
 # NOT tested yet
-function right_env(ϕ::MPS, ψ::MPS) 
+function right_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
     L = length(ψ)
     T = promote_type(eltype(ψ), eltype(ϕ))
 
@@ -91,7 +91,7 @@ Calculates the matrix element of \$O\$
 in one pass, utlizing `TensorOperations`.
 """
 
-function LinearAlgebra.dot(ϕ::MPS, O::Union{Vector, NTuple}, ψ::MPS) #where T <: AbstractMatrix
+function LinearAlgebra.dot(ϕ::AbstractMPS, O::Union{Vector, NTuple}, ψ::AbstractMPS) #where T <: AbstractMatrix
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
     C = ones(S, 1, 1)
 

@@ -21,6 +21,9 @@ module SpinGlassPEPS
     include("PEPS.jl")
     include("spectrum.jl")
     include("utils.jl")
+    include("notation.jl")
+    include("peps_no_types.jl")
+    include("mps_implementation.jl")
 
     function __init__()
         @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" begin

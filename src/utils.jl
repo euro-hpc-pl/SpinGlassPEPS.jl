@@ -4,7 +4,7 @@ export all_states, local_basis
 export enum
 
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
-_σ(idx::Int) = (idx == 1) ? -1 : idx - 1 
+_σ(idx::Int) = (idx == 1) ? -1 : idx - 1
 
 enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 
@@ -21,33 +21,33 @@ function proj(state, dims::T) where {T <: Union{Vector, NTuple}}
         push!(P, v * v')
     end
     P
-end 
+end
 
 function all_states(rank::T) where T <: Union{Vector, NTuple}
     basis = [local_basis(r) for r ∈ rank]
     product(basis...)
-end 
+end
 
-function HadamardMPS(rank::T) where T <: Union{Vector, NTuple} 
+function HadamardMPS(rank::T) where T <: Union{Vector, NTuple}
     vec = [ fill(1, r) ./ sqrt(r) for r ∈ rank ]
     MPS(vec)
 end
 
 HadamardMPS(L::Int) = MPS(fill(2, L))
 
-function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int, args...) 
+function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int, args...)
     fact = pqrfact(M, rank=Dcut, args...)
     Q = fact[:Q]
     R = fact[:R]
     return _qr_fix(Q, R)
-end     
+end
 
-function rq(M::AbstractMatrix, Dcut::Int, args...) 
+function rq(M::AbstractMatrix, Dcut::Int, args...)
     fact = pqrfact(:c, conj.(M), rank=Dcut, args...)
     Q = fact[:Q]
     R = fact[:R]
     return _qr_fix(Q, R)'
-end  
+end
 
 function _qr_fix(Q::AbstractMatrix, R::AbstractMatrix)
     d = diag(R)
