@@ -2,12 +2,26 @@ export MPS_from_gates, unique_neighbors
 export MPSControl
 export spectrum
 
+struct Spectrum
+    energies::Array{<:Number}
+    states::Array{Vector{<:Number}}
+end
+
 struct MPSControl 
     max_bond::Int
     var_ϵ::Number
     max_sweeps::Int
     β::Vector
 end
+
+
+#Spectrum(cl::Cluster) = brute_force(cl, num_states=256)
+function Spectrum(cl::Cluster)
+    σ = collect.(all_states(cl.rank))
+    energies = energy.(σ, Ref(cl))
+    Spectrum(energies, σ)   
+end
+
 
 # ρ needs to be in the right canonical form
 function spectrum(ψ::MPS, keep::Int) 
@@ -158,3 +172,38 @@ function MPS(ig::MetaGraph, control::MPSControl)
     ρ
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the low energy spectrum
+
+# Details
+
+Calculates \$k\$ lowest energy states 
+together with the coresponding energies 
+of a classical Ising Hamiltonian
+"""
+function brute_force(ig::MetaGraph; num_states::Int=1)
+    cl = Cluster(ig, 0, num(vertices(ig)), edges(ig))
+    brute_force(cl, num_states=num_states)
+end 
+
+
+function brute_force(cl::Cluster; num_states::Int=1)
+    σ = collect.(all_states(cl.rank))
+    states = reshape(σ, prod(cl.rank))
+    energies = energy.(states, Ref(cl))
+    perm = partialsortperm(energies, 1:num_states) 
+    Spectrum(energies[perm], states[perm])
+end 
+
+_ising(σ::State) = 2 .* σ .- 1
+
+function _brute_force(ig::MetaGraph, k::Int=1)
+    L = nv(ig)
+    states = _ising.(digits.(0:2^L-1, base=2, pad=L))
+    energies = energy.(states, Ref(ig))
+    perm = partialsortperm(energies, 1:k) 
+    states[perm], energies[perm]
+end  

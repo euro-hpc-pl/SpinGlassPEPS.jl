@@ -3,71 +3,75 @@ export factor_graph, decompose_edges!
 export Cluster, Spectrum
 export rank_reveal
 
+const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
+const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
 
+mutable struct Cluster
+    tag::Int
+    vertices::Dict{Int,Int}
+    edges::EdgeIter
+    rank::Vector
+    J::Matrix{<:Number}
+    h::Vector{<:Number}
 
-for op in [
-    :nv,
-    :ne,
-    :eltype,
-    :edgetype,
-    :vertices,
-    :edges,
-    ]
+    function Cluster(ig::MetaGraph, v::Int, vertices::Dict, edges::EdgeIter)
+        cl = new(v, vertices, edges)
+        L = length(cl.vertices)
 
-    @eval LightGraphs.$op(c::Model) = $op(c.graph)
+        cl.J = zeros(L, L)
+        for e ∈ cl.edges
+            i = cl.vertices[src(e)]
+            j = cl.vertices[dst(e)] 
+            cl.J[i, j] = get_prop(ig, e, :J)
+        end
+
+        rank = get_prop(ig, :rank)
+        cl.rank = rank[1:L]
+
+        cl.h = zeros(L)
+        for (w, i) ∈ cl.vertices
+            cl.h[i] = get_prop(ig, w, :h)
+            cl.rank[i] = rank[w]
+        end
+        cl
+    end
 end
 
-for op in [
-    :get_prop,
-    :set_prop!,
-    :has_vertex,
-    :inneighbors,
-    :outneighbors,
-    :neighbors]
-
-    @eval MetaGraphs.$op(c::Graph, args...) = $op(c.graph, args...)
-end
-@inline has_edge(g::Graph, x...) = has_edge(g.graph, x...)
-
-Base.size(c::Graph) = c.size
-Base.size(c::Graph, i::Int) = c.size[i]
-
-function Base.getindex(c::Chimera, i::Int, j::Int, u::Int, k::Int)
-    _, n, t = size(c)
-    t * (2 * (n * (i - 1) + j - 1) + u - 1) + k
+function MetaGraphs.filter_edges(ig::MetaGraph, v::Cluster, w::Cluster)
+    edges = []
+    for i ∈ keys(v.vertices)
+        for j ∈ unique_neighbors(ig, i)
+            if j ∈ keys(w.vertices)
+                push!(edges, SimpleEdge(i, j))
+            end
+        end
+    end
+    edges
 end
 
-function Base.getindex(l::Lattice, i::Int, j::Int)
-    m, n, _ = size(l)
-    LinearIndices((1:m, 1:n))[i, j]
+mutable struct Edge
+    tag::NTuple
+    edges::EdgeIter
+    J::Matrix{<:Number}
+
+    function Edge(ig::MetaGraph, v::Cluster, w::Cluster)
+        ed = new((v.tag, w.tag))
+        ed.edges = filter_edges(ig, v, w) 
+
+        m = length(v.vertices)
+        n = length(w.vertices)
+
+        ed.J = zeros(m, n)
+        for e ∈ ed.edges
+            i = v.vertices[src(e)]
+            j = w.vertices[dst(e)] 
+            ed.J[i, j] = get_prop(ig, e, :J)
+        end
+        ed
+    end
 end
 
-function Base.getindex(c::Chimera, i::Int, j::Int)
-    t = size(c, 3)
-    idx = vec([c[i, j, u, k] for u=1:2, k=1:t])
-    c.graph[idx]
-end
-
-function unit_cell(l::Lattice, v::Int)
-    Cluster(l.graph, v, enum([v]), [])
-end
-
-function unit_cell(c::Chimera, v::Int)
-    elist = filter_edges(c.graph, :cells, (v, v))
-    vlist = filter_vertices(c.graph, :cell, v)
-    Cluster(c.graph, v, enum(vlist), elist)
-end
-
-Cluster(g::Graph, v::Int) = unit_cell(g, v)
-
-#Spectrum(cl::Cluster) = brute_force(cl, num_states=256)
-function Spectrum(cl::Cluster)
-    σ = collect.(all_states(cl.rank))
-    energies = energy.(σ, Ref(cl))
-    Spectrum(energies, σ)   
-end
-
-function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
+function factor_graph(m::Int, n::Int, hdir=:LR, vdir=:BT)
     dg = MetaGraph(SimpleDiGraph(m * n))
     set_prop!(dg, :order, (hdir, vdir))
 
@@ -75,7 +79,7 @@ function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
     for i ∈ 1:m
         for j ∈ 1:n-1
             v, w = linear[i, j], linear[i, j+1]
-            Int(hdir) == 1 ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
+            hdir == :LR ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
             add_edge!(dg, e)
             set_prop!(dg, e, :orientation, "horizontal")
         end
@@ -84,7 +88,7 @@ function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
     for i ∈ 1:n
         for j ∈ 1:m-1
             v, w = linear[i, j], linear[i, j+1]
-            Int(vdir) == 1 ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
+            vdir == :BT ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
             add_edge!(dg, e)
             set_prop!(dg, e, :orientation, "vertical")
         end
@@ -93,10 +97,10 @@ function factor_graph(m::Int, n::Int, hdir=left_to_right, vdir=bottom_to_top)
 end
 
 function factor_graph(
-    g::Graph, 
-    energy::Function=ising_energy, 
+    g::Model, 
+    energy::Function=energy, 
     spectrum::Function=brute_force, 
-    create_cluster::Function=Cluster,
+    create_cluster::Function=unit_cell,
 ) # how to add typing to functions?
     m, n, _ = g.size
     fg = factor_graph(m, n)

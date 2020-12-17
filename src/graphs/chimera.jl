@@ -1,3 +1,6 @@
+export Chimera
+export unit_cell
+
 mutable struct Chimera <: Model
     size::NTuple{3, Int}
     graph::MetaGraph
@@ -48,4 +51,16 @@ end
 function Base.getindex(c::Chimera, i::Int, j::Int, u::Int, k::Int)
     _, n, t = size(c)
     t * (2 * (n * (i - 1) + j - 1) + u - 1) + k
+end
+
+function Base.getindex(c::Chimera, i::Int, j::Int)
+    t = size(c, 3)
+    idx = vec([c[i, j, u, k] for u=1:2, k=1:t])
+    c.graph[idx]
+end
+
+function unit_cell(c::Chimera, v::Int)
+    elist = filter_edges(c.graph, :cells, (v, v))
+    vlist = filter_vertices(c.graph, :cell, v)
+    Cluster(c.graph, v, enum(vlist), elist)
 end

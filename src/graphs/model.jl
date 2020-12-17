@@ -22,11 +22,10 @@ for op in [
     :outneighbors,
     :neighbors]
 
-    @eval MetaGraphs.$op(c::Model, args...) = $op(c.graph, args...)
+    @eval MetaGraphs.$op(m::Model, args...) = $op(m.graph, args...)
 end
-@inline has_edge(g::Model, x...) = has_edge(g.graph, x...)
 
-Base.size(c::Model) = c.size
-Base.size(c::Model, i::Int) = c.size[i]
+@inline has_edge(m::Model, x...) = has_edge(m.graph, x...)
 
-Cluster(g::Model, v::Int) = unit_cell(g, v)
+Base.size(m::Model) = m.size
+Base.size(m::Model, i::Int) = m.size[i]

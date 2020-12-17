@@ -12,11 +12,14 @@ module SpinGlassPEPS
 
     include("base.jl")
     include("compressions.jl")
-    include("contractions.jl")   
-    include("ising.jl")
+    include("contractions.jl")
+    include("graphs/model.jl")
+    include("graphs/chimera.jl")
+    include("graphs/lattice.jl")
     include("graph.jl")
+    include("ising.jl")
     include("PEPS.jl")
-    include("search.jl")
+    include("spectrum.jl")
     include("utils.jl")
 
     function __init__()
@@ -29,7 +32,7 @@ module SpinGlassPEPS
                 const CuQR = CUDA.CUSOLVER.CuQR
                 # scalar indexing is fine before 0.2
                 # CUDA.allowscalar(false)
-                include("cuda/base.jl") 
+                include("cuda/base.jl")
                 include("cuda/contractions.jl")
                 include("cuda/compressions.jl")
             end
