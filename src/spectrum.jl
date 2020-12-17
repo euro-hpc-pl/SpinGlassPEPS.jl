@@ -1,3 +1,4 @@
+export brute_force
 export MPS_from_gates, unique_neighbors
 export MPSControl
 export spectrum
@@ -244,7 +245,7 @@ together with the coresponding energies
 of a classical Ising Hamiltonian
 """
 function brute_force(ig::MetaGraph; num_states::Int=1)
-    cl = Cluster(ig, 0, num(vertices(ig)), edges(ig))
+    cl = Cluster(ig, 0, enum(vertices(ig)), edges(ig))
     brute_force(cl, num_states=num_states)
 end 
 
