@@ -220,10 +220,13 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
             all = props(gg, k)[:spins]
             ind = props(gg, k, k1)[:inds]
             index = ps.spins[k]
+            println(reindex(index, length(all), ind))
+            println(spectrum)
+            println(ind)
 
             d = [s[ind] for s in spectrum]
             k2 = s2i(d)
-            #reindex(index, length(all), ind)
+
 
             upper_left[i] = k2[index]
         end
