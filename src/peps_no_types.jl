@@ -58,9 +58,16 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
     column = props(g, i)[:column]
     row = props(g, i)[:row]
     log_energy = props(g, i)[:energy]
+    spectrum = props(g, i)[:spectrum]
 
-    k1 = [reindex(i, no_spins, right) for i in 1:tensor_size[5]]
-    k2 = [reindex(i, no_spins, down) for i in 1:tensor_size[5]]
+    r = [s[right] for s in spectrum]
+    k1 = s2i(r)
+    #k1 = [reindex(i, no_spins, right) for i in 1:tensor_size[5]]
+
+
+    #k2 = [reindex(i, no_spins, down) for i in 1:tensor_size[5]]
+    d = [s[down] for s in spectrum]
+    k2 = s2i(d)
 
     for k in CartesianIndices(tuple(tensor_size[1], tensor_size[2]))
         energy = log_energy
@@ -181,6 +188,7 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
     s = size(grid)
     row = props(gg, j)[:row]
     column = props(gg, j)[:column]
+    spectrum = props(gg, j)[:spectrum]
 
     upper_right = ones(Int, s[2]-column+1)
     upper_left = ones(Int, column-1)
@@ -193,7 +201,16 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
 
             index = ps.spins[k]
             ind = props(gg, k, k1)[:inds]
-            upper_right[i-column+1] = reindex(index, length(all), ind)
+            #rr = reindex(index, length(all), ind)
+
+            d = [s[ind] for s in spectrum]
+            k2 = s2i(d)
+            #println(rr)
+            #println(k2[index])
+            #println("xxxxxxxxxxx")
+
+
+            upper_right[i-column+1] = k2[index]
         end
     end
     if row < s[1]
@@ -204,7 +221,11 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
             ind = props(gg, k, k1)[:inds]
             index = ps.spins[k]
 
-            upper_left[i] = reindex(index, length(all), ind)
+            d = [s[ind] for s in spectrum]
+            k2 = s2i(d)
+            #reindex(index, length(all), ind)
+
+            upper_left[i] = k2[index]
         end
     end
     upper_left, upper_right
@@ -215,11 +236,19 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
     grid = props(gg)[:grid]
     column = props(gg, j)[:column]
     row = props(gg, j)[:row]
+    spectrum = props(gg, j)[:spectrum]
     if  column > 1
         jp = grid[row, column-1]
         all = props(gg, jp)[:spins]
         ind = props(gg, j, jp)[:inds]
-        return reindex(ps.spins[end], length(all), ind)
+
+        d = [s[ind] for s in spectrum]
+        k2 = s2i(d)
+        rr = k2[ps.spins[end]]
+        #rrr = reindex(ps.spins[end], length(all), ind)
+        #println(rr == rrr)
+
+        return rr
     end
     1
 end
@@ -305,9 +334,18 @@ function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  wh
 
         for k in vertices(ns)
             spins_inds = props(ns, k)[:spins]
-            ii = ind2spin(ses[k], length(spins_inds))
-            for j in 1:length(ii)
-                one_solution[spins_inds[j]] = ii[j]
+            spectrum = props(ns, k)[:spectrum]
+            iii = spectrum[ses[k]]
+            #println(ses[k])
+            #println(spectrum)
+            #ii = ind2spin(ses[k], length(spins_inds))
+
+            #println(ii)
+            #println(iii)
+            #println("xxxxxxxxxxxxxx")
+            for j in 1:length(iii)
+                one_solution[spins_inds[j]] = iii[j]
+                #println(j)
             end
         end
         spins[l-i+1] = one_solution

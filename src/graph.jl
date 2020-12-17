@@ -3,7 +3,7 @@ mutable struct Chimera
     size::NTuple{3, Int}
     graph::MetaGraph
     outer_connections::Dict{Tuple, Vector}
-    
+
     function Chimera(size::NTuple{3, Int}, graph::MetaGraph)
         c = new(size, graph)
         m, n, t = size
@@ -100,7 +100,7 @@ end
 
 outer_connections(c::Chimera, i, j, k, l) = outer_connections(c::Chimera, (i, j), (k, l))
 
-function outer_connections(c::Chimera, src, dst) 
+function outer_connections(c::Chimera, src, dst)
     ret = get(c.outer_connections, (src, dst), [])
     if length(ret) == 0
         ret = get(c.outer_connections, (dst, src), [])
@@ -108,21 +108,21 @@ function outer_connections(c::Chimera, src, dst)
     ret
 end
 
-function Cluster(c::Chimera, v::Int, w::Int) 
+function Cluster(c::Chimera, v::Int, w::Int)
     vv = collect(filter_vertices(c.graph, :cluster, v))
     vw = collect(filter_vertices(c.graph, :cluster, w))
     ve = filter_edges(c.graph, :cluster, (v, w))
     Cluster(c.graph, enum(union(vv, vw)), ve)
 end
 
-Cluster(c::Chimera, v::Int) = Cluster(c, v, v) 
+Cluster(c::Chimera, v::Int) = Cluster(c, v, v)
 
 #Spectrum(cl::Cluster) = brute_force(cl, num_states=256)
 
 function Spectrum(cl::Cluster)
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
-    Spectrum(energies, σ)   
+    Spectrum(energies, σ)
 end
 
 function factor_graph(c::Chimera)
@@ -134,11 +134,11 @@ function factor_graph(c::Chimera)
         set_prop!(fg, v, :cluster, cl)
         set_prop!(fg, v, :spectrum, Spectrum(cl))
 
-        
+
         for w ∈ unique_neighbors(fg, v)
             set_prop!(fg, v, w, :cluster, Cluster(c, v, w))
         end
-    
+
     end
 
     #=
@@ -150,13 +150,11 @@ function factor_graph(c::Chimera)
             σ = get_prop(fg, v, :spectrum)
             η = get_prop(fg, w, :spectrum)
 
-            #E = [ energy(x, cl) for x ∈ σ.states ] 
-            E = energy.(σ.states, cl) 
-            #E = [ energy(x, cl, y) for x ∈ σ.states, y ∈ η.states ] 
+            #E = [ energy(x, cl) for x ∈ σ.states ]
+            E = energy.(σ.states, cl)
+            #E = [ energy(x, cl, y) for x ∈ σ.states, y ∈ η.states ]
         end
     end
     =#
     fg
 end
-
-
