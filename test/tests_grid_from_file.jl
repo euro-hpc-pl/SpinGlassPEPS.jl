@@ -103,7 +103,7 @@ for k in 1:examples
     print("peps larger T")
     number = number_of_states + more_states_for_peps
     @time spins_larger_nodes, objective_larger_nodes = solve(g, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12)
-
+    #println(objective_larger_nodes)
     for i in 1:number_of_states
 
         @test energy(spins_larger_nodes[i], g) ≈ energies_given[i]

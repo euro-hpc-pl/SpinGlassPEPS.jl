@@ -74,7 +74,7 @@ node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
 
 @time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size)
-
+println(objective)
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")
 for energy in energies
