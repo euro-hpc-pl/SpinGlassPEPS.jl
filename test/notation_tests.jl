@@ -143,8 +143,8 @@ end
     g1 = graph4peps(ig, (1,1))
     @test props(g1, 1,2)[:M] == [-2.0 2.0; 2.0 -2.0]
     @test props(g1, 2,4)[:M] == [-2.0 2.0; 2.0 -2.0]
-    @test props(g1, 1)[:energy] == [1., -1.]
-    @test props(g1, 2)[:energy] == [1., -1.]
+    @test props(g1, 1)[:energy] == [-1., 1.]
+    @test props(g1, 2)[:energy] == [-1., 1.]
     @test props(g1, 1,2)[:inds] == [1]
 
     M = ones(16,16)
@@ -156,7 +156,7 @@ end
     @test size(M) == (4,16)
     @test M[:,1] == [-4.0, 0.0, 0.0, 4.0]
     e = [-4.0, 2.0, 2.0, 0.0, 2.0, 0.0, 8.0, -2.0, 2.0, 8.0, 0.0, -2.0, 0.0, -2.0, -2.0, -12.0]
-    @test props(g1, 1)[:energy] == e
+    @test props(g1, 1)[:energy] == -e
     @test props(g1, 1,2)[:inds] == [3, 4]
     @test props(g1, 1,3)[:inds] == [2, 4]
 
