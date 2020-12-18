@@ -141,7 +141,7 @@ function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     d = size(M, 2)
 
     h = get_prop(ig, i, :h)
-    v = [exp(0.5 * dβ * h * σ) for σ ∈ local_basis(d)]
+    v = [exp(-0.5 * dβ * h * σ) for σ ∈ local_basis(d)]
 
     @cast M[x, σ, y] = M[x, σ, y] * v[σ]  
     ψ[i] = M
@@ -152,7 +152,7 @@ function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j
     D = I(ψ, i)
     
     J = get_prop(ig, i, j, :J)  
-    C = [ exp(0.5 * dβ * k * J * l) for k ∈ local_basis(ψ, i), l ∈ local_basis(ψ, j) ]
+    C = [ exp(-0.5 * dβ * k * J * l) for k ∈ local_basis(ψ, i), l ∈ local_basis(ψ, j) ]
 
     if j == last
         @cast M̃[(x, a), σ, b] := C[x, σ] * M[a, σ, b]   
