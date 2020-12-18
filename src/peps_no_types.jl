@@ -4,11 +4,13 @@
 function get_parameters_for_T(g::MetaGraph, i::Int)
     no_spins = length(props(g, i)[:spins])
     spectrum = props(g, i)[:spectrum]
-    tensor_size = [1,1,1,1, length(spectrum)]
+
     right = Int[]
     down = Int[]
-    M_left = zeros(1, 2^no_spins)
-    M_up = zeros(1, 2^no_spins)
+    #M_left = zeros(1, 2^no_spins)
+    #M_up = zeros(1, 2^no_spins)
+    M_left = zeros(1, length(spectrum))
+    M_up = zeros(1, length(spectrum))
 
     for n in all_neighbors(g, i)
 
@@ -18,11 +20,8 @@ function get_parameters_for_T(g::MetaGraph, i::Int)
             ind = props(g, i, n)[:inds]
             rrr = [s[ind] for s in spectrum]
             k1 = unique([spins2ind(e) for e in rrr])
-
             p = invperm(sortperm(k1))
-
             M_left = props(g, i, n)[:M][p,:]
-            tensor_size[1] = size(M_left, 1)
 
         elseif props(g, i)[:row] -1 == props(g, n)[:row]
             spectrum = props(g, n)[:spectrum]
@@ -30,20 +29,18 @@ function get_parameters_for_T(g::MetaGraph, i::Int)
             rrr = [s[ind] for s in spectrum]
             k1 = unique([spins2ind(e) for e in rrr])
             p = invperm(sortperm(k1))
-
             M_up = props(g, i, n)[:M][p,:]
-            tensor_size[2] = size(M_up, 1)
 
 
         elseif props(g, i)[:column] +1 == props(g, n)[:column]
             right = props(g, i, n)[:inds]
-            tensor_size[3] = 2^length(right)
+
         elseif props(g, i)[:row] +1 == props(g, n)[:row]
             down = props(g, i, n)[:inds]
-            tensor_size[4] = 2^length(down)
+
         end
     end
-    no_spins, tensor_size, right, down, M_left, M_up
+    right, down, M_left, M_up
 end
 
 """
@@ -67,23 +64,28 @@ If sum_over_last -- summed over mode 5
 
 function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: Real
     n = 0
-    no_spins, tensor_size, right, down, M_left, M_up = get_parameters_for_T(g, i)
-
-    tensor = zeros(T, (tensor_size[1:4]...))
-    if !sum_over_last
-        tensor = zeros(T, (tensor_size...))
-    end
+    right, down, M_left, M_up = get_parameters_for_T(g, i)
 
     column = props(g, i)[:column]
     row = props(g, i)[:row]
     log_energy = props(g, i)[:energy]
     spectrum = props(g, i)[:spectrum]
 
+    tensor_size = [size(M_left, 1), size(M_up, 1) ,1,1, length(spectrum)]
+
+
     r = [s[right] for s in spectrum]
     k1 = s2i(r)
+    tensor_size[3] = maximum(k1)
 
     d = [s[down] for s in spectrum]
     k2 = s2i(d)
+    tensor_size[4] = maximum(k2)
+
+    tensor = zeros(T, (tensor_size[1:4]...))
+    if !sum_over_last
+        tensor = zeros(T, (tensor_size...))
+    end
 
     for k in CartesianIndices(tuple(tensor_size[1], tensor_size[2]))
         energy = log_energy
@@ -100,14 +102,6 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
 
 
         # itteration over physical index
-
-        println(tensor_size)
-
-        println(length(energy))
-
-        println(length(k1))
-
-        println(length(k2))
 
 
         for i in 1:tensor_size[5]

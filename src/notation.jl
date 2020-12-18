@@ -338,9 +338,8 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1); spectrum_
         gg = make_inner_graph(ig, g_element)
 
         no_conf = 2^length(g_element.spins_inds)
-
         no_conf = minimum([no_conf, spectrum_cutoff])
-        println(no_conf)
+
         # TODO no_conf can be reduced for approximate spectrum
 
         spectrum = brute_force(gg; num_states = no_conf)

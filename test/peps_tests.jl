@@ -75,9 +75,8 @@ fullM2grid!(Mq, (2,2))
     #smaller tensors
     g1 = graph4peps(g, (1,1))
 
-    no_spins, tensor_size, right, down, M_left, M_up = get_parameters_for_T(g1, 1)
-    @test no_spins == 1
-    @test tensor_size == [1, 1, 2, 2, 2]
+    right, down, M_left, M_up = get_parameters_for_T(g1, 1)
+
     @test right == [1]
     @test down == [1]
     @test M_left == [0.0 0.0]
@@ -153,7 +152,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     v = [-1 for _ in 1:9]
     ii = [p[1] for p in ps]
-    println(ii)
+
     @test exp.(-β*energy(v, g)) ≈ cc[ii...]
 
     v[1] = 1
@@ -162,7 +161,6 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     v = [1 for _ in 1:9]
     ii = [p[2] for p in ps]
-    #v = [1, -1, 1, -1, 1, -1, 1, -1, 1]
     @test exp.(-β*energy(v, g)) ≈ cc[ii...]
 end
 
