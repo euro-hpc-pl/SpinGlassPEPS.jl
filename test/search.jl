@@ -174,29 +174,5 @@ end
             
         end
 
-        @info "Testing MPS2"
-        rψ2 = MPS2(ig, control)
-        for max_states ∈ [1, N, 2*N, N^2]
-            @info "Testing spectrum_new"
-            states_new, prob_new, pCut_new = spectrum_new(rψ2, max_states)            
-
-            eng_new = zeros(length(prob_new))
-            for (j, p) ∈ enumerate(prob_new)
-                σ = states_new[j, :]
-                eng_new[j] = energy(σ, ig)
-            end
-            
-            perm = partialsortperm(eng_new, 1:max_states)
-            eng_new = eng_new[perm]
-            states_new = states_new[perm, :]
-            prob_new = prob_new[perm]
-            state = states_new[1, :]
-            @info "The largest discarded probability" pCut_new
-            @test maximum(prob_new) > pCut_new
-            @info "State with the lowest energy" state
-            @info "Probability of the state with the lowest energy" prob_new[1]
-            @info "The lowest energy" eng_new[1]
-        end
-
     end
 end

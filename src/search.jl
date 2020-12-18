@@ -9,7 +9,9 @@ struct MPSControl
     max_bond::Int
     var_ϵ::Number
     max_sweeps::Int
-    β::Vector
+    β::Vector 
+    dβ::Vector
+    type::String
 end
 
 function spectrum(ψ::MPS, keep::Int) 
@@ -195,7 +197,7 @@ function _apply_layer_of_gates(ig::MetaGraph, ρ::AbstractMPS, L::Int, dβ::Numb
             end
 
             for l ∈ _holes(nbrs) 
-                _apply_nothing!(χ, l, i) 
+                _apply_nothing!(ρ, l, i)  #ρ instead of χ
             end
         end
     
@@ -243,34 +245,33 @@ function MPS2(ig::MetaGraph, control::MPSControl)
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
-    schedule = control.β
     @info "Set control parameters for MPS" Dcut tol max_sweeps
-
+    dβ = get_prop(ig, :dβ)
     β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
-    @assert β ≈ sum(schedule) "Incorrect β schedule."
 
     @info "Preparing Hadamard state as MPS"
     ρ = HadamardMPS(rank)
     is_right = true
-    @info "Sweeping through β and σ" schedule
-    β = 2
-    dβmax = 200
+    @info "Sweeping through β and σ" dβ
 
-    k = ceil(log(β)/log(dβmax))
-    x = log(β/k)
-    dβ = x^(1/k)
-    ρ = _apply_layer_of_gates(ig, ρ, L, dβ, Dcut, tol, max_sweeps)
+    if control.type == "log"
+        k = ceil(log2(β/dβ))
+        dβmax = β/(2^k)
+    elseif control.type == "lin"
+        k = β/dβ
+        dβmax = β/k
+    end
+    ρ = _apply_layer_of_gates(ig, ρ, L, dβmax, Dcut, tol, max_sweeps)
     
     for j ∈ 1:k
         ρ = multiply_purifications(ρ, ρ, L)
+        if bond_dimension(ρ) > Dcut
+            @info "Compresing MPS" bond_dimension(ρ), Dcut
+            ρ = compress(ρ, Dcut, tol, max_sweeps) 
+            is_right = true
+        end
     end
     ρ
 
-    if bond_dimension(ρ) > Dcut
-        @info "Compresing MPS" bond_dimension(ρ), Dcut
-        ρ = compress(ρ, Dcut, tol, max_sweeps) 
-        is_right = true
-    end
-    ρ
 end
