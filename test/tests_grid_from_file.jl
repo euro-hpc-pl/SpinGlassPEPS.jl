@@ -103,7 +103,7 @@ for k in 1:examples
     print("peps larger T")
     number = number_of_states + more_states_for_peps
     @time spins_larger_nodes, objective_larger_nodes = solve(g, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12)
-    #println(objective_larger_nodes)
+
     for i in 1:number_of_states
 
         @test energy(spins_larger_nodes[i], g) ≈ energies_given[i]
@@ -114,6 +114,19 @@ for k in 1:examples
     end
 
     @test objective ≈ objective_larger_nodes atol = 1.e-7
+
+    print("peps larger T, limited spectrum")
+    number = number_of_states + more_states_for_peps
+    @time spins_spec, objective_spec = solve(g, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, spectrum_cutoff = 15)
+
+    for i in 1:number_of_states
+        println(i)
+        @test energy(spins_spec[i], g) ≈ energies_given[i]
+
+        if states_given != 0
+            @test states_given[i,:] == spins_spec[i]
+        end
+    end
 
     ############ MPO - MPS #########
     χ = 15

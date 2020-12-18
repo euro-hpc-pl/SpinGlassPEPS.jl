@@ -38,7 +38,7 @@ import SpinGlassPEPS: energy, solve
         gg = graph4peps(g, (1,1))
 
         spins, objectives = return_solutions([a,b], gg)
-        @test spins == [[-1, -1, 1, 1],[-1, -1, -1, 1]]
+        @test spins == [[1, 1, -1, -1], [1, 1, 1, -1]]
         @test objectives == [1.0, 0.2]
 
         M = ones(16,16)
@@ -51,13 +51,13 @@ import SpinGlassPEPS: energy, solve
         l = spin_index_from_left(gg, ps, 2)
         @test ul == [1]
         @test ur == [1]
-        @test l == 2
+        @test l == 1
 
         ps = Partial_sol{Float64}([4,6], .2)
         ul,ur = spin_indices_from_above(gg, ps, 3)
         l = spin_index_from_left(gg, ps, 3)
         @test ul == Int[]
-        @test ur == [2,1]
+        @test ur == [1,1]
         @test l == 1
 
     end
@@ -89,13 +89,13 @@ fullM2grid!(Mq, (2,2))
 
 
     @test size(t1) == (1, 1, 2, 2)
-    @test t1[1,1,:,:] ≈ [exp(-1*β) 0.; 0. exp(1*β)]
+    @test t1[1,1,:,:] ≈ [exp(1*β) 0.; 0. exp(-1*β)]
 
     @test size(t2) == (2,1,1,2)
-    @test t2[:,1,1,:] ≈ [exp(1*β) exp(-1*β); exp(-3*β) exp(3*β)]
+    @test t2[:,1,1,:] ≈ [exp(3*β) exp(-3*β); exp(-1*β) exp(1*β)]
 
     @test size(t3) == (1,2,2,1)
-    @test t3[1,:,:,1] ≈ [exp(1*β) exp(-1*β); exp(-3*β) exp(3*β)]
+    @test t3[1,:,:,1] ≈ [exp(3*β) exp(-3*β); exp(-1*β) exp(1*β)]
 
     t = compute_single_tensor(g1, 1, β)
 
@@ -109,7 +109,8 @@ fullM2grid!(Mq, (2,2))
     gg = graph4peps(g, (2,1))
     T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
 
-    @test vec(T1) ≈ vec(T2)
+    p = [1,4,2,3]
+    @test vec(T1) ≈ vec(T2)[p]
 end
 
 
@@ -142,6 +143,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     g = M2graph(Mq)
     gg = graph4peps(g, (1,1))
 
+    ps =[sortperm(props(gg, i)[:spectrum]) for i in 1:9]
 
     ### forms a peps network
     β = 3.
@@ -150,14 +152,18 @@ Mq[8,9] = Mq[9,8] = -0.05
     # testing peps creation
 
     v = [-1 for _ in 1:9]
-
-    @test exp.(-β*energy(v, g)) ≈ cc[1,1,1,1,1,1,1,1,1]
+    ii = [p[1] for p in ps]
+    println(ii)
+    @test exp.(-β*energy(v, g)) ≈ cc[ii...]
 
     v[1] = 1
-    @test exp.(-β*energy(v, g)) ≈ cc[2,1,1,1,1,1,1,1,1]
+    ii[1] = ps[1][2]
+    @test exp.(-β*energy(v, g)) ≈ cc[ii...]
 
-    v = [1, -1, 1, -1, 1, -1, 1, -1, 1]
-    @test exp.(-β*energy(v, g)) ≈ cc[2,1,2,1,2,1,2,1,2]
+    v = [1 for _ in 1:9]
+    ii = [p[2] for p in ps]
+    #v = [1, -1, 1, -1, 1, -1, 1, -1, 1]
+    @test exp.(-β*energy(v, g)) ≈ cc[ii...]
 end
 
 # TODO this will be the ilustative step by step how does the probability computation work
@@ -236,6 +242,12 @@ end
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-8
         @test spins[i] == spins_l[i]
+    end
+    # low energy spectrum
+    spins_s, objective_s = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15)
+    for i in 1:10
+        @test objective[i] ≈ objective_s[i] atol=1e-8
+        @test spins[i] == spins_s[i]
     end
 end
 

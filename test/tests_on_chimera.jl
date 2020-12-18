@@ -54,6 +54,10 @@ s = ArgParseSettings("description")
     default = 1
     arg_type = Int
     help = "chimera node size in columns"
+    "--spectrum_cutoff", "-u"
+    default = 1000
+    arg_type = Int
+    help = "size of the lower spectrum"
   end
 
 fi = parse_args(s)["file"]
@@ -72,9 +76,10 @@ ig = ising_graph(fi, si, 1, -1)
 n_sols = parse_args(s)["n_sols"]
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
+spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
-@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size)
-println(objective)
+@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff)
+
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")
 for energy in energies

@@ -301,7 +301,7 @@ end
 
 
 #TODO this will be factor_graph
-function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
+function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1); spectrum_cutoff::Int = 1000) where T <: AbstractFloat
     L = nv(ig)
 
     M = zeros(1,1)
@@ -338,15 +338,15 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
         gg = make_inner_graph(ig, g_element)
 
         no_conf = 2^length(g_element.spins_inds)
+
+        no_conf = minimum([no_conf, spectrum_cutoff])
+        println(no_conf)
         # TODO no_conf can be reduced for approximate spectrum
 
         spectrum = brute_force(gg; num_states = no_conf)
 
-        # sorting is required for indexing
-        p = sortperm([spins2ind(e) for e in spectrum.states], rev=true)
-
-        e = spectrum.energies[p]
-        s = spectrum.states[p]
+        e = spectrum.energies
+        s = spectrum.states
 
         set_prop!(g, i, :energy, e)
         set_prop!(g, i, :spectrum, s)
@@ -362,7 +362,7 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
             ip = M[g_element.row, g_element.column-1]
 
             M_left = M_of_interaction(g_element, g_elements[ip], ig, s)
-            #println(M_left)
+
             set_prop!(g, i, ip, :M, M_left)
         end
 
@@ -376,7 +376,7 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
         if g_element.row > 1
             ip = M[g_element.row-1, g_element.column]
             M_up = M_of_interaction(g_element, g_elements[ip], ig, s)
-            #println(M_up)
+
             set_prop!(g, i, ip, :M, M_up)
         end
     end
@@ -417,21 +417,14 @@ function M_of_interaction(g::EE, g1::EE, ig::MetaGraph, spectrum)
     subset_size = length(spin_subset)
     no_spins = length(g.spins_inds)
 
-    energy = zeros(2^subset_size, 2^no_spins)
+    energy = zeros(2^subset_size, length(spectrum))
 
-    for i in 1:2^no_spins
+    for i in 1:length(spectrum)
 
         σ_cluster = spectrum[i]
 
-        k = [1]
-        if spin_subset != Int[]
-            k = unique([e[spin_subset] for e in spectrum])
-        end
         for j in 1:2^subset_size
-            #iiii = ind2spin(j, subset_size)
-            σ = k[j]
-
-            #println(σ == iiii)
+            σ = ind2spin(j, subset_size)
             @inbounds energy[j,i] = -sum(J.*σ.*σ_cluster[spin_subset])
         end
     end
@@ -447,34 +440,12 @@ function ind2spin(i::Int, no_spins::Int = 1)
     return [1-2*Int((i-1)%j < div(j,2)) for j in s]
 end
 
-function ind2spin(i::Int, no_spins::Int, removed_indexes::Vector{Int})
-    # TODO make to more efficient and check
-    for _ in 1:length(removed_indexes)
-        i = i + count(i .> removed_indexes)
-    end
-    spins = ind2spin(i::Int, no_spins)
-end
-
 function spins2ind(s::Vector{Int})
     s = [Int(el == 1) for el in s]
     v = [2^i for i in 0:1:length(s)-1]
     transpose(s)*v+1
 end
 
-function spins2ind(s::Vector{Int}, removed_indexes::Vector{Int})
-    i = spins2ind(s)
-    !(i in removed_indexes) || error("index $i has been removed")
-    i - count(i .> removed_indexes)
-end
-
-
-function reindex(i::Int, no_spins::Int, subset_ind::Vector{Int}, removed_indexes::Vector{Int} = Int[])
-    if length(subset_ind) == 0
-        return 1
-    end
-    s = ind2spin(i, no_spins, removed_indexes)
-    spins2ind(s[subset_ind], removed_indexes)
-end
 
 spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
 

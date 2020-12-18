@@ -3,18 +3,37 @@
 
 function get_parameters_for_T(g::MetaGraph, i::Int)
     no_spins = length(props(g, i)[:spins])
-    tensor_size = [1,1,1,1, 2^no_spins]
+    spectrum = props(g, i)[:spectrum]
+    tensor_size = [1,1,1,1, length(spectrum)]
     right = Int[]
     down = Int[]
     M_left = zeros(1, 2^no_spins)
     M_up = zeros(1, 2^no_spins)
+
     for n in all_neighbors(g, i)
+
         if props(g, i)[:column] -1 == props(g, n)[:column]
-            M_left = props(g, i, n)[:M]
+
+            spectrum = props(g, n)[:spectrum]
+            ind = props(g, i, n)[:inds]
+            rrr = [s[ind] for s in spectrum]
+            k1 = unique([spins2ind(e) for e in rrr])
+
+            p = invperm(sortperm(k1))
+
+            M_left = props(g, i, n)[:M][p,:]
             tensor_size[1] = size(M_left, 1)
+
         elseif props(g, i)[:row] -1 == props(g, n)[:row]
-            M_up = props(g, i, n)[:M]
+            spectrum = props(g, n)[:spectrum]
+            ind = props(g, i, n)[:inds]
+            rrr = [s[ind] for s in spectrum]
+            k1 = unique([spins2ind(e) for e in rrr])
+            p = invperm(sortperm(k1))
+
+            M_up = props(g, i, n)[:M][p,:]
             tensor_size[2] = size(M_up, 1)
+
 
         elseif props(g, i)[:column] +1 == props(g, n)[:column]
             right = props(g, i, n)[:inds]
@@ -62,17 +81,13 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
 
     r = [s[right] for s in spectrum]
     k1 = s2i(r)
-    k11 = [reindex(i, no_spins, right) for i in 1:tensor_size[5]]
-    println("................")
-    println(k1)
-    println(k11)
 
-    #k2 = [reindex(i, no_spins, down) for i in 1:tensor_size[5]]
     d = [s[down] for s in spectrum]
     k2 = s2i(d)
 
     for k in CartesianIndices(tuple(tensor_size[1], tensor_size[2]))
         energy = log_energy
+
         # conctraction with Ms
         if column > 1
             @inbounds energy = energy + M_left[k[1], :]
@@ -83,9 +98,19 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
         end
         energy = exp.(-β.*(energy))
 
-        # itteration over physical index
-        for i in 1:tensor_size[5]
 
+        # itteration over physical index
+
+        println(tensor_size)
+
+        println(length(energy))
+
+        println(length(k1))
+
+        println(length(k2))
+
+
+        for i in 1:tensor_size[5]
 
             if !sum_over_last
                 @inbounds tensor[k[1], k[2], k1[i], k2[i], i] = energy[i]
@@ -204,7 +229,6 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
 
             index = ps.spins[k]
             ind = props(gg, k, k1)[:inds]
-            #rr = reindex(index, length(all), ind)
 
             d = [s[ind] for s in spectrum]
             k2 = s2i(d)
@@ -222,7 +246,6 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
             spectrum = props(gg, k)[:spectrum]
 
             index = ps.spins[k]
-            #rr = reindex(index, length(all), ind)
 
             d = [s[ind] for s in spectrum]
             k2 = s2i(d)
@@ -277,9 +300,10 @@ end
 
 function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1),
                                                β::T, χ::Int = 2^prod(node_size),
-                                               threshold::Float64 = 0.) where T <: Real
+                                               threshold::Float64 = 0.,
+                                               spectrum_cutoff::Int = 1000) where T <: Real
 
-    gg = graph4peps(g, node_size)
+    gg = graph4peps(g, node_size, spectrum_cutoff = spectrum_cutoff)
 
     grid = props(gg)[:grid]
 
