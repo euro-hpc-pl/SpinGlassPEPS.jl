@@ -1,7 +1,7 @@
 export Chimera
 export unit_cell
 
-mutable struct Chimera <: Model
+struct Chimera <: Model
     size::NTuple{3, Int}
     graph::MetaGraph
     
@@ -48,12 +48,12 @@ function Chimera(m::Int, n::Int=m, t::Int=4)
     Chimera((m, n, t), g)
 end
 
-function Base.getindex(c::Chimera, i::Int, j::Int, u::Int, k::Int)
+@inline function Base.getindex(c::Chimera, i::Int, j::Int, u::Int, k::Int)
     _, n, t = size(c)
     t * (2 * (n * (i - 1) + j - 1) + u - 1) + k
 end
 
-function Base.getindex(c::Chimera, i::Int, j::Int)
+@inline function Base.getindex(c::Chimera, i::Int, j::Int)
     t = size(c, 3)
     idx = vec([c[i, j, u, k] for u=1:2, k=1:t])
     c.graph[idx]
