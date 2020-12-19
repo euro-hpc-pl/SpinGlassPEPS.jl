@@ -1,8 +1,7 @@
 export brute_force
-export MPS_from_gates, unique_neighbors
+export unique_neighbors
 export MPSControl
-export spectrum
-export spectrum_new
+export solve, solve_new
 
 struct Spectrum
     energies::Array{<:Number}
@@ -26,7 +25,7 @@ end
 
 
 # ρ needs to be in the right canonical form
-function spectrum(ψ::MPS, keep::Int) 
+function solve(ψ::MPS, keep::Int)
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
     
@@ -79,7 +78,7 @@ function spectrum(ψ::MPS, keep::Int)
 end
 
 # ρ needs to be in the right canonical form
-function spectrum_new(ψ::MPS, keep::Int) 
+function solve_new(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
     
