@@ -10,21 +10,24 @@ mutable struct PepsTensor
     function PepsTensor(fg::MetaGraph, v::Int)
         pc = new()
         outgoing = outneighbors(fg, v)
-        incoming = inneighbours(fg, v)
+        incoming = inneighbors(fg, v)
+                   
         
-        for u ∈ outgoing
-            if get_prop(fg, (v, u), :orientation) == "horizontal"
-                pc.right = last(get_prop(fg, (v, u), :decomposition))
+        for u ∈ outgoing 
+            e = SimpleEdge(v, u)
+            if get_prop(fg, e, :orientation) == "horizontal"
+                pc.right = last(get_prop(fg, e, :decomposition))
             else
-                pc.down = last(get_prop(fg, (v, u), :decomposition))
+                pc.down = last(get_prop(fg, e, :decomposition))
             end 
         end
 
         for u ∈ incoming
-            if get_prop(fg, (u, v), :orientation) == "horizontal"
-                pc.left = first(get_prop(fg, (u, v), :decomposition))
+            e = SimpleEdge(u, v)
+            if get_prop(fg, e, :orientation) == "horizontal"
+                pc.left = first(get_prop(fg, e, :decomposition))
             else
-                pc.up = first(get_prop(fg, (u, v), :decomposition))
+                pc.up = first(get_prop(fg, e, :decomposition))
             end 
         end
        
