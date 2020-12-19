@@ -50,7 +50,7 @@ function energy(fg::MetaDiGraph, edge::Edge)
     vSp = get_prop(fg, v, :spectrum).states
     wSp = get_prop(fg, w, :spectrum).states
 
-    [ energy.(vec(vSp), Ref(edge.J), Ref(η)) for η ∈ vec(wSp)] 
+    Vector{Float64}[energy.(vec(vSp), Ref(edge.J), Ref(η)) for η ∈ vec(wSp)] 
 end
 
 """
