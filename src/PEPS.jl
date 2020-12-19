@@ -5,10 +5,13 @@ mutable struct PepsTensor
     right::AbstractArray
     up::AbstractArray
     down::AbstractArray
+    loc::AbstractArray
     tensor::AbstractArray
 
     function PepsTensor(fg::MetaDiGraph, v::Int)
         pc = new()
+        pc.loc = get_prop(fg, v, :local_exp)
+        
         outgoing = outneighbors(fg, v)
         incoming = inneighbors(fg, v)
                     
@@ -53,7 +56,8 @@ mutable struct PepsTensor
         println(size(pc.right))
         println(size(pc.up))
         println(size(pc.down))
-        @cast pc.tensor[l, r, u, d, σ] |= pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
+
+        @cast pc.tensor[l, r, u, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
 
         pc
     end

@@ -95,7 +95,7 @@ end
 function factor_graph(
     g::Model, 
     energy::Function=energy, 
-    spectrum::Function=brute_force, 
+    spectrum::Function=full_spectrum, 
     cluster::Function=unit_cell,
 ) 
     m, n, _ = g.size
@@ -118,7 +118,6 @@ function factor_graph(
     fg
 end
 
-
 function decompose_edges!(fg::MetaDiGraph, order=:PE, beta::Float64=1.0)
     set_prop!(fg, :tensors_order, order)
 
@@ -127,12 +126,17 @@ function decompose_edges!(fg::MetaDiGraph, order=:PE, beta::Float64=1.0)
         en, p = rank_reveal(energy)
 
         if order == :PE
-            dec = (p, exp.(-beta .* en))
+            dec = (p, exp.(-β .* en))
         else
-            dec = (exp.(-beta .* en), p)
+            dec = (exp.(-β .* en), p)
         end
         set_prop!(fg, edge, :decomposition, dec)
     end 
+
+    for v ∈ vertices(fg)
+        en = get_prop(fg, v, :spectrum).energies
+        set_prop!(fg, v, :local_exp, exp.(-β .* en))
+    end
 end
  
 
