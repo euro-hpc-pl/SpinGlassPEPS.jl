@@ -27,7 +27,5 @@ jobs:
       - name: test
         run: julia --color=yes --project -e 'using Pkg; Pkg.test(coverage=true, julia_args=["--depwarn=no"])'
       - name: coverage
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
         run: julia -e 'using Pkg; pkg"add Coverage"; using Coverage; Coveralls.submit(process_folder())'
