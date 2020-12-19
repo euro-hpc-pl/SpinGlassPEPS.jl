@@ -6,6 +6,7 @@ module SpinGlassPEPS
     using LightGraphs
     using MetaGraphs
     using CSV
+    using Debugger
 
     using DocStringExtensions
     const product = Iterators.product

@@ -64,6 +64,7 @@ mutable struct PepsTensor
         println(size(pc.right))
         println(size(pc.up))
         println(size(pc.down))
+        
         @cast pc.tensor[l, r, u, d, σ] |= pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
 
         pc

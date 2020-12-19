@@ -1,4 +1,3 @@
-
 @testset "PepsTensor correctly builds PEPS tensor" begin
 m = 4
 n = 4

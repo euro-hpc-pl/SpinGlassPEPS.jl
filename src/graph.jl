@@ -5,6 +5,7 @@ export rank_reveal
 
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
+const Graph = Union{MetaDiGraph, MetaGraph}
 
 mutable struct Cluster
     tag::Int
@@ -14,7 +15,7 @@ mutable struct Cluster
     J::Matrix{<:Number}
     h::Vector{<:Number}
 
-    function Cluster(ig::MetaDiGraph, v::Int, vertices::Dict, edges::EdgeIter)
+    function Cluster(ig::Graph, v::Int, vertices::Dict, edges::EdgeIter)
         cl = new(v, vertices, edges)
         L = length(cl.vertices)
 
@@ -72,7 +73,7 @@ mutable struct Edge
 end
 
 function factor_graph(m::Int, n::Int, hdir=:LR, vdir=:BT)
-    dg = MetaDiGraph(SimpleDiGraph(m * n))
+    dg = MetaDiGraph(m * n)
     set_prop!(dg, :order, (hdir, vdir))
 
     linear = LinearIndices((1:m, 1:n))
