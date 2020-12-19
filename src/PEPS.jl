@@ -8,7 +8,8 @@ mutable struct PepsTensor
     tensor::AbstractArray
 
     function PepsTensor(fg::MetaGraph, v::Int)
-        pc = new()
+        n = nothing
+        pc = new(n, n, n, n, n)
         outgoing = outneighbors(fg, v)
         incoming = inneighbors(fg, v)
                    

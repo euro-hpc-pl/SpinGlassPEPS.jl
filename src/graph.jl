@@ -100,13 +100,13 @@ function factor_graph(
     g::Model, 
     energy::Function=energy, 
     spectrum::Function=brute_force, 
-    create_cluster::Function=unit_cell,
-) # how to add typing to functions?
+    cluster::Function=unit_cell,
+) 
     m, n, _ = g.size
     fg = factor_graph(m, n)
 
     for v ∈ vertices(fg)
-        cl = create_cluster(g, v)
+        cl = cluster(g, v)
         set_prop!(fg, v, :cluster, cl)
         set_prop!(fg, v, :spectrum, spectrum(cl))
     end
@@ -123,17 +123,17 @@ function factor_graph(
 end
 
 
-function decompose_edges!(fg::MetaGraph, order=P_then_E, beta::Float64=1.0)
-    set_prop!(dg, :tensorsOrder, order)
+function decompose_edges!(fg::MetaGraph, order=:PE, beta::Float64=1.0)
+    set_prop!(fg, :tensorsOrder, order)
 
     for edge ∈ edges(fg)
         energies = get_prop(fg, edge, :energy)
         en, p = rank_reveal(energies)
 
-        if Int(order) == 1
-            dec = (p, exp.(beta .* en))
+        if order == :PE
+            dec = (p, exp.(-beta .* en))
         else
-            dec = (exp.(beta .* en), p)
+            dec = (exp.(-beta .* en), p)
         end
         set_prop!(fg, edge, :decomposition, dec)
     end 

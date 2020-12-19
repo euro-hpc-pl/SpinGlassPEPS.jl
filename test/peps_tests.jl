@@ -71,7 +71,7 @@ fullM2grid!(Mq, (2,2))
 
 
     g = M2graph(Mq)
-    β = 2.
+    β = -2.
     #smaller tensors
     g1 = graph4peps(g, (1,1))
 
