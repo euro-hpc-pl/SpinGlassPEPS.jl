@@ -1,4 +1,4 @@
-export brute_force
+export full_spectrum, brute_force
 export MPS_from_gates, unique_neighbors
 export MPSControl
 export spectrum
@@ -15,15 +15,6 @@ struct MPSControl
     max_sweeps::Int
     β::Vector
 end
-
-
-#Spectrum(cl::Cluster) = brute_force(cl, num_states=256)
-function Spectrum(cl::Cluster)
-    σ = collect.(all_states(cl.rank))
-    energies = energy.(σ, Ref(cl))
-    Spectrum(energies, σ)   
-end
-
 
 # ρ needs to be in the right canonical form
 function spectrum(ψ::MPS, keep::Int) 
@@ -252,18 +243,13 @@ end
 
 function brute_force(cl::Cluster; num_states::Int=1)
     σ = collect.(all_states(cl.rank))
-    states = reshape(σ, prod(cl.rank))
-    energies = energy.(states, Ref(cl))
-    perm = partialsortperm(energies, 1:num_states) 
-    Spectrum(energies[perm], states[perm])
+    energies = energy.(σ, Ref(cl))
+    perm = partialsortperm(vec(energies), 1:num_states) 
+    Spectrum(energies[perm], σ[perm])
 end 
 
-_ising(σ::State) = 2 .* σ .- 1
-
-function _brute_force(ig::MetaGraph, k::Int=1)
-    L = nv(ig)
-    states = _ising.(digits.(0:2^L-1, base=2, pad=L))
-    energies = energy.(states, Ref(ig))
-    perm = partialsortperm(energies, 1:k) 
-    states[perm], energies[perm]
-end  
+function full_spectrum(cl::Cluster)
+    σ = collect.(all_states(cl.rank))
+    energies = energy.(σ, Ref(cl))
+    Spectrum(energies, σ)   
+end
