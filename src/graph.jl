@@ -55,7 +55,7 @@ mutable struct Edge
     edges::EdgeIter
     J::Matrix{<:Number}
 
-    function Edge(ig::MetaDiGraph, v::Cluster, w::Cluster)
+    function Edge(ig::MetaGraph, v::Cluster, w::Cluster)
         ed = new((v.tag, w.tag))
         ed.edges = filter_edges(ig, v, w) 
 
@@ -128,8 +128,11 @@ function decompose_edges!(fg::MetaDiGraph, order=:PE, beta::Float64=1.0)
     set_prop!(fg, :tensorsOrder, order)
 
     for edge ∈ edges(fg)
-        energies = get_prop(fg, edge, :energy)
-        en, p = rank_reveal(energies)
+        energy = get_prop(fg, edge, :energy)
+        en, p = rank_reveal(energy)
+
+        println(edge)
+        println(size(energy), size(en), " ", size(p))
 
         if order == :PE
             dec = (p, exp.(-beta .* en))
