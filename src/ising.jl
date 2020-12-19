@@ -45,7 +45,7 @@ function energy(σ::Vector, ig::MetaGraph)
     energy(σ, cl) 
 end
    
-function energy(fg::MetaGraph, edge::Edge) 
+function energy(fg::MetaDiGraph, edge::Edge) 
     v, w = edge.tag
     vSp = get_prop(fg, v, :spectrum).states
     wSp = get_prop(fg, w, :spectrum).states

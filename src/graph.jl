@@ -14,7 +14,7 @@ mutable struct Cluster
     J::Matrix{<:Number}
     h::Vector{<:Number}
 
-    function Cluster(ig::MetaGraph, v::Int, vertices::Dict, edges::EdgeIter)
+    function Cluster(ig::MetaDiGraph, v::Int, vertices::Dict, edges::EdgeIter)
         cl = new(v, vertices, edges)
         L = length(cl.vertices)
 
@@ -54,7 +54,7 @@ mutable struct Edge
     edges::EdgeIter
     J::Matrix{<:Number}
 
-    function Edge(ig::MetaGraph, v::Cluster, w::Cluster)
+    function Edge(ig::MetaDiGraph, v::Cluster, w::Cluster)
         ed = new((v.tag, w.tag))
         ed.edges = filter_edges(ig, v, w) 
 
@@ -72,7 +72,7 @@ mutable struct Edge
 end
 
 function factor_graph(m::Int, n::Int, hdir=:LR, vdir=:BT)
-    dg = MetaGraph(SimpleDiGraph(m * n))
+    dg = MetaDiGraph(SimpleDiGraph(m * n))
     set_prop!(dg, :order, (hdir, vdir))
 
     linear = LinearIndices((1:m, 1:n))
@@ -87,7 +87,7 @@ function factor_graph(m::Int, n::Int, hdir=:LR, vdir=:BT)
 
     for i ∈ 1:n
         for j ∈ 1:m-1
-            v, w = linear[i, j], linear[i, j+1]
+            v, w = linear[j, i], linear[j+1, i]
             vdir == :BT ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
             add_edge!(dg, e)
             set_prop!(dg, e, :orientation, "vertical")
@@ -123,7 +123,7 @@ function factor_graph(
 end
 
 
-function decompose_edges!(fg::MetaGraph, order=:PE, beta::Float64=1.0)
+function decompose_edges!(fg::MetaDiGraph, order=:PE, beta::Float64=1.0)
     set_prop!(fg, :tensorsOrder, order)
 
     for edge ∈ edges(fg)
