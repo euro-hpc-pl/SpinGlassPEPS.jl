@@ -30,4 +30,4 @@ jobs:
 
         run: julia -e 'using Pkg; pkg"add Coverage"; using Coverage; Coveralls.submit(process_folder())'
         env:
-          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
