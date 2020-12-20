@@ -4,7 +4,7 @@ on:
   - pull_request
 jobs:
   test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,12 +22,11 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-  
       - uses: julia-actions/julia-buildpkg@latest
-      - name: test
-        run: julia --color=yes --project -e 'using Pkg; Pkg.test(coverage=true, julia_args=["--depwarn=no"])'
-      - name: coverage
-
-        run: julia -e 'using Pkg; pkg"add Coverage"; using Coverage; Coveralls.submit(process_folder())'
+      - uses: julia-actions/julia-runtest@latest
         env:
-          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+          JULIA_NUM_THREADS: 4
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v1
+        with:
+          file: lcov.info
