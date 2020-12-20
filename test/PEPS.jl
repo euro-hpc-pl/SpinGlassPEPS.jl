@@ -12,6 +12,6 @@ cg = Chimera((m, n, t), ig)
 fg = factor_graph(cg)
 decompose_edges!(fg)
 
-#peps = PepsTensor(fg, 6)
+peps = PepsTensor(fg, 6)
 
 end

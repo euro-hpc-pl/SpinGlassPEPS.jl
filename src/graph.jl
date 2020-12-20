@@ -129,7 +129,7 @@ function decompose_edges!(fg::MetaDiGraph, order=:PE, β::Float64=1.0)
 
     for edge ∈ edges(fg)
         energy = get_prop(fg, edge, :energy)
-        en, p = rank_reveal(energy)
+        en, p = rank_reveal(energy, order)
 
         if order == :PE
             dec = (p, exp.(-β .* en))

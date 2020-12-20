@@ -1,6 +1,7 @@
 export PepsTensor
 
 mutable struct PepsTensor
+    nbrs::Dict{String, Int}
     left::AbstractArray
     right::AbstractArray
     up::AbstractArray
@@ -10,6 +11,7 @@ mutable struct PepsTensor
 
     function PepsTensor(fg::MetaDiGraph, v::Int)
         pc = new()
+        pc.nbrs = Dict()
         pc.loc = get_prop(fg, v, :local_exp)
         
         outgoing = outneighbors(fg, v)
@@ -19,8 +21,10 @@ mutable struct PepsTensor
             e = SimpleEdge(v, u)
             if get_prop(fg, e, :orientation) == "horizontal"
                 pc.right = last(get_prop(fg, e, :decomposition))
+                push!(pc.nbrs, "r" => u)
             else
                 pc.down = last(get_prop(fg, e, :decomposition))
+                push!(pc.nbrs, "d" => u)
             end 
         end
 
@@ -28,8 +32,10 @@ mutable struct PepsTensor
             e = SimpleEdge(u, v)
             if get_prop(fg, e, :orientation) == "horizontal"
                 pc.left = first(get_prop(fg, e, :decomposition))
+                push!(pc.nbrs, "l" => u)
             else
                 pc.up = first(get_prop(fg, e, :decomposition))
+                push!(pc.nbrs, "u" => u)
             end 
         end
        
