@@ -17,33 +17,33 @@ for (T, N) in ((:MPO, 4), (:MPS, 3))
         $T(::Type{T}, L::Int) where {T} = $T(Vector{Array{T, $N}}(undef, L))
         $T(L::Int) = $T(Float64, L)
 
-        Base.setindex!(a::$AT, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
-        bond_dimension(a::$AT) = maximum(size.(a.tensors, $N))
+        @inline Base.setindex!(a::$AT, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
+        @inline bond_dimension(a::$AT) = maximum(size.(a.tensors, $N))
         Base.copy(a::$T) = $T(copy(a.tensors))
-        Base.eltype(::$AT{T}) where {T} = T
+        @inline Base.eltype(::$AT{T}) where {T} = T
     end
 end
 
 const AbstractMPSorMPO = Union{AbstractMPS, AbstractMPO}
 const MPSorMPO = Union{MPS, MPO}
 
-Base.:(==)(a::AbstractMPSorMPO, b::AbstractMPSorMPO) = a.tensors == b.tensors
-Base.:(≈)(a::AbstractMPSorMPO, b::AbstractMPSorMPO)  = a.tensors ≈ b.tensors
+@inline Base.:(==)(a::AbstractMPSorMPO, b::AbstractMPSorMPO) = a.tensors == b.tensors
+@inline Base.:(≈)(a::AbstractMPSorMPO, b::AbstractMPSorMPO)  = a.tensors ≈ b.tensors
 
-Base.getindex(a::AbstractMPSorMPO, i) = getindex(a.tensors, i)
-Base.iterate(a::AbstractMPSorMPO) = iterate(a.tensors)
-Base.iterate(a::AbstractMPSorMPO, state) = iterate(a.tensors, state)
-Base.lastindex(a::AbstractMPSorMPO) = lastindex(a.tensors)
-Base.length(a::AbstractMPSorMPO) = length(a.tensors)
-Base.size(a::AbstractMPSorMPO) = (length(a.tensors), )
+@inline Base.getindex(a::AbstractMPSorMPO, i) = getindex(a.tensors, i)
+@inline Base.iterate(a::AbstractMPSorMPO) = iterate(a.tensors)
+@inline Base.iterate(a::AbstractMPSorMPO, state) = iterate(a.tensors, state)
+@inline Base.lastindex(a::AbstractMPSorMPO) = lastindex(a.tensors)
+@inline Base.length(a::AbstractMPSorMPO) = length(a.tensors)
+@inline Base.size(a::AbstractMPSorMPO) = (length(a.tensors), )
 
-LinearAlgebra.rank(ψ::MPS) = Tuple(size(A, 2) for A ∈ ψ)
+@inline LinearAlgebra.rank(ψ::MPS) = Tuple(size(A, 2) for A ∈ ψ)
 
-MPS(A::AbstractArray) = MPS(A, :right)
-MPS(A::AbstractArray, s::Symbol, args...) = MPS(A, Val(s), typemax(Int), args...)
-MPS(A::AbstractArray, s::Symbol, Dcut::Int, args...) = MPS(A, Val(s), Dcut, args...)
-MPS(A::AbstractArray, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(A, Dcut, args...)
-MPS(A::AbstractArray, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(A, Dcut, args...)
+@inline MPS(A::AbstractArray) = MPS(A, :right)
+@inline MPS(A::AbstractArray, s::Symbol, args...) = MPS(A, Val(s), typemax(Int), args...)
+@inline MPS(A::AbstractArray, s::Symbol, Dcut::Int, args...) = MPS(A, Val(s), Dcut, args...)
+@inline MPS(A::AbstractArray, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(A, Dcut, args...)
+@inline MPS(A::AbstractArray, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(A, Dcut, args...)
 
 function _right_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) where {T}
     rank = ndims(Θ)

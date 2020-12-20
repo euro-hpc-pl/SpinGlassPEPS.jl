@@ -23,7 +23,7 @@ mutable struct Cluster
         for e ∈ cl.edges
             i = cl.vertices[src(e)]
             j = cl.vertices[dst(e)] 
-            cl.J[i, j] = get_prop(ig, e, :J)
+            @inbounds cl.J[i, j] = get_prop(ig, e, :J)
         end
 
         rank = get_prop(ig, :rank)
@@ -31,27 +31,23 @@ mutable struct Cluster
 
         cl.h = zeros(L)
         for (w, i) ∈ cl.vertices
-            cl.h[i] = get_prop(ig, w, :h)
-            cl.rank[i] = rank[w]
+            @inbounds cl.h[i] = get_prop(ig, w, :h)
+            @inbounds cl.rank[i] = rank[w]
         end
         cl
     end
 end
 
 function MetaGraphs.filter_edges(ig::MetaGraph, v::Cluster, w::Cluster)
-    edges = []
-    for i ∈ keys(v.vertices)
-        for j ∈ unique_neighbors(ig, i)
-            if j ∈ keys(w.vertices)
-                push!(edges, SimpleEdge(i, j))
-            end
-        end
+    edges = SimpleEdge[]
+    for i ∈ keys(v.vertices), j ∈ unique_neighbors(ig, i)
+        if j ∈ keys(w.vertices) push!(edges, SimpleEdge(i, j)) end
     end
     edges
 end
 
 mutable struct Edge
-    tag::NTuple
+    tag::NTuple{2, Int}
     edges::EdgeIter
     J::Matrix{<:Number}
 
@@ -66,33 +62,32 @@ mutable struct Edge
         for e ∈ ed.edges
             i = v.vertices[src(e)]
             j = w.vertices[dst(e)] 
-            ed.J[i, j] = get_prop(ig, e, :J)
+            @inbounds ed.J[i, j] = get_prop(ig, e, :J)
         end
         ed
     end
 end
 
 function factor_graph(m::Int, n::Int, hdir=:LR, vdir=:BT)
+    @assert hdir ∈ (:LR, :RL)
+    @assert vdir ∈ (:BT, :TB)
+    
     dg = MetaDiGraph(m * n)
     set_prop!(dg, :order, (hdir, vdir))
 
     linear = LinearIndices((1:m, 1:n))
-    for i ∈ 1:m
-        for j ∈ 1:n-1
-            v, w = linear[i, j], linear[i, j+1]
-            hdir == :LR ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
-            add_edge!(dg, e)
-            set_prop!(dg, e, :orientation, "horizontal")
-        end
+    for i ∈ 1:m, j ∈ 1:n-1
+        v, w = linear[i, j], linear[i, j+1]
+        hdir == :LR ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
+        add_edge!(dg, e)
+        set_prop!(dg, e, :orientation, "horizontal")
     end
 
-    for i ∈ 1:n
-        for j ∈ 1:m-1
-            v, w = linear[j, i], linear[j+1, i]
-            vdir == :BT ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
-            add_edge!(dg, e)
-            set_prop!(dg, e, :orientation, "vertical")
-        end
+    for i ∈ 1:n, j ∈ 1:m-1
+        v, w = linear[j, i], linear[j+1, i]
+        vdir == :BT ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
+        add_edge!(dg, e)
+        set_prop!(dg, e, :orientation, "vertical")
     end
     dg
 end
@@ -123,9 +118,8 @@ function factor_graph(
     fg
 end
 
-
-function decompose_edges!(fg::MetaDiGraph, order=:PE, β::Float64=1.0)
-    set_prop!(fg, :tensorsOrder, order)
+function decompose_edges!(fg::MetaDiGraph, order=:PE, beta::Float64=1.0)
+    set_prop!(fg, :tensors_order, order)
 
     for edge ∈ edges(fg)
         energy = get_prop(fg, edge, :energy)
@@ -146,14 +140,15 @@ function decompose_edges!(fg::MetaDiGraph, order=:PE, β::Float64=1.0)
 end
  
 
-function rank_reveal(energy, order=:PE) # or E_then_P
+function rank_reveal(energy, order=:PE)
+    @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2
 
     E = unique(energy, dims=dim)
     idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
 
     P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
-    
+
     for (i, elements) ∈ enumerate(eachslice(P, dims=dim))
         elements[idx[i]] = 1
     end
