@@ -30,11 +30,15 @@ for order ∈ (:EP, :PE)
         end
 
         @info "Testing PEPS"
-
-        net = []
-        for v ∈ vertices(fg)
-            push!(net, PepsTensor(fg, v))
-        end
+        
+        @time begin
+            net = []
+            for v ∈ vertices(fg)
+                peps = PepsTensor(fg, v)
+                push!(net, peps)
+                println(size(peps))
+            end
+        end    
     end
 end
 

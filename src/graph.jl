@@ -40,7 +40,7 @@ end
 
 function MetaGraphs.filter_edges(ig::MetaGraph, v::Cluster, w::Cluster)
     edges = SimpleEdge[]
-    for i ∈ keys(v.vertices), j ∈ unique_neighbors(ig, i)
+    for i ∈ keys(v.vertices), j ∈ neighbors(ig, i)
         if j ∈ keys(w.vertices) push!(edges, SimpleEdge(i, j)) end
     end
     edges
@@ -133,6 +133,7 @@ function decompose_edges!(fg::MetaDiGraph, order=:PE; β::Float64=1.0)
             en, p = rank_reveal(energy, order)
             dec = (exp.(-β .* en), p)
         end
+
         set_prop!(fg, edge, :decomposition, dec)
     end 
 
@@ -142,11 +143,10 @@ function decompose_edges!(fg::MetaDiGraph, order=:PE; β::Float64=1.0)
     end
 end
  
-
 function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2
-
+    
     E = unique(energy, dims=dim)
     idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
 

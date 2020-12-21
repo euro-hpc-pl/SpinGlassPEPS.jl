@@ -54,7 +54,7 @@ function energy(fg::MetaDiGraph, edge::Edge)
     n = prod(size(wSp))
 
     en = zeros(m, n) 
-    for (j, η) ∈ enumerate(wSp)
+    for (j, η) ∈ enumerate(vec(wSp))
         en[:, j] = energy.(vec(vSp), Ref(edge.J), Ref(η)) 
     end
     en 
@@ -87,6 +87,9 @@ function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.
         if i == j
             set_prop!(ig, i, :h, v) || error("Node $i missing!")
         else
+            if has_edge(ig, j, i) 
+                error("Cannot add ($i, $j) as ($j, $i) already exists!") 
+            end
             add_edge!(ig, i, j) && 
             set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)") 
         end    
