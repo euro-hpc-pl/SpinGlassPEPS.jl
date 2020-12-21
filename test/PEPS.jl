@@ -1,4 +1,4 @@
-@testset "PepsTensor correctly builds PEPS tensor" begin
+@testset "PepsTensor correctly builds PEPS network for Chimera" begin
 m = 4
 n = 4
 t = 4
@@ -10,13 +10,21 @@ ig = ising_graph(instance, L)
 cg = Chimera((m, n, t), ig)
 
 β = get_prop(ig, :β)
+k = 64
 
 for order ∈ (:EP, :PE)
     for hd ∈ (:LR, :RL), vd ∈ (:BT, :TB)
 
         @info "Testing factor graph" order hd vd
 
-        fg = factor_graph(cg, hdir=hd, vdir=vd)
+        fg = factor_graph(cg,
+        #spectrum=full_spectrum,
+        spectrum = cl -> brute_force(cl, num_states=k),
+        energy=energy,
+        cluster=unit_cell,  
+        hdir=hd,
+        vdir=vd,
+        )
         decompose_edges!(fg, order, β=β)
 
         @test order == get_prop(fg, :tensors_order)
@@ -36,10 +44,22 @@ for order ∈ (:EP, :PE)
             for v ∈ vertices(fg)
                 peps = PepsTensor(fg, v)
                 push!(net, peps)
+                println(peps.nbrs)
                 println(size(peps))
             end
         end    
     end
 end
+
+@testset "PepsTensor correctly builds PEPS network for Lattice" begin
+
+L = 9
+instance = "$(@__DIR__)/instances/$(L)_001.txt" 
+
+ig = ising_graph(instance, L)
+
+
+end
+
 
 end

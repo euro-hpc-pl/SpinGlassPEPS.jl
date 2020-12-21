@@ -93,10 +93,10 @@ function factor_graph(m::Int, n::Int, hdir::Symbol=:LR, vdir::Symbol=:BT)
 end
 
 function factor_graph(
-    g::Model, 
+    g::Model;
     energy::Function=energy, 
     spectrum::Function=full_spectrum, 
-    cluster::Function=unit_cell;
+    cluster::Function=unit_cell,
     hdir::Symbol=:LR, 
     vdir::Symbol=:BT,
 ) 
