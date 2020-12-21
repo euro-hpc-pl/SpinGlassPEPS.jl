@@ -58,6 +58,7 @@ mutable struct PepsTensor
 
         #@infiltrate
         println(v)
+        println(pc.nbrs)
         println(size(pc.left))
         println(size(pc.right))
         println(size(pc.up))
