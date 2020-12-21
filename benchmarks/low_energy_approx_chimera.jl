@@ -90,7 +90,7 @@ spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
 ses = collect(spectrum_cutoff:-10:1)
 step = 9
-#step = 100
+step = 100
 n_s = collect(n_sols:-step:1)
 
 delta_e = ones(length(ses), length(n_s))
