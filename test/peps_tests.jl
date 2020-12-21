@@ -67,7 +67,6 @@ end
 Mq = ones(4,4)
 fullM2grid!(Mq, (2,2))
 
-if false
 @testset "tensor construction" begin
 
 
@@ -113,7 +112,6 @@ if false
     @test vec(T1) ≈ vec(T2)
 end
 
-end
 
 Mq = zeros(9,9)
 Mq[1,1] = 1.
@@ -138,37 +136,11 @@ Mq[6,9] = Mq[9,6] = -0.52
 Mq[7,8] = Mq[8,7] = 0.5
 Mq[8,9] = Mq[9,8] = -0.05
 
-f = -1.
-f1 = -1.
-
-Mq1 = zeros(9,9)
-Mq1[1,1] = f*1.0
-Mq1[2,2] = 1.4*f
-Mq1[3,3] = -0.2*f
-Mq1[4,4] = -1.0*f
-Mq1[5,5] = 0.2*f
-Mq1[6,6] = -2.2*f
-Mq1[7,7] = 0.2*f
-Mq1[8,8] = -0.2*f
-Mq1[9,9] = -0.8*f
-Mq1[1,2] = Mq1[2,1] = 2.0*f1
-Mq1[1,4] = Mq1[4,1] = -1.0*f1
-Mq1[2,3] = Mq1[3,2] = 1.1*f1
-Mq1[4,5] = Mq1[5,4] = 0.5*f1
-Mq1[4,7] = Mq1[7,4] = -1.0*f1
-Mq1[2,5] = Mq1[5,2] = -0.75*f1
-Mq1[3,6] = Mq1[6,3] = 1.5*f1
-Mq1[5,6] = Mq1[6,5] = 2.1*f1
-Mq1[5,8] = Mq1[8,5] = 0.12*f1
-Mq1[6,9] = Mq1[9,6] = -0.52*f1
-Mq1[7,8] = Mq1[8,7] = 0.5*f1
-Mq1[8,9] = Mq1[9,8] = -0.05*f1
 
 @testset "whole peps tensor" begin
 
-    #g = M2graph(Mq, -1)
-    g1 = M2graph(Mq1)
-    gg = graph4peps(g1, (1,1))
+    g = M2graph(Mq, -1)
+    gg = graph4peps(g, (1,1))
 
 
     ### forms a peps network
@@ -179,13 +151,13 @@ Mq1[8,9] = Mq1[9,8] = -0.05*f1
 
     v = [-1 for _ in 1:9]
 
-    @test exp.(β*energy(v, g)) ≈ cc[1,1,1,1,1,1,1,1,1]
+    @test exp.(-β*energy(v, g)) ≈ cc[1,1,1,1,1,1,1,1,1]
 
     v[1] = 1
-    @test exp.(β*energy(v, g)) ≈ cc[2,1,1,1,1,1,1,1,1]
+    @test exp.(-β*energy(v, g)) ≈ cc[2,1,1,1,1,1,1,1,1]
 
     v = [1, -1, 1, -1, 1, -1, 1, -1, 1]
-    @test exp.(β*energy(v, g)) ≈ cc[2,1,2,1,2,1,2,1,2]
+    @test exp.(-β*energy(v, g)) ≈ cc[2,1,2,1,2,1,2,1,2]
 end
 
 # TODO this will be the ilustative step by step how does the probability computation work
@@ -201,7 +173,7 @@ end
     @test mps[2] == 2*ones(2,2,2)
 
     β = 3.
-    g = M2graph(Mq1)
+    g = M2graph(Mq, -1)
     gg = graph4peps(g, (1,1))
 
     M = form_peps(gg, β)

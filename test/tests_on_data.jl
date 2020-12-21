@@ -11,7 +11,7 @@
     0.0 0.0 0.0 -0.4375 -0.4375 -0.4375 -0.4375 -3.125]
 
 
-    g = M2graph(JJ)
+    g = M2graph(JJ, -1)
 
     # parameters of the solver
     χ = 10

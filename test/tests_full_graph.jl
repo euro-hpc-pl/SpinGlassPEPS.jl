@@ -14,7 +14,7 @@
         β_step = 2
         β = 2.
 
-        g = M2graph(M)
+        g = M2graph(M, -1)
 
         spectrum = brute_force(g; num_states=sols)
 
@@ -51,7 +51,7 @@
         β = 0.1
         β_step = 1
 
-        g = M2graph(M)
+        g = M2graph(M, -1)
 
         spins_mps, objectives_mps = solve_mps(g, 20; β=β, β_step=β_step, χ=χ, threshold = 1.e-12)
 
