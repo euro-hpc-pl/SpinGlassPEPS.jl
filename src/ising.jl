@@ -69,7 +69,7 @@ Create the Ising spin glass model.
 
 Store extra information
 """
-function ising_graph(instance::Instance, L::Int, β::Number=1, sgn::Number=-1)
+function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.0)
 
     # load the Ising instance
     if typeof(instance) == String

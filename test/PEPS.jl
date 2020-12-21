@@ -8,26 +8,25 @@ instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt"
 
 ig = ising_graph(instance, L)
 cg = Chimera((m, n, t), ig)
-fg = factor_graph(cg)
+
+β = get_prop(ig, :β)
 
 order = :PE
-decompose_edges!(fg, order)
+fg = factor_graph(cg)
+decompose_edges!(fg, order, β=β)
 
 @testset "decompose_edges! workds correctly" begin
     order = get_prop(fg, :tensors_order)
-    println("order ->", order)
 
     for e ∈ edges(fg)
         dec = get_prop(fg, e, :decomposition)
         en = get_prop(fg, e, :energy)
 
-        println(size(en))
-        println(size(first(dec)), size(last(dec)))
-
+        ρ = exp.(-β .* en)
         if order == :PE
-            @test en ≈ prod(dec)
+            @test ρ ≈ prod(dec)
         else
-            @test en ≈ prod(reverse(dec))
+            @test ρ ≈ prod(reverse(dec))
         end
         break
     end

@@ -118,16 +118,17 @@ function factor_graph(
     fg
 end
 
-function decompose_edges!(fg::MetaDiGraph, order=:PE, β::Float64=1.0)
+function decompose_edges!(fg::MetaDiGraph, order=:PE; β::Float64=1.0)
     set_prop!(fg, :tensors_order, order)
 
     for edge ∈ edges(fg)
         energy = get_prop(fg, edge, :energy)
-        en, p = rank_reveal(energy, order)
         
         if order == :PE
+            p, en = rank_reveal(energy, order)
             dec = (p, exp.(-β .* en))
         else
+            en, p = rank_reveal(energy, order)
             dec = (exp.(-β .* en), p)
         end
         set_prop!(fg, edge, :decomposition, dec)
