@@ -4,7 +4,7 @@ import SpinGlassPEPS: compute_single_tensor, conditional_probabs, get_parameters
 import SpinGlassPEPS: make_lower_mps
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
-
+if true
 @testset "PEPS - axiliary functions" begin
 
     @testset "partial solution type" begin
@@ -138,11 +138,37 @@ Mq[6,9] = Mq[9,6] = -0.52
 Mq[7,8] = Mq[8,7] = 0.5
 Mq[8,9] = Mq[9,8] = -0.05
 
+f = -1.
+f1 = -1.
+
+Mq1 = zeros(9,9)
+Mq1[1,1] = f*1.0
+Mq1[2,2] = 1.4*f
+Mq1[3,3] = -0.2*f
+Mq1[4,4] = -1.0*f
+Mq1[5,5] = 0.2*f
+Mq1[6,6] = -2.2*f
+Mq1[7,7] = 0.2*f
+Mq1[8,8] = -0.2*f
+Mq1[9,9] = -0.8*f
+Mq1[1,2] = Mq1[2,1] = 2.0*f1
+Mq1[1,4] = Mq1[4,1] = -1.0*f1
+Mq1[2,3] = Mq1[3,2] = 1.1*f1
+Mq1[4,5] = Mq1[5,4] = 0.5*f1
+Mq1[4,7] = Mq1[7,4] = -1.0*f1
+Mq1[2,5] = Mq1[5,2] = -0.75*f1
+Mq1[3,6] = Mq1[6,3] = 1.5*f1
+Mq1[5,6] = Mq1[6,5] = 2.1*f1
+Mq1[5,8] = Mq1[8,5] = 0.12*f1
+Mq1[6,9] = Mq1[9,6] = -0.52*f1
+Mq1[7,8] = Mq1[8,7] = 0.5*f1
+Mq1[8,9] = Mq1[9,8] = -0.05*f1
 
 @testset "whole peps tensor" begin
 
-    g = M2graph(Mq)
-    gg = graph4peps(g, (1,1))
+    #g = M2graph(Mq, -1)
+    g1 = M2graph(Mq1)
+    gg = graph4peps(g1, (1,1))
 
 
     ### forms a peps network
@@ -153,13 +179,13 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     v = [-1 for _ in 1:9]
 
-    @test exp.(-β*energy(v, g)) ≈ cc[1,1,1,1,1,1,1,1,1]
+    @test exp.(β*energy(v, g)) ≈ cc[1,1,1,1,1,1,1,1,1]
 
     v[1] = 1
-    @test exp.(-β*energy(v, g)) ≈ cc[2,1,1,1,1,1,1,1,1]
+    @test exp.(β*energy(v, g)) ≈ cc[2,1,1,1,1,1,1,1,1]
 
     v = [1, -1, 1, -1, 1, -1, 1, -1, 1]
-    @test exp.(-β*energy(v, g)) ≈ cc[2,1,2,1,2,1,2,1,2]
+    @test exp.(β*energy(v, g)) ≈ cc[2,1,2,1,2,1,2,1,2]
 end
 
 # TODO this will be the ilustative step by step how does the probability computation work
@@ -175,7 +201,7 @@ end
     @test mps[2] == 2*ones(2,2,2)
 
     β = 3.
-    g = M2graph(Mq)
+    g = M2graph(Mq1)
     gg = graph4peps(g, (1,1))
 
     M = form_peps(gg, β)
@@ -226,7 +252,7 @@ end
     @test objective ≈ [p1, p2]
 
 end
-
+end
 
 @testset "test an exemple instance" begin
 
