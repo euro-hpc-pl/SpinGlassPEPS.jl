@@ -136,7 +136,7 @@ function decompose_edges!(fg::MetaDiGraph, order=:PE; β::Float64=1.0)
 
     for v ∈ vertices(fg)
         en = get_prop(fg, v, :spectrum).energies
-        set_prop!(fg, v, :local_exp, exp.(-β .* en))
+        set_prop!(fg, v, :local_exp, vec(exp.(-β .* en)))
     end
 end
  

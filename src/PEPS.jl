@@ -20,22 +20,22 @@ mutable struct PepsTensor
         for u ∈ outgoing 
             e = SimpleEdge(v, u)
             if get_prop(fg, e, :orientation) == "horizontal"
-                pc.right = last(get_prop(fg, e, :decomposition))
-                push!(pc.nbrs, "r" => u)
-            else
-                pc.down = last(get_prop(fg, e, :decomposition))
+                pc.down = first(get_prop(fg, e, :decomposition))
                 push!(pc.nbrs, "d" => u)
+            else
+                pc.right = first(get_prop(fg, e, :decomposition))
+                push!(pc.nbrs, "r" => u)
             end 
         end
 
         for u ∈ incoming
             e = SimpleEdge(u, v)
             if get_prop(fg, e, :orientation) == "horizontal"
-                pc.left = first(get_prop(fg, e, :decomposition))
-                push!(pc.nbrs, "l" => u)
-            else
-                pc.up = first(get_prop(fg, e, :decomposition))
+                pc.up = last(get_prop(fg, e, :decomposition))
                 push!(pc.nbrs, "u" => u)
+            else
+                pc.left = last(get_prop(fg, e, :decomposition))
+                push!(pc.nbrs, "l" => u)
             end 
         end
        
@@ -59,6 +59,7 @@ mutable struct PepsTensor
         #@infiltrate
         println(v)
         println(pc.nbrs)
+        println(size(pc.loc))
         println(size(pc.left))
         println(size(pc.right))
         println(size(pc.up))

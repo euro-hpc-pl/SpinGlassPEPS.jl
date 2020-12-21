@@ -32,6 +32,6 @@ decompose_edges!(fg, order, β=β)
     end
 end
 
-#peps = PepsTensor(fg, 6)
+peps = PepsTensor(fg, 6)
 
 end
