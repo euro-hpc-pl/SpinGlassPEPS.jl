@@ -3,28 +3,44 @@
 
 function get_parameters_for_T(g::MetaGraph, i::Int)
     no_spins = length(props(g, i)[:spins])
-    tensor_size = [1,1,1,1, 2^no_spins]
+    spectrum = props(g, i)[:spectrum]
+
     right = Int[]
     down = Int[]
-    M_left = zeros(1, 2^no_spins)
-    M_up = zeros(1, 2^no_spins)
+    #M_left = zeros(1, 2^no_spins)
+    #M_up = zeros(1, 2^no_spins)
+    M_left = zeros(1, length(spectrum))
+    M_up = zeros(1, length(spectrum))
+
     for n in all_neighbors(g, i)
+
         if props(g, i)[:column] -1 == props(g, n)[:column]
-            M_left = props(g, i, n)[:M]
-            tensor_size[1] = size(M_left, 1)
+
+            spectrum = props(g, n)[:spectrum]
+            ind = props(g, i, n)[:inds]
+            rrr = [s[ind] for s in spectrum]
+            k1 = unique([spins2ind(e) for e in rrr])
+            p = invperm(sortperm(k1))
+            M_left = props(g, i, n)[:M][p,:]
+
         elseif props(g, i)[:row] -1 == props(g, n)[:row]
-            M_up = props(g, i, n)[:M]
-            tensor_size[2] = size(M_up, 1)
+            spectrum = props(g, n)[:spectrum]
+            ind = props(g, i, n)[:inds]
+            rrr = [s[ind] for s in spectrum]
+            k1 = unique([spins2ind(e) for e in rrr])
+            p = invperm(sortperm(k1))
+            M_up = props(g, i, n)[:M][p,:]
+
 
         elseif props(g, i)[:column] +1 == props(g, n)[:column]
             right = props(g, i, n)[:inds]
-            tensor_size[3] = 2^length(right)
+
         elseif props(g, i)[:row] +1 == props(g, n)[:row]
             down = props(g, i, n)[:inds]
-            tensor_size[4] = 2^length(down)
+
         end
     end
-    no_spins, tensor_size, right, down, M_left, M_up
+    right, down, M_left, M_up
 end
 
 """
@@ -48,22 +64,32 @@ If sum_over_last -- summed over mode 5
 
 function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool = false) where T <: Real
     n = 0
-    no_spins, tensor_size, right, down, M_left, M_up = get_parameters_for_T(g, i)
+    right, down, M_left, M_up = get_parameters_for_T(g, i)
+
+    column = props(g, i)[:column]
+    row = props(g, i)[:row]
+    log_energy = props(g, i)[:energy]
+    spectrum = props(g, i)[:spectrum]
+
+    tensor_size = [size(M_left, 1), size(M_up, 1) ,1,1, length(spectrum)]
+
+
+    r = [s[right] for s in spectrum]
+    k1 = s2i(r)
+    tensor_size[3] = maximum(k1)
+
+    d = [s[down] for s in spectrum]
+    k2 = s2i(d)
+    tensor_size[4] = maximum(k2)
 
     tensor = zeros(T, (tensor_size[1:4]...))
     if !sum_over_last
         tensor = zeros(T, (tensor_size...))
     end
 
-    column = props(g, i)[:column]
-    row = props(g, i)[:row]
-    log_energy = props(g, i)[:energy]
-
-    k1 = [reindex(i, no_spins, right) for i in 1:tensor_size[5]]
-    k2 = [reindex(i, no_spins, down) for i in 1:tensor_size[5]]
-
     for k in CartesianIndices(tuple(tensor_size[1], tensor_size[2]))
         energy = log_energy
+
         # conctraction with Ms
         if column > 1
             @inbounds energy = energy + M_left[k[1], :]
@@ -74,9 +100,11 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
         end
         energy = exp.(-β.*(energy))
 
-        # itteration over physical index
-        for i in 1:tensor_size[5]
 
+        # itteration over physical index
+
+
+        for i in 1:tensor_size[5]
 
             if !sum_over_last
                 @inbounds tensor[k[1], k[2], k1[i], k2[i], i] = energy[i]
@@ -182,6 +210,7 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
     row = props(gg, j)[:row]
     column = props(gg, j)[:column]
 
+
     upper_right = ones(Int, s[2]-column+1)
     upper_left = ones(Int, column-1)
 
@@ -190,21 +219,32 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
             k = grid[row-1,i]
             k1 = grid[row,i]
             all = props(gg, k)[:spins]
+            spectrum = props(gg, k)[:spectrum]
 
             index = ps.spins[k]
             ind = props(gg, k, k1)[:inds]
-            upper_right[i-column+1] = reindex(index, length(all), ind)
+
+            d = [s[ind] for s in spectrum]
+            k2 = s2i(d)
+
+            upper_right[i-column+1] = k2[index]
         end
     end
     if row < s[1]
         for i in 1:column-1
             k = grid[row,i]
             k1 = grid[row+1,i]
+
             all = props(gg, k)[:spins]
             ind = props(gg, k, k1)[:inds]
+            spectrum = props(gg, k)[:spectrum]
+
             index = ps.spins[k]
 
-            upper_left[i] = reindex(index, length(all), ind)
+            d = [s[ind] for s in spectrum]
+            k2 = s2i(d)
+
+            upper_left[i] = k2[index]
         end
     end
     upper_left, upper_right
@@ -215,11 +255,16 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
     grid = props(gg)[:grid]
     column = props(gg, j)[:column]
     row = props(gg, j)[:row]
+
     if  column > 1
         jp = grid[row, column-1]
         all = props(gg, jp)[:spins]
+        spectrum = props(gg, jp)[:spectrum]
         ind = props(gg, j, jp)[:inds]
-        return reindex(ps.spins[end], length(all), ind)
+
+        d = [s[ind] for s in spectrum]
+        k2 = s2i(d)
+        return k2[ps.spins[end]]
     end
     1
 end
@@ -249,9 +294,10 @@ end
 
 function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1),
                                                β::T, χ::Int = 2^prod(node_size),
-                                               threshold::Float64 = 0.) where T <: Real
+                                               threshold::Float64 = 0.,
+                                               spectrum_cutoff::Int = 1000) where T <: Real
 
-    gg = graph4peps(g, node_size)
+    gg = graph4peps(g, node_size, spectrum_cutoff = spectrum_cutoff)
 
     grid = props(gg)[:grid]
 
@@ -305,9 +351,11 @@ function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  wh
 
         for k in vertices(ns)
             spins_inds = props(ns, k)[:spins]
-            ii = ind2spin(ses[k], length(spins_inds))
-            for j in 1:length(ii)
-                one_solution[spins_inds[j]] = ii[j]
+            spectrum = props(ns, k)[:spectrum]
+            iii = spectrum[ses[k]]
+
+            for j in 1:length(iii)
+                one_solution[spins_inds[j]] = iii[j]
             end
         end
         spins[l-i+1] = one_solution

@@ -2,6 +2,7 @@ using LinearAlgebra
 using LightGraphs
 using MetaGraphs
 using NPZ
+using Plots
 
 using SpinGlassPEPS
 
@@ -45,7 +46,7 @@ s = ArgParseSettings("description")
     "--n_sols", "-n"
     default = 10
     arg_type = Int
-    help = "number of solutions"
+    help = "maximal number of solutions"
     "--node_size1", "-r"
     default = 1
     arg_type = Int
@@ -55,9 +56,9 @@ s = ArgParseSettings("description")
     arg_type = Int
     help = "chimera node size in columns"
     "--spectrum_cutoff", "-u"
-    default = 1000
+    default = 256
     arg_type = Int
-    help = "size of the lower spectrum"
+    help = "maximal size of the lower spectrum"
   end
 
 fi = parse_args(s)["file"]
@@ -76,15 +77,6 @@ ig = ising_graph(fi, si, 1, -1)
 n_sols = parse_args(s)["n_sols"]
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
-spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
-
-@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff)
-
-energies = [energy(s, ig) for s in spins]
-println("energies from peps")
-for energy in energies
-    println(energy)
-end
 
 fil = folder*"groundstates_otn2d.txt"
 data = split.(readlines(open(fil)))
@@ -94,10 +86,47 @@ ground_ref = [parse(Int, el) for el in data[i][4:end]]
 ground_spins = binary2spins(ground_ref)
 energy_ref = energy(ground_spins, ig)
 
-println("reference energy form data = ", energy_ref)
-println("reference energy form file = ", data[i][3])
+spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
-spins_mat = vecvec2matrix(spins)
+ses = collect(spectrum_cutoff:-10:1)
+step = 9
+step = 100
+n_s = collect(n_sols:-step:1)
 
-d = Dict("spins" => spins_mat, "spins_ref" => ground_spins, "energies" => energies, "energy_ref" => energy_ref, "chi" => χ, "beta" => β)
-npzwrite(folder*file[1:3]*"output.npz", d)
+delta_e = ones(length(ses), length(n_s))
+cut = ones(Int, length(ses), length(n_s))
+
+function proceed()
+  j = 1
+  for n_sol in n_s
+    i = 1
+    for s in ses
+
+      @time spins, _ = solve(ig, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s)
+
+      en = minimum([energy(s, ig) for s in spins])
+
+      cut[i,j] = s
+      delta_e[i,j] = (en-energy_ref)/abs(energy_ref)
+      i = i+1
+
+      println("spectrum cutoff = ", s)
+      println("no sols = ", n_sol)
+      println("percentage E = ", (en-energy_ref)/abs(energy_ref))
+    end
+    j = j+1
+  end
+
+  d = Dict("percentage_delta_e" => delta_e, "spectrum_size" => cut, "chi" => χ, "beta" => β, "chimera_size" => si, "no_solutions" => n_s)
+  npzwrite(folder*"low_energy_sols/"*file[1:3]*"approx$(si).npz", d)
+
+  p = plot(cut[:,1], delta_e[:,1], title = "low spectr. approx., beta = $β, chi = $χ, chimera_s. = $(si)", label = "n_sols = $(n_s[1])", lw = 1.5, left_margin = 10Plots.mm, bottom_margin = 10Plots.mm)
+  xlabel!("size of the low energy spectrum")
+  ylabel!("percentage delta E")
+  for j in 2:size(cut,2)
+    plot!(p, cut[:,j], delta_e[:,j], label = "n_sols = $(n_s[j])", lw = 1.5)
+  end
+  savefig(folder*"low_energy_sols/"*file[1:3]*"approx$(si).pdf")
+end
+
+proceed()
