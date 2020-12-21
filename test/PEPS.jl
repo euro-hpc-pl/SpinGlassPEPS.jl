@@ -11,27 +11,31 @@ cg = Chimera((m, n, t), ig)
 
 β = get_prop(ig, :β)
 
-order = :PE
-fg = factor_graph(cg)
-decompose_edges!(fg, order, β=β)
+for order ∈ (:EP, :PE)
+    for hd ∈ (:LR, :RL), vd ∈ (:BT, :TB)
 
-@testset "decompose_edges! workds correctly" begin
-    order = get_prop(fg, :tensors_order)
+        @info "Testing factor graph" order hd vd
 
-    for e ∈ edges(fg)
-        dec = get_prop(fg, e, :decomposition)
-        en = get_prop(fg, e, :energy)
+        fg = factor_graph(cg, hdir=hd, vdir=vd)
+        decompose_edges!(fg, order, β=β)
 
-        ρ = exp.(-β .* en)
-        if order == :PE
-            @test ρ ≈ prod(dec)
-        else
-            @test ρ ≈ prod(reverse(dec))
+        @test order == get_prop(fg, :tensors_order)
+        @test (hd, vd) == get_prop(fg, :order)
+
+        for e ∈ edges(fg)
+            dec = get_prop(fg, e, :decomposition)
+            en = get_prop(fg, e, :energy)
+
+            @test exp.(-β .* en) ≈ prod(dec)
         end
-        break
+
+        @info "Testing PEPS"
+
+        net = []
+        for v ∈ vertices(fg)
+            push!(net, PepsTensor(fg, v))
+        end
     end
 end
-
-peps = PepsTensor(fg, 6)
 
 end

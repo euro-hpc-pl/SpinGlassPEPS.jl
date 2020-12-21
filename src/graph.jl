@@ -68,7 +68,7 @@ mutable struct Edge
     end
 end
 
-function factor_graph(m::Int, n::Int, hdir=:LR, vdir=:BT)
+function factor_graph(m::Int, n::Int, hdir::Symbol=:LR, vdir::Symbol=:BT)
     @assert hdir ∈ (:LR, :RL)
     @assert vdir ∈ (:BT, :TB)
     
@@ -96,10 +96,12 @@ function factor_graph(
     g::Model, 
     energy::Function=energy, 
     spectrum::Function=full_spectrum, 
-    cluster::Function=unit_cell,
+    cluster::Function=unit_cell;
+    hdir::Symbol=:LR, 
+    vdir::Symbol=:BT,
 ) 
     m, n, _ = g.size
-    fg = factor_graph(m, n)
+    fg = factor_graph(m, n, hdir, vdir)
 
     for v ∈ vertices(fg)
         cl = cluster(g, v)

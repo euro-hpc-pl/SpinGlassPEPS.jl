@@ -204,7 +204,7 @@ function MPS(ig::MetaGraph, control::MPSControl)
             end
 
             for l ∈ _holes(nbrs) 
-                _apply_nothing!(χ, l, i) 
+                _apply_nothing!(ρ, l, i) 
             end
         end
 

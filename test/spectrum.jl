@@ -9,7 +9,8 @@ instance = "$(@__DIR__)/instances/$(N)_001.txt"
 
 ig = ising_graph(instance, N)
 set_prop!(ig, :β, 1.) #rand(Float64))
-r = [3, 2, 5, 4]
+#r = [3, 2, 5, 4]
+r = fill(2, N)
 set_prop!(ig, :rank, r)
 
 sgn = -1.

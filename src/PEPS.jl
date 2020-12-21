@@ -56,15 +56,6 @@ mutable struct PepsTensor
             pc.down = ones(size(pc.up, 2), 1)
         end
 
-        #@infiltrate
-        println(v)
-        println(pc.nbrs)
-        println(size(pc.loc))
-        println(size(pc.left))
-        println(size(pc.right))
-        println(size(pc.up))
-        println(size(pc.down))
-
         @cast pc.tensor[l, r, u, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
 
         pc
