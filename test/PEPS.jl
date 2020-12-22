@@ -76,6 +76,16 @@ for order ∈ (:EP, :PE)
         )
 
         decompose_edges!(fg, order, β=β)
+
+        @time begin
+            net = []
+            for v ∈ vertices(fg)
+                peps = PepsTensor(fg, v)
+                push!(net, peps)
+                println(peps.nbrs)
+                println(size(peps))
+            end
+        end   
     end
 end
 
