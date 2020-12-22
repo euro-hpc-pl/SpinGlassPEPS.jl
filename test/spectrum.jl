@@ -2,19 +2,19 @@ using MetaGraphs
 using LightGraphs
 using GraphPlot
 
-L = 2
+L = 4
 N = L^2
 
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
-set_prop!(ig, :β, 1.) #rand(Float64))
+set_prop!(ig, :β, 5.) #rand(Float64))
 #r = [3, 2, 5, 4]
 r = fill(2, N)
 set_prop!(ig, :rank, r)
 
 sgn = -1.
-ϵ = 1E-8
+ϵ = 1E-7
 D = prod(r) + 1
 var_ϵ = 1E-8
 sweeps = 4
@@ -57,7 +57,7 @@ states = all_states(get_prop(ig, :rank))
                 end
             end
 
-            for l ∈ SpinGlassPEPS._holes(nbrs) 
+            for l ∈ SpinGlassPEPS._holes(nbrs, i) 
                 SpinGlassPEPS._apply_nothing!(χ, l, i) 
             end
         end
@@ -68,7 +68,6 @@ states = all_states(get_prop(ig, :rank))
         @test abs(dot(χ, χ) - sum(T)) < ϵ
     end
 
-    x = T ./ sum(T) 
     @test T ./ sum(T) ≈ ϱ 
 end
 
@@ -138,7 +137,7 @@ end
             @test ϱ[idx.(σ)...] ≈ p
         end 
 
-        for max_states ∈ [1, N, 2*N, N^2]
+        for max_states ∈ [N, 2*N, N^2]
 
             @info "Verifying low energy spectrum" max_states
             @info "Testing spectrum"

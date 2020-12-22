@@ -1,6 +1,7 @@
 export PepsTensor
 
 mutable struct PepsTensor
+    tag::Int
     nbrs::Dict{String, Int}
     left::AbstractArray
     right::AbstractArray
@@ -10,7 +11,7 @@ mutable struct PepsTensor
     tensor::AbstractArray
 
     function PepsTensor(fg::MetaDiGraph, v::Int)
-        pc = new()
+        pc = new(v)
         pc.nbrs = Dict()
         pc.loc = get_prop(fg, v, :local_exp)
         
@@ -41,22 +42,26 @@ mutable struct PepsTensor
        
         # open boundary conditions
         if !isdefined(pc, :left)
-            pc.left = ones(1, size(pc.right, 1))
+            #pc.left = ones(1, size(pc.right, 1))
+            @cast pc.tensor[r, u, d, σ] |= pc.loc[σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
         end
 
         if !isdefined(pc, :right)
-            pc.right = ones(size(pc.left, 2), 1)
+            #pc.right = ones(size(pc.left, 2), 1)
+            @cast pc.tensor[l, u, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.up[u, σ] * pc.down[σ, d]
         end
 
         if !isdefined(pc, :up)
-            pc.up = ones(1, size(pc.down, 1))
+            #pc.up = ones(1, size(pc.down, 1))
+            @cast pc.tensor[l, r, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.down[σ, d]
         end
 
         if !isdefined(pc, :down)
-            pc.down = ones(size(pc.up, 2), 1)
+            #pc.down = ones(size(pc.up, 2), 1)
+            @cast pc.tensor[l, r, u, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ]
         end
 
-        @cast pc.tensor[l, r, u, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
+        #@cast pc.tensor[l, r, u, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
 
         pc
     end

@@ -12,7 +12,6 @@ cg = Chimera((m, n, t), ig)
 β = get_prop(ig, :β)
 k = 64
 
-#=
 for order ∈ (:EP, :PE)
     for hd ∈ (:LR, :RL), vd ∈ (:BT, :TB)
 
@@ -44,6 +43,7 @@ for order ∈ (:EP, :PE)
             net = []
             for v ∈ vertices(fg)
                 peps = PepsTensor(fg, v)
+                @test v == peps.tag
                 push!(net, peps)
                 println(peps.nbrs)
                 println(size(peps))
@@ -51,7 +51,6 @@ for order ∈ (:EP, :PE)
         end    
     end
 end
-=#
 
 @testset "PepsTensor correctly builds PEPS network for Lattice" begin
 
@@ -77,17 +76,15 @@ for order ∈ (:EP, :PE)
 
         decompose_edges!(fg, order, β=β)
 
-        @time begin
+        #@time begin
             net = []
             for v ∈ vertices(fg)
                 peps = PepsTensor(fg, v)
+                @test v == peps.tag
                 push!(net, peps)
-                println(peps.nbrs)
-                println(size(peps))
+                @info "lt peps" peps.nbrs size(peps)
             end
-        end   
-
-        
+        #end   
     end
 end
 
