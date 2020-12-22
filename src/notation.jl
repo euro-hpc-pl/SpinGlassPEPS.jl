@@ -424,7 +424,7 @@ function M_of_interaction(g::EE, g1::EE, ig::MetaGraph, spectrum)
 
         for j in 1:2^subset_size
             σ = ind2spin(j, subset_size)
-            @inbounds energy[j,i] = -sum(J.*σ.*σ_cluster[spin_subset])
+            @inbounds energy[j,i] = sum(J.*σ.*σ_cluster[spin_subset])
         end
     end
     energy

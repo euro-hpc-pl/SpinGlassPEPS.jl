@@ -35,13 +35,14 @@ push!(my_tests,
     "contractions.jl",
     "compressions.jl",
     "ising.jl",
-    "search.jl",
+    "spectrum.jl",
     "graph.jl",
+    "PEPS.jl",
     "notation_tests.jl",
-   "peps_tests.jl",
-   "mps_tests.jl",
-   "tests_full_graph.jl",
-   "tests_on_data.jl"
+    "peps_tests.jl",
+    "mps_tests.jl",
+    "tests_full_graph.jl",
+    "tests_on_data.jl"
 )
 
 for my_test in my_tests

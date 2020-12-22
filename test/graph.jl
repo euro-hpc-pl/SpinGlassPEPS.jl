@@ -6,7 +6,7 @@ using CSV
 m = 6
 n = 7
 t = 4
-g = Chimera(m, n, t)
+@time g = Chimera(m, n, t)
 @testset "Chimera creation" begin
    @test nv(g) == 2m * n * t
    @test ne(g) == t^2 * m * n + m * (n -1) * t + (m - 1) * n * t
@@ -14,32 +14,68 @@ g = Chimera(m, n, t)
    @show g[1, 1]
 end
 
-@testset "Chimera outer connections" begin
-   @test length(outer_connections(g, 1, 1, 3, 3)) == 0
-   @test all(outer_connections(g, 1, 1, 1, 2) .== outer_connections(g, 1, 2, 1, 1))
-
-   # This still does not work
-   println(outer_connections(g, 1, 1, 1, 2))
-   println(typeof(g))
-
-   edges = filter_edges(g.graph, :cluster, (1, 2))
-   println(collect(edges))
-end
-
-@testset "Chimera/factor graph" begin
-   m = 16
-   n = 16
+@testset "Chimera graph" begin
+   m = 4
+   n = 4
    t = 4
 
    L = 2 * n * m * t
-
    instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
 
    ig = ising_graph(instance, L)
    cg = Chimera((m, n, t), ig)
 
-   #cl = Cluster(cg, 2)
-   #@time Spectrum(cl)
+   @time fg = factor_graph(cg)
+
+   @test collect(vertices(fg)) == collect(1:m * n)
+   @test nv(fg) == m * n
+
+   @info "Verifying cluster properties for Chimera" m, n, t
+
+   clv = []
+   cle = []
+   rank = get_prop(ig, :rank)
+
+   for v ∈ vertices(fg)
+      cl = get_prop(fg, v, :cluster)
+      push!(clv, keys(cl.vertices))
+      push!(cle, collect(cl.edges))
+
+      for (g, l) ∈ cl.vertices
+         @test cl.rank[l] == rank[g]
+      end
+   end
+
+   @test isempty(intersect(clv...))
+   @test isempty(intersect(cle...))
+end
+
+@testset "Factor graph" begin
+   m = 16
+   n = 16
+   t = 4
+
+   L = 2 * n * m * t
+   instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
+
+   ig = ising_graph(instance, L)
+   cg = Chimera((m, n, t), ig)
 
    @time fg = factor_graph(cg)
+end
+
+@testset "Rank reveal correctly decomposes energy row-wise" begin
+   energy = [[1 2 3]; [0 -1 0]; [1 2 3]]
+   P, E = rank_reveal(energy, :PE)
+   @test size(P) == (3, 2)
+   @test size(E) == (2, 3)
+   @test P * E ≈ energy
+end
+
+@testset "Rank reveal correctly decomposes energy column-wise" begin
+   energy = [[1, 2, 3] [0, -1, 1] [1, 2, 3]]
+   E, P = rank_reveal(energy, :EP)
+   @test size(P) == (2, 3)
+   @test size(E) == (3, 2)
+   @test E * P ≈ energy
 end

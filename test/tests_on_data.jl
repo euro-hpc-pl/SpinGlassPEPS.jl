@@ -11,12 +11,12 @@
     0.0 0.0 0.0 -0.4375 -0.4375 -0.4375 -0.4375 -3.125]
 
 
-    g = M2graph(JJ)
+    g = M2graph(JJ, -1)
 
     # parameters of the solver
     χ = 10
     β = .25
-    β_step = 1
+    β_step = 2
 
     print("mpo mps time  =  ")
 

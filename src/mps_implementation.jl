@@ -69,7 +69,7 @@ function add_MPO!(mpo::AbstractMPO{T}, vec_edges::VE, g::MetaGraph, β::T) where
     for e in vec_edges
         j = dst(e)
         # minus for convention 1/2 since each is taken doubled in the product
-        J = -1/2*props(g, e)[:J]
+        J = 1/2*props(g, e)[:J]
         # minus for probability
         mpo[j] = Ctensor(T, -J*β, d, j==l)
     end
@@ -81,7 +81,7 @@ function add_phase!(mps::AbstractMPS{T}, g::MetaGraph, β::T) where T<: Real
     for i in 1:length(mps)
         internal_e = props(g, i)[:energy]
         for j in 1:length(internal_e)
-            mps[i][:,j,:] = mps[i][:,j,:]*exp(-β/2*internal_e[j])
+            mps[i][:,j,:] = mps[i][:,j,:]*exp(β/2*internal_e[j])
         end
     end
 end

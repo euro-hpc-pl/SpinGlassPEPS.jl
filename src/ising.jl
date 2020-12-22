@@ -1,80 +1,9 @@
 export ising_graph, energy
-export gibbs_tensor, brute_force
-export State, Cluster, Spectrum
+export gibbs_tensor
+export State
 
 const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
-const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
-
-struct Spectrum
-    energies::Array{<:Number}
-    states::Array{Vector{<:Number}}
-end
-
-mutable struct Cluster
-    vertices::Dict{Int,Int}
-    edges::EdgeIter
-    rank::Vector
-    J::Matrix{<:Number}
-    h::Vector{<:Number}
-
-    function Cluster(ig::MetaGraph, vertices::Dict, edges::EdgeIter)
-        cl = new(vertices, edges)
-        L = length(cl.vertices)
-
-        cl.J = zeros(L, L)
-        for e ∈ cl.edges
-            i = cl.vertices[src(e)]
-            j = cl.vertices[dst(e)] 
-            cl.J[i, j] = get_prop(ig, e, :J)
-        end
-
-        rank = get_prop(ig, :rank)
-        cl.rank = rank[1:L]
-
-        cl.h = zeros(L)
-        for (v, i) ∈ cl.vertices
-            cl.h[i] = get_prop(ig, v, :h)
-            cl.rank[i] = rank[v]
-        end
-        cl
-    end
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Return the low energy spectrum
-
-# Details
-
-Calculates \$k\$ lowest energy states 
-together with the coresponding energies 
-of a classical Ising Hamiltonian
-"""
-
-function brute_force(ig::MetaGraph; num_states::Int=1)
-    cl = Cluster(ig, enum(vertices(ig)), edges(ig))
-    brute_force(cl, num_states=num_states)
-end 
-
-function brute_force(cl::Cluster; num_states::Int=1)
-    σ = collect.(all_states(cl.rank))
-    states = reshape(σ, prod(cl.rank))
-    energies = energy.(states, Ref(cl))
-    perm = partialsortperm(energies, 1:num_states) 
-    Spectrum(energies[perm], states[perm])
-end 
-
-_ising(σ::State) = 2 .* σ .- 1
-
-function _brute_force(ig::MetaGraph, k::Int=1)
-    L = nv(ig)
-    states = _ising.(digits.(0:2^L-1, base=2, pad=L))
-    energies = energy.(states, Ref(ig))
-    perm = partialsortperm(energies, 1:k) 
-    states[perm], energies[perm]
-end  
 
 
 """
@@ -107,23 +36,30 @@ E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 ```
 """
 
-function energy(σ::Vector, J::Matrix, η::Vector=σ; sgn::Float64=-1.0) 
-    sgn * dot(σ, J, η)
-end
+energy(σ::Vector, J::Matrix, η::Vector=σ) = dot(σ, J, η)
+energy(σ::Vector, h::Vector) = dot(h, σ)
+energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(cl.h, σ)
 
-function energy(σ::Vector, h::Vector; sgn::Float64=-1.0) 
-    sgn * dot(h, σ)
-end
-
-function energy(σ::Vector, cl::Cluster, η::Vector=σ; sgn::Float64=-1.0) 
-    energy(σ, cl.J, η, sgn=sgn) + energy(cl.h, σ, sgn=sgn)
-end
-
-function energy(σ::Vector, ig::MetaGraph; sgn::Float64=-1.0) 
-    cl = Cluster(ig, enum(vertices(ig)), edges(ig))
-    energy(σ, cl, sgn=sgn) 
+function energy(σ::Vector, ig::MetaGraph) 
+    cl = Cluster(ig, 0, enum(vertices(ig)), edges(ig))
+    energy(σ, cl) 
 end
    
+function energy(fg::MetaDiGraph, edge::Edge) 
+    v, w = edge.tag
+    vSp = get_prop(fg, v, :spectrum).states
+    wSp = get_prop(fg, w, :spectrum).states
+
+    m = prod(size(vSp))
+    n = prod(size(wSp))
+
+    en = zeros(m, n) 
+    for (j, η) ∈ enumerate(vec(wSp))
+        en[:, j] = energy.(vec(vSp), Ref(edge.J), Ref(η)) 
+    end
+    en 
+end
+
 """
 $(TYPEDSIGNATURES)
 
@@ -133,7 +69,7 @@ Create the Ising spin glass model.
 
 Store extra information
 """
-function ising_graph(instance::Instance, L::Int, β::Number=1, sgn::Number=1)
+function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.0)
 
     # load the Ising instance
     if typeof(instance) == String
@@ -147,11 +83,15 @@ function ising_graph(instance::Instance, L::Int, β::Number=1, sgn::Number=1)
 
     # setup the model (J_ij, h_i)
     for (i, j, v) ∈ ising 
+        v *= sgn
         if i == j
-            set_prop!(ig, i, :h, sgn * v) || error("Node $i missing!")
+            set_prop!(ig, i, :h, v) || error("Node $i missing!")
         else
+            if has_edge(ig, j, i) 
+                error("Cannot add ($i, $j) as ($j, $i) already exists!") 
+            end
             add_edge!(ig, i, j) && 
-            set_prop!(ig, i, j, :J, sgn * v) || error("Cannot add Egde ($i, $j)") 
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)") 
         end    
     end   
 
