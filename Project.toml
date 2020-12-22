@@ -10,18 +10,18 @@ DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 GraphPlot = "a2cc645c-3eea-5389-862e-a155d0052231"
 LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 LowRankApprox = "898213cb-b102-5a47-900c-97e73b919f73"
 MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
+NPZ = "15e1cf62-19b3-5cfa-8e77-841668bca605"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 TensorCast = "02d47bb6-7ce6-556a-be16-bb1710789e2b"
 TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
 
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
-Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-NPZ =  "15e1cf62-19b3-5cfa-8e77-841668bca605"
-
 [compat]
+Requires = "1.1"
 TensorOperations = "3.0.1"
 julia = "1.4, 1.5"
 
