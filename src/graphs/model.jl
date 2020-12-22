@@ -25,7 +25,7 @@ for op in [
     @eval MetaGraphs.$op(m::Model, args...) = $op(m.graph, args...)
 end
 
-@inline has_edge(m::Model, x...) = has_edge(m.graph, x...)
+#has_edge(m::Model, x...) = has_edge(m.graph, x...)
 
 Base.size(m::Model) = m.size
 Base.size(m::Model, i::Int) = m.size[i]
