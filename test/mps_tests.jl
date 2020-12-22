@@ -30,12 +30,12 @@ end
 
     @test length(mps1) == 3
     # this is B type tensor, only internal energy (± h/2)
-    @test mps1[1][1,:,:] ≈ [exp(-1/2) 0.0; 0.0 exp(1/2)]
+    @test mps1[1][1,:,:] ≈ [exp(1/2) 0.0; 0.0 exp(-1/2)]
     # type C tensor input from internale enegy and interaction
     #±(h/2 + J) -- J is twice due to the symmetry of M
-    @test mps1[2][1,:,:] ≈ [exp(1/2) 0.0; exp(-1/2) 0.0]
-    @test mps1[2][2,:,:] ≈ [0. exp(-1)*exp(-1/2); 0. exp(1)*exp(1/2)]
-    @test mps1[3][:,:,1] ≈ [exp(1/2) exp(-1/2); exp(-1)*exp(-1/2) exp(1)*exp(1/2)]
+    @test mps1[2][1,:,:] ≈ [exp(-1/2) 0.0; exp(1/2) 0.0]
+    @test mps1[2][2,:,:] ≈ [0. exp(1)*exp(1/2); 0. exp(-1)*exp(-1/2)]
+    @test mps1[3][:,:,1] ≈ [exp(-1/2) exp(1/2); exp(1)*exp(1/2) exp(-1)*exp(-1/2)]
 
     ####### compute probability ######
 

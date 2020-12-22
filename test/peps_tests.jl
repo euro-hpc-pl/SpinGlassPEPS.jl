@@ -4,7 +4,7 @@ import SpinGlassPEPS: compute_single_tensor, conditional_probabs, get_parameters
 import SpinGlassPEPS: make_lower_mps
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
-
+if true
 @testset "PEPS - axiliary functions" begin
 
     @testset "partial solution type" begin
@@ -141,7 +141,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 
 @testset "whole peps tensor" begin
 
-    g = M2graph(Mq)
+    g = M2graph(Mq, -1)
     gg = graph4peps(g, (1,1))
 
 
@@ -175,7 +175,7 @@ end
     @test mps[2] == 2*ones(2,2,2)
 
     β = 3.
-    g = M2graph(Mq)
+    g = M2graph(Mq, -1)
     gg = graph4peps(g, (1,1))
 
     M = form_peps(gg, β)
@@ -226,7 +226,7 @@ end
     @test objective ≈ [p1, p2]
 
 end
-
+end
 
 @testset "test an exemple instance" begin
 
