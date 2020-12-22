@@ -3,14 +3,14 @@ using SpinGlassPEPS
 using LinearAlgebra
 using TensorOperations
 using TensorCast
-#using LightGraphs
+using LightGraphs
 using MetaGraphs
-#using Random
-#using Logging
-#using Statistics
-#using NPZ
+using Random
+using Logging
+using Statistics
+using NPZ
 
-#disable_logging(LogLevel(0))
+disable_logging(LogLevel(0))
 
 using Test
 
@@ -31,18 +31,18 @@ if CUDA.functional() && CUDA.has_cutensor()
 end
 
 push!(my_tests,
-    #"base.jl",
-    #"contractions.jl",
-    #"compressions.jl",
-    #"ising.jl",
-    #"search.jl",
+    "base.jl",
+    "contractions.jl",
+    "compressions.jl",
+    "ising.jl",
+    "search.jl",
     "searchMPS.jl"
-    #"graph.jl",
-    #"notation_tests.jl",
-   #"peps_tests.jl",
-   #"mps_tests.jl",
-   #"tests_full_graph.jl",
-   #"tests_on_data.jl"
+    "graph.jl",
+    "notation_tests.jl",
+    "peps_tests.jl",
+   "mps_tests.jl",
+   "tests_full_graph.jl",
+   "tests_on_data.jl"
 )
 
 for my_test in my_tests

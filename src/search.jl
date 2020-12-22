@@ -167,7 +167,6 @@ function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int)
     ψ[l] = M̃    
 end
 
-_holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
 
 function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, L::Int)
     T = eltype(χ)
@@ -196,11 +195,11 @@ function _apply_layer_of_gates(ig::MetaGraph, ρ::AbstractMPS, L::Int, dβ::Numb
                 _apply_exponent!(ρ, ig, dβ, i, j, last(nbrs)) 
             end
 
-            for l ∈ _holes(nbrs) 
-                _apply_nothing!(ρ, l, i)  #ρ instead of χ
+            for l ∈ setdiff(i+1:last(nbrs), nbrs)
+                _apply_nothing!(ρ, l, i)  
             end
         end
-    
+
         if bond_dimension(ρ) > Dcut
             @info "Compresing MPS" bond_dimension(ρ), Dcut
             ρ = compress(ρ, Dcut, tol, max_sweeps) 
@@ -258,18 +257,28 @@ function MPS2(ig::MetaGraph, control::MPSControl)
     if control.type == "log"
         k = ceil(log2(β/dβ))
         dβmax = β/(2^k)
+        ρ = _apply_layer_of_gates(ig, ρ, L, dβmax, Dcut, tol, max_sweeps)
+        for j ∈ 1:k
+            ρ = multiply_purifications(ρ, ρ, L)
+            if bond_dimension(ρ) > Dcut
+                @info "Compresing MPS" bond_dimension(ρ), Dcut
+                ρ = compress(ρ, Dcut, tol, max_sweeps) 
+                is_right = true
+            end
+        end
+        ρ
     elseif control.type == "lin"
         k = β/dβ
         dβmax = β/k
-    end
-    ρ = _apply_layer_of_gates(ig, ρ, L, dβmax, Dcut, tol, max_sweeps)
-    
-    for j ∈ 1:k
-        ρ = multiply_purifications(ρ, ρ, L)
-        if bond_dimension(ρ) > Dcut
-            @info "Compresing MPS" bond_dimension(ρ), Dcut
-            ρ = compress(ρ, Dcut, tol, max_sweeps) 
-            is_right = true
+        ρ = _apply_layer_of_gates(ig, ρ, L, dβmax, Dcut, tol, max_sweeps)
+        ρ0 = copy(ρ)
+        for j ∈ 1:k
+            ρ = multiply_purifications(ρ, ρ0, L)
+            if bond_dimension(ρ) > Dcut
+                @info "Compresing MPS" bond_dimension(ρ), Dcut
+                ρ = compress(ρ, Dcut, tol, max_sweeps) 
+                is_right = true
+            end
         end
     end
     ρ
