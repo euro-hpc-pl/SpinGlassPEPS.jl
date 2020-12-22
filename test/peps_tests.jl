@@ -4,7 +4,8 @@ import SpinGlassPEPS: compute_single_tensor, conditional_probabs, get_parameters
 import SpinGlassPEPS: make_lower_mps
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
-if true
+Random.seed!(1234)
+
 @testset "PEPS - axiliary functions" begin
 
     @testset "partial solution type" begin
@@ -111,8 +112,6 @@ if false
 
     p = [1,4,2,3]
     @test vec(T1) ≈ vec(T2)[p]
-end
-
 end
 
 Mq = zeros(9,9)

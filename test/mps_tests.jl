@@ -2,6 +2,8 @@ import SpinGlassPEPS: connections_for_mps, construct_mps
 import SpinGlassPEPS: contract4probability, compute_probs
 import SpinGlassPEPS: solve_mps
 
+Random.seed!(1234)
+
 @testset "grouping of connections" begin
     M = ones(5,5)
     g = M2graph(M)
@@ -105,7 +107,6 @@ end
     β = 0.1
     β_step = 4
 
-    Random.seed!(1234)
     M = rand([-1.,-0.5,0.,0.5,1.], 32,32)
     M = M*(M')
 
