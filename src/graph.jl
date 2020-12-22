@@ -149,7 +149,6 @@ function rank_reveal(energy, order=:PE)
     
     E = unique(energy, dims=dim)
     idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
-
     P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
 
     for (i, elements) ∈ enumerate(eachslice(P, dims=dim))

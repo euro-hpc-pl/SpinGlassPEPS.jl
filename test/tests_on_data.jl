@@ -16,7 +16,7 @@
     # parameters of the solver
     χ = 10
     β = .25
-    β_step = 1
+    β_step = 2
 
     print("mpo mps time  =  ")
 
