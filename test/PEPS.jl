@@ -12,6 +12,7 @@ cg = Chimera((m, n, t), ig)
 β = get_prop(ig, :β)
 k = 64
 
+#=
 for order ∈ (:EP, :PE)
     for hd ∈ (:LR, :RL), vd ∈ (:BT, :TB)
 
@@ -50,14 +51,33 @@ for order ∈ (:EP, :PE)
         end    
     end
 end
+=#
 
 @testset "PepsTensor correctly builds PEPS network for Lattice" begin
 
-L = 9
-instance = "$(@__DIR__)/instances/$(L)_001.txt" 
+L = 3
+N = L^2
+instance = "$(@__DIR__)/instances/$(N)_001.txt" 
 
-ig = ising_graph(instance, L)
+ig = ising_graph(instance, N)
+lt = Lattice((L, L), ig)
 
+for order ∈ (:EP, :PE)
+    for hd ∈ (:LR, :RL), vd ∈ (:BT, :TB)
+
+        @info "Testing factor graph" order hd vd
+
+        fg = factor_graph(lt,
+        spectrum=full_spectrum,
+        energy=energy,
+        cluster=unit_cell,  
+        hdir=hd,
+        vdir=vd,
+        )
+
+        decompose_edges!(fg, order, β=β)
+    end
+end
 
 end
 

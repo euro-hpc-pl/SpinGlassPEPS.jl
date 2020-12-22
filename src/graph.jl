@@ -100,7 +100,12 @@ function factor_graph(
     hdir::Symbol=:LR, 
     vdir::Symbol=:BT,
 ) 
-    m, n, _ = g.size
+    if typeof(g) == Chimera
+        m, n, _ = g.size
+    elseif typeof(g) == Lattice 
+        m, n = g.size
+    end
+
     fg = factor_graph(m, n, hdir, vdir)
 
     for v ∈ vertices(fg)
