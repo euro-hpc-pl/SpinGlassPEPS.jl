@@ -100,6 +100,9 @@ function factor_graph(
     hdir::Symbol=:LR, 
     vdir::Symbol=:BT,
 ) 
+
+    #----------------------------------
+    # this will not work in general
     if typeof(g) == Chimera
         m, n, _ = g.size
     elseif typeof(g) == Lattice 
@@ -107,6 +110,7 @@ function factor_graph(
     end
 
     fg = factor_graph(m, n, hdir, vdir)
+    #----------------------------------
 
     for v ∈ vertices(fg)
         cl = cluster(g, v)
