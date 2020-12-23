@@ -42,26 +42,22 @@ mutable struct PepsTensor
        
         # open boundary conditions
         if !isdefined(pc, :left)
-            #pc.left = ones(1, size(pc.right, 1))
-            @cast pc.tensor[r, u, d, σ] |= pc.loc[σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
+            pc.left = ones(1, size(pc.right, 1))
         end
 
         if !isdefined(pc, :right)
-            #pc.right = ones(size(pc.left, 2), 1)
-            @cast pc.tensor[l, u, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.up[u, σ] * pc.down[σ, d]
+            pc.right = ones(size(pc.left, 2), 1)
         end
 
         if !isdefined(pc, :up)
-            #pc.up = ones(1, size(pc.down, 1))
-            @cast pc.tensor[l, r, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.down[σ, d]
+            pc.up = ones(1, size(pc.down, 1))
         end
 
         if !isdefined(pc, :down)
-            #pc.down = ones(size(pc.up, 2), 1)
-            @cast pc.tensor[l, r, u, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ]
+            pc.down = ones(size(pc.up, 2), 1)
         end
 
-        #@cast pc.tensor[l, r, u, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
+        @cast pc.tensor[l, r, u, d, σ] |= pc.loc[σ] * pc.left[l, σ] * pc.right[σ, r] * pc.up[u, σ] * pc.down[σ, d]
 
         pc
     end
