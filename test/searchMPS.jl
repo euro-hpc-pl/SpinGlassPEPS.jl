@@ -3,15 +3,13 @@ using LightGraphs
 using GraphPlot
 
 L = 4
-#L = 2
 N = L^2
 
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
 set_prop!(ig, :β, 1.) #rand(Float64))
-r = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-#r = [2, 2, 2, 2]
+r = fill(2, N)
 set_prop!(ig, :rank, r)
 set_prop!(ig, :dβ, 0.01)
 
@@ -39,9 +37,9 @@ states = all_states(get_prop(ig, :rank))
     rψ3 = MPS(ig, control1)
     for max_states ∈ [1, N, 2*N, N^2]
         @info "Testing spectrum_new"
-        states_new1, prob_new1, pCut_new1 = spectrum_new(rψ1, max_states)   
-        states_new2, prob_new2, pCut_new2 = spectrum_new(rψ2, max_states)
-        states_new3, prob_new3, pCut_new3 = spectrum_new(rψ3, max_states)         
+        states_new1, prob_new1, pCut_new1 = solve_new(rψ1, max_states)   
+        states_new2, prob_new2, pCut_new2 = solve_new(rψ2, max_states)
+        states_new3, prob_new3, pCut_new3 = solve_new(rψ3, max_states)         
 
         eng_new1 = zeros(length(prob_new1))
         eng_new2 = zeros(length(prob_new2))

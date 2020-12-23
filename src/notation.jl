@@ -257,6 +257,7 @@ function graph4mps(ig::MetaGraph)
         h = props(ig, v)[:h]
         # -∑hs convention
         set_prop!(ig, v, :energy, [h, -h])
+        set_prop!(ig, v, :spectrum, [[-1], [1]])
         set_prop!(ig, v, :spins, [v])
     end
     ig
@@ -300,7 +301,7 @@ end
 
 
 #TODO this will be factor_graph
-function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <: AbstractFloat
+function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1); spectrum_cutoff::Int = 1000) where T <: AbstractFloat
     L = nv(ig)
 
     M = zeros(1,1)
@@ -337,16 +338,17 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
         gg = make_inner_graph(ig, g_element)
 
         no_conf = 2^length(g_element.spins_inds)
+        no_conf = minimum([no_conf, spectrum_cutoff])
+
         # TODO no_conf can be reduced for approximate spectrum
-        # TODO this need however clever spins2ind(e)
+
         spectrum = brute_force(gg; num_states = no_conf)
+
         e = spectrum.energies
         s = spectrum.states
 
-        # sorting is required for indexing
-        p = sortperm([spins2ind(e) for e in s])
-
-        set_prop!(g, i, :energy, e[p])
+        set_prop!(g, i, :energy, e)
+        set_prop!(g, i, :spectrum, s)
 
         if g_element.column < size(M, 2)
             ip = M[g_element.row, g_element.column+1]
@@ -358,7 +360,8 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
         if g_element.column > 1
             ip = M[g_element.row, g_element.column-1]
 
-            M_left = M_of_interaction(g_element, g_elements[ip], ig)
+            M_left = M_of_interaction(g_element, g_elements[ip], ig, s)
+
             set_prop!(g, i, ip, :M, M_left)
         end
 
@@ -371,7 +374,8 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1)) where T <
 
         if g_element.row > 1
             ip = M[g_element.row-1, g_element.column]
-            M_up = M_of_interaction(g_element, g_elements[ip], ig)
+            M_up = M_of_interaction(g_element, g_elements[ip], ig, s)
+
             set_prop!(g, i, ip, :M, M_up)
         end
     end
@@ -400,7 +404,7 @@ function get_Js(g::EE, g1::EE, ig::MetaGraph)
     J
 end
 
-function M_of_interaction(g::EE, g1::EE, ig::MetaGraph)
+function M_of_interaction(g::EE, g1::EE, ig::MetaGraph, spectrum)
     spin_subset = []
     if g.row == g1.row
         spin_subset = g.left
@@ -412,13 +416,15 @@ function M_of_interaction(g::EE, g1::EE, ig::MetaGraph)
     subset_size = length(spin_subset)
     no_spins = length(g.spins_inds)
 
-    energy = zeros(2^subset_size, 2^no_spins)
+    energy = zeros(2^subset_size, length(spectrum))
 
-    for i in 1:2^no_spins
-        σ_cluster = ind2spin(i, no_spins)
+    for i in 1:length(spectrum)
+
+        σ_cluster = spectrum[i]
+
         for j in 1:2^subset_size
             σ = ind2spin(j, subset_size)
-            @inbounds energy[j,i] = -sum(J.*σ.*σ_cluster[spin_subset])
+            @inbounds energy[j,i] = sum(J.*σ.*σ_cluster[spin_subset])
         end
     end
     energy
@@ -427,23 +433,10 @@ end
 
 ###################### Axiliary functions on spins ########
 
-"""
-    ind2spin(i::Int, no_spins::Int = 1)
 
-return a configuration determined by an index i i.e.
-a no_spins long vector of -1 and 1
-"""
 function ind2spin(i::Int, no_spins::Int = 1)
     s = [2^i for i in 1:no_spins]
     return [1-2*Int((i-1)%j < div(j,2)) for j in s]
-end
-
-function ind2spin(i::Int, no_spins::Int, removed_indexes::Vector{Int})
-    # TODO make to more efficient and check
-    for _ in 1:length(removed_indexes)
-        i = i + count(i .> removed_indexes)
-    end
-    spins = ind2spin(i::Int, no_spins)
 end
 
 function spins2ind(s::Vector{Int})
@@ -452,20 +445,6 @@ function spins2ind(s::Vector{Int})
     transpose(s)*v+1
 end
 
-function spins2ind(s::Vector{Int}, removed_indexes::Vector{Int})
-    i = spins2ind(s)
-    !(i in removed_indexes) || error("index $i has been removed")
-    i - count(i .> removed_indexes)
-end
-
-
-function reindex(i::Int, no_spins::Int, subset_ind::Vector{Int}, removed_indexes::Vector{Int} = Int[])
-    if length(subset_ind) == 0
-        return 1
-    end
-    s = ind2spin(i, no_spins, removed_indexes)
-    spins2ind(s[subset_ind], removed_indexes)
-end
 
 spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
 
@@ -498,5 +477,19 @@ function last_m_els(vector::Vector{Int}, m::Int)
         return vector
     else
         return vector[end-m+1:end]
+    end
+end
+
+function s2i(a)
+    if Int[] in a
+        return ones(Int, length(a))
+    else
+        ret = zeros(Int, length(a))
+        k = 1
+        for u in unique(a)
+           ret = ret + (a .== [u]).*k
+           k = k+1
+        end
+        return ret
     end
 end

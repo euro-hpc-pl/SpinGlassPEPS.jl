@@ -1,162 +1,159 @@
-export Chimera, outer_connections, factor_graph, cluster
-mutable struct Chimera
-    size::NTuple{3, Int}
-    graph::MetaGraph
-    outer_connections::Dict{Tuple, Vector}
+export Chimera, Lattice
+export factor_graph, decompose_edges!
+export Cluster, Spectrum
+export rank_reveal
+
+const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
+const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
+const Graph = Union{MetaDiGraph, MetaGraph}
+
+mutable struct Cluster
+    tag::Int
+    vertices::Dict{Int,Int}
+    edges::EdgeIter
+    rank::Vector
+    J::Matrix{<:Number}
+    h::Vector{<:Number}
+
+    function Cluster(ig::Graph, v::Int, vertices::Dict, edges::EdgeIter)
+        cl = new(v, vertices, edges)
+        L = length(cl.vertices)
+
+        cl.J = zeros(L, L)
+        for e ∈ cl.edges
+            i = cl.vertices[src(e)]
+            j = cl.vertices[dst(e)] 
+            @inbounds cl.J[i, j] = get_prop(ig, e, :J)
+        end
+
+        rank = get_prop(ig, :rank)
+        cl.rank = rank[1:L]
+
+        cl.h = zeros(L)
+        for (w, i) ∈ cl.vertices
+            @inbounds cl.h[i] = get_prop(ig, w, :h)
+            @inbounds cl.rank[i] = rank[w]
+        end
+        cl
+    end
+end
+
+function MetaGraphs.filter_edges(ig::MetaGraph, v::Cluster, w::Cluster)
+    edges = SimpleEdge[]
+    for i ∈ keys(v.vertices), j ∈ neighbors(ig, i)
+        if j ∈ keys(w.vertices) push!(edges, SimpleEdge(i, j)) end
+    end
+    edges
+end
+
+mutable struct Edge
+    tag::NTuple{2, Int}
+    edges::EdgeIter
+    J::Matrix{<:Number}
+
+    function Edge(ig::MetaGraph, v::Cluster, w::Cluster)
+        ed = new((v.tag, w.tag))
+        ed.edges = filter_edges(ig, v, w) 
+
+        m = length(v.vertices)
+        n = length(w.vertices)
+
+        ed.J = zeros(m, n)
+        for e ∈ ed.edges
+            i = v.vertices[src(e)]
+            j = w.vertices[dst(e)] 
+            @inbounds ed.J[i, j] = get_prop(ig, e, :J)
+        end
+        ed
+    end
+end
+
+function factor_graph(m::Int, n::Int, hdir::Symbol=:LR, vdir::Symbol=:BT)
+    @assert hdir ∈ (:LR, :RL)
+    @assert vdir ∈ (:BT, :TB)
     
-    function Chimera(size::NTuple{3, Int}, graph::MetaGraph)
-        c = new(size, graph)
-        m, n, t = size
-        linear = LinearIndices((1:m, 1:n))
+    dg = MetaDiGraph(m * n)
+    set_prop!(dg, :order, (hdir, vdir))
 
-        for i=1:m, j=1:n, u=1:2, k=1:t
-            v = c[i, j, u, k]
-            ij = linear[i, j]
-            set_prop!(c, v, :cluster, ij)
-        end
-
-        outer_connections = Dict{Tuple, Vector}()
-        for e in edges(c)
-            src_cluster = get_prop(c, src(e), :cluster)
-            dst_cluster = get_prop(c, dst(e), :cluster)
-            # if src_cluster == dst_cluster
-            #     set_prop!(c, e, :outer, false)
-            # else
-            key = (src_cluster, dst_cluster)
-            set_prop!(c, e, :cluster, key)
-            if haskey(outer_connections, key)
-                push!(outer_connections[key], e)
-            else
-                outer_connections[key] = [e]
-            end
-            # end
-        end
-        c.outer_connections = outer_connections
-        c
-    end
-end
-
-function Chimera(m::Int, n::Int=m, t::Int=4)
-    max_size = m * n * 2 * t
-    g = MetaGraph(max_size)
-
-    hoff = 2t
-    voff = n * hoff
-    mi = m * voff
-    ni = n * hoff
-
-    for i=1:hoff:ni, j=i:voff:mi, k0=j:j+t-1, k1=j+t:j+2t-1
-        add_edge!(g, k0, k1)
+    linear = LinearIndices((1:m, 1:n))
+    for i ∈ 1:m, j ∈ 1:n-1
+        v, w = linear[i, j], linear[i, j+1]
+        hdir == :LR ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
+        add_edge!(dg, e)
+        set_prop!(dg, e, :orientation, "horizontal")
     end
 
-    for i=t:2t-1, j=i:hoff:ni-hoff-1, k=j+1:voff:mi-1
-        add_edge!(g, k, k+hoff-1)
+    for i ∈ 1:n, j ∈ 1:m-1
+        v, w = linear[j, i], linear[j+1, i]
+        vdir == :BT ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
+        add_edge!(dg, e)
+        set_prop!(dg, e, :orientation, "vertical")
     end
-
-    for i=1:t, j=i:hoff:ni-1, k=j:voff:mi-voff-1
-        add_edge!(g, k, k+voff)
-    end
-    Chimera((m, n, t), g)
+    dg
 end
 
-for op in [
-    :nv,
-    :ne,
-    :eltype,
-    :edgetype,
-    :vertices,
-    :edges,
-    ]
-
-    @eval LightGraphs.$op(c::Chimera) = $op(c.graph)
-end
-
-for op in [
-    :get_prop,
-    :set_prop!,
-    :has_vertex,
-    :inneighbors,
-    :outneighbors,
-    :neighbors]
-
-    @eval MetaGraphs.$op(c::Chimera, args...) = $op(c.graph, args...)
-end
-@inline has_edge(g::Chimera, x...) = has_edge(g.graph, x...)
-
-Base.size(c::Chimera) = c.size
-Base.size(c::Chimera, i::Int) = c.size[i]
-
-function Base.getindex(c::Chimera, i::Int, j::Int, u::Int, k::Int)
-    _, n, t = size(c)
-    t * (2 * (n * (i - 1) + j - 1) + u - 1) + k
-end
-
-function Base.getindex(c::Chimera, i::Int, j::Int)
-    t = size(c, 3)
-    idx = vec([c[i, j, u, k] for u=1:2, k=1:t])
-    c.graph[idx]
-end
-
-
-outer_connections(c::Chimera, i, j, k, l) = outer_connections(c::Chimera, (i, j), (k, l))
-
-function outer_connections(c::Chimera, src, dst) 
-    ret = get(c.outer_connections, (src, dst), [])
-    if length(ret) == 0
-        ret = get(c.outer_connections, (dst, src), [])
-    end
-    ret
-end
-
-function Cluster(c::Chimera, v::Int, w::Int) 
-    vv = collect(filter_vertices(c.graph, :cluster, v))
-    vw = collect(filter_vertices(c.graph, :cluster, w))
-    ve = filter_edges(c.graph, :cluster, (v, w))
-    Cluster(c.graph, enum(union(vv, vw)), ve)
-end
-
-Cluster(c::Chimera, v::Int) = Cluster(c, v, v) 
-
-#Spectrum(cl::Cluster) = brute_force(cl, num_states=256)
-
-function Spectrum(cl::Cluster)
-    σ = collect.(all_states(cl.rank))
-    energies = energy.(σ, Ref(cl))
-    Spectrum(energies, σ)   
-end
-
-function factor_graph(c::Chimera)
-    m, n, _ = c.size
-    fg = MetaGraph(grid([m, n]))
+function factor_graph(
+    g::Model;
+    energy::Function=energy, 
+    spectrum::Function=full_spectrum, 
+    cluster::Function=unit_cell,
+    hdir::Symbol=:LR, 
+    vdir::Symbol=:BT,
+) 
+    m, n, _ = g.size
+    fg = factor_graph(m, n, hdir, vdir)
 
     for v ∈ vertices(fg)
-        cl = Cluster(c, v)
+        cl = cluster(g, v)
         set_prop!(fg, v, :cluster, cl)
-        set_prop!(fg, v, :spectrum, Spectrum(cl))
-
-        
-        for w ∈ unique_neighbors(fg, v)
-            set_prop!(fg, v, w, :cluster, Cluster(c, v, w))
-        end
-    
+        set_prop!(fg, v, :spectrum, spectrum(cl))
     end
 
-    #=
-    for v ∈ vertices(fg)
-        for w ∈ unique_neighbors(fg, v)
-            cl = Cluster(c, v, w)
-            set_prop!(fg, v, w, :cluster, cl)
+    for e ∈ edges(fg)
+        v = get_prop(fg, src(e), :cluster)
+        w = get_prop(fg, dst(e), :cluster)
 
-            σ = get_prop(fg, v, :spectrum)
-            η = get_prop(fg, w, :spectrum)
-
-            #E = [ energy(x, cl) for x ∈ σ.states ] 
-            E = energy.(σ.states, cl) 
-            #E = [ energy(x, cl, y) for x ∈ σ.states, y ∈ η.states ] 
-        end
+        edge = Edge(g.graph, v, w)
+        set_prop!(fg, e, :edge, edge)
+        set_prop!(fg, e, :energy, energy(fg, edge))
     end
-    =#
     fg
 end
 
+function decompose_edges!(fg::MetaDiGraph, order=:PE; β::Float64=1.0)
+    set_prop!(fg, :tensors_order, order)
 
+    for edge ∈ edges(fg)
+        energy = get_prop(fg, edge, :energy)
+        
+        if order == :PE
+            p, en = rank_reveal(energy, order)
+            dec = (p, exp.(-β .* en))
+        else
+            en, p = rank_reveal(energy, order)
+            dec = (exp.(-β .* en), p)
+        end
+
+        set_prop!(fg, edge, :decomposition, dec)
+    end 
+
+    for v ∈ vertices(fg)
+        en = get_prop(fg, v, :spectrum).energies
+        set_prop!(fg, v, :local_exp, vec(exp.(-β .* en)))
+    end
+end
+ 
+function rank_reveal(energy, order=:PE)
+    @assert order ∈ (:PE, :EP)
+    dim = order == :PE ? 1 : 2
+    
+    E = unique(energy, dims=dim)
+    idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
+    P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
+
+    for (i, elements) ∈ enumerate(eachslice(P, dims=dim))
+        elements[idx[i]] = 1
+    end
+
+    order == :PE ? (P, E) : (E, P)
+end 

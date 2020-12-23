@@ -1,11 +1,15 @@
-export MPS_from_gates, unique_neighbors
+export unique_neighbors
+export full_spectrum, brute_force
 export MPSControl
-export spectrum
-export spectrum_new
-export multiply_purifications
+export solve, solve_new
 export MPS2
 
-struct MPSControl 
+struct Spectrum
+    energies::Array{<:Number}
+    states::Array{Vector{<:Number}}
+end
+
+struct MPSControl
     max_bond::Int
     var_ϵ::Number
     max_sweeps::Int
@@ -14,10 +18,11 @@ struct MPSControl
     type::String
 end
 
-function spectrum(ψ::MPS, keep::Int) 
+# ρ needs to be in the right canonical form
+function solve(ψ::MPS, keep::Int)
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
-    
+
     keep_extra = keep
     pCut = prob = 0.
     k = 1
@@ -36,7 +41,7 @@ function spectrum(ψ::MPS, keep::Int)
         LL = zeros(T, b, b, k, d)
         config = zeros(Int, i, k, d)
 
-        for j ∈ 1:k 
+        for j ∈ 1:k
             L = left_env[:, :, j]
 
             for σ ∈ local_basis(d)
@@ -45,19 +50,19 @@ function spectrum(ψ::MPS, keep::Int)
                 LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
                 pdo[j, m] = tr(LL[:, :, j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
-            end  
+            end
         end
 
         perm = collect(1: k * d)
         k = min(k * d, keep_extra)
 
         if k >= keep_extra
-            partialsortperm!(perm, vec(pdo), 1:k, rev=true)   
+            partialsortperm!(perm, vec(pdo), 1:k, rev=true)
             prob = vec(pdo)[perm]
             pCut < last(prob) ? pCut = last(prob) : ()
         end
 
-        @cast A[α, β, (l, d)] |= LL[α, β, l, d] 
+        @cast A[α, β, (l, d)] |= LL[α, β, l, d]
         left_env = A[:, :, perm]
 
         @cast B[α, (l, d)] |= config[α, l, d]
@@ -67,10 +72,10 @@ function spectrum(ψ::MPS, keep::Int)
 end
 
 # ρ needs to be in the right canonical form
-function spectrum_new(ψ::MPS, keep::Int) 
+function solve_new(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
-    
+
     keep_extra = keep
     lpCut = -1000
     k = 1
@@ -90,7 +95,7 @@ function spectrum_new(ψ::MPS, keep::Int)
         LL = zeros(T, b, k, d)
         config = zeros(Int, i, k, d)
 
-        for j ∈ 1:k 
+        for j ∈ 1:k
             L = left_env[:, j]
 
             for σ ∈ local_basis(d)
@@ -109,9 +114,9 @@ function spectrum_new(ψ::MPS, keep::Int)
 
         if k > keep_extra
             k = keep_extra
-            partialsortperm!(perm, vec(lpdo), 1:k, rev=true) 
+            partialsortperm!(perm, vec(lpdo), 1:k, rev=true)
             lprob = vec(lpdo)[perm]
-            lpCut < last(lprob) ? lpCut = last(lprob) : () 
+            lpCut < last(lprob) ? lpCut = last(lprob) : ()
         end
 
         lprob = vec(lpdo)[perm]
@@ -122,31 +127,31 @@ function spectrum_new(ψ::MPS, keep::Int)
     end
     states = states'
     states, lprob, lpCut
-end 
+end
 
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     M = ψ[i]
     d = size(M, 2)
 
     h = get_prop(ig, i, :h)
-    v = [exp(0.5 * dβ * h * σ) for σ ∈ local_basis(d)]
+    v = [exp(-0.5 * dβ * h * σ) for σ ∈ local_basis(d)]
 
-    @cast M[x, σ, y] = M[x, σ, y] * v[σ]  
+    @cast M[x, σ, y] = M[x, σ, y] * v[σ]
     ψ[i] = M
 end
 
 function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j::Int, last::Int)
     M = ψ[j]
     D = I(ψ, i)
-    
-    J = get_prop(ig, i, j, :J)  
-    C = [ exp(0.5 * dβ * k * J * l) for k ∈ local_basis(ψ, i), l ∈ local_basis(ψ, j) ]
+
+    J = get_prop(ig, i, j, :J)
+    C = [ exp(-0.5 * dβ * k * J * l) for k ∈ local_basis(ψ, i), l ∈ local_basis(ψ, j) ]
 
     if j == last
-        @cast M̃[(x, a), σ, b] := C[x, σ] * M[a, σ, b]   
+        @cast M̃[(x, a), σ, b] := C[x, σ] * M[a, σ, b]
     else
-        @cast M̃[(x, a), σ, (y, b)] := C[x, σ] * D[x, y] * M[a, σ, b]   
-    end     
+        @cast M̃[(x, a), σ, (y, b)] := C[x, σ] * D[x, y] * M[a, σ, b]
+    end
 
     ψ[j] = M̃
 end
@@ -159,12 +164,12 @@ function _apply_projector!(ψ::AbstractMPS, i::Int)
     ψ[i] = M̃
 end
 
-function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int) 
-    M = ψ[l] 
+function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int)
+    M = ψ[l]
     D = I(ψ, i)
 
-    @cast M̃[(x, a), σ, (y, b)] := D[x, y] * M[a, σ, b] 
-    ψ[l] = M̃    
+    @cast M̃[(x, a), σ, (y, b)] := D[x, y] * M[a, σ, b]
+    ψ[l] = M̃
 end
 
 
@@ -191,8 +196,8 @@ function _apply_layer_of_gates(ig::MetaGraph, ρ::AbstractMPS, L::Int, dβ::Numb
         if !isempty(nbrs)
             _apply_projector!(ρ, i)
 
-            for j ∈ nbrs 
-                _apply_exponent!(ρ, ig, dβ, i, j, last(nbrs)) 
+            for j ∈ nbrs
+                _apply_exponent!(ρ, ig, dβ, i, j, last(nbrs))
             end
 
             for l ∈ setdiff(i+1:last(nbrs), nbrs)
@@ -202,7 +207,7 @@ function _apply_layer_of_gates(ig::MetaGraph, ρ::AbstractMPS, L::Int, dβ::Numb
 
         if bond_dimension(ρ) > Dcut
             @info "Compresing MPS" bond_dimension(ρ), Dcut
-            ρ = compress(ρ, Dcut, tol, max_sweeps) 
+            ρ = compress(ρ, Dcut, tol, max_sweeps)
             is_right = true
         end
         
@@ -283,4 +288,34 @@ function MPS2(ig::MetaGraph, control::MPSControl)
     end
     ρ
 
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the low energy spectrum
+
+# Details
+
+Calculates \$k\$ lowest energy states
+together with the coresponding energies
+of a classical Ising Hamiltonian
+"""
+function brute_force(ig::MetaGraph; num_states::Int=1)
+    cl = Cluster(ig, 0, enum(vertices(ig)), edges(ig))
+    brute_force(cl, num_states=num_states)
+end
+
+
+function brute_force(cl::Cluster; num_states::Int=1)
+    σ = collect.(all_states(cl.rank))
+    energies = energy.(σ, Ref(cl))
+    perm = partialsortperm(vec(energies), 1:num_states) 
+    Spectrum(energies[perm], σ[perm])
+end
+
+function full_spectrum(cl::Cluster)
+    σ = collect.(all_states(cl.rank))
+    energies = energy.(σ, Ref(cl))
+    Spectrum(energies, σ)   
 end

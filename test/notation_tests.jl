@@ -2,7 +2,7 @@ import SpinGlassPEPS: nxmgrid, grid_cel, form_a_grid, chimera_cell, form_a_chime
 import SpinGlassPEPS: position_in_cluster, positions_in_cluster, Element_of_square_grid, Element_of_chimera_grid
 import SpinGlassPEPS: fullM2grid!, M2graph, graph4peps, graph4mps
 import SpinGlassPEPS: get_Js, M_of_interaction, ind2spin, spins2ind
-import SpinGlassPEPS: reindex, spins2binary, spins2binary, binary2spins, get_system_size
+import SpinGlassPEPS: spins2binary, spins2binary, binary2spins, get_system_size
 import SpinGlassPEPS: sum_over_last, last_m_els
 
 @testset "grids" begin
@@ -141,10 +141,10 @@ end
     ig = M2graph(M)
 
     g1 = graph4peps(ig, (1,1))
-    @test props(g1, 1,2)[:M] == [-2.0 2.0; 2.0 -2.0]
-    @test props(g1, 2,4)[:M] == [-2.0 2.0; 2.0 -2.0]
-    @test props(g1, 1)[:energy] == [1., -1.]
-    @test props(g1, 2)[:energy] == [1., -1.]
+    @test props(g1, 1,2)[:M] == [2.0 -2.0; -2.0 2.0]
+    @test props(g1, 2,4)[:M] == [2.0 -2.0; -2.0 2.0]
+    @test props(g1, 1)[:energy] == [-1., 1.]
+    @test props(g1, 2)[:energy] == [-1., 1.]
     @test props(g1, 1,2)[:inds] == [1]
 
     M = ones(16,16)
@@ -154,8 +154,8 @@ end
 
     M = props(g1, 1,2)[:M]
     @test size(M) == (4,16)
-    @test M[:,1] == [-4.0, 0.0, 0.0, 4.0]
-    e = [-4.0, 2.0, 2.0, 0.0, 2.0, 0.0, 8.0, -2.0, 2.0, 8.0, 0.0, -2.0, 0.0, -2.0, -2.0, -12.0]
+    @test M[:,1] == [0.0, -4.0, 4.0, 0.0]
+    e = [-8.0, -8.0, -2.0, -2.0, -2.0, -2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, 4.0, 12.0]
     @test props(g1, 1)[:energy] == e
     @test props(g1, 1,2)[:inds] == [3, 4]
     @test props(g1, 1,3)[:inds] == [2, 4]
@@ -179,9 +179,12 @@ end
     e =  [-4.0, 2.0, 2.0, 0.0, 2.0, 0.0, 8.0, -2.0, 2.0, 8.0, 0.0, -2.0, 0.0, -2.0, -2.0, -12.0]
     #@test internal_energy(v1, ig) ≈ e
     @test get_Js(v2, v1, ig) == [2.0, 2.0]
-    M = M_of_interaction(v2, v1, ig)
-    @test size(M) == (4, 16)
-    @test M[:,1] == [-4.0, 0.0, 0.0, 4.0]
+
+    spectrum = brute_force(ig; num_states = 2)
+
+    #M = M_of_interaction(v2, v1, ig, spectrum.states)
+    #@test size(M) == (4, 16)
+    #@test M[:,1] == [-4.0, 0.0, 0.0, 4.0]
 end
 
 @testset "operations on spins" begin
@@ -195,24 +198,6 @@ end
     @test spins2ind([-1,-1,-1,-1]) == 1
     @test spins2ind([1,-1,-1,-1]) == 2
     @test spins2ind([-1,1,-1,-1]) == 3
-    @test spins2ind([-1,1,-1,-1], [2, 8]) == 2
-    @test spins2ind([-1,1,-1,-1], [1,2,6,8,9]) == 1
-
-
-    no_spins = 4
-    s = ind2spin(7, no_spins)
-    @test s == [-1, 1, 1, -1]
-    @test spins2ind(s) == 7
-    s = ind2spin(9, no_spins)
-    @test s == [-1, -1, -1, 1]
-    @test spins2ind(s) == 9
-
-    no_spins = 8
-    index_all_spins = 3
-    indexes_of_subset = [2,3]
-    @test reindex(index_all_spins, no_spins, indexes_of_subset) == 2
-    index_all_spins = 1
-    @test reindex(index_all_spins, no_spins, indexes_of_subset) == 1
 
     @test spins2binary([-1,-1,1,1]) == [0,0,1,1]
     @test spins2binary([1,1,-1]) == [1,1,0]

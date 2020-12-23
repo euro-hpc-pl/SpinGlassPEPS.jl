@@ -9,9 +9,11 @@ instance = "$(@__DIR__)/instances/$(N)_001.txt"
 
 ig = ising_graph(instance, N)
 set_prop!(ig, :β, 1.) #rand(Float64))
-r = [3, 2, 5, 4]
+#r = [3, 2, 5, 4]
+r = fill(2, N)
 set_prop!(ig, :rank, r)
 
+sgn = -1.
 ϵ = 1E-8
 D = prod(r) + 1
 var_ϵ = 1E-8
@@ -38,7 +40,7 @@ states = all_states(get_prop(ig, :rank))
 
         h = get_prop(ig, i, :h)
         for σ ∈ states
-            T[idx.(σ)...] *= exp(β * σ[i] * h) 
+            T[idx.(σ)...] *= exp(sgn * β * σ[i] * h) 
         end
 
         nbrs = unique_neighbors(ig, i)
@@ -51,7 +53,7 @@ states = all_states(get_prop(ig, :rank))
 
                 J = get_prop(ig, i, j, :J)
                 for σ ∈ states
-                    T[idx.(σ)...] *= exp(β * σ[i] * J * σ[j]) 
+                    T[idx.(σ)...] *= exp(sgn * β * σ[i] * J * σ[j]) 
                 end
             end
 
@@ -66,9 +68,9 @@ states = all_states(get_prop(ig, :rank))
         @test abs(dot(χ, χ) - sum(T)) < ϵ
     end
 
+    x = T ./ sum(T) 
     @test T ./ sum(T) ≈ ϱ 
 end
-
 
 @testset "MPS from gates" begin
 
@@ -86,11 +88,11 @@ end
                 h = get_prop(ig, i, :h)
 
                 nbrs = unique_neighbors(ig, i)
-                ψ[idx.(σ)...] *= exp(0.5 * β * h * σ[i]) 
+                ψ[idx.(σ)...] *= exp(sgn * 0.5 * β * h * σ[i]) 
 
                 for j ∈ nbrs
                     J = get_prop(ig, i, j, :J)
-                    ψ[idx.(σ)...] *= exp(0.5 * β * σ[i] * J * σ[j]) 
+                    ψ[idx.(σ)...] *= exp(sgn * 0.5 * β * σ[i] * J * σ[j]) 
                 end      
             end     
         end
@@ -140,12 +142,13 @@ end
 
             @info "Verifying low energy spectrum" max_states
             @info "Testing spectrum"
-            states, prob, pCut = spectrum(rψ, max_states)
+            states, prob, pCut = solve(rψ, max_states)
             sp = brute_force(ig, num_states = max_states)
 
             @info "The largest discarded probability" pCut
             @test maximum(prob) > pCut
 
+      
             for (j, (p, e)) ∈ enumerate(zip(prob, sp.energies))
                 σ = states[:, j]
                 @test ϱ[idx.(σ)...] ≈ p
@@ -153,7 +156,7 @@ end
             end
 
             @info "Testing spectrum_new"
-            states_new, prob_new, pCut_new = spectrum_new(rψ, max_states)            
+            states_new, prob_new, pCut_new = solve_new(rψ, max_states)            
 
             eng_new = zeros(length(prob_new))
             for (j, p) ∈ enumerate(prob_new)
@@ -171,7 +174,7 @@ end
             @info "State with the lowest energy" state
             @info "Probability of the state with the lowest energy" prob_new[1]
             @info "The lowest energy" eng_new[1]
-            
+           
         end
 
     end
