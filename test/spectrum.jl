@@ -60,7 +60,7 @@ states = all_states(get_prop(ig, :rank))
                 end
             end
 
-            for l ∈ setdiff(i+1:last(nbrs), nbrs) 
+            for l ∈ SpinGlassPEPS._holes(i, nbrs)
                 SpinGlassPEPS._apply_nothing!(χ, l, i) 
             end
         end
