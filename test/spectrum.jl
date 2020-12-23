@@ -12,6 +12,7 @@ set_prop!(ig, :β, 1.) #rand(Float64))
 #r = [3, 2, 5, 4]
 r = fill(2, N)
 set_prop!(ig, :rank, r)
+set_prop!(ig, :dβ, 0.01)
 
 sgn = -1.
 ϵ = 1E-8
@@ -19,7 +20,9 @@ D = prod(r) + 1
 var_ϵ = 1E-8
 sweeps = 4
 schedule = [get_prop(ig, :β)]
-control = MPSControl(D, var_ϵ, sweeps, schedule) 
+dβ = [get_prop(ig, :dβ)]
+type = "lin"
+control = MPSControl(D, var_ϵ, sweeps, schedule, dβ, type) 
 
 states = all_states(get_prop(ig, :rank))
 ϱ = gibbs_tensor(ig)
@@ -57,7 +60,7 @@ states = all_states(get_prop(ig, :rank))
                 end
             end
 
-            for l ∈ SpinGlassPEPS._holes(nbrs) 
+            for l ∈ setdiff(i+1:last(nbrs), nbrs) 
                 SpinGlassPEPS._apply_nothing!(χ, l, i) 
             end
         end

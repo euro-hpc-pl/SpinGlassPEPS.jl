@@ -35,7 +35,7 @@ push!(my_tests,
     "contractions.jl",
     "compressions.jl",
     "ising.jl",
-    "searchMPS.jl"
+    "searchMPS.jl",
     "spectrum.jl",
     "graph.jl",
     "PEPS.jl",
