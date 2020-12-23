@@ -72,7 +72,7 @@ problem_size = parse_args(s)["size"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
 
-ig = ising_graph(fi, si, 1, -1)
+ig = ising_graph(fi, si, 1, 1)
 
 n_sols = parse_args(s)["n_sols"]
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
