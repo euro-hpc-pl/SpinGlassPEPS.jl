@@ -11,18 +11,17 @@ ig = ising_graph(instance, N)
 set_prop!(ig, :β, 1.) #rand(Float64))
 r = fill(2, N)
 set_prop!(ig, :rank, r)
-set_prop!(ig, :dβ, 0.01)
+set_prop!(ig, :dβ, 0.001)
 
-ϵ = 1E-8
+ϵ = 1E-5
 D = 16
 var_ϵ = 1E-8
-sweeps = 30
-type1 = "log"
-type2 = "lin"
+sweeps = 40
+type1 = :log
+type2 = :lin
 β = [get_prop(ig, :β)]
-dβ = [get_prop(ig, :dβ)]
-control1 = MPSControl(D, var_ϵ, sweeps, β, dβ, type1) 
-control2 = MPSControl(D, var_ϵ, sweeps, β, dβ, type2) 
+dβ = [get_prop(ig, :dβ)] 
+control = MPSControl(D, var_ϵ, sweeps, β, dβ) 
 
 states = all_states(get_prop(ig, :rank))
 ϱ = gibbs_tensor(ig)
@@ -30,11 +29,18 @@ states = all_states(get_prop(ig, :rank))
 
 @testset "Verifying gate operations" begin
     rank = get_prop(ig, :rank)
-    @info "Testing MPS and MPS2"
+    @info "Testing MPS"
 
-    rψ1 = MPS2(ig, control1)
-    rψ2 = MPS2(ig, control2)
-    rψ3 = MPS(ig, control1)
+    rψ1 = MPS(ig, control, type1)
+    rψ2 = MPS(ig, control, type2)
+    rψ3 = MPS(ig, control)
+    overlap12 = dot(rψ1, rψ2)
+    @test overlap12 ≈ 0.9999998
+    overlap13 = dot(rψ1, rψ3)
+    @test overlap13 ≈ 1 
+    overlap23 = dot(rψ2, rψ3)
+    @test overlap23 ≈ 0.9999998
+
     for max_states ∈ [1, N, 2*N, N^2]
         @info "Testing spectrum_new"
         states_new1, prob_new1, pCut_new1 = solve_new(rψ1, max_states)   

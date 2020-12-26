@@ -21,8 +21,7 @@ var_ϵ = 1E-8
 sweeps = 4
 schedule = [get_prop(ig, :β)]
 dβ = [get_prop(ig, :dβ)]
-type = "lin"
-control = MPSControl(D, var_ϵ, sweeps, schedule, dβ, type) 
+control = MPSControl(D, var_ϵ, sweeps, schedule, dβ) 
 
 states = all_states(get_prop(ig, :rank))
 ϱ = gibbs_tensor(ig)

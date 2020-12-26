@@ -15,7 +15,6 @@ struct MPSControl
     max_sweeps::Int
     β::Vector 
     dβ::Vector
-    type::String
 end
 
 # ρ needs to be in the right canonical form
@@ -181,7 +180,7 @@ function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, L::Int)
         A1 = χ[i]
         A2 = ϕ[i]
         
-        @cast B[(Dl1, Dl2), d, (Dr1, Dr2)] := A1[Dl1, d, Dr1] * A2[Dl2, d, Dr2]
+        @cast B[(l, x), σ, (r, y)] := A1[l, σ, r] * A2[x, σ, y]
         ψ[i] = B
     end
     ψ
@@ -248,8 +247,7 @@ function MPS(ig::MetaGraph, control::MPSControl)
     ρ
 end
 
-function MPS2(ig::MetaGraph, control::MPSControl)
-    
+function MPS(ig::MetaGraph, control::MPSControl, type::Symbol) 
     L = nv(ig)
     Dcut = control.max_bond
     tol = control.var_ϵ
@@ -264,7 +262,7 @@ function MPS2(ig::MetaGraph, control::MPSControl)
     is_right = true
     @info "Sweeping through β and σ" dβ
 
-    if control.type == "log"
+    if type == :log
         k = ceil(log2(β/dβ))
         dβmax = β/(2^k)
         ρ = _apply_layer_of_gates(ig, ρ, control, dβmax)
@@ -277,7 +275,7 @@ function MPS2(ig::MetaGraph, control::MPSControl)
             end
         end
         ρ
-    elseif control.type == "lin"
+    elseif type == :lin
         k = β/dβ
         dβmax = β/k
         ρ = _apply_layer_of_gates(ig, ρ, control, dβmax)
