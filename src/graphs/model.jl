@@ -29,3 +29,9 @@ end
 
 Base.size(m::Model) = m.size
 Base.size(m::Model, i::Int) = m.size[i]
+
+function cluster_graph(ig::MetaGraph, vertices::Dict)
+    
+    
+    Cluster(ig, v, vertices)
+end

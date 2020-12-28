@@ -9,15 +9,22 @@ const Graph = Union{MetaDiGraph, MetaGraph}
 
 mutable struct Cluster
     tag::Int
-    vertices::Dict{Int,Int}
+    vertices::Dict{Int, Int}
     edges::EdgeIter
     rank::Vector
     J::Matrix{<:Number}
     h::Vector{<:Number}
 
-    function Cluster(ig::Graph, v::Int, vertices::Dict, edges::EdgeIter)
-        cl = new(v, vertices, edges)
+    function Cluster(ig::Graph, v::Int, vertices::Dict)
+        cl = new(v, vertices)
         L = length(cl.vertices)
+
+        cl.edges = []
+        for e ∈ edges(ig)
+            if src(e) ∈ keys(cl.vertices) && dst(e) ∈ keys(cl.vertices) 
+                push!(cl.edges, e)
+            end
+        end
 
         cl.J = zeros(L, L)
         for e ∈ cl.edges

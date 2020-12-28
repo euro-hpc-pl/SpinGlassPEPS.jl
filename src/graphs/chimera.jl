@@ -62,5 +62,6 @@ end
 function unit_cell(c::Chimera, v::Int)
     elist = filter_edges(c.graph, :cells, (v, v))
     vlist = filter_vertices(c.graph, :cell, v)
-    Cluster(c.graph, v, enum(vlist), elist)
+    Cluster(c.graph, v, enum(vlist))
 end
+

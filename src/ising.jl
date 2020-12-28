@@ -41,7 +41,7 @@ energy(σ::Vector, h::Vector) = dot(h, σ)
 energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(cl.h, σ)
 
 function energy(σ::Vector, ig::MetaGraph) 
-    cl = Cluster(ig, 0, enum(vertices(ig)), edges(ig))
+    cl = Cluster(ig, 0, enum(vertices(ig)))
     energy(σ, cl) 
 end
    
@@ -69,6 +69,8 @@ Create the Ising spin glass model.
 
 Store extra information
 """
+
+# ADD CONCEPT OF MISSING SPINS !!!
 function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.0)
 
     # load the Ising instance
