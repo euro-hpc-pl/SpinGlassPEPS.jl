@@ -19,7 +19,7 @@ mutable struct Cluster
         cl = new(v, vertices)
         L = length(cl.vertices)
 
-        cl.edges = []
+        cl.edges = SimpleEdge[]
         for e ∈ edges(ig)
             if src(e) ∈ keys(cl.vertices) && dst(e) ∈ keys(cl.vertices) 
                 push!(cl.edges, e)
