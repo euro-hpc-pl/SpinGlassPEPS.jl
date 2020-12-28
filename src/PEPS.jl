@@ -1,4 +1,4 @@
-export PepsTensor
+export PepsTensor, MPO
 
 mutable struct PepsTensor
     tag::Int
@@ -64,3 +64,32 @@ mutable struct PepsTensor
 end
 
 Base.size(A::PepsTensor) = size(A.tensor)
+
+function MPO(fg::MetaDiGraph, dim::Symbol=:r, i::Int; T::DataType=Float64)
+    @assert dir ∈ (:r, :c)
+
+    m, n = size(fg)
+    idx = LinearIndices((1:m, 1:n))
+    chain = dim == :r ? fg[idx[:, i]] : fg[idx[i, :]] 
+
+    ψ = MPO(T, length(chain))
+
+    for (j, v) ∈ enumerate(chain)
+        ψ[j] = PepsTensor(fg, v).tensor
+    end
+    ψ
+end
+
+function MPS(fg::MetaDiGraph, which::Symbol=:d; T::DataType=Float64)
+    @assert which ∈ (:l, :r, :u, :d)
+
+    #ϕ = MPO()
+
+    for (j, v) ∈ enumerate(_row(fg, 1))
+        ψ[j] = dropdims(PepsTensor(fg, v).tensor, dims=4)
+    end
+
+    # TBW 
+
+    ψ
+end

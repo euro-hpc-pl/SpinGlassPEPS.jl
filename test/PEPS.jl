@@ -78,6 +78,8 @@ for order ∈ (:EP, :PE)
 
         decompose_edges!(fg, order, β=β)
 
+        #ψ = MPO(fg, :r, 1)
+
         #@time begin
             net = []
             for v ∈ vertices(fg)
