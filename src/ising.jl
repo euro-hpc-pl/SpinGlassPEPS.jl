@@ -5,7 +5,6 @@ export State
 const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -40,10 +39,10 @@ energy(σ::Vector, J::Matrix, η::Vector=σ) = dot(σ, J, η)
 energy(σ::Vector, h::Vector) = dot(h, σ)
 energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(cl.h, σ)
 
-function energy(σ::Vector, ig::MetaGraph) 
-    cl = Cluster(ig, 0, enum(vertices(ig)))
-    energy(σ, cl) 
-end
+#function energy(σ::Vector, ig::MetaGraph) 
+#    cl = Cluster(ig, 0, enum(vertices(ig)))
+#    energy(σ, cl) 
+#end
    
 function energy(fg::MetaDiGraph, edge::Edge) 
     v, w = edge.tag
@@ -69,8 +68,6 @@ Create the Ising spin glass model.
 
 Store extra information
 """
-
-# ADD CONCEPT OF MISSING SPINS !!!
 function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.0)
 
     # load the Ising instance
@@ -108,11 +105,13 @@ function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.
     set_prop!(ig, :β, β)
     set_prop!(ig, :rank, fill(2, L))
 
+    #=
     # state (random by default) and corresponding energy
     σ = 2.0 * (rand(L) .< 0.5) .- 1.0
 
     set_prop!(ig, :state, σ)
     set_prop!(ig, :energy, energy(σ, ig)) || error("Unable to calculate the Ising energy!")
+    =#
 
     ig
 end

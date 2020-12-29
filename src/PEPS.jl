@@ -65,6 +65,7 @@ end
 
 Base.size(A::PepsTensor) = size(A.tensor)
 
+#=
 function MPO(fg::MetaDiGraph, dim::Symbol=:r, i::Int; T::DataType=Float64)
     @assert dir ∈ (:r, :c)
 
@@ -93,3 +94,4 @@ function MPS(fg::MetaDiGraph, which::Symbol=:d; T::DataType=Float64)
 
     ψ
 end
+=#

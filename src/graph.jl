@@ -1,11 +1,9 @@
-export Chimera, Lattice
 export factor_graph, decompose_edges!
-export Cluster, Spectrum
+export Cluster
 export rank_reveal
 
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
-const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
-const Graph = Union{MetaDiGraph, MetaGraph}
+const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
 
 mutable struct Cluster
     tag::Int
@@ -15,31 +13,31 @@ mutable struct Cluster
     J::Matrix{<:Number}
     h::Vector{<:Number}
 
-    function Cluster(ig::Graph, v::Int, vertices::Dict)
-        cl = new(v, vertices)
-        L = length(cl.vertices)
+    function Cluster(ig::Graph, v::Int)
+        cl = new(v)
+        vlist = filter_vertices(ig, :cell, v)
 
-        cl.edges = SimpleEdge[]
-        for e ∈ edges(ig)
-            if src(e) ∈ keys(cl.vertices) && dst(e) ∈ keys(cl.vertices) 
-                push!(cl.edges, e)
-            end
-        end
-
-        cl.J = zeros(L, L)
-        for e ∈ cl.edges
-            i = cl.vertices[src(e)]
-            j = cl.vertices[dst(e)] 
-            @inbounds cl.J[i, j] = get_prop(ig, e, :J)
-        end
-
-        rank = get_prop(ig, :rank)
-        cl.rank = rank[1:L]
+        L = length(vlist)
 
         cl.h = zeros(L)
-        for (w, i) ∈ cl.vertices
+        cl.J = zeros(L, L)
+
+        cl.vertices = Dict()
+        cl.edges = SimpleEdge[]
+        cl.rank = get_prop(ig, :rank)[1:L]
+
+        for (i, w) ∈ enumerate(vlist)
+            push(cl.vertices, w => i)
             @inbounds cl.h[i] = get_prop(ig, w, :h)
             @inbounds cl.rank[i] = rank[w]
+        end
+
+        for e ∈ edges(ig)
+            if src(e) ∈ vlist && dst(e) ∈ vlist
+                i, j = cl.vertices[src(e)], cl.vertices[dst(e)] 
+                @inbounds cl.J[i, j] = get_prop(ig, e, :J)
+                push!(cl.edges, e)
+            end
         end
         cl
     end
@@ -75,6 +73,7 @@ mutable struct Edge
     end
 end
 
+#=
 function factor_graph(m::Int, n::Int, hdir::Symbol=:LR, vdir::Symbol=:BT)
     @assert hdir ∈ (:LR, :RL)
     @assert vdir ∈ (:BT, :TB)
@@ -98,29 +97,18 @@ function factor_graph(m::Int, n::Int, hdir::Symbol=:LR, vdir::Symbol=:BT)
     end
     dg
 end
+=#
 
 function factor_graph(
-    g::Model;
+    lt::Lattice;
     energy::Function=energy, 
     spectrum::Function=full_spectrum, 
-    cluster::Function=unit_cell,
-    hdir::Symbol=:LR, 
-    vdir::Symbol=:BT,
 ) 
-
-    #----------------------------------
-    # this will not work in general
-    if typeof(g) == Chimera
-        m, n, _ = g.size
-    elseif typeof(g) == Lattice 
-        m, n = g.size
-    end
-
-    fg = factor_graph(m, n, hdir, vdir)
-    #----------------------------------
+    m, _, n, _, t = lt.size 
+    fg = MetaGraph(m * n)
 
     for v ∈ vertices(fg)
-        cl = cluster(g, v)
+        cl = Cluster(lt, v)
         set_prop!(fg, v, :cluster, cl)
         set_prop!(fg, v, :spectrum, spectrum(cl))
     end

@@ -15,7 +15,6 @@ module SpinGlassPEPS
     include("compressions.jl")
     include("contractions.jl")
     include("graphs/model.jl")
-    include("graphs/chimera.jl")
     include("graphs/lattice.jl")
     include("graph.jl")
     include("ising.jl")
