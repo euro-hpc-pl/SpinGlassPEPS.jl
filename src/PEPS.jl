@@ -1,6 +1,5 @@
 export generate_tensor
 
-#=
 function generate_tensor(ng::NetworkGraph, v::Int)
     loc_en = get_prop(ng.graph, v, :loc_en)
     tensor = exp.(-ng.β .* loc_en)
@@ -18,7 +17,7 @@ function generate_tensor(ng::NetworkGraph, v::Int)
             @eval @cast tensor[σ, s..., γ] |= tensor[σ, s...] * pv[σ, γ]
         else 
             pv = ones(size(loc_en), 1)
-            @cast tensor[σ, ..., γ] |= tensor[σ, ...] * pv[σ, γ]
+            @eval @cast tensor[σ, s..., γ] |= tensor[σ, s...] * pv[σ, γ]
         end
     end
     tensor
@@ -36,4 +35,3 @@ function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     end
     tensor
 end
-=#
