@@ -100,50 +100,51 @@ end
 =#
 
 function factor_graph(
-    lt::Lattice;
+    ig::MetaGraph;
     energy::Function=energy, 
     spectrum::Function=full_spectrum, 
 ) 
-    m, _, n, _, t = lt.size 
-    fg = MetaGraph(m * n)
+    L = 0
+    for v ∈ ig
+        L = maximum(L, get_prop(ig, v, :cell))        
+    end
+
+    fg = MetaGraph(ig, L)
 
     for v ∈ vertices(fg)
-        cl = Cluster(lt, v)
+        cl = Cluster(ig, v)
         set_prop!(fg, v, :cluster, cl)
         set_prop!(fg, v, :spectrum, spectrum(cl))
     end
 
-    for e ∈ edges(fg)
-        v = get_prop(fg, src(e), :cluster)
-        w = get_prop(fg, dst(e), :cluster)
-
-        edge = Edge(g.graph, v, w)
-        set_prop!(fg, e, :edge, edge)
-        set_prop!(fg, e, :energy, energy(fg, edge))
+    for i ∈ 1:L, j ∈ i+1:L
+        v = get_prop(fg, i, :cluster)
+        w = get_prop(fg, j, :cluster)
+        
+        edge = Edge(ig, v, w)
+        if !isempty(edge.edges)
+            set_prop!(fg, e, :edge, edge)
+            set_prop!(fg, e, :energy, energy(fg, edge))
+        end
     end
     fg
 end
 
-function decompose_edges!(fg::MetaDiGraph, order=:PE; β::Float64=1.0)
+function decompose_edges!(fg::MetaGraph)
     set_prop!(fg, :tensors_order, order)
 
     for edge ∈ edges(fg)
         energy = get_prop(fg, edge, :energy)
-        
-        if order == :PE
-            p, en = rank_reveal(energy, order)
-            dec = (p, exp.(-β .* en))
-        else
-            en, p = rank_reveal(energy, order)
-            dec = (exp.(-β .* en), p)
-        end
+         
+        pl, en = rank_reveal(energy, :PE)
+        en, pr = rank_reveal(en, :EP)
 
-        set_prop!(fg, edge, :decomposition, dec)
+        set_prop!(fg, edge, :decomposition, (pl, en, pr))
     end 
 
     for v ∈ vertices(fg)
         en = get_prop(fg, v, :spectrum).energies
-        set_prop!(fg, v, :local_exp, vec(exp.(-β .* en)))
+        set_prop!(fg, v, :loc_en, vec(en))
     end
 end
  
