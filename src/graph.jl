@@ -1,9 +1,8 @@
-export factor_graph, decompose_edges!
-export Cluster
-export rank_reveal
+export factor_graph, decompose_edges!, NetworkGraph
+export Cluster, rank_reveal
 
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
-const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
+const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
 
 mutable struct NetworkGraph
     geometry::Dict{}
@@ -19,7 +18,6 @@ mutable struct NetworkGraph
     end
 end
 
-
 mutable struct Cluster
     tag::Int
     vertices::Dict{Int, Int}
@@ -28,21 +26,23 @@ mutable struct Cluster
     J::Matrix{<:Number}
     h::Vector{<:Number}
 
-    function Cluster(ig::Graph, v::Int)
+    function Cluster(ig::MetaGraph, v::Int)
         cl = new(v)
         vlist = filter_vertices(ig, :cell, v)
 
-        L = length(vlist)
+        L = length(collect(vlist))
 
         cl.h = zeros(L)
         cl.J = zeros(L, L)
 
         cl.vertices = Dict()
         cl.edges = SimpleEdge[]
-        cl.rank = get_prop(ig, :rank)[1:L]
+
+        rank = get_prop(ig, :rank)
+        cl.rank = rank[1:L]
 
         for (i, w) ∈ enumerate(vlist)
-            push(cl.vertices, w => i)
+            push!(cl.vertices, w => i)
             @inbounds cl.h[i] = get_prop(ig, w, :h)
             @inbounds cl.rank[i] = rank[w]
         end
@@ -88,18 +88,21 @@ mutable struct Edge
     end
 end
 
+function _mv(ig::MetaGraph)
+    L = 0
+    for v ∈ vertices(ig)
+        L = max(L, get_prop(ig, v, :cell))        
+    end
+    L
+end    
 
 function factor_graph(
     ig::MetaGraph;
     energy::Function=energy, 
     spectrum::Function=full_spectrum, 
 ) 
-    L = 0
-    for v ∈ ig
-        L = maximum(L, get_prop(ig, v, :cell))        
-    end
-
-    fg = MetaGraph(ig, L)
+    L = _mv(ig)
+    fg = MetaGraph(L, 0.0)
 
     for v ∈ vertices(fg)
         cl = Cluster(ig, v)
@@ -111,17 +114,17 @@ function factor_graph(
         v = get_prop(fg, i, :cluster)
         w = get_prop(fg, j, :cluster)
         
-        edge = Edge(ig, v, w)
-        if !isempty(edge.edges)
-            set_prop!(fg, e, :edge, edge)
-            set_prop!(fg, e, :energy, energy(fg, edge))
+        edg = Edge(ig, v, w)
+        if !isempty(edg.edges)
+            e = SimpleEdge(i, j)
+            set_prop!(fg, e, :edge, edg)
+            set_prop!(fg, e, :energy, energy(fg, edg))
         end
     end
     fg
 end
 
 function decompose_edges!(fg::MetaGraph)
-    set_prop!(fg, :tensors_order, order)
 
     for edge ∈ edges(fg)
         energy = get_prop(fg, edge, :energy)

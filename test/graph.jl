@@ -3,19 +3,21 @@ using LightGraphs
 using GraphPlot
 using CSV
 
-
 @testset "Lattice graph" begin
    m = 4
    n = 4
    t = 4
 
-   L = 2 * n * m * t
+   L = n * m * (2 * t)
    instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
 
    ig = ising_graph(instance, L)
-   lt = Lattice((m, 1, n, 1, t), ig)
+   update_cells!(
+      ig, 
+      rule = square_lattice((m, n, 2*t)),
+   ) 
 
-   @time fg = factor_graph(lt)
+   @time fg = factor_graph(ig)
 
    @test collect(vertices(fg)) == collect(1:m * n)
    @test nv(fg) == m * n

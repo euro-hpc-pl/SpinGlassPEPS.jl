@@ -1,5 +1,5 @@
-export ising_graph, energy
-export gibbs_tensor
+export ising_graph, update_cells!
+export energy, gibbs_tensor
 export State
 
 const State = Union{Vector, NTuple}
@@ -44,7 +44,7 @@ energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(c
 #    energy(σ, cl) 
 #end
    
-function energy(fg::MetaDiGraph, edge::Edge) 
+function energy(fg::MetaGraph, edge::Edge) 
     v, w = edge.tag
     vSp = get_prop(fg, v, :spectrum).states
     wSp = get_prop(fg, w, :spectrum).states
@@ -80,12 +80,10 @@ function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
     ig = MetaGraph(L, 0.0)
     set_prop!(ig, :description, "The Ising model.")
 
-
     for v ∈ 1:L
         set_prop!(ig, v, :active, false)
         set_prop!(ig, v, :cell, v)
     end
-
 
     # setup the model (J_ij, h_i)
     for (i, j, v) ∈ ising 
@@ -99,8 +97,8 @@ function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
             add_edge!(ig, i, j) && 
             set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)") 
         end    
-        set_prop!(ig, i, :active, true)
-        set_prop!(ig, j, :active, true)
+        set_prop!(ig, i, :active, true) || error("Cannot activate node $(i)!")
+        set_prop!(ig, j, :active, true) || error("Cannot activate node $(j)!")
     end   
 
     # store extra information 
@@ -125,10 +123,9 @@ function unique_neighbors(ig::MetaGraph, i::Int)
 end
 
     
-function update_cells!(ig::MetaGraph, rule::Function)  
-    for v ∈ ig
-        old = get_prop(ig, v, :cell)
-        new = rule(old)
-        set_prop!(ig, v, cell, new)
+function update_cells!(ig::MetaGraph; rule::Dict)  
+    for v ∈ vertices(ig)
+         w = rule[get_prop(ig, v, :cell)]
+        set_prop!(ig, v, :cell, rule[w])
     end
 end
