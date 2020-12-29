@@ -5,6 +5,21 @@ export rank_reveal
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter}
 
+mutable struct NetworkGraph
+    geometry::Dict{}
+    β::Number
+    graph::MetaGraph
+    nbrs::Dict{Int, Tuple{Int}}
+    #gauge
+
+    function NetworkGraph(geometry::Dict{}, β::Number, graph::MetaGraph)
+        ng = new(geometry, β, graph) 
+        # wygenerować nbrs na podstawie geometry
+        # sprawdzić czy w factor graphie nie ma edgy wychodzących poza nbrs    
+    end
+end
+
+
 mutable struct Cluster
     tag::Int
     vertices::Dict{Int, Int}
@@ -73,31 +88,6 @@ mutable struct Edge
     end
 end
 
-#=
-function factor_graph(m::Int, n::Int, hdir::Symbol=:LR, vdir::Symbol=:BT)
-    @assert hdir ∈ (:LR, :RL)
-    @assert vdir ∈ (:BT, :TB)
-    
-    dg = MetaDiGraph(m * n)
-    set_prop!(dg, :order, (hdir, vdir))
-
-    linear = LinearIndices((1:m, 1:n))
-    for i ∈ 1:m, j ∈ 1:n-1
-        v, w = linear[i, j], linear[i, j+1]
-        hdir == :LR ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
-        add_edge!(dg, e)
-        set_prop!(dg, e, :orientation, "horizontal")
-    end
-
-    for i ∈ 1:n, j ∈ 1:m-1
-        v, w = linear[j, i], linear[j+1, i]
-        vdir == :BT ? e = SimpleEdge(v, w) : e = SimpleEdge(w, v)
-        add_edge!(dg, e)
-        set_prop!(dg, e, :orientation, "vertical")
-    end
-    dg
-end
-=#
 
 function factor_graph(
     ig::MetaGraph;

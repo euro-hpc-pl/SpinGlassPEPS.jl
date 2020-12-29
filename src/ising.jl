@@ -125,10 +125,10 @@ function unique_neighbors(ig::MetaGraph, i::Int)
 end
 
     
-    function update_cells!(ig::MetaGraph, rule::Function)  
-        for v ∈ ig
-            old = get_prop(ig, v, :cell)
-            new = rule(old)
-            set_prop!(ig, v, cell, new)
-        end
+function update_cells!(ig::MetaGraph, rule::Function)  
+    for v ∈ ig
+        old = get_prop(ig, v, :cell)
+        new = rule(old)
+        set_prop!(ig, v, cell, new)
     end
+end
