@@ -171,7 +171,7 @@ end
 
 _holes(nbrs::Vector, i::Int) = setdiff(i + 1 : last(nbrs), nbrs)
 
-function MPS(ig::MetaGraph, control::MPSControl)
+function MPS(ig::MetaGraph, control::MPSControl, β::Float64=1.0)
     L = nv(ig)
 
     Dcut = control.max_bond
@@ -180,7 +180,6 @@ function MPS(ig::MetaGraph, control::MPSControl)
     schedule = control.β
     @info "Set control parameters for MPS" Dcut tol max_sweeps
 
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
 
     @assert β ≈ sum(schedule) "Incorrect β schedule."
@@ -234,10 +233,9 @@ together with the coresponding energies
 of a classical Ising Hamiltonian
 """
 function brute_force(ig::MetaGraph; num_states::Int=1)
-    cl = Cluster(ig, 0, enum(vertices(ig)), edges(ig))
+    cl = Cluster(ig, 0)
     brute_force(cl, num_states=num_states)
 end
-
 
 function brute_force(cl::Cluster; num_states::Int=1)
     σ = collect.(all_states(cl.rank))

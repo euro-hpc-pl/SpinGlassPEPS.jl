@@ -1,7 +1,7 @@
 include("test_helpers.jl")
 import SpinGlassPEPS: Partial_sol, update_partial_solution, select_best_solutions, return_solutions
 import SpinGlassPEPS: compute_single_tensor, conditional_probabs, get_parameters_for_T
-import SpinGlassPEPS: make_lower_mps
+import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
 if true

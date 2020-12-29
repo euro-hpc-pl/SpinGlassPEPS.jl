@@ -8,7 +8,7 @@ N = L^2
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
-set_prop!(ig, :β, 5.) #rand(Float64))
+β = 5.
 #r = [3, 2, 5, 4]
 r = fill(2, N)
 set_prop!(ig, :rank, r)
@@ -18,15 +18,14 @@ sgn = -1.
 D = prod(r) + 1
 var_ϵ = 1E-8
 sweeps = 4
-schedule = [get_prop(ig, :β)]
+schedule = [β]
 control = MPSControl(D, var_ϵ, sweeps, schedule) 
 
 states = all_states(get_prop(ig, :rank))
-ϱ = gibbs_tensor(ig)
+ϱ = gibbs_tensor(ig, β)
 @test sum(ϱ) ≈ 1
 
 @testset "Verifying gate operations" begin
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
 
     χ = HadamardMPS(rank)
@@ -75,7 +74,6 @@ end
 
     @testset "Exact Gibbs pure state (MPS)" begin
         L = nv(ig)
-        β = get_prop(ig, :β)
         rank = get_prop(ig, :rank)
 
         @info "Generating Gibbs state - |ρ>" L rank β ϵ
@@ -118,7 +116,7 @@ end
 
         @info "Verifying MPS from gates"
 
-        Gψ = MPS(ig, control) 
+        Gψ = MPS(ig, control, β) 
 
         @test_nowarn is_right_normalized(Gψ)
         @test bond_dimension(Gψ) > 1

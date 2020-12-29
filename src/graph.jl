@@ -28,7 +28,12 @@ mutable struct Cluster
 
     function Cluster(ig::MetaGraph, v::Int)
         cl = new(v)
-        vlist = filter_vertices(ig, :cell, v)
+
+        if cl.tag == 0
+            vlist = vertices(ig)
+        else
+            vlist = filter_vertices(ig, :cell, v)
+        end 
 
         L = length(collect(vlist))
 
