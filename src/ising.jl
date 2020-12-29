@@ -68,7 +68,7 @@ Create the Ising spin glass model.
 
 Store extra information
 """
-function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.0)
+function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
 
     # load the Ising instance
     if typeof(instance) == String
@@ -79,6 +79,13 @@ function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.
 
     ig = MetaGraph(L, 0.0)
     set_prop!(ig, :description, "The Ising model.")
+
+
+    for v ∈ 1:L
+        set_prop!(ig, v, :active, false)
+        set_prop!(ig, v, :cell, v)
+    end
+
 
     # setup the model (J_ij, h_i)
     for (i, j, v) ∈ ising 
@@ -92,26 +99,12 @@ function ising_graph(instance::Instance, L::Int, β::Number=1.0, sgn::Number=-1.
             add_edge!(ig, i, j) && 
             set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)") 
         end    
+        set_prop!(ig, i, :active, true)
+        set_prop!(ig, j, :active, true)
     end   
 
-    # by default h should be zero
-    for i ∈ 1:nv(ig)
-        if !has_prop(ig, i, :h) 
-            set_prop!(ig, i, :h, 0.) || error("Cannot set bias at node $(i).")
-        end 
-    end
-
     # store extra information 
-    set_prop!(ig, :β, β)
     set_prop!(ig, :rank, fill(2, L))
-
-    #=
-    # state (random by default) and corresponding energy
-    σ = 2.0 * (rand(L) .< 0.5) .- 1.0
-
-    set_prop!(ig, :state, σ)
-    set_prop!(ig, :energy, energy(σ, ig)) || error("Unable to calculate the Ising energy!")
-    =#
 
     ig
 end
@@ -130,3 +123,12 @@ function unique_neighbors(ig::MetaGraph, i::Int)
     nbrs = neighbors(ig::MetaGraph, i::Int)
     filter(j -> j > i, nbrs)
 end
+
+    
+    function update_cells!(ig::MetaGraph, rule::Function)  
+        for v ∈ ig
+            old = get_prop(ig, v, :cell)
+            new = rule(old)
+            set_prop!(ig, v, cell, new)
+        end
+    end
