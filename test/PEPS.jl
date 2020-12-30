@@ -4,6 +4,7 @@
 m = 3
 n = 4
 t = 3
+β = 1
 
 L = m * n * t
 
@@ -23,16 +24,12 @@ fg = factor_graph(
 
 decompose_edges!(fg)
 
-#=
-ng = NetworkGraph(fg,)
+x = m
+y = n
+peps = PepsNetwork(x, y, fg, β)
 
-for v ∈ vertices(fg)
-    A = generate_tensor(ng, v)
-
-    for w ∈ neighbors(v)
-        A = generate_tensor(ng, v, w)
-    end
+for i ∈ 1:x, j ∈ 1:y
+    @time A = generate_tensor(peps, (i, j))
 end
-=#
 
 end

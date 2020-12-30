@@ -1,21 +1,9 @@
-export factor_graph, decompose_edges!, NetworkGraph
+export factor_graph, decompose_edges!
 export Cluster, rank_reveal
 
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
 
-mutable struct NetworkGraph
-    geometry::Dict{}
-    β::Number
-    graph::MetaGraph
-    nbrs::Dict{Int, Tuple{Int}}
-
-    function NetworkGraph(geometry::Dict{}, β::Number, graph::MetaGraph)
-        ng = new(geometry, β, graph) 
-        # wygenerować nbrs na podstawie geometry
-        # sprawdzić czy w factor graphie nie ma edgy wychodzących poza nbrs    
-    end
-end
 
 mutable struct Cluster
     tag::Int
