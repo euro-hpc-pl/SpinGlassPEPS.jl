@@ -109,6 +109,7 @@ function factor_graph(
         edg = Edge(ig, v, w)
         if !isempty(edg.edges)
             e = SimpleEdge(i, j)
+            add_edge!(fg, e)
             set_prop!(fg, e, :edge, edg)
             set_prop!(fg, e, :energy, energy(fg, edg))
         end

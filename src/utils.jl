@@ -67,6 +67,20 @@ function LinearAlgebra.svd(A::AbstractMatrix, Dcut::Int, args...)
     return  U * Diagonal(ph), Σ, V * Diagonal(ph)
 end
 
+function Base.LinearIndices(m::Int, n::Int)
+    ind = LinearIndices((1:m, 1:n))
+    bind = Dict()
+    
+    for i ∈ 0:m+1, j ∈ 0:n+1
+        try
+            push!(bind, (i, j) => ind[i, j])
+        catch
+            push!(bind, (i, j) => 0)
+        end
+    end
+    bind
+end
+
 @generated function _unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}
     quote
         1 <= dim <= $N || return copy(A)

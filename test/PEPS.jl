@@ -4,6 +4,7 @@
 m = 3
 n = 4
 t = 3
+
 β = 1
 
 L = m * n * t
@@ -28,8 +29,9 @@ x = m
 y = n
 peps = PepsNetwork(x, y, fg, β)
 
+#=
 for i ∈ 1:x, j ∈ 1:y
     @time A = generate_tensor(peps, (i, j))
 end
-
+=#
 end
