@@ -9,7 +9,6 @@ mutable struct NetworkGraph
     β::Number
     graph::MetaGraph
     nbrs::Dict{Int, Tuple{Int}}
-    #gauge
 
     function NetworkGraph(geometry::Dict{}, β::Number, graph::MetaGraph)
         ng = new(geometry, β, graph) 
