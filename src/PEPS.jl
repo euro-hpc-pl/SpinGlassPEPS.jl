@@ -1,5 +1,5 @@
 export NetworkGraph, PepsNetwork
-export generate_tensor
+export generate_tensor, MPO
 
 mutable struct NetworkGraph
     factor_graph::MetaGraph
@@ -28,18 +28,18 @@ function generate_tensor(ng::NetworkGraph, v::Int)
 
     for w ∈ ng.nbrs[v]
         n = max(1, ndims(tensor)-1)
-        s = :(@ntuple n i)
+        s = :(@ntuple $n i)
 
         if has_edge(ng.factor_graph, w, v)
             pw, e, pv = get_prop(ng.factor_graph, w, v, :decomposition)
-            @eval @cast tensor[σ, s..., γ] |= tensor[σ, s...] * pv[γ, σ]
+            @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[γ, σ]
 
         elseif has_edge(ng.factor_graph, v, w)
             pv, e, pw = get_prop(ng.factor_graph, v, w, :decomposition)
-            @eval @cast tensor[σ, s..., γ] |= tensor[σ, s...] * pv[σ, γ]
+            @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[σ, γ]
         else 
-            pv = ones(size(loc_en), 1)
-            @eval @cast tensor[σ, s..., γ] |= tensor[σ, s...] * pv[σ, γ]
+            pv = ones(size(loc_en)...)
+            @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[σ, γ]
         end
     end
     tensor
@@ -58,33 +58,15 @@ function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     tensor
 end
 
-#=
-function MPO(fg::MetaDiGraph, dim::Symbol=:r, i::Int; T::DataType=Float64)
-    @assert dir ∈ (:r, :c)
-
-    m, n = size(fg)
-    idx = LinearIndices((1:m, 1:n))
-    chain = dim == :r ? fg[idx[:, i]] : fg[idx[i, :]] 
-
-    ψ = MPO(T, length(chain))
-
-    for (j, v) ∈ enumerate(chain)
-        ψ[j] = PepsTensor(fg, v).tensor
-    end
-    ψ
-end
-=#
-
 mutable struct PepsNetwork
-    m::Int
-    n::Int
+    size::NTuple{2, Int}
     β::Number
     map::Dict
     network_graph::NetworkGraph
     orientation::Symbol
 
     function PepsNetwork(m::Int, n::Int, fg::MetaGraph, β::Number)
-        pn = new(m, n, β) 
+        pn = new((m, n), β) 
         pn.map = LinearIndices(m, n)
 
         nbrs = Dict()
@@ -100,3 +82,36 @@ end
 
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
+
+function _MPO_row(peps::PepsNetwork, i::Int; type::DataType=Float64)
+    _, n = peps.size
+    ψ = MPO(type, n)
+    
+    for j ∈ 1:n
+        A = generate_tensor(peps, (i, j))
+        @reduce B[l, r, u ,d] := sum(σ) A[l, r, u, d, σ]
+
+        # multiply by en
+        ψ[j] = B
+    end
+    ψ
+end
+
+function _MPO_column(peps::PepsNetwork, j::Int; type::DataType=Float64)
+    m, _ = peps.size
+    ψ = MPO(type, m)
+
+    for i ∈ 1:m
+        A = generate_tensor(peps, (i, j))
+        @reduce B[l, r, u, d] := sum(σ) A[l, r, u, d, σ]
+
+        # multiply by en
+        ψ[i] = B
+    end
+    ψ
+end
+
+MPO(peps::PepsNetwork, dim::Symbol, k::Int; type::DataType=Float64) = MPO(peps, Val(dim), k; type=T)
+MPO(peps::PepsNetwork, ::Val{:row}, i::Int; type::DataType=Float64) = _MPO_row(peps, i, type=T)
+MPO(peps::PepsNetwork, ::Val{:col}, j::Int; type::DataType=Float64) = _MPO_column(peps, j, type=T)
+
