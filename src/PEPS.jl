@@ -60,13 +60,12 @@ end
 
 mutable struct PepsNetwork
     size::NTuple{2, Int}
-    β::Number
     map::Dict
     network_graph::NetworkGraph
     orientation::Symbol
 
     function PepsNetwork(m::Int, n::Int, fg::MetaGraph, β::Number)
-        pn = new((m, n), β) 
+        pn = new((m, n)) 
         pn.map = LinearIndices(m, n)
 
         nbrs = Dict()
@@ -75,7 +74,7 @@ mutable struct PepsNetwork
             pn.map[i, j] => (pn.map[i-1, j], pn.map[i, j+1], 
                              pn.map[i+1, j], pn.map[i, j-1]))
         end
-        pn.network_graph = NetworkGraph(fg, nbrs, pn.β)
+        pn.network_graph = NetworkGraph(fg, nbrs, β)
         pn
     end
 end
@@ -89,19 +88,14 @@ function _MPO_row(peps::PepsNetwork, i::Int; type::DataType=Float64)
     
     for j ∈ 1:n
         A = generate_tensor(peps, (i, j))
-        @reduce B[l, r, u ,d] := sum(σ) A[l, r, u, d, σ]
+        @reduce B[l, r, u ,d] |= sum(σ) A[l, r, u, d, σ]
         ψ[j] = B
     end
 
-    fg = peps.network_graph.factor_graph
-
     for j ∈ 1:n-1
-        v, w = peps.map[i, j], peps.map[i, j+1]
-
-        _, en, _ = get_prop(fg, v, w, :decomposition)
-
+        ten = generate_tensor(peps, (i, j), (i, j+1))
         A = ψ[j+1]
-        @tensor B[l, r, u, d] := A[l, r, ũ, d] * en[ũ, u]
+        @tensor B[l, r, u, d] = A[l, r, ũ, d] * ten[ũ, u]
         ψ[j+1] = B
     end
     ψ
@@ -113,19 +107,14 @@ function _MPO_column(peps::PepsNetwork, j::Int; type::DataType=Float64)
 
     for i ∈ 1:m
         A = generate_tensor(peps, (i, j))
-        @reduce B[l, r, u, d] := sum(σ) A[l, r, u, d, σ]
+        @reduce B[l, r, u, d] |= sum(σ) A[l, r, u, d, σ]
         ψ[i] = B
     end
 
-    fg = peps.network_graph.factor_graph
-
     for i ∈ 1:m-1
-        v, w = peps.map[i, j], peps.map[i+1, j]
-
-        _, en, _ = get_prop(fg, v, w, :decomposition)
-
+        ten = generate_tensor(peps, (i, j), (i+1, j))
         A = ψ[i+1]
-        @tensor B[l, r, u, d] := en[l, l̃] * A[l̃, r, u, d]
+        @tensor B[l, r, u, d] = ten[l, l̃] * A[l̃, r, u, d]
         ψ[i+1] = B
     end
     ψ
