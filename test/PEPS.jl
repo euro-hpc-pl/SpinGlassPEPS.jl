@@ -31,7 +31,19 @@ peps = PepsNetwork(x, y, fg, β)
 
 #=
 for i ∈ 1:x, j ∈ 1:y
-    @time A = generate_tensor(peps, (i, j))
+    @time peps = generate_tensor(peps, (i, j))
+end
+=#
+
+#=
+for i ∈ 1:x
+    @time mpo = MPO(peps, :row, i)
+end
+=#
+
+#=
+for j ∈ 1:y
+    @time mpo = MPO(peps, :col, j)
 end
 =#
 

@@ -90,9 +90,19 @@ function _MPO_row(peps::PepsNetwork, i::Int; type::DataType=Float64)
     for j ∈ 1:n
         A = generate_tensor(peps, (i, j))
         @reduce B[l, r, u ,d] := sum(σ) A[l, r, u, d, σ]
-
-        # multiply by en
         ψ[j] = B
+    end
+
+    fg = peps.network_graph.factor_graph
+
+    for j ∈ 1:n-1
+        v, w = peps.map[i, j], peps.map[i, j+1]
+
+        _, en, _ = get_prop(fg, v, w, :decomposition)
+
+        A = ψ[j+1]
+        @tensor B[l, r, u, d] := A[l, r, ũ, d] * en[ũ, u]
+        ψ[j+1] = B
     end
     ψ
 end
@@ -104,9 +114,19 @@ function _MPO_column(peps::PepsNetwork, j::Int; type::DataType=Float64)
     for i ∈ 1:m
         A = generate_tensor(peps, (i, j))
         @reduce B[l, r, u, d] := sum(σ) A[l, r, u, d, σ]
-
-        # multiply by en
         ψ[i] = B
+    end
+
+    fg = peps.network_graph.factor_graph
+
+    for i ∈ 1:m-1
+        v, w = peps.map[i, j], peps.map[i+1, j]
+
+        _, en, _ = get_prop(fg, v, w, :decomposition)
+
+        A = ψ[i+1]
+        @tensor B[l, r, u, d] := en[l, l̃] * A[l̃, r, u, d]
+        ψ[i+1] = B
     end
     ψ
 end
