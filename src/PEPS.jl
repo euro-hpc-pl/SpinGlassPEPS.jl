@@ -62,8 +62,10 @@ function generate_tensor(ng::NetworkGraph, v::Int)
         end
         push!(p_list, i => pv)
     end
+    
     L, R, U, D = p_list[1], p_list[2], p_list[3], p_list[4]
     @cast tensor[l, u, r, d, σ] |= ten_loc[σ] * L[σ, l] * R[σ, u] * U[σ, r] * D[σ, d] 
+
     tensor
 end
 
