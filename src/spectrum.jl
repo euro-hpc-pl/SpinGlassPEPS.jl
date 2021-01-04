@@ -238,6 +238,9 @@ function brute_force(ig::MetaGraph; num_states::Int=1)
 end
 
 function brute_force(cl::Cluster; num_states::Int=1)
+    if isempty(cl.vertices)
+        return Spectrum(zeros(1), [])   
+    end
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
     perm = partialsortperm(vec(energies), 1:num_states) 
@@ -245,6 +248,9 @@ function brute_force(cl::Cluster; num_states::Int=1)
 end
 
 function full_spectrum(cl::Cluster)
+    if isempty(cl.vertices)
+        return Spectrum(zeros(1), [])   
+    end
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
     Spectrum(energies, σ)   

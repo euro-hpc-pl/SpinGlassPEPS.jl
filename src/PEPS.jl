@@ -2,11 +2,11 @@ export NetworkGraph, PepsNetwork
 export generate_tensor, MPO
 
 mutable struct NetworkGraph
-    factor_graph::MetaGraph
+    factor_graph::MetaDiGraph
     nbrs::Dict
     β::Number
 
-    function NetworkGraph(factor_graph::MetaGraph, nbrs::Dict, β::Number)
+    function NetworkGraph(factor_graph::MetaDiGraph, nbrs::Dict, β::Number)
         ng = new(factor_graph, nbrs, β) 
 
         count = 0
@@ -14,7 +14,7 @@ mutable struct NetworkGraph
             if has_edge(ng.factor_graph, v, w) count += 1 end
         end
 
-        mc = nv(ng.factor_graph)
+        mc = ne(ng.factor_graph)
         if count < mc
             error("Error: $(count) < $(mc)") 
         end
@@ -63,10 +63,12 @@ mutable struct PepsNetwork
     map::Dict
     network_graph::NetworkGraph
     orientation::Symbol
+    i_max::Int
+    j_max::Int
 
-    function PepsNetwork(m::Int, n::Int, fg::MetaGraph, β::Number)
+    function PepsNetwork(m::Int, n::Int, fg::MetaDiGraph, β::Number, orientation::Symbol)
         pn = new((m, n)) 
-        pn.map = LinearIndices(m, n)
+        pn.map, pn.i_max, pn.j_max = LinearIndices(m, n, orientation)
 
         nbrs = Dict()
         for i ∈ 1:m, j ∈ 1:n

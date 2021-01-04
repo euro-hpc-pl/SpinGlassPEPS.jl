@@ -67,18 +67,54 @@ function LinearAlgebra.svd(A::AbstractMatrix, Dcut::Int, args...)
     return  U * Diagonal(ph), Σ, V * Diagonal(ph)
 end
 
-function Base.LinearIndices(m::Int, n::Int)
-    ind = LinearIndices((1:m, 1:n))
+function Base.LinearIndices(m::Int, n::Int, origin::Symbol)
+    #ind = LinearIndices((1:m, 1:n))
     bind = Dict()
-    
-    for i ∈ 0:m+1, j ∈ 0:n+1
-        try
-            push!(bind, (i, j) => ind[i, j])
-        catch
-            push!(bind, (i, j) => 0)
+    if origin == :NW
+        for i ∈ 1:m, j ∈ 1:n
+            push!(bind, (i, j) => (i-1)*n+j)
+        end
+    elseif origin == :WN
+        for i ∈ 1:n, j ∈ 1:m
+            push!(bind, (i, j) => (j-1)*n+i)
+        end
+    elseif origin == :EN
+        for i ∈ 1:n, j ∈ 1:m
+            push!(bind, (i, j) => (j-1)*n+(n+1-i))
+        end
+    elseif origin == :NE
+        for i ∈ 1:n, j ∈ 1:m
+            push!(bind, (i, j) => (i-1)*n+(n+1-j))
+        end
+    elseif origin == :SE
+        for i ∈ 1:n, j ∈ 1:m
+            push!(bind, (i, j) => (m-i)*n+(n+1-j))
+        end
+    elseif origin == :ES
+        for i ∈ 1:n, j ∈ 1:m
+            push!(bind, (i, j) => (m-j)*n+(n+1-i))
         end
     end
-    bind
+
+    if origin == :NW
+        i_max = m
+        j_max = n
+
+    else 
+        i_max = n
+        j_max = m
+    end
+
+    for i ∈ 0:i_max+1
+        push!(bind, (i, 0) => 0)
+        push!(bind, (i, j_max+1) => 0)
+    end
+    for j ∈ 0:j_max+1
+        push!(bind, (0, j) => 0)
+        push!(bind, (i_max+1, j) => 0)
+    end
+
+    bind, i_max, j_max
 end
 
 @generated function _unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}

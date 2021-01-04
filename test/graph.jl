@@ -2,7 +2,7 @@ using MetaGraphs
 using LightGraphs
 using GraphPlot
 using CSV
-
+#=
 @testset "Lattice graph" begin
    m = 4
    n = 4
@@ -40,6 +40,49 @@ using CSV
 
    @test isempty(intersect(clv...))
    @test isempty(intersect(cle...))
+end
+=#
+
+@testset "Testing factor graph" begin
+m = 3
+n = 4
+t = 3
+instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt" 
+
+
+β = 1
+origin = :NW
+m = 4
+L = m * n * t
+ig = ising_graph(instance, L)
+update_cells!(
+   ig, 
+   rule = square_lattice((m, n, t)),
+) 
+println("sq_lattice ", square_lattice((m, n, t)))
+
+for v ∈ filter_vertices(ig, :active, true)
+   #h = get_prop(ig, v, :h)
+   #println("h ", v, " ----> ", h)
+   cell = get_prop(ig, v, :cell)
+   println("cell ", v, " ----> ", cell)
+
+end
+
+fg = factor_graph(
+    ig, 
+    energy=energy, 
+    spectrum=full_spectrum,
+)
+
+for v ∈ vertices(fg)
+   eng = get_prop(fg, v, :spectrum).energies
+   println("rank ", v, " ----> ", vec(eng))
+end
+x = m
+y = n
+peps = PepsNetwork(x, y, fg, β, origin)
+
 end
 
 @testset "Rank reveal correctly decomposes energy row-wise" begin

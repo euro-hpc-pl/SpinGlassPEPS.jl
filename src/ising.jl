@@ -39,7 +39,7 @@ energy(σ::Vector, h::Vector) = dot(h, σ)
 energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(cl.h, σ)
 energy(σ::Vector, ig::MetaGraph) = energy(σ, get_prop(ig, :J)) + energy(σ, get_prop(ig, :h))
    
-function energy(fg::MetaGraph, edge::Edge) 
+function energy(fg::MetaDiGraph, edge::Edge) 
     v, w = edge.tag
     vSp = get_prop(fg, v, :spectrum).states
     wSp = get_prop(fg, w, :spectrum).states
@@ -135,7 +135,7 @@ end
     
 function update_cells!(ig::MetaGraph; rule::Dict)  
     for v ∈ vertices(ig)
-         w = rule[get_prop(ig, v, :cell)]
+         w = get_prop(ig, v, :cell)
         set_prop!(ig, v, :cell, rule[w])
     end
 end

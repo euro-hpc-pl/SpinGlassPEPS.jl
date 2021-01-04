@@ -1,4 +1,4 @@
-export factor_graph, decompose_edges!
+export factor_graph #decompose_edges!
 export Cluster, rank_reveal
 
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
@@ -15,12 +15,14 @@ mutable struct Cluster
 
     function Cluster(ig::MetaGraph, v::Int)
         cl = new(v)
+        active = filter_vertices(ig, :active, true)
 
         if cl.tag == 0
             vlist = vertices(ig)
         else
             vlist = filter_vertices(ig, :cell, v)
         end 
+        vlist = intersect(active, vlist)
 
         L = length(collect(vlist))
 
@@ -94,7 +96,7 @@ function factor_graph(
     spectrum::Function=full_spectrum, 
 ) 
     L = _mv(ig)
-    fg = MetaGraph(L, 0.0)
+    fg = MetaDiGraph(L, 0.0)
 
     for v ∈ vertices(fg)
         cl = Cluster(ig, v)
@@ -111,12 +113,14 @@ function factor_graph(
             e = SimpleEdge(i, j)
             add_edge!(fg, e)
             set_prop!(fg, e, :edge, edg)
-            set_prop!(fg, e, :energy, energy(fg, edg))
+            pl, en = rank_reveal(energy(fg, edg), :PE)
+            en, pr = rank_reveal(en, :EP)
+            set_prop!(fg, e, :decomposition, (pl, en, pr))
         end
     end
     fg
 end
-
+#=
 function decompose_edges!(fg::MetaGraph)
 
     for edge ∈ edges(fg)
@@ -133,6 +137,7 @@ function decompose_edges!(fg::MetaGraph)
         set_prop!(fg, v, :loc_en, vec(en))
     end
 end
+=#
  
 function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)

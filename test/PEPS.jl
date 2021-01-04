@@ -23,7 +23,7 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-decompose_edges!(fg)
+#decompose_edges!(fg)
 
 x = m
 y = n
