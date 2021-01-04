@@ -22,7 +22,8 @@ mutable struct NetworkGraph
     end
 end
 
-function generate_tensor_not_working(ng::NetworkGraph, v::Int)
+# This still does not work (mixing @eval and @cast gives unexpected results)
+function generate_tensor_general(ng::NetworkGraph, v::Int)
     loc_en = get_prop(ng.factor_graph, v, :loc_en)
     tensor = exp.(-ng.β .* loc_en)
 
@@ -47,10 +48,10 @@ end
 
 function generate_tensor(ng::NetworkGraph, v::Int)
     loc_en = get_prop(ng.factor_graph, v, :loc_en)
-    tensor_local = exp.(-ng.β .* loc_en)
+    ten_loc = exp.(-ng.β .* loc_en)
+
     p_list = Dict()
-    for (i,w) ∈ enumerate(ng.nbrs[v])
-        
+    for (i,w) ∈ enumerate(ng.nbrs[v])    
         if has_edge(ng.factor_graph, w, v)
             pw, e, pv = get_prop(ng.factor_graph, w, v, :decomposition)
             pv = pv'
@@ -61,7 +62,7 @@ function generate_tensor(ng::NetworkGraph, v::Int)
         end
         push!(p_list, i => pv)
     end
-    @cast tensor[l, u, r, d, σ] |= tensor_local[σ] * p_list[1][σ, l] * p_list[2][σ, u] * p_list[3][σ, r] * p_list[4][σ, d] 
+    @cast tensor[l, u, r, d, σ] |= ten_loc[σ] * p_list[1][σ, l] * p_list[2][σ, u] * p_list[3][σ, r] * p_list[4][σ, d] 
     tensor
 end
 

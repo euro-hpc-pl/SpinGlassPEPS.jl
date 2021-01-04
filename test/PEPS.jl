@@ -28,7 +28,6 @@ y = n
 peps = PepsNetwork(x, y, fg, β, :NW)
 println(typeof(peps))
 
-
 for i ∈ 2:2, j ∈ 1:y
     println(i, j)
     @time A = generate_tensor(peps, (i, j))
@@ -45,6 +44,11 @@ for i ∈ 1:x
     println(i)
     @time mpo = MPO(peps, i)
     println(size(mpo))
+end
+
+mpo = MPO(peps, 1)
+for i ∈ 2:x
+    mpo = dot(MPO(peps, i), mpo)
 end
 
 end

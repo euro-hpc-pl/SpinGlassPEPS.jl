@@ -2,7 +2,7 @@ using MetaGraphs
 using LightGraphs
 using GraphPlot
 using CSV
-#=
+
 @testset "Lattice graph" begin
    m = 4
    n = 4
@@ -41,7 +41,6 @@ using CSV
    @test isempty(intersect(clv...))
    @test isempty(intersect(cle...))
 end
-=#
 
 @testset "Testing factor graph" begin
 m = 3
