@@ -118,6 +118,12 @@ function factor_graph(
             set_prop!(fg, e, :decomposition, (pl, en, pr))
         end
     end
+
+    for v ∈ vertices(fg)
+        en = get_prop(fg, v, :spectrum).energies
+        set_prop!(fg, v, :loc_en, vec(en))
+    end
+    
     fg
 end
 #=

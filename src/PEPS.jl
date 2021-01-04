@@ -22,7 +22,7 @@ mutable struct NetworkGraph
     end
 end
 
-function generate_tensor(ng::NetworkGraph, v::Int)
+function generate_tensor_not_working(ng::NetworkGraph, v::Int)
     loc_en = get_prop(ng.factor_graph, v, :loc_en)
     tensor = exp.(-ng.β .* loc_en)
 
@@ -45,12 +45,32 @@ function generate_tensor(ng::NetworkGraph, v::Int)
     tensor
 end
 
+function generate_tensor(ng::NetworkGraph, v::Int)
+    loc_en = get_prop(ng.factor_graph, v, :loc_en)
+    tensor_local = exp.(-ng.β .* loc_en)
+    p_list = Dict()
+    for (i,w) ∈ enumerate(ng.nbrs[v])
+        
+        if has_edge(ng.factor_graph, w, v)
+            pw, e, pv = get_prop(ng.factor_graph, w, v, :decomposition)
+            pv = pv'
+        elseif has_edge(ng.factor_graph, v, w)
+            pv, e, pw = get_prop(ng.factor_graph, v, w, :decomposition)
+        else 
+            pv = ones(length(loc_en), 1)
+        end
+        push!(p_list, i => pv)
+    end
+    @cast tensor[l, u, r, d, σ] |= tensor_local[σ] * p_list[1][σ, l] * p_list[2][σ, u] * p_list[3][σ, r] * p_list[4][σ, d] 
+    tensor
+end
+
 function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
-    if has_edge(ng.graph, w, v)
-        _, e, _ = get_prop(ng.graph, w, v, :decomposition)
+    if has_edge(ng.factor_graph, w, v)
+        _, e, _ = get_prop(ng.factor_graph, w, v, :decomposition)
         tensor = exp.(-ng.β .* e') 
-    elseif has_edge(ng.graph, v, w)
-        _, e, _ = get_prop(ng.graph, v, w, :decomposition)
+    elseif has_edge(ng.factor_graph, v, w)
+        _, e, _ = get_prop(ng.factor_graph, v, w, :decomposition)
         tensor = exp.(-ng.β .* e) 
     else 
         tensor = ones(1, 1)
@@ -73,8 +93,8 @@ mutable struct PepsNetwork
         nbrs = Dict()
         for i ∈ 1:m, j ∈ 1:n
             push!(nbrs, 
-            pn.map[i, j] => (pn.map[i-1, j], pn.map[i, j+1], 
-                             pn.map[i+1, j], pn.map[i, j-1]))
+            pn.map[i, j] => (pn.map[i, j-1], pn.map[i-1, j], 
+                             pn.map[i, j+1], pn.map[i+1, j]))
         end
         pn.network_graph = NetworkGraph(fg, nbrs, β)
         pn
@@ -84,45 +104,21 @@ end
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
-function _MPO_row(peps::PepsNetwork, i::Int; type::DataType=Float64)
-    _, n = peps.size
+function MPO(peps::PepsNetwork, i::Int; type::DataType=Float64)
+    n = peps.j_max
     ψ = MPO(type, n)
     
     for j ∈ 1:n
         A = generate_tensor(peps, (i, j))
-        @reduce B[l, r, u ,d] |= sum(σ) A[l, r, u, d, σ]
+        @reduce B[l, u, r ,d] |= sum(σ) A[l, u, r, d, σ]
         ψ[j] = B
     end
 
     for j ∈ 1:n-1
         ten = generate_tensor(peps, (i, j), (i, j+1))
-        A = ψ[j+1]
-        @tensor B[l, r, u, d] = A[l, r, ũ, d] * ten[ũ, u]
-        ψ[j+1] = B
+        A = ψ[j]
+        @tensor B[l, u, r, d] := A[l, u, r̃, d] * ten[r̃, r]
+        ψ[j] = B
     end
     ψ
 end
-
-function _MPO_column(peps::PepsNetwork, j::Int; type::DataType=Float64)
-    m, _ = peps.size
-    ψ = MPO(type, m)
-
-    for i ∈ 1:m
-        A = generate_tensor(peps, (i, j))
-        @reduce B[l, r, u, d] |= sum(σ) A[l, r, u, d, σ]
-        ψ[i] = B
-    end
-
-    for i ∈ 1:m-1
-        ten = generate_tensor(peps, (i, j), (i+1, j))
-        A = ψ[i+1]
-        @tensor B[l, r, u, d] = ten[l, l̃] * A[l̃, r, u, d]
-        ψ[i+1] = B
-    end
-    ψ
-end
-
-MPO(peps::PepsNetwork, dim::Symbol, k::Int; type::DataType=Float64) = MPO(peps, Val(dim), k; type=T)
-MPO(peps::PepsNetwork, ::Val{:row}, i::Int; type::DataType=Float64) = _MPO_row(peps, i, type=T)
-MPO(peps::PepsNetwork, ::Val{:col}, j::Int; type::DataType=Float64) = _MPO_column(peps, j, type=T)
-

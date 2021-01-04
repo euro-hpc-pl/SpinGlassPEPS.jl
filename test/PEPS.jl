@@ -23,28 +23,28 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-#decompose_edges!(fg)
-
 x = m
 y = n
-peps = PepsNetwork(x, y, fg, β)
+peps = PepsNetwork(x, y, fg, β, :NW)
+println(typeof(peps))
 
-#=
-for i ∈ 1:x, j ∈ 1:y
-    @time peps = generate_tensor(peps, (i, j))
+
+for i ∈ 2:2, j ∈ 1:y
+    println(i, j)
+    @time A = generate_tensor(peps, (i, j))
+    println(size(A))
 end
-=#
 
-#=
+i=2
+for j ∈ 1:y-1
+    A = generate_tensor(peps, (i, j), (i, j+1))
+    println(size(A))
+end
+
 for i ∈ 1:x
-    @time mpo = MPO(peps, :row, i)
+    println(i)
+    @time mpo = MPO(peps, i)
+    println(size(mpo))
 end
-=#
-
-#=
-for j ∈ 1:y
-    @time mpo = MPO(peps, :col, j)
-end
-=#
 
 end
