@@ -32,14 +32,14 @@ function generate_tensor_general(ng::NetworkGraph, v::Int)
         s = :(@ntuple $n i)
 
         if has_edge(ng.factor_graph, w, v)
-            pw, e, pv = get_prop(ng.factor_graph, w, v, :decomposition)
+            _, _, pv = get_prop(ng.factor_graph, w, v, :decomposition)
             @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[γ, σ]
 
         elseif has_edge(ng.factor_graph, v, w)
-            pv, e, pw = get_prop(ng.factor_graph, v, w, :decomposition)
+            pv, _, _ = get_prop(ng.factor_graph, v, w, :decomposition)
             @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[σ, γ]
         else 
-            pv = ones(size(loc_en)...)
+            pv = ones(length(loc_en), 1)
             @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[σ, γ]
         end
     end
@@ -51,18 +51,19 @@ function generate_tensor(ng::NetworkGraph, v::Int)
     ten_loc = exp.(-ng.β .* loc_en)
 
     p_list = Dict()
-    for (i,w) ∈ enumerate(ng.nbrs[v])    
+    for (i, w) ∈ enumerate(ng.nbrs[v])    
         if has_edge(ng.factor_graph, w, v)
-            pw, e, pv = get_prop(ng.factor_graph, w, v, :decomposition)
+            _, _, pv = get_prop(ng.factor_graph, w, v, :decomposition)
             pv = pv'
         elseif has_edge(ng.factor_graph, v, w)
-            pv, e, pw = get_prop(ng.factor_graph, v, w, :decomposition)
+            pv, _, _ = get_prop(ng.factor_graph, v, w, :decomposition)
         else 
             pv = ones(length(loc_en), 1)
         end
         push!(p_list, i => pv)
     end
-    @cast tensor[l, u, r, d, σ] |= ten_loc[σ] * p_list[1][σ, l] * p_list[2][σ, u] * p_list[3][σ, r] * p_list[4][σ, d] 
+    L, R, U, D = p_list[1], p_list[2], p_list[3], p_list[4]
+    @cast tensor[l, u, r, d, σ] |= ten_loc[σ] * L[σ, l] * R[σ, u] * U[σ, r] * D[σ, d] 
     tensor
 end
 
