@@ -8,6 +8,8 @@ using CSV
    n = 4
    t = 4
 
+   β = 1
+
    L = n * m * (2 * t)
    instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
 
@@ -40,6 +42,12 @@ using CSV
 
    @test isempty(intersect(clv...))
    @test isempty(intersect(cle...))
+
+
+   peps = PepsNetwork(m, n, fg, β, :NW)
+   for i ∈ 1:m, j ∈ 1:n
+      @time A = generate_tensor(peps, (i, j))
+  end
 end
 
 @testset "Testing factor graph" begin

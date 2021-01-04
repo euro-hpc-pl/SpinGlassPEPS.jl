@@ -25,7 +25,6 @@ mutable struct Cluster
         vlist = intersect(active, vlist)
 
         L = length(collect(vlist))
-
         cl.h = zeros(L)
         cl.J = zeros(L, L)
 

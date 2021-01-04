@@ -68,7 +68,7 @@ function LinearAlgebra.svd(A::AbstractMatrix, Dcut::Int, args...)
 end
 
 function Base.LinearIndices(m::Int, n::Int, origin::Symbol)
-    @asset origin ∈ (:NW, :WN, :EN, :NE, :SE, :ES)
+    @assert origin ∈ (:NW, :WN, :EN, :NE, :SE, :ES)
 
     ind = Dict()
     if origin == :NW
@@ -106,15 +106,15 @@ function Base.LinearIndices(m::Int, n::Int, origin::Symbol)
     end
 
     for i ∈ 0:i_max+1
-        push!(bind, (i, 0) => 0)
-        push!(bind, (i, j_max + 1) => 0)
+        push!(ind, (i, 0) => 0)
+        push!(ind, (i, j_max + 1) => 0)
     end
     for j ∈ 0:j_max+1
-        push!(bind, (0, j) => 0)
-        push!(bind, (i_max + 1, j) => 0)
+        push!(ind, (0, j) => 0)
+        push!(ind, (i_max + 1, j) => 0)
     end
 
-    bind, i_max, j_max
+    ind, i_max, j_max
 end
 
 @generated function _unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}
