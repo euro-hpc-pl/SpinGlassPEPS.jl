@@ -100,7 +100,10 @@ function factor_graph(
     for v ∈ vertices(fg)
         cl = Cluster(ig, v)
         set_prop!(fg, v, :cluster, cl)
-        set_prop!(fg, v, :spectrum, spectrum(cl))
+
+        sp = spectrum(cl)
+        set_prop!(fg, v, :spectrum, sp)
+        set_prop!(fg, v, :loc_en, vec(sp.energies))
     end
 
     for i ∈ 1:L, j ∈ i+1:L
@@ -110,40 +113,19 @@ function factor_graph(
         edg = Edge(ig, v, w)
         if !isempty(edg.edges)
             e = SimpleEdge(i, j)
+
             add_edge!(fg, e)
             set_prop!(fg, e, :edge, edg)
+
             pl, en = rank_reveal(energy(fg, edg), :PE)
             en, pr = rank_reveal(en, :EP)
             set_prop!(fg, e, :decomposition, (pl, en, pr))
         end
     end
-
-    for v ∈ vertices(fg)
-        en = get_prop(fg, v, :spectrum).energies
-        set_prop!(fg, v, :loc_en, vec(en))
-    end
-    
     fg
 end
-#=
-function decompose_edges!(fg::MetaGraph)
 
-    for edge ∈ edges(fg)
-        energy = get_prop(fg, edge, :energy)
-         
-        pl, en = rank_reveal(energy, :PE)
-        en, pr = rank_reveal(en, :EP)
-
-        set_prop!(fg, edge, :decomposition, (pl, en, pr))
-    end 
-
-    for v ∈ vertices(fg)
-        en = get_prop(fg, v, :spectrum).energies
-        set_prop!(fg, v, :loc_en, vec(en))
-    end
-end
-=#
- 
+# needs to be rewritten!
 function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2

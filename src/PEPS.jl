@@ -33,14 +33,14 @@ function generate_tensor_general(ng::NetworkGraph, v::Int)
 
         if has_edge(ng.factor_graph, w, v)
             _, _, pv = get_prop(ng.factor_graph, w, v, :decomposition)
-            @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[γ, σ]
+            @eval @cast tensor[s, γ, σ] |= tensor[s, σ] * pv[γ, σ]
 
         elseif has_edge(ng.factor_graph, v, w)
             pv, _, _ = get_prop(ng.factor_graph, v, w, :decomposition)
-            @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[σ, γ]
+            @eval @cast tensor[s, γ, σ] |= tensor[s, σ] * pv[σ, γ]
         else 
             pv = ones(length(loc_en), 1)
-            @eval @cast tensor[σ, s, γ] |= tensor[σ, s] * pv[σ, γ]
+            @eval @cast tensor[s, γ, σ] |= tensor[s, σ] * pv[σ, γ]
         end
     end
     tensor
@@ -62,9 +62,9 @@ function generate_tensor(ng::NetworkGraph, v::Int)
         end
         push!(p_list, i => pv)
     end
-    
+
     L, R, U, D = p_list[1], p_list[2], p_list[3], p_list[4]
-    @cast tensor[l, u, r, d, σ] |= ten_loc[σ] * L[σ, l] * R[σ, u] * U[σ, r] * D[σ, d] 
+    @cast tensor[l, u, r, d, σ] |=  L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * ten_loc[σ]
 
     tensor
 end
@@ -86,13 +86,13 @@ mutable struct PepsNetwork
     size::NTuple{2, Int}
     map::Dict
     network_graph::NetworkGraph
-    orientation::Symbol
+    origin::Symbol
     i_max::Int
     j_max::Int
 
-    function PepsNetwork(m::Int, n::Int, fg::MetaDiGraph, β::Number, orientation::Symbol)
+    function PepsNetwork(m::Int, n::Int, fg::MetaDiGraph, β::Number, origin::Symbol)
         pn = new((m, n)) 
-        pn.map, pn.i_max, pn.j_max = LinearIndices(m, n, orientation)
+        pn.map, pn.i_max, pn.j_max = LinearIndices(m, n, origin)
 
         nbrs = Dict()
         for i ∈ 1:m, j ∈ 1:n
