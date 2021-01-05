@@ -67,6 +67,64 @@ function LinearAlgebra.svd(A::AbstractMatrix, Dcut::Int, args...)
     return  U * Diagonal(ph), Σ, V * Diagonal(ph)
 end
 
+function Base.LinearIndices(m::Int, n::Int, origin::Symbol)
+    @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
+
+    ind = Dict()
+    if origin == :NW
+        for i ∈ 1:m, j ∈ 1:n
+            push!(ind, (i, j) => (i-1) * n + j)
+        end
+    elseif origin == :WN
+        for i ∈ 1:n, j ∈ 1:m
+            push!(ind, (i, j) => (j-1) * n + i)
+        end
+    elseif origin == :NE
+        for i ∈ 1:m, j ∈ 1:n
+            push!(ind, (i, j) => (i - 1) * n + (n + 1 - j))
+        end
+    elseif origin == :EN
+        for i ∈ 1:n, j ∈ 1:m
+            push!(ind, (i, j) => (j-1) * n + (n + 1 - i))
+        end
+    elseif origin == :SE
+        for i ∈ 1:m, j ∈ 1:n
+            push!(ind, (i, j) => (m - i) * n + (n + 1 - j))
+        end
+    elseif origin == :ES
+        for i ∈ 1:n, j ∈ 1:m
+            push!(ind, (i, j) => (m - j) * n + (n + 1 - i))
+        end
+    elseif origin == :SW
+        for i ∈ 1:m, j ∈ 1:n
+            push!(ind, (i, j) => (m - i) * n + j)
+        end
+    elseif origin == :WS
+        for i ∈ 1:n, j ∈ 1:m
+            push!(ind, (i, j) => (m - j) * n + i)
+        end
+    end
+
+    if origin == :NW || origin == :NE || origin == :SE || origin == :SW
+        i_max = m
+        j_max = n
+    else 
+        i_max = n
+        j_max = m
+    end
+
+    for i ∈ 0:i_max+1
+        push!(ind, (i, 0) => 0)
+        push!(ind, (i, j_max + 1) => 0)
+    end
+    for j ∈ 0:j_max+1
+        push!(ind, (0, j) => 0)
+        push!(ind, (i_max + 1, j) => 0)
+    end
+
+    ind, i_max, j_max
+end
+
 @generated function _unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}
     quote
         1 <= dim <= $N || return copy(A)

@@ -169,10 +169,9 @@ function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int)
     ψ[l] = M̃
 end
 
-_holes(nbrs::Vector) = setdiff(first(nbrs) : last(nbrs), nbrs)
+_holes(nbrs::Vector, i::Int) = setdiff(i + 1 : last(nbrs), nbrs)
 
-
-function MPS(ig::MetaGraph, control::MPSControl)
+function MPS(ig::MetaGraph, control::MPSControl, β::Float64=1.0)
     L = nv(ig)
 
     Dcut = control.max_bond
@@ -181,7 +180,6 @@ function MPS(ig::MetaGraph, control::MPSControl)
     schedule = control.β
     @info "Set control parameters for MPS" Dcut tol max_sweeps
 
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
 
     @assert β ≈ sum(schedule) "Incorrect β schedule."
@@ -203,7 +201,7 @@ function MPS(ig::MetaGraph, control::MPSControl)
                 _apply_exponent!(ρ, ig, dβ, i, j, last(nbrs))
             end
 
-            for l ∈ _holes(nbrs)
+            for l ∈ _holes(nbrs, i)
                 _apply_nothing!(ρ, l, i) 
             end
         end
@@ -235,12 +233,14 @@ together with the coresponding energies
 of a classical Ising Hamiltonian
 """
 function brute_force(ig::MetaGraph; num_states::Int=1)
-    cl = Cluster(ig, 0, enum(vertices(ig)), edges(ig))
+    cl = Cluster(ig, 0)
     brute_force(cl, num_states=num_states)
 end
 
-
 function brute_force(cl::Cluster; num_states::Int=1)
+    if isempty(cl.vertices)
+        return Spectrum(zeros(1), [])   
+    end
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
     perm = partialsortperm(vec(energies), 1:num_states) 
@@ -248,6 +248,9 @@ function brute_force(cl::Cluster; num_states::Int=1)
 end
 
 function full_spectrum(cl::Cluster)
+    if isempty(cl.vertices)
+        return Spectrum(zeros(1), [])   
+    end
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
     Spectrum(energies, σ)   

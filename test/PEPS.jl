@@ -1,57 +1,57 @@
 @testset "PepsTensor correctly builds PEPS network for Chimera" begin
-m = 4
-n = 4
-t = 4
+@testset "PepsTensor correctly builds PEPS network" begin
 
-L = 2 * n * m * t
-instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
+m = 3
+n = 4
+t = 3
+
+β = 1
+
+L = m * n * t
+
+instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt" 
 
 ig = ising_graph(instance, L)
-cg = Chimera((m, n, t), ig)
+update_cells!(
+   ig, 
+   rule = square_lattice((m, n, t)),
+) 
 
-β = get_prop(ig, :β)
-k = 64
+fg = factor_graph(
+    ig, 
+    energy=energy, 
+    spectrum=full_spectrum,
+)
 
-for order ∈ (:EP, :PE)
-    for hd ∈ (:LR, :RL), vd ∈ (:BT, :TB)
+x = m
+y = n
+peps = PepsNetwork(x, y, fg, β, :NW)
+println(typeof(peps))
 
-        @info "Testing factor graph" order hd vd
-
-        fg = factor_graph(cg,
-        #spectrum=full_spectrum,
-        spectrum = cl -> brute_force(cl, num_states=k),
-        energy=energy,
-        cluster=unit_cell,  
-        hdir=hd,
-        vdir=vd,
-        )
-        decompose_edges!(fg, order, β=β)
-
-        @test order == get_prop(fg, :tensors_order)
-        @test (hd, vd) == get_prop(fg, :order)
-
-        for e ∈ edges(fg)
-            dec = get_prop(fg, e, :decomposition)
-            en = get_prop(fg, e, :energy)
-
-            @test exp.(-β .* en) ≈ prod(dec)
-        end
-
-        @info "Testing PEPS"
-        
-        @time begin
-            net = []
-            for v ∈ vertices(fg)
-                peps = PepsTensor(fg, v)
-                push!(net, peps)
-                println(peps.nbrs)
-                println(size(peps))
-            end
-        end    
-    end
+for i ∈ 2:2, j ∈ 1:y
+    println(i, j)
+    @time A = generate_tensor(peps, (i, j))
+    println(size(A))
 end
 
-@testset "PepsTensor correctly builds PEPS network for Lattice" begin
+i=2
+for j ∈ 1:y-1
+    A = generate_tensor(peps, (i, j), (i, j+1))
+    println(size(A))
+end
+
+for i ∈ 1:x
+    println(i)
+    @time mpo = MPO(peps, i)
+    println(size(mpo))
+end
+
+mpo = MPO(peps, 1)
+for i ∈ 2:x
+    mpo = dot(MPO(peps, i), mpo)
+end
+
+end
 
 L = 9
 instance = "$(@__DIR__)/instances/$(L)_001.txt" 

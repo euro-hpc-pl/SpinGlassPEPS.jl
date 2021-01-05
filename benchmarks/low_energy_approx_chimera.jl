@@ -88,9 +88,8 @@ energy_ref = energy(ground_spins, ig)
 
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
-ses = collect(spectrum_cutoff:-10:1)
-step = 9
-step = 100
+ses = collect(spectrum_cutoff:-10:40)
+step = 10
 n_s = collect(n_sols:-step:1)
 
 delta_e = ones(length(ses), length(n_s))

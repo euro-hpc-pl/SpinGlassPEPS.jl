@@ -135,7 +135,7 @@ Base.:(*)(O::AbstractMPO, ψ::AbstractMPS) = return dot(O, ψ)
 
 function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
     L = length(O1)
-    T = promote_type(eltype(ψ), eltype(ϕ))
+    T = promote_type(eltype(O1), eltype(O2))
     O = MPO(T, L)
 
     for i in 1:L
