@@ -22,24 +22,40 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-x = m
-y = n
-peps = PepsNetwork(x, y, fg, β, :NW)
-println(typeof(peps))
+x, y = m, n
 
-for i ∈ 1:x, j ∈ 1:y
-    A = SpinGlassPEPS._generate_tensor(peps, (i, j)) 
-    B = generate_tensor(peps, (i, j))
-    @test A ≈ B
-end
+#for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
+for origin ∈ (:NW, :SW, :NE, :SE, :SW)
 
-for i ∈ 1:x, j ∈ 1:y
-    @time A = generate_tensor(peps, (i, j))
-end
+    @info "testing peps" origin
+    println(origin)
 
-mpo = MPO(peps, 1)
-for i ∈ 2:x
-    mpo = dot(MPO(peps, i), mpo)
+    peps = PepsNetwork(x, y, fg, β, origin)
+    @test typeof(peps) == PepsNetwork
+
+    for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
+        A = SpinGlassPEPS._generate_tensor(peps, (i, j)) 
+        B = generate_tensor(peps, (i, j))
+        @test A ≈ B
+    end
+
+    @info "contracting MPOs"
+
+    mpo = MPO(peps, 1)
+    for ψ ∈ mpo
+        println(size(ψ))
+        @test size(ψ, 2) == 1
+    end
+
+    for i ∈ 2:peps.i_max
+        mpo *= MPO(peps, i) 
+    end
+
+    for ψ ∈ mpo
+        #println(size(ψ))
+        @test size(ψ, 2) == 1
+        @test size(ψ, 4) == 1
+    end
 end
 
 end

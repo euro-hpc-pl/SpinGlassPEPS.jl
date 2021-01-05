@@ -3,9 +3,9 @@ export left_env, right_env, dot!
 # --------------------------- Conventions ------------------------ 
 #                                                                 
 #      MPS          MPS*         MPO       left env      left env
-#       1            1            1           - 0          1 -
-#   0 - A - 2    0 - B - 2    0 - W - 2      L               R
-#                                 3           - 1          0 -
+#       2            2            2           - 1          2 -
+#   1 - A - 3    1 - B - 3    1 - W - 3      L               R
+#                                 4           - 2          1 -
 # ---------------------------------------------------------------
 #
 
@@ -142,7 +142,9 @@ function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
         W1 = O1[i]
         W2 = O2[i]
         
-        @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]        
+        #@reduce V[(x, a), η, (y, b), σ] := sum(γ) W1[x, γ, y, σ] * W2[a, η, b, γ]      
+        @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]  
+
         O[i] = V
     end
     O

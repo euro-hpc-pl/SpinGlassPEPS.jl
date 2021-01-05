@@ -1,6 +1,5 @@
 export square_lattice
 
-
  function square_lattice(size::NTuple{5, Int})  
     m, um, n, un, t = size  
     new = LinearIndices((1:n, 1:m))

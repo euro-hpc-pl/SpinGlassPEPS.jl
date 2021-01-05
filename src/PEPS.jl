@@ -96,7 +96,7 @@ mutable struct PepsNetwork
         pn.map, pn.i_max, pn.j_max = LinearIndices(m, n, origin)
 
         nbrs = Dict()
-        for i ∈ 1:m, j ∈ 1:n
+        for i ∈ 1:pn.i_max, j ∈ 1:pn.j_max
             push!(nbrs, 
             pn.map[i, j] => (pn.map[i, j-1], pn.map[i-1, j], 
                              pn.map[i, j+1], pn.map[i+1, j]))

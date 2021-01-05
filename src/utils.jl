@@ -69,13 +69,13 @@ function Base.LinearIndices(m::Int, n::Int, origin::Symbol=:NW)
 
     ind = Dict()
     if origin == :NW
-        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (i-1) * n + j) end
+        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (i - 1) * n + j) end
     elseif origin == :WN
-        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (j-1) * n + i) end
+        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (j - 1) * n + i) end
     elseif origin == :NE
         for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (i - 1) * n + (n + 1 - j)) end
     elseif origin == :EN
-        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (j-1) * n + (n + 1 - i)) end
+        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (j - 1) * n + (n + 1 - i)) end
     elseif origin == :SE
         for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (m - i) * n + (n + 1 - j)) end
     elseif origin == :ES
