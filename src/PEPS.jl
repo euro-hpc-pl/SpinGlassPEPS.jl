@@ -24,10 +24,10 @@ end
 
 function generate_tensor(ng::NetworkGraph, v::Int)
     loc_en = get_prop(ng.factor_graph, v, :loc_en)
-    tensor = exp.(-ng.β .* loc_en)
+    loc_exp = exp.(-ng.β .* loc_en)
 
     dim = []
-    @cast tensor[_, i] := tensor[i]
+    @cast tensor[_, i] := loc_exp[i]
 
     for w ∈ ng.nbrs[v]
         if has_edge(ng.factor_graph, w, v)
@@ -41,8 +41,7 @@ function generate_tensor(ng::NetworkGraph, v::Int)
         end
 
         push!(dim, size(pv, 2))
-        @cast tensor[c, γ, σ] := tensor[c, σ] * pv[σ, γ]
-        @cast tensor[(c, γ), σ] := tensor[c, γ, σ]
+        @cast tensor[(c, γ), σ] |= tensor[c, σ] * pv[σ, γ]
     end
 
     reshape(tensor, dim..., :)
