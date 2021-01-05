@@ -154,9 +154,9 @@ end
 
     M = props(g1, 1,2)[:M]
     @test size(M) == (4,16)
-    @test M[:,1] == [4.0, 0.0, 0.0, -4.0]
+    @test M[:,1] == [0.0, -4.0, 4.0, 0.0]
     e = [-8.0, -8.0, -2.0, -2.0, -2.0, -2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, 4.0, 12.0]
-    @test props(g1, 1)[:energy] == -e
+    @test props(g1, 1)[:energy] == e
     @test props(g1, 1,2)[:inds] == [3, 4]
     @test props(g1, 1,3)[:inds] == [2, 4]
 
@@ -181,7 +181,7 @@ end
     @test get_Js(v2, v1, ig) == [2.0, 2.0]
 
     spectrum = brute_force(ig; num_states = 2)
-    @test M[:,1] == [4.0, 0.0, 0.0, -4.0]
+
     #M = M_of_interaction(v2, v1, ig, spectrum.states)
     #@test size(M) == (4, 16)
     #@test M[:,1] == [-4.0, 0.0, 0.0, 4.0]

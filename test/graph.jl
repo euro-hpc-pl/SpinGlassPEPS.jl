@@ -12,13 +12,13 @@ using CSV
    t = 4
 
    L = n * m * (2 * t)
-   instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
+   instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt"
 
    ig = ising_graph(instance, L)
    update_cells!(
-      ig, 
+      ig,
       rule = square_lattice((m, n, 2*t)),
-   ) 
+   )
 
    @time fg = factor_graph(ig)
 
@@ -45,19 +45,12 @@ using CSV
    @test isempty(intersect(cle...))
 end
 
-@testset "Factor graph" begin
-
-   peps = PepsNetwork(m, n, fg, β, :NW)
-   for i ∈ 1:m, j ∈ 1:n
-      @time A = generate_tensor(peps, (i, j))
-  end
-end
 
 @testset "Testing factor graph" begin
 m = 3
 n = 4
 t = 3
-instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt" 
+instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
 
 β = 1
@@ -66,9 +59,9 @@ m = 4
 L = m * n * t
 ig = ising_graph(instance, L)
 update_cells!(
-   ig, 
+   ig,
    rule = square_lattice((m, n, t)),
-) 
+)
 println("sq_lattice ", square_lattice((m, n, t)))
 
 for v ∈ filter_vertices(ig, :active, true)
@@ -79,8 +72,8 @@ for v ∈ filter_vertices(ig, :active, true)
 end
 
 fg = factor_graph(
-    ig, 
-    energy=energy, 
+    ig,
+    energy=energy,
     spectrum=full_spectrum,
 )
 

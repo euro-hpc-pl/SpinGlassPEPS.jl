@@ -9,17 +9,17 @@ t = 3
 
 L = m * n * t
 
-instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt" 
+instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
 ig = ising_graph(instance, L)
 update_cells!(
-   ig, 
+   ig,
    rule = square_lattice((m, n, t)),
-) 
+)
 
 fg = factor_graph(
-    ig, 
-    energy=energy, 
+    ig,
+    energy=energy,
     spectrum=full_spectrum,
 )
 
@@ -54,12 +54,9 @@ end
 end
 
 L = 9
-instance = "$(@__DIR__)/instances/$(L)_001.txt" 
+instance = "$(@__DIR__)/instances/$(L)_001.txt"
 
 ig = ising_graph(instance, L)
-
-
-end
 
 
 end
