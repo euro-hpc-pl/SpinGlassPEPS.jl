@@ -33,15 +33,13 @@ function generate_tensor_general(ng::NetworkGraph, v::Int)
 
         if has_edge(ng.factor_graph, w, v)
             _, _, pv = get_prop(ng.factor_graph, w, v, :decomposition)
-            @eval @cast tensor[s, γ, σ] |= tensor[s, σ] * pv[γ, σ]
-
+            pv = pv'
         elseif has_edge(ng.factor_graph, v, w)
             pv, _, _ = get_prop(ng.factor_graph, v, w, :decomposition)
-            @eval @cast tensor[s, γ, σ] |= tensor[s, σ] * pv[σ, γ]
         else 
             pv = ones(length(loc_en), 1)
-            @eval @cast tensor[s, γ, σ] |= tensor[s, σ] * pv[σ, γ]
         end
+        @eval @cast tensor[s, γ, σ] |= tensor[s, σ] * pv[σ, γ]
     end
     tensor
 end
@@ -63,8 +61,8 @@ function generate_tensor(ng::NetworkGraph, v::Int)
         push!(p_list, i => pv)
     end
 
-    L, R, U, D = p_list[1], p_list[2], p_list[3], p_list[4]
-    @cast tensor[l, u, r, d, σ] |=  L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * ten_loc[σ]
+    L, U, R, D = p_list[1], p_list[2], p_list[3], p_list[4]
+    @cast tensor[l, u, r, d, σ] |= L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * ten_loc[σ]
 
     tensor
 end
