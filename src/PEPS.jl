@@ -68,7 +68,6 @@ function _generate_tensor(ng::NetworkGraph, v::Int)
 
     tensor
 end
-_generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 
 function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     fg = ng.factor_graph
@@ -108,6 +107,7 @@ mutable struct PepsNetwork
 end
 
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m])
+_generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
 function MPO(peps::PepsNetwork, i::Int; type::DataType=Float64)

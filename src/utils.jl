@@ -64,7 +64,7 @@ function LinearAlgebra.svd(A::AbstractMatrix, Dcut::Int, args...)
     return  U * Diagonal(ph), Σ, V * Diagonal(ph)
 end
 
-function Base.LinearIndices(m::Int, n::Int, origin::Symbol)
+function Base.LinearIndices(m::Int, n::Int, origin::Symbol=:NW)
     @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 
     ind = Dict()
