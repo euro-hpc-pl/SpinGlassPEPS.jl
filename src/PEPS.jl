@@ -23,60 +23,60 @@ mutable struct NetworkGraph
 end
 
 function generate_tensor(ng::NetworkGraph, v::Int)
-    loc_en = get_prop(ng.factor_graph, v, :loc_en)
-    loc_exp = exp.(-ng.β .* loc_en)
+    fg = ng.factor_graph
+    loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
 
     dim = []
     @cast tensor[_, i] := loc_exp[i]
 
     for w ∈ ng.nbrs[v]
-        if has_edge(ng.factor_graph, w, v)
-            _, _, pv = get_prop(ng.factor_graph, w, v, :decomposition)
+        if has_edge(fg, w, v)
+            _, _, pv = get_prop(fg, w, v, :split)
             pv = pv'
-
-        elseif has_edge(ng.factor_graph, v, w)
-            pv, _, _ = get_prop(ng.factor_graph, v, w, :decomposition)
+        elseif has_edge(fg, v, w)
+            pv, _, _ = get_prop(fg, v, w, :split)
         else 
-            pv = ones(length(loc_en), 1)
+            pv = ones(length(loc_exp), 1)
         end
 
-        push!(dim, size(pv, 2))
         @cast tensor[(c, γ), σ] |= tensor[c, σ] * pv[σ, γ]
+        push!(dim, size(pv, 2))
     end
 
     reshape(tensor, dim..., :)
 end
 
 function _generate_tensor(ng::NetworkGraph, v::Int)
-    loc_en = get_prop(ng.factor_graph, v, :loc_en)
-    ten_loc = exp.(-ng.β .* loc_en)
+    fg = ng.factor_graph
+    loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
 
-    p_list = Dict()
+    projs = Dict()
     for (i, w) ∈ enumerate(ng.nbrs[v])    
-        if has_edge(ng.factor_graph, w, v)
-            _, _, pv = get_prop(ng.factor_graph, w, v, :decomposition)
+        if has_edge(fg, w, v)
+            _, _, pv = get_prop(fg, w, v, :split)
             pv = pv'
-        elseif has_edge(ng.factor_graph, v, w)
-            pv, _, _ = get_prop(ng.factor_graph, v, w, :decomposition)
+        elseif has_edge(fg, v, w)
+            pv, _, _ = get_prop(fg, v, w, :split)
         else 
-            pv = ones(length(loc_en), 1)
+            pv = ones(length(loc_exp), 1)
         end
-        push!(p_list, i => pv)
+        push!(projs, i => pv)
     end
 
-    L, U, R, D = p_list[1], p_list[2], p_list[3], p_list[4]
-    @cast tensor[l, u, r, d, σ] |= L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * ten_loc[σ]
+    L, U, R, D = projs[1], projs[2], projs[3], projs[4]
+    @cast tensor[l, u, r, d, σ] |= L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * loc_exp[σ]
 
     tensor
 end
 _generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 
 function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
-    if has_edge(ng.factor_graph, w, v)
-        _, e, _ = get_prop(ng.factor_graph, w, v, :decomposition)
+    fg = ng.factor_graph
+    if has_edge(fg, w, v)
+        _, e, _ = get_prop(fg, w, v, :split)
         tensor = exp.(-ng.β .* e') 
-    elseif has_edge(ng.factor_graph, v, w)
-        _, e, _ = get_prop(ng.factor_graph, v, w, :decomposition)
+    elseif has_edge(fg, v, w)
+        _, e, _ = get_prop(fg, v, w, :split)
         tensor = exp.(-ng.β .* e) 
     else 
         tensor = ones(1, 1)
