@@ -1,6 +1,6 @@
 export NetworkGraph, PepsNetwork
 export generate_tensor, MPO
-
+                              
 mutable struct NetworkGraph
     factor_graph::MetaDiGraph
     nbrs::Dict
@@ -22,29 +22,33 @@ mutable struct NetworkGraph
     end
 end
 
-# This still does not work (mixing @eval and @cast gives unexpected results)
-function generate_tensor_general(ng::NetworkGraph, v::Int)
+function generate_tensor(ng::NetworkGraph, v::Int)
     loc_en = get_prop(ng.factor_graph, v, :loc_en)
     tensor = exp.(-ng.β .* loc_en)
 
-    for w ∈ ng.nbrs[v]
-        n = max(1, ndims(tensor)-1)
-        s = :(@ntuple $n i)
+    dim = []
+    @cast tensor[_, i] := tensor[i]
 
+    for w ∈ ng.nbrs[v]
         if has_edge(ng.factor_graph, w, v)
             _, _, pv = get_prop(ng.factor_graph, w, v, :decomposition)
             pv = pv'
+
         elseif has_edge(ng.factor_graph, v, w)
             pv, _, _ = get_prop(ng.factor_graph, v, w, :decomposition)
         else 
             pv = ones(length(loc_en), 1)
         end
-        @eval @cast tensor[s, γ, σ] |= tensor[s, σ] * pv[σ, γ]
+
+        push!(dim, size(pv, 2))
+        @cast tensor[c, γ, σ] := tensor[c, σ] * pv[σ, γ]
+        @cast tensor[(c, γ), σ] := tensor[c, γ, σ]
     end
-    tensor
+
+    reshape(tensor, dim..., :)
 end
 
-function generate_tensor(ng::NetworkGraph, v::Int)
+function _generate_tensor(ng::NetworkGraph, v::Int)
     loc_en = get_prop(ng.factor_graph, v, :loc_en)
     ten_loc = exp.(-ng.β .* loc_en)
 
@@ -66,6 +70,7 @@ function generate_tensor(ng::NetworkGraph, v::Int)
 
     tensor
 end
+_generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 
 function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     if has_edge(ng.factor_graph, w, v)

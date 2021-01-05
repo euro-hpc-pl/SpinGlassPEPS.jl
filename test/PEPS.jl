@@ -1,4 +1,3 @@
-
 @testset "PepsTensor correctly builds PEPS network" begin
 
 m = 3
@@ -28,22 +27,14 @@ y = n
 peps = PepsNetwork(x, y, fg, β, :NW)
 println(typeof(peps))
 
-for i ∈ 2:2, j ∈ 1:y
-    println(i, j)
+for i ∈ 1:x, j ∈ 1:y
+    A = SpinGlassPEPS._generate_tensor(peps, (i, j)) 
+    B = generate_tensor(peps, (i, j))
+    @test A ≈ B
+end
+
+for i ∈ 1:x, j ∈ 1:y
     @time A = generate_tensor(peps, (i, j))
-    println(size(A))
-end
-
-i=2
-for j ∈ 1:y-1
-    A = generate_tensor(peps, (i, j), (i, j+1))
-    println(size(A))
-end
-
-for i ∈ 1:x
-    println(i)
-    @time mpo = MPO(peps, i)
-    println(size(mpo))
 end
 
 mpo = MPO(peps, 1)
