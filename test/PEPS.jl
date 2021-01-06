@@ -25,7 +25,9 @@ fg = factor_graph(
 x, y = m, n
 
 #for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
-for origin ∈ (:NW, :SW, :NE, :SE, :SW)
+
+for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
+#for origin ∈ (:WN, :EN, :ES, :WS)  # NO
 
     @info "testing peps" origin
     println(origin)
@@ -41,21 +43,18 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW)
 
     @info "contracting MPOs"
 
-    mpo = MPO(peps, 1)
-    for ψ ∈ mpo
-        println(size(ψ))
-        @test size(ψ, 2) == 1
-    end
+    ψ = MPO(peps, 1)
+    for A ∈ ψ @test size(A, 2) == 1 end
 
     for i ∈ 2:peps.i_max
-        mpo *= MPO(peps, i) 
+        W = MPO(peps, i) 
+        ψ = ψ * W
+        for A ∈ ψ println(size(A)) end
+        println("===================")
+        for A ∈ ψ @test size(A, 2) == 1 end
     end
 
-    for ψ ∈ mpo
-        #println(size(ψ))
-        @test size(ψ, 2) == 1
-        @test size(ψ, 4) == 1
-    end
+    for A ∈ ψ @test size(A, 4) == 1 end
 end
 
 end

@@ -144,7 +144,7 @@ function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
         
         #@reduce V[(x, a), η, (y, b), σ] := sum(γ) W1[x, γ, y, σ] * W2[a, η, b, γ]      
         @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]  
-
+                                        
         O[i] = V
     end
     O
