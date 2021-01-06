@@ -41,7 +41,7 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
         @test A ≈ B
     end
 
-    @info "contracting MPOs"
+    @info "contracting MPOs (up --> down)"
 
     ψ = MPO(peps, 1)
     for A ∈ ψ @test size(A, 2) == 1 end
@@ -49,9 +49,20 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
     for i ∈ 2:peps.i_max
         W = MPO(peps, i) 
         ψ = ψ * W
-        for A ∈ ψ println(size(A)) end
-        println("===================")
         for A ∈ ψ @test size(A, 2) == 1 end
+    end
+
+    for A ∈ ψ @test size(A, 4) == 1 end
+
+    @info "contracting MPOs (down --> up)"
+
+    ψ = MPO(peps, peps.i_max)
+    for A ∈ ψ @test size(A, 4) == 1 end
+
+    for i ∈ peps.i_max:2
+        W = MPO(peps, i) 
+        ψ = W * ψ 
+        for A ∈ ψ @test size(A, 4) == 1 end
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end
