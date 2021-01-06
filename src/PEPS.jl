@@ -128,3 +128,26 @@ function MPO(peps::PepsNetwork, i::Int; type::DataType=Float64)
     end
     ψ
 end
+
+function MPO(peps::PepsNetwork, i::Int, k::Int; type::DataType=Float64)
+    n = peps.j_max
+
+    ψ = MPO(type, n)
+    fg = peps.network_graph.factor_graph
+
+    for j ∈ 1:n
+        v, w = peps.map[i, j], peps.map[k, j]
+        
+        if has_edge(fg, v, w)
+            _, en, _ = get_prop(fg, v, w, :split)
+        elseif has_edge(fg, w, v)
+            _, en, _ = get_prop(fg, w, v, :split)
+        else
+            en = ones(1, 1)
+        end
+
+        @cast A[_, σ, _, η] := en[σ, η]
+        ψ[j] = A
+    end
+    ψ
+end
