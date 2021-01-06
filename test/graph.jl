@@ -13,6 +13,7 @@ using CSV
    L = n * m * (2 * t)
    instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
 
+
    ig = ising_graph(instance, L)
    update_cells!(
       ig, 

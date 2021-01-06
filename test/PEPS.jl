@@ -22,6 +22,14 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
+
+for e in edges(fg)
+    pl, en, pr = get_prop(fg, e, :split)
+    println("edge ", e)
+    println(size(pl), "   ", size(en),  "   ", size(pr))
+    #display(en)
+end
+
 x, y = m, n
 
 #for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
@@ -59,7 +67,7 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
     ψ = MPO(peps, peps.i_max)
     for A ∈ ψ @test size(A, 4) == 1 end
 
-    for i ∈ peps.i_max:2
+    for i ∈ peps.i_max-1:1
         W = MPO(peps, i) 
         ψ = W * ψ 
         for A ∈ ψ @test size(A, 4) == 1 end
