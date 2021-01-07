@@ -45,7 +45,7 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
     @test typeof(peps) == PepsNetwork
 
     for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
-        A = SpinGlassPEPS._generate_tensor(peps, (i, j)) 
+        A = SpinGlassPEPS._generate_tensor(peps, (i, j))
         B = generate_tensor(peps, (i, j))
         @test A ≈ B
     end
@@ -56,8 +56,8 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
     for A ∈ ψ @test size(A, 2) == 1 end
 
     for i ∈ 2:peps.i_max
-        W = MPO(peps, i) 
-        M = MPO(peps, i-1, i) 
+        W = MPO(peps, i)
+        M = MPO(peps, i-1, i)
         ψ = (ψ * M) * W
         for A ∈ ψ @test size(A, 2) == 1 end
     end
@@ -70,21 +70,13 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
     for A ∈ ψ @test size(A, 4) == 1 end
 
     for i ∈ peps.i_max-1:1
-        W = MPO(peps, i) 
-        M = eMPO(peps, i, i+1) 
-        ψ = W * (M * ψ) 
+        W = MPO(peps, i)
+        M = eMPO(peps, i, i+1)
+        ψ = W * (M * ψ)
         for A ∈ ψ @test size(A, 4) == 1 end
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end
 end
-
-end
-
-L = 9
-instance = "$(@__DIR__)/instances/$(L)_001.txt"
-
-ig = ising_graph(instance, L)
-
 
 end

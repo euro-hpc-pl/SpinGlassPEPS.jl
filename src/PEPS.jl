@@ -1,6 +1,6 @@
 export NetworkGraph, PepsNetwork
 export generate_tensor, MPO
-                              
+
 mutable struct NetworkGraph
     factor_graph::MetaDiGraph
     nbrs::Dict
@@ -25,19 +25,27 @@ end
 function generate_tensor(ng::NetworkGraph, v::Int)
     fg = ng.factor_graph
     loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
+
     dim = []
     @cast tensor[_, i] := loc_exp[i]
+
     for w ∈ ng.nbrs[v]
         if has_edge(fg, w, v)
             _, _, pv = get_prop(fg, w, v, :split)
+            pv = pv'
         elseif has_edge(fg, v, w)
             pv, _, _ = get_prop(fg, v, w, :split)
+        else
             pv = ones(length(loc_exp), 1)
+        end
 
         @cast tensor[(c, γ), σ] |= tensor[c, σ] * pv[σ, γ]
         push!(dim, size(pv, 2))
+    end
 
     reshape(tensor, dim..., :)
+end
+
 function _generate_tensor(ng::NetworkGraph, v::Int)
     fg = ng.factor_graph
     loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
@@ -129,7 +137,7 @@ function MPO(peps::PepsNetwork, i::Int, k::Int; type::DataType=Float64)
 
     for j ∈ 1:n
         v, w = peps.map[i, j], peps.map[k, j]
-        
+
         if has_edge(fg, v, w)
             _, en, _ = get_prop(fg, v, w, :split)
         elseif has_edge(fg, w, v)
