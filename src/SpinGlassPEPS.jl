@@ -7,6 +7,7 @@ module SpinGlassPEPS
     using MetaGraphs
     using CSV
     using Infiltrator
+    using Logging
 
     using DocStringExtensions
     const product = Iterators.product

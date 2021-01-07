@@ -52,7 +52,7 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
         @test A ≈ B
     end
 
-    @info "contracting MPOs (up --> down)"
+    @info "contracting MPOs (up -> down)"
 
     ψ = MPO(peps, 1)
     #println("bd ", bond_dimension(ψ))
@@ -69,8 +69,7 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
 
     for A ∈ ψ @test size(A, 4) == 1 end
 
-
-    @info "contracting MPOs (down --> up)"
+    @info "contracting MPOs (down -> up)"
 
     ψ = MPO(peps, peps.i_max)
     #println("bd ", bond_dimension(ψ))
