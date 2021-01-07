@@ -80,10 +80,10 @@ if true
     n = 2
     t = 1
 
-    update_cells!(
-       g_ising,
-       rule = square_lattice((m, n, t)),
-    )
+    #update_cells!(
+     #  g_ising,
+     #  rule = square_lattice((m, 1, n, 1, t)),
+    #)
 
     fg = factor_graph(
         g_ising,
@@ -113,16 +113,25 @@ if true
     t2 = compute_single_tensor(g1, 2, β, sum_over_last = true)
     t3 = compute_single_tensor(g1, 3, β, sum_over_last = true)
 
+    t12 = compute_single_tensor(g1, 2, β, sum_over_last = false)
+    t13 = compute_single_tensor(g1, 3, β, sum_over_last = false)
+
     B = generate_tensor(peps, (1,1))
     println(B == t11)
 
 
-    B1 = generate_tensor(peps, (1,1))
+    B1 = generate_tensor(peps, (1,2))
     println(B1)
+    println(t12)
     println("......")
-    println(t2)
+
+    B1 = generate_tensor(peps, (2,1))
+    println(B1)
+    println(t13)
+    
     println("......")
-    println(t3)
+    B1 = generate_tensor(peps, (2,2))
+    println(B1)
 
     @test size(t1) == (1, 1, 2, 2)
     @test t1[1,1,:,:] ≈ [exp(1*β) 0.; 0. exp(-1*β)]
