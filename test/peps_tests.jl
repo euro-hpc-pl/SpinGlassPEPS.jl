@@ -69,12 +69,35 @@ end
 Mq = ones(4,4)
 fullM2grid!(Mq, (2,2))
 
-if false
+if true
 @testset "tensor construction" begin
 
 
     g = M2graph(Mq)
+
+    g_ising = M2graph(Mq)
+    m = 2
+    n = 2
+    t = 1
+
+    update_cells!(
+       g_ising,
+       rule = square_lattice((m, n, t)),
+    )
+
+    fg = factor_graph(
+        g_ising,
+        energy=energy,
+        spectrum=full_spectrum,
+    )
+
+    origin = :NW
     β = 2.
+    x, y = m, n
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+
+
     #smaller tensors
     g1 = graph4peps(g, (1,1))
 
@@ -85,19 +108,30 @@ if false
     @test M_left == [0.0 0.0]
     @test M_up == [0.0 0.0]
 
+    t11 = compute_single_tensor(g1, 1, β, sum_over_last = false)
     t1 = compute_single_tensor(g1, 1, β, sum_over_last = true)
     t2 = compute_single_tensor(g1, 2, β, sum_over_last = true)
     t3 = compute_single_tensor(g1, 3, β, sum_over_last = true)
 
+    B = generate_tensor(peps, (1,1))
+    println(B == t11)
+
+
+    B1 = generate_tensor(peps, (1,1))
+    println(B1)
+    println("......")
+    println(t2)
+    println("......")
+    println(t3)
 
     @test size(t1) == (1, 1, 2, 2)
     @test t1[1,1,:,:] ≈ [exp(1*β) 0.; 0. exp(-1*β)]
 
     @test size(t2) == (2,1,1,2)
-    @test t2[:,1,1,:] ≈ [exp(3*β) exp(-3*β); exp(-1*β) exp(1*β)]
+    @test t2[:,1,1,:] ≈ [exp(-1*β) exp(1*β); exp(3*β) exp(-3*β)]
 
     @test size(t3) == (1,2,2,1)
-    @test t3[1,:,:,1] ≈ [exp(3*β) exp(-3*β); exp(-1*β) exp(1*β)]
+    @test t3[1,:,:,1] ≈ [exp(-1*β) exp(1*β); exp(3*β) exp(-3*β)]
 
     t = compute_single_tensor(g1, 1, β)
 
@@ -111,7 +145,7 @@ if false
     gg = graph4peps(g, (2,1))
     T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
 
-    p = [1,4,2,3]
+    p = [2,3,1,4]
     @test vec(T1) ≈ vec(T2)[p]
 end
 
