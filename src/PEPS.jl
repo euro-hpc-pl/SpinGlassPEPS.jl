@@ -1,6 +1,6 @@
 export NetworkGraph, PepsNetwork
 export generate_tensor, MPO
-
+                              
 mutable struct NetworkGraph
     factor_graph::MetaDiGraph
     nbrs::Dict
@@ -23,34 +23,51 @@ mutable struct NetworkGraph
 end
 
 function generate_tensor(ng::NetworkGraph, v::Int)
-    loc_en = get_prop(ng.factor_graph, v, :loc_en)
-    ten_loc = exp.(-ng.β .* loc_en)
+    fg = ng.factor_graph
+    loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
+    dim = []
+    @cast tensor[_, i] := loc_exp[i]
+    for w ∈ ng.nbrs[v]
+        if has_edge(fg, w, v)
+            _, _, pv = get_prop(fg, w, v, :split)
+        elseif has_edge(fg, v, w)
+            pv, _, _ = get_prop(fg, v, w, :split)
+            pv = ones(length(loc_exp), 1)
 
-    p_list = Dict()
+        @cast tensor[(c, γ), σ] |= tensor[c, σ] * pv[σ, γ]
+        push!(dim, size(pv, 2))
+
+    reshape(tensor, dim..., :)
+function _generate_tensor(ng::NetworkGraph, v::Int)
+    fg = ng.factor_graph
+    loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
+
+    projs = Dict()
     for (i, w) ∈ enumerate(ng.nbrs[v])
-        if has_edge(ng.factor_graph, w, v)
-            _, _, pv = get_prop(ng.factor_graph, w, v, :decomposition)
+        if has_edge(fg, w, v)
+            _, _, pv = get_prop(fg, w, v, :split)
             pv = pv'
-        elseif has_edge(ng.factor_graph, v, w)
-            pv, _, _ = get_prop(ng.factor_graph, v, w, :decomposition)
+        elseif has_edge(fg, v, w)
+            pv, _, _ = get_prop(fg, v, w, :split)
         else
-            pv = ones(length(loc_en), 1)
+            pv = ones(length(loc_exp), 1)
         end
-        push!(p_list, i => pv)
+        push!(projs, i => pv)
     end
 
-    L, U, R, D = p_list[1], p_list[2], p_list[3], p_list[4]
-    @cast tensor[l, u, r, d, σ] |= L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * ten_loc[σ]
+    L, U, R, D = projs[1], projs[2], projs[3], projs[4]
+    @cast tensor[l, u, r, d, σ] |= L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * loc_exp[σ]
 
     tensor
 end
 
 function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
-    if has_edge(ng.factor_graph, w, v)
-        _, e, _ = get_prop(ng.factor_graph, w, v, :decomposition)
+    fg = ng.factor_graph
+    if has_edge(fg, w, v)
+        _, e, _ = get_prop(fg, w, v, :split)
         tensor = exp.(-ng.β .* e')
-    elseif has_edge(ng.factor_graph, v, w)
-        _, e, _ = get_prop(ng.factor_graph, v, w, :decomposition)
+    elseif has_edge(fg, v, w)
+        _, e, _ = get_prop(fg, v, w, :split)
         tensor = exp.(-ng.β .* e)
     else
         tensor = ones(1, 1)
@@ -71,7 +88,7 @@ mutable struct PepsNetwork
         pn.map, pn.i_max, pn.j_max = LinearIndices(m, n, origin)
 
         nbrs = Dict()
-        for i ∈ 1:m, j ∈ 1:n
+        for i ∈ 1:pn.i_max, j ∈ 1:pn.j_max
             push!(nbrs,
             pn.map[i, j] => (pn.map[i, j-1], pn.map[i-1, j],
                              pn.map[i, j+1], pn.map[i+1, j]))
@@ -82,6 +99,7 @@ mutable struct PepsNetwork
 end
 
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m])
+_generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
 function MPO(peps::PepsNetwork, i::Int; type::DataType=Float64)
@@ -99,6 +117,29 @@ function MPO(peps::PepsNetwork, i::Int; type::DataType=Float64)
         A = ψ[j]
         @tensor B[l, u, r, d] := A[l, u, r̃, d] * ten[r̃, r]
         ψ[j] = B
+    end
+    ψ
+end
+
+function MPO(peps::PepsNetwork, i::Int, k::Int; type::DataType=Float64)
+    n = peps.j_max
+
+    ψ = MPO(type, n)
+    fg = peps.network_graph.factor_graph
+
+    for j ∈ 1:n
+        v, w = peps.map[i, j], peps.map[k, j]
+        
+        if has_edge(fg, v, w)
+            _, en, _ = get_prop(fg, v, w, :split)
+        elseif has_edge(fg, w, v)
+            _, en, _ = get_prop(fg, w, v, :split)
+        else
+            en = ones(1, 1)
+        end
+
+        @cast A[_, σ, _, η] := en[σ, η]
+        ψ[j] = A
     end
     ψ
 end

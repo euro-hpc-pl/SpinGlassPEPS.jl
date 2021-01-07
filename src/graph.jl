@@ -118,7 +118,14 @@ function factor_graph(
 
             pl, en = rank_reveal(energy(fg, edg), :PE)
             en, pr = rank_reveal(en, :EP)
-            set_prop!(fg, e, :decomposition, (pl, en, pr))
+            #=
+            display(energy(fg, edg))
+            display(pl)
+            display(en)
+            display(pr)
+            println("--------------------------")
+            =#
+            set_prop!(fg, e, :split, (pl, en, pr))
         end
     end
     fg
