@@ -22,19 +22,16 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-#=
 for e in edges(fg)
     pl, en, pr = get_prop(fg, e, :split)
-    println("edge ", e)
+    println(e)
     println(size(pl), "   ", size(en),  "   ", size(pr))
-    #display(en)
+    println("------------------------")
 end
-=#
 
 x, y = m, n
 
 #for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
-
 for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
 #for origin ∈ (:WN, :EN, :ES, :WS)  # NO
 
@@ -50,7 +47,7 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
         @test A ≈ B
     end
 
-    @info "contracting MPOs (up --> down)"
+    @info "contracting MPOs (up -> down)"
 
     ψ = MPO(peps, 1)
     for A ∈ ψ @test size(A, 2) == 1 end
@@ -64,14 +61,14 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
 
     for A ∈ ψ @test size(A, 4) == 1 end
 
-    @info "contracting MPOs (down --> up)"
+    @info "contracting MPOs (down -> up)"
 
     ψ = MPO(peps, peps.i_max)
     for A ∈ ψ @test size(A, 4) == 1 end
 
     for i ∈ peps.i_max-1:1
         W = MPO(peps, i) 
-        M = eMPO(peps, i, i+1) 
+        M = MPO(peps, i, i+1) 
         ψ = W * (M * ψ) 
         for A ∈ ψ @test size(A, 4) == 1 end
     end
