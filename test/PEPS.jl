@@ -22,20 +22,22 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-#=
-for e in edges(fg)
+bd = [2, 2, 4, 4, 2, 2, 8]
+
+for (i, e) in enumerate(edges(fg))
     pl, en, pr = get_prop(fg, e, :split)
-    println("edge ", e)
+    println(e)
     println(size(pl), "   ", size(en),  "   ", size(pr))
     #display(en)
+    #@test min(size(en)[1], size(en)[2]) == bd[i]
+    println("------------------------")
 end
-=#
 
 x, y = m, n
 
 #for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 
-for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
+for origin ∈ (:NW, :SW, :NE, :SE) # OK
 #for origin ∈ (:WN, :EN, :ES, :WS)  # NO
 
     @info "testing peps" origin
@@ -50,9 +52,11 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
         @test A ≈ B
     end
 
-    @info "contracting MPOs (up --> down)"
+    @info "contracting MPOs (up -> down)"
 
     ψ = MPO(peps, 1)
+    #println("bd ", bond_dimension(ψ))
+    
     for A ∈ ψ @test size(A, 2) == 1 end
 
     for i ∈ 2:peps.i_max
@@ -60,20 +64,24 @@ for origin ∈ (:NW, :SW, :NE, :SE, :SW) # OK
         M = MPO(peps, i-1, i)
         ψ = (ψ * M) * W
         for A ∈ ψ @test size(A, 2) == 1 end
+        #println("bd ", bond_dimension(ψ))
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end
 
-    @info "contracting MPOs (down --> up)"
+    @info "contracting MPOs (down -> up)"
 
     ψ = MPO(peps, peps.i_max)
+    #println("bd ", bond_dimension(ψ))
+
     for A ∈ ψ @test size(A, 4) == 1 end
 
     for i ∈ peps.i_max-1:1
         W = MPO(peps, i)
-        M = eMPO(peps, i, i+1)
+        M = MPO(peps, i, i+1) 
         ψ = W * (M * ψ)
         for A ∈ ψ @test size(A, 4) == 1 end
+        #println("bd ", bond_dimension(ψ))
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end

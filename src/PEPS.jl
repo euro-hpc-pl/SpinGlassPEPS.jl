@@ -110,13 +110,17 @@ generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_
 _generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
-function MPO(peps::PepsNetwork, i::Int; type::DataType=Float64)
+function MPO(peps::PepsNetwork, i::Int, trace::Bool=true; type::DataType=Float64)
     n = peps.j_max
     ψ = MPO(type, n)
 
     for j ∈ 1:n
         A = generate_tensor(peps, (i, j))
-        @reduce B[l, u, r ,d] |= sum(σ) A[l, u, r, d, σ]
+        if trace
+            @reduce B[l, u, r ,d] |= sum(σ) A[l, u, r, d, σ]
+        else
+            B = A
+        end
         ψ[j] = B
     end
 
