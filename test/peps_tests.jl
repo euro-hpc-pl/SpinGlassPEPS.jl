@@ -120,18 +120,29 @@ if true
     println(B == t11)
 
 
-    B1 = generate_tensor(peps, (1,2))
-    println(B1)
-    println(t12)
-    println("......")
+    update_cells!(
+       g_ising,
+       rule = square_lattice((m, 2, n, 2, 4)),
+    )
 
-    B1 = generate_tensor(peps, (2,1))
-    println(B1)
-    println(t13)
-    
-    println("......")
-    B1 = generate_tensor(peps, (2,2))
-    println(B1)
+    fg = factor_graph(
+        g_ising,
+        energy=energy,
+        spectrum=full_spectrum,
+    )
+
+    origin = :NW
+    β = 2.
+    x, y = m, n
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+    B = generate_tensor(peps, (1,1))
+
+    gg = graph4peps(g, (2,2))
+    T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
+
+    @test sum(B)== T1[1]
+
 
     @test size(t1) == (1, 1, 2, 2)
     @test t1[1,1,:,:] ≈ [exp(1*β) 0.; 0. exp(-1*β)]
@@ -191,7 +202,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     ps =[sortperm(props(gg, i)[:spectrum]) for i in 1:9]
 
     ### forms a peps network
-    β = 3.
+    β = 2.
     M = form_peps(gg, β)
     cc = contract3x3by_ncon(M)
     # testing peps creation
@@ -208,6 +219,62 @@ Mq[8,9] = Mq[9,8] = -0.05
     v = [1 for _ in 1:9]
     ii = [p[2] for p in ps]
     @test exp.(-β*energy(v, g)) ≈ cc[ii...]
+
+    m, n = 3, 3
+    fg = factor_graph(
+        g,
+        energy=energy,
+        spectrum=full_spectrum,
+    )
+
+    origin = :NW
+    x, y = m, n
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+    B = generate_tensor(peps, (1,1))
+
+    mpo1 = MPO(peps, 1, true)
+
+    println(size(mpo1[1]))
+    println(size(mpo1[2]))
+    println(size(mpo1[3]))
+
+    MPO(peps, 2, false)
+
+    mpo2 = MPO(peps, 2, true)
+
+    mpo12 = mpo1*mpo2
+
+    mpsu = MPS([permutedims(e[:,1,:,:], [1,3,2]) for e in mpo12])
+
+    mpo3 = MPO(peps, 3, true)
+
+    mpsl = MPS([e[:,:,:,1] for e in mpo3])
+
+    println(right_env(mpsu, mpsl)[end] ≈ [1.])
+    g1 = copy(g)
+
+    update_cells!(
+       g1,
+       rule = square_lattice((m, 3, n, 3, 9)),
+    )
+
+    fg = factor_graph(
+        g1,
+        energy=energy,
+        spectrum=full_spectrum,
+    )
+
+    origin = :NW
+    x, y = m, n
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+    B = generate_tensor(peps, (1,1))
+    println(size(B))
+    println(size(vec(cc)))
+    println(sum(cc) ≈ sum(B))
+
+
 end
 
 # TODO this will be the ilustative step by step how does the probability computation work
@@ -226,6 +293,18 @@ end
     g = M2graph(Mq, -1)
     gg = graph4peps(g, (1,1))
 
+    fg = factor_graph(
+        g,
+        energy=energy,
+        spectrum=full_spectrum,
+    )
+
+    origin = :NW
+
+    peps = PepsNetwork(3, 3, fg, β, origin)
+    mpo2 = MPO(peps, 2, true)
+    mpo3 = MPO(peps, 3, true)
+
     M = form_peps(gg, β)
 
     #TODO make something with dimensionality
@@ -240,10 +319,22 @@ end
     row = 1
     lower_mps = make_lower_mps(gg, row+1, β, 0, 0.)
 
+    l_mps = MPS([e[:,:,:,1] for e in mpo2*mpo3])
+
+    AA = MPO(peps, 1, false)
+
+    println(size(A[1]))
+    println(size(AA[1]))
+
     # marginal prob
     sol = Partial_sol{Float64}(Int[], 0.)
     j = 1
     objective = conditional_probabs(gg, sol, j, lower_mps, A)
+    println(objective)
+
+    objective1 = conditional_probabs(gg, sol, j, l_mps, AA)
+    println(objective1)
+
     sol = Partial_sol{Float64}([1], objective[1])
 
     p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
