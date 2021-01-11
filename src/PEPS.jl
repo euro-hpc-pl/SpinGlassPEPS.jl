@@ -110,18 +110,24 @@ generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_
 _generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
-function MPO(peps::PepsNetwork, i::Int, trace::Bool=true; type::DataType=Float64)
+function MPO(::Type{T}, ψ::PEPSRow) where {T <: Number}
     n = peps.j_max
-    ψ = MPO(type, n)
+    ϕ = MPO(T, n)
+    for i=1:n
+        A = ψ[i]
+        @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
+        ϕ[i] = B
+    end
+    ϕ
+end
+MPO(ψ::PEPSRow) = MPO(Float64, ψ)
+
+function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
+    n = peps.j_max
+    ψ = PEPSRow(T, n)
     
     for j ∈ 1:n
-        A = generate_tensor(peps, (i, j))
-        if trace
-            @reduce B[l, u, r ,d] |= sum(σ) A[l, u, r, d, σ]
-        else
-            B = A
-        end
-        ψ[j] = B
+        ψ[j] = generate_tensor(peps, (i, j))
     end
 
     for j ∈ 1:n-1
@@ -132,11 +138,12 @@ function MPO(peps::PepsNetwork, i::Int, trace::Bool=true; type::DataType=Float64
     end
     ψ
 end
+PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
-function MPO(peps::PepsNetwork, i::Int, k::Int; type::DataType=Float64)
+function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
     n = peps.j_max
 
-    ψ = MPO(type, n)
+    ψ = MPO(T, n)
     fg = peps.network_graph.factor_graph
 
     for j ∈ 1:n
@@ -155,3 +162,4 @@ function MPO(peps::PepsNetwork, i::Int, k::Int; type::DataType=Float64)
     end
     ψ
 end
+MPO(peps::PepsNetwork, i::Int, k::Int) = MPO(Float64, peps, i, k)
