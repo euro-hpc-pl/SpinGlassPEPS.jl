@@ -133,7 +133,7 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     for j ∈ 1:n-1
         ten = generate_tensor(peps, (i, j), (i, j+1))
         A = ψ[j]
-        @tensor B[l, u, r, d] := A[l, u, r̃, d] * ten[r̃, r]
+        @tensor B[l, u, r, d, σ] := A[l, u, r̃, d, σ] * ten[r̃, r]
         ψ[j] = B
     end
     ψ
