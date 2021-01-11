@@ -54,13 +54,13 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
 
     @info "contracting MPOs (up -> down)"
 
-    ψ = PEPSRow(peps, 1)
+    ψ = MPO(PEPSRow(peps, 1))
     #println("bd ", bond_dimension(ψ))
     
     for A ∈ ψ @test size(A, 2) == 1 end
 
     for i ∈ 2:peps.i_max
-        W = MPO(PEPSRow(eps, i))
+        W = MPO(PEPSRow(peps, i))
         M = MPO(peps, i-1, i) 
         ψ = (ψ * M) * W
         for A ∈ ψ @test size(A, 2) == 1 end
@@ -71,13 +71,13 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
 
     @info "contracting MPOs (down -> up)"
 
-    ψ = MPO(peps, peps.i_max)
+    ψ = MPO(PEPSRow(peps, peps.i_max))
     #println("bd ", bond_dimension(ψ))
 
     for A ∈ ψ @test size(A, 4) == 1 end
 
     for i ∈ peps.i_max-1:1
-        W = MPO(peps, i) 
+        W = MPO(PEPSRow(peps, i)) 
         M = MPO(peps, i, i+1) 
         ψ = W * (M * ψ) 
         for A ∈ ψ @test size(A, 4) == 1 end
