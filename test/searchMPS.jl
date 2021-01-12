@@ -35,11 +35,11 @@ states = all_states(get_prop(ig, :rank))
     rψ2 = MPS(ig, control, type2)
     rψ3 = MPS(ig, control)
     overlap12 = dot(rψ1, rψ2)
-    @test overlap12 ≈ 0.9999998
+    @test abs(1 - overlap12) < ϵ
     overlap13 = dot(rψ1, rψ3)
-    @test overlap13 ≈ 1 
+    @test abs(1 - overlap13) < ϵ
     overlap23 = dot(rψ2, rψ3)
-    @test overlap23 ≈ 0.9999998
+    @test abs(1 - overlap23) < ϵ
 
     for max_states ∈ [1, N, 2*N, N^2]
         @info "Testing spectrum_new"
