@@ -105,7 +105,7 @@ function Base.LinearIndices(m::Int, n::Int, origin::Symbol=:NW)
     ind, i_max, j_max
 end
 
-@generated function _unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}
+@generated function unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}
     quote
         1 <= dim <= $N || return copy(A)
         hashes = zeros(UInt, axes(A, dim))
@@ -171,6 +171,6 @@ end
             end
         end
 
-        (@nref $N A d->d == dim ? sort!(uniquerows) : (axes(A, d)))
+        (@nref $N A d->d == dim ? sort!(uniquerows) : (axes(A, d))), uniquerow
     end
 end
