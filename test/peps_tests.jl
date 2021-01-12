@@ -4,6 +4,7 @@ import SpinGlassPEPS: compute_single_tensor, conditional_probabs, get_parameters
 import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
+import SpinGlassPEPS: indices_on_boundary
 Random.seed!(1234)
 
 if true
@@ -14,15 +15,16 @@ if true
         @test ps.spins == []
         @test ps.objective == 1.
 
-        ps1 = Partial_sol{Float64}([1,1], 1.)
+        ps1 = Partial_sol{Float64}([1,1], 1., [1])
         @test ps1.spins == [1,1]
         @test ps1.objective == 1.
 
-        ps2 = update_partial_solution(ps1, 2, 1.)
+        ps2 = update_partial_solution(ps1, 2, 1., [2])
         @test ps2.spins == [1,1,2]
         @test ps2.objective == 1.
+        @test ps2.boundary == [1.]
 
-        ps3 = Partial_sol{Float64}([1,1,1], .2)
+        ps3 = Partial_sol{Float64}([1,1,1], .2, [1,2])
 
         b = select_best_solutions([ps3, ps2], 1)
         @test b[1].spins == [1, 1, 2]
@@ -31,8 +33,8 @@ if true
 
     @testset "functions of graph" begin
 
-        a =  Partial_sol{Float64}([1,1,1,2], 0.2)
-        b = Partial_sol{Float64}([1,1,2,2], 1.)
+        a =  Partial_sol{Float64}([1,1,1,2], 0.2, [1,2,3])
+        b = Partial_sol{Float64}([1,1,2,2], 1., [1,2,3])
 
         M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
 
@@ -48,20 +50,31 @@ if true
         g = M2graph(M)
         gg = graph4peps(g, (2,2))
 
-        ps = Partial_sol{Float64}([6], .2)
+        ps = Partial_sol{Float64}([6], .2, Int[])
         ul,ur = spin_indices_from_above(gg, ps, 2)
         l = spin_index_from_left(gg, ps, 2)
         @test ul == [2]
         @test ur == [1]
         @test l == 2
 
-        ps = Partial_sol{Float64}([4,6], .2)
+        ps = Partial_sol{Float64}([4,6], .2, [1])
         ul,ur = spin_indices_from_above(gg, ps, 3)
         l = spin_index_from_left(gg, ps, 3)
         @test ul == Int[]
         @test ur == [1,2]
         @test l == 1
 
+    end
+
+    @testset "droplet hepers" begin
+        grid = [1 2 3 4; 5 6 7 8; 9 10 11 12]
+        i = indices_on_boundary(grid, 2)
+        println(i == [1])
+        i = indices_on_boundary(grid, 1)
+        println(i == Int[])
+
+        i = indices_on_boundary(grid, 7)
+        println(i == [3, 4, 5, 6])
     end
 end
 
@@ -239,7 +252,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     println(size(mpo1[2]))
     println(size(mpo1[3]))
 
-    MPO(peps, 2, false)
+    #MPO(peps, 2, false)
 
     mpo2 = MPO(peps, 2, true)
 
@@ -321,21 +334,21 @@ end
 
     l_mps = MPS([e[:,:,:,1] for e in mpo2*mpo3])
 
-    AA = MPO(peps, 1, false)
+    #AA = MPO(peps, 1, false)
 
     println(size(A[1]))
-    println(size(AA[1]))
+    #println(size(AA[1]))
 
     # marginal prob
-    sol = Partial_sol{Float64}(Int[], 0.)
+    sol = Partial_sol{Float64}(Int[], 0., Int[])
     j = 1
     objective = conditional_probabs(gg, sol, j, lower_mps, A)
     println(objective)
 
-    objective1 = conditional_probabs(gg, sol, j, l_mps, AA)
-    println(objective1)
+    #objective1 = conditional_probabs(gg, sol, j, l_mps, AA)
+    #println(objective1)
 
-    sol = Partial_sol{Float64}([1], objective[1])
+    sol = Partial_sol{Float64}([1], objective[1], Int[])
 
     p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
     p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
@@ -356,7 +369,7 @@ end
     A =  M[2,:]
 
     # objective value from the previous step is set artificially
-    sol = Partial_sol{Float64}(Int[1,1,1,1], 1.)
+    sol = Partial_sol{Float64}(Int[1,1,1,1], 1., [1,2,3])
     objective = conditional_probabs(gg, sol, j, lower_mps, A)
     #conditional prob
     p1 = sum(cc[1,1,1,1,1,:,:,:,:])/sum(cc[1,1,1,1,:,:,:,:,:])
@@ -368,18 +381,18 @@ end
 end
 
 @testset "test an exemple instance" begin
-
+    δ = 1e-7
     g = make_interactions_case2()
-    spins, objective = solve(g, 10; β = 3., χ = 2, threshold = 1e-11)
+    spins, objective = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, δ = δ)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2))
+    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), δ = δ)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-8
         @test spins[i] == spins_l[i]
     end
     # low energy spectrum
-    spins_s, objective_s = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15)
+    spins_s, objective_s = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δ = δ)
     for i in 1:10
         @test objective[i] ≈ objective_s[i] atol=1e-8
         @test spins[i] == spins_s[i]
@@ -388,13 +401,13 @@ end
 
 
 @testset "test an exemple instance on Float32" begin
-
+    δ = 1e-7
     g = make_interactions_case2()
     T = Float32
-    spins, objective = solve(g, 10; β = T(3.), χ = 2, threshold = 1e-11)
+    spins, objective = solve(g, 10; β = T(3.), χ = 2, threshold = 1e-11, δ = δ)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2))
+    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), δ = δ)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-5
         @test spins[i] == spins_l[i]

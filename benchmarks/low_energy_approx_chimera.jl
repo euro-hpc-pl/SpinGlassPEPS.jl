@@ -14,7 +14,7 @@ using Test
 import SpinGlassPEPS: solve, solve_mps, M2graph, energy, binary2spins, ising_graph
 
 disable_logging(LogLevel(0))
-
+δ = 0.9
 # this is axiliary function for npz write
 
 function vecvec2matrix(v::Vector{Vector{Int}})
@@ -101,7 +101,7 @@ function proceed()
     i = 1
     for s in ses
 
-      @time spins, _ = solve(ig, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s)
+      @time spins, _ = solve(ig, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s, δ=δ)
 
       en = minimum([energy(s, ig) for s in spins])
 

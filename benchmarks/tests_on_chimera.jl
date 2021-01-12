@@ -23,7 +23,7 @@ function vecvec2matrix(v::Vector{Vector{Int}})
     end
     M
 end
-
+δ = 0.1
 
 s = ArgParseSettings("description")
   @add_arg_table! s begin
@@ -78,7 +78,7 @@ node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
-@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff)
+@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δ=δ)
 
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")
