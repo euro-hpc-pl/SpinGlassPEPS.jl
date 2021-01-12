@@ -26,19 +26,28 @@ bd = [2, 2, 4, 4, 2, 2, 8]
 
 for (i, e) in enumerate(edges(fg))
     pl, en, pr = get_prop(fg, e, :split)
+
     println(e)
     println(size(pl), "   ", size(en),  "   ", size(pr))
-    #display(en)
-    #@test min(size(en)[1], size(en)[2]) == bd[i]
-    println("------------------------")
+
+    isOK = min(size(en)[1], size(en)[2]) == bd[i]
+
+    @test isOK
+    if !isOK
+        println(min(size(en)[1], size(en)[2]), " ", bd[i])
+        #display(pl)
+        display(en)
+        #display(pr)
+        println("--")
+    end
 end
 
 x, y = m, n
 
 #for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 
-for origin ∈ (:NW, :SW, :NE, :SE) # OK
-#for origin ∈ (:WN, :EN, :ES, :WS)  # NO
+for origin ∈ (:NW, :SW, :NE, :SE, :WN) # OK
+#for origin ∈ (:EN, :ES, :WS)  # NO
 
     @info "testing peps" origin
     println(origin)
@@ -57,18 +66,21 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
     ψ = MPO(PEPSRow(peps, 1))
     #println("bd ", bond_dimension(ψ))
     
+    #=
     for A ∈ ψ @test size(A, 2) == 1 end
 
     for i ∈ 2:peps.i_max
-        W = MPO(PEPSRow(peps, i))
+        println(i)
+        R = PEPSRow(peps, i)
+        W = MPO(R)
         M = MPO(peps, i-1, i) 
         ψ = (ψ * M) * W
         for A ∈ ψ @test size(A, 2) == 1 end
-        #println("bd ", bond_dimension(ψ))
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end
-
+=#
+#=
     @info "contracting MPOs (down -> up)"
 
     ψ = MPO(PEPSRow(peps, peps.i_max))
@@ -83,7 +95,7 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
         for A ∈ ψ @test size(A, 4) == 1 end
         #println("bd ", bond_dimension(ψ))
     end
-
+=#
     for A ∈ ψ @test size(A, 4) == 1 end
 end
 
