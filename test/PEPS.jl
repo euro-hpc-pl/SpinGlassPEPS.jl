@@ -45,8 +45,8 @@ end
 x, y = m, n
 
 #for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
-#for origin ∈ (:NW, :SW, :NE, :SE, :WN) # OK
-for origin ∈ (:EN, :ES, :WS)  # NO
+for origin ∈ (:NW, :SW, :NE, :SE, :WN) # OK
+#for origin ∈ (:EN, :ES, :WS)  # NO
 
     @info "testing peps" origin
     println(origin)

@@ -127,7 +127,6 @@ for v ∈ vertices(fg)
    end
 end
  
-
 x = m
 y = n
 origin = :NW
