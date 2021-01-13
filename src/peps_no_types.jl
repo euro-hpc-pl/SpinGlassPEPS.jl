@@ -395,8 +395,11 @@ function merge_boundaries(partial_s::Vector{Partial_sol{T}}, δ) where T <:Real
             for el in unique_bondaries
                 if b[el] > 1
                     i = findall(x -> x == el, boundaries)
-                    objectives = [partial_s[el].objective for el in i]
+                    objectives = [partial_s[j].objective for j in i]
+                    println(objectives)
+                    println(maximum(objectives))
                     objectives = objectives./maximum(objectives)
+                    println(objectives)
                     for ind in i[objectives .< δ]
                         leave[ind] = false
                     end
