@@ -132,7 +132,25 @@ function factor_graph(
     fg
 end
 
+#=
 # needs to be rewritten!
+function rank_reveal(energy, order=:PE)
+    @assert order ∈ (:PE, :EP)
+    dim = order == :PE ? 1 : 2
+    
+    E = unique(energy, dims=dim)
+    idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
+
+    P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
+
+    for (i, elements) ∈ enumerate(eachslice(P, dims=dim))
+        elements[idx[i]] = 1
+    end
+
+    order == :PE ? (P, E) : (E, P)
+end 
+=#
+
 function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2

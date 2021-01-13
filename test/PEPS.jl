@@ -1,3 +1,4 @@
+
 @testset "PepsTensor correctly builds PEPS network" begin
 
 m = 3
@@ -7,6 +8,8 @@ t = 3
 β = 1
 
 L = m * n * t
+
+bond_dimensions = [2, 2, 8, 4, 2, 2, 8]
 
 instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt" 
 
@@ -22,23 +25,40 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-bd = [2, 2, 4, 4, 2, 2, 8]
-
-for (i, e) in enumerate(edges(fg))
+for (bd, e) in zip(bond_dimensions, edges(fg))
     pl, en, pr = get_prop(fg, e, :split)
     println(e)
     println(size(pl), "   ", size(en),  "   ", size(pr))
-    #display(en)
-    #@test min(size(en)[1], size(en)[2]) == bd[i]
-    println("------------------------")
+   #=
+    display(en)
+    println("-------------------")
+    println("-------------------")
+    display(pl)
+    println("-------------------")
+    println("-------------------")
+    display(pr)
+    println("-------------------")
+    println("-------------------")
+    println("-------------------")
+    =#
+    isOK = min(size(en)...) == bd
+    
+    @test isOK
+    if !isOK
+        println(min(size(en)...), " ", bd)
+        display(en)
+        display(pl)
+        display(pr)
+    end
+    
 end
+
 
 x, y = m, n
 
 #for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
-
-for origin ∈ (:NW, :SW, :NE, :SE) # OK
-#for origin ∈ (:WN, :EN, :ES, :WS)  # NO
+for origin ∈ (:NW, :SW, :NE, :SE, :WN) # OK
+#for origin ∈ (:EN, :ES, :WS)  # NO
 
     @info "testing peps" origin
     println(origin)
@@ -57,14 +77,16 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
     ψ = MPO(PEPSRow(peps, 1))
     #println("bd ", bond_dimension(ψ))
     
+
     for A ∈ ψ @test size(A, 2) == 1 end
 
     for i ∈ 2:peps.i_max
-        W = MPO(PEPSRow(peps, i))
+        println(i)
+        R = PEPSRow(peps, i)
+        W = MPO(R)
         M = MPO(peps, i-1, i) 
         ψ = (ψ * M) * W
         for A ∈ ψ @test size(A, 2) == 1 end
-        #println("bd ", bond_dimension(ψ))
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end
@@ -72,7 +94,6 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
     @info "contracting MPOs (down -> up)"
 
     ψ = MPO(PEPSRow(peps, peps.i_max))
-    #println("bd ", bond_dimension(ψ))
 
     for A ∈ ψ @test size(A, 4) == 1 end
 
@@ -81,10 +102,8 @@ for origin ∈ (:NW, :SW, :NE, :SE) # OK
         M = MPO(peps, i, i+1) 
         ψ = W * (M * ψ) 
         for A ∈ ψ @test size(A, 4) == 1 end
-        #println("bd ", bond_dimension(ψ))
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end
 end
-
 end
