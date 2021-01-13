@@ -171,6 +171,6 @@ end
             end
         end
 
-        (@nref $N A d->d == dim ? sort!(uniquerows) : (axes(A, d))), uniquerow
+        (@nref $N A d->d == dim ? sort!(uniquerows) : (axes(A, d))), uniquerow, uniquerows
     end
 end
