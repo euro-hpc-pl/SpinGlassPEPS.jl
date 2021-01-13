@@ -155,8 +155,9 @@ function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2
     
-    E = unique(energy, dims=dim)
-    idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
+    # E = unique(energy, dims=dim)
+    # idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
+    E, idx = unique_dims(energy, dim)
 
     P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
 
