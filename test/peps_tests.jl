@@ -278,7 +278,8 @@ Mq[8,9] = Mq[9,8] = -0.05
     println(size(mpo1[2]))
     println(size(mpo1[3]))
 
-    #MPO(peps, 2, false)
+    pp = PEPSRow(peps, 2)
+    println(pp)
 
     mpo2 = MPO(PEPSRow(peps, 2))
 
