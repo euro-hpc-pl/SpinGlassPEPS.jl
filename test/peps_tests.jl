@@ -246,7 +246,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     peps = PepsNetwork(x, y, fg, β, origin)
     B = generate_tensor(peps, (1,1))
 
-    mpo1 = MPO(peps, 1, true)
+    mpo1 = MPO(peps, 1, 3)
 
     println(size(mpo1[1]))
     println(size(mpo1[2]))
