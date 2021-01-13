@@ -246,7 +246,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     peps = PepsNetwork(x, y, fg, β, origin)
     B = generate_tensor(peps, (1,1))
 
-    mpo1 = MPO(peps, 1)
+    mpo1 = MPO(PEPSRow(peps, 1))
 
     println(size(mpo1[1]))
     println(size(mpo1[2]))
@@ -254,13 +254,13 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     #MPO(peps, 2, false)
 
-    mpo2 = MPO(peps, 2, true)
+    mpo2 = MPO(PEPSRow(peps, 2))
 
     mpo12 = mpo1*mpo2
 
     mpsu = MPS([permutedims(e[:,1,:,:], [1,3,2]) for e in mpo12])
 
-    mpo3 = MPO(peps, 3, true)
+    mpo3 = MPO(PEPSRow(peps, 3))
 
     mpsl = MPS([e[:,:,:,1] for e in mpo3])
 
@@ -315,8 +315,8 @@ end
     origin = :NW
 
     peps = PepsNetwork(3, 3, fg, β, origin)
-    mpo2 = MPO(peps, 2, true)
-    mpo3 = MPO(peps, 3, true)
+    mpo2 = MPO(PEPSRow(peps, 2))
+    mpo3 = MPO(PEPSRow(peps, 3))
 
     M = form_peps(gg, β)
 
