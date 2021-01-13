@@ -31,7 +31,7 @@ println("examples = ", examples)
 
 
 β = 3.
-δ = 1e-8
+δ = 0.
 
 number_of_states = 10
 
