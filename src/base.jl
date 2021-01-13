@@ -217,7 +217,7 @@ function verify_bonds(ψ::AbstractMPS)
     end     
 end  
 
-function Base.show(::IO, ψ::AbstractMPS)
+function Base.show(::IO, ψ::AbstractTensorNetwork)
     L = length(ψ)
     dims = [size(A) for A in ψ]
 
