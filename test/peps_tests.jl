@@ -15,16 +15,15 @@ if true
         @test ps.spins == []
         @test ps.objective == 1.
 
-        ps1 = Partial_sol{Float64}([1,1], 1., [1])
+        ps1 = Partial_sol{Float64}([1,1], 1.)
         @test ps1.spins == [1,1]
         @test ps1.objective == 1.
 
-        ps2 = update_partial_solution(ps1, 2, 1., [2])
+        ps2 = update_partial_solution(ps1, 2, 1.)
         @test ps2.spins == [1,1,2]
         @test ps2.objective == 1.
-        @test ps2.boundary == [1.]
 
-        ps3 = Partial_sol{Float64}([1,1,1], .2, [1,2])
+        ps3 = Partial_sol{Float64}([1,1,1], .2)
 
         b = select_best_solutions([ps3, ps2], 1)
         @test b[1].spins == [1, 1, 2]
@@ -33,8 +32,8 @@ if true
 
     @testset "functions of graph" begin
 
-        a = Partial_sol{Float64}([1,1,1,2], 0.2, [1,2,3])
-        b = Partial_sol{Float64}([1,1,2,2], 1., [1,2,3])
+        a = Partial_sol{Float64}([1,1,1,2], 0.2)
+        b = Partial_sol{Float64}([1,1,2,2], 1.)
 
         M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
 
@@ -50,14 +49,14 @@ if true
         g = M2graph(M)
         gg = graph4peps(g, (2,2))
 
-        ps = Partial_sol{Float64}([6], .2, Int[])
+        ps = Partial_sol{Float64}([6], .2)
         ul,ur = spin_indices_from_above(gg, ps, 2)
         l = spin_index_from_left(gg, ps, 2)
         @test ul == [2]
         @test ur == [1]
         @test l == 2
 
-        ps = Partial_sol{Float64}([4,6], .2, [1])
+        ps = Partial_sol{Float64}([4,6], .2)
         ul,ur = spin_indices_from_above(gg, ps, 3)
         l = spin_index_from_left(gg, ps, 3)
         @test ul == Int[]
@@ -77,10 +76,10 @@ if true
         @test i == [3, 4, 5, 6]
 
         boundary = [2,3]
-        a = Partial_sol{Float64}([1,1,1], 0.2, boundary)
-        b = Partial_sol{Float64}([2,1,1], 0.18, boundary)
-        c = Partial_sol{Float64}([1,1,2], 1., boundary)
-        d = Partial_sol{Float64}([2,1,2], .1, boundary)
+        a = Partial_sol{Float64}([1,1,1], 0.2)
+        b = Partial_sol{Float64}([2,1,1], 0.18)
+        c = Partial_sol{Float64}([1,1,2], 1.)
+        d = Partial_sol{Float64}([2,1,2], .1)
 
         vps = [a,b,c,d]
 
@@ -88,18 +87,18 @@ if true
         # 0.18/0.2 = 0.9
         # 0.1/1. = 0.1
 
-        ps1 = merge_boundaries(vps, thershold)
+        ps1 = merge_boundaries(vps, boundary, thershold)
         println(ps1 == [a,b,c])
 
         thershold = 0.95
 
-        ps1 = merge_boundaries(vps, thershold)
-        println(ps1)
+        ps1 = merge_boundaries(vps, boundary, thershold)
+
         println(ps1 == [a,c])
 
         thershold = 0.
 
-        ps1 = merge_boundaries(vps, thershold)
+        ps1 = merge_boundaries(vps, boundary, thershold)
         println(ps1 == [a,b,c,d])
     end
 end
@@ -279,7 +278,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     println(size(mpo1[3]))
 
     pp = PEPSRow(peps, 2)
-    println(pp)
+    #println(pp)
 
     mpo2 = MPO(PEPSRow(peps, 2))
 
@@ -312,7 +311,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     B = generate_tensor(peps, (1,1))
     println(size(B))
     println(size(vec(cc)))
-    println(sum(cc) ≈ sum(B))
+    @test sum(cc) ≈ sum(B)
 
 
 end
@@ -367,7 +366,7 @@ end
     #println(size(AA[1]))
 
     # marginal prob
-    sol = Partial_sol{Float64}(Int[], 0., Int[])
+    sol = Partial_sol{Float64}(Int[], 0.)
     j = 1
     objective = conditional_probabs(gg, sol, j, lower_mps, A)
     println(objective)
@@ -375,7 +374,7 @@ end
     #objective1 = conditional_probabs(gg, sol, j, l_mps, AA)
     #println(objective1)
 
-    sol = Partial_sol{Float64}([1], objective[1], Int[])
+    sol = Partial_sol{Float64}([1], objective[1])
 
     p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
     p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
@@ -396,7 +395,7 @@ end
     A =  M[2,:]
 
     # objective value from the previous step is set artificially
-    sol = Partial_sol{Float64}(Int[1,1,1,1], 1., [1,2,3])
+    sol = Partial_sol{Float64}(Int[1,1,1,1], 1.)
     objective = conditional_probabs(gg, sol, j, lower_mps, A)
     #conditional prob
     p1 = sum(cc[1,1,1,1,1,:,:,:,:])/sum(cc[1,1,1,1,:,:,:,:,:])
@@ -408,7 +407,7 @@ end
 end
 
 @testset "test an exemple instance" begin
-    δ = 0.
+    δ = 1e-6
     g = make_interactions_case2()
     spins, objective = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, δ = δ)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
@@ -428,7 +427,7 @@ end
 
 
 @testset "test an exemple instance on Float32" begin
-    δ = 0.
+    δ = 1e-6
     g = make_interactions_case2()
     T = Float32
     spins, objective = solve(g, 10; β = T(3.), χ = 2, threshold = 1e-11, δ = δ)

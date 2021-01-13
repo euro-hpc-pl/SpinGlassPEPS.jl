@@ -173,15 +173,12 @@ structure of the partial solution
 mutable struct Partial_sol{T <: Real}
     spins::Vector{Int}
     objective::T
-    boundary::Vector{Int}
+
     function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T) where T <:Real
-        new{T}(spins, objective, Int[])
-    end
-    function(::Type{Partial_sol{T}})(spins::Vector{Int}, objective::T, boundary::Vector{Int}) where T <:Real
-        new{T}(spins, objective, boundary)
+        new{T}(spins, objective)
     end
     function(::Type{Partial_sol{T}})() where T <:Real
-        new{T}(Int[], 1., Int[])
+        new{T}(Int[], 1.)
     end
 end
 
@@ -194,10 +191,6 @@ Add a spin and replace an objective function to Partial_sol{T} type
 # TODO move particular type to solver
 function update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where T <: Real
     Partial_sol{T}(vcat(ps.spins, [s]), objective)
-end
-
-function update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T, boundary::Vector{Int}) where T <: Real
-    Partial_sol{T}(vcat(ps.spins, [s]), objective, ps.spins[boundary])
 end
 
 """
@@ -326,18 +319,18 @@ function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1
 
         for j in grid[row,:]
 
-            ie = indices_on_boundary(grid, j)
+            dX = indices_on_boundary(grid, j)
 
             partial_s_temp = Partial_sol{T}[]
 
-            partial_s = merge_boundaries(partial_s, δ)
+            partial_s = merge_boundaries(partial_s, dX, δ)
             for ps in partial_s
 
                 objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
 
                 for l in 1:length(objectives)
                     new_objectives = ps.objective*objectives[l]
-                    ps1 = update_partial_solution(ps, l, new_objectives, ie)
+                    ps1 = update_partial_solution(ps, l, new_objectives)
                     push!(partial_s_temp, ps1)
                 end
 
@@ -385,10 +378,11 @@ function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  wh
     return spins, objective
 end
 
-function merge_boundaries(partial_s::Vector{Partial_sol{T}}, δ) where T <:Real
-    if (length(partial_s) > 1) || δ == .0
+function merge_boundaries(partial_s::Vector{Partial_sol{T}}, dX::Vector{Int}, δ) where T <:Real
+    if (length(partial_s) > 1) & (δ != .0)
         leave = [true for _ in partial_s]
-        boundaries = [ps.spins[ps.boundary] for ps in partial_s]
+
+        boundaries = [ps.spins[dX] for ps in partial_s]
 
         unique_bondaries = unique(boundaries)
         if boundaries != unique_bondaries
@@ -401,6 +395,7 @@ function merge_boundaries(partial_s::Vector{Partial_sol{T}}, δ) where T <:Real
                     objectives = objectives./maximum(objectives)
                     for ind in i[objectives .< δ]
                         leave[ind] = false
+                        println(leave)
                     end
                 end
             end
