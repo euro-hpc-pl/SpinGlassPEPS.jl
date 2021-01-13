@@ -407,7 +407,7 @@ end
 end
 
 @testset "test an exemple instance" begin
-    δ = 1e-7
+    δ = 0.
     g = make_interactions_case2()
     spins, objective = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, δ = δ)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
@@ -427,7 +427,7 @@ end
 
 
 @testset "test an exemple instance on Float32" begin
-    δ = 1e-7
+    δ = 0.
     g = make_interactions_case2()
     T = Float32
     spins, objective = solve(g, 10; β = T(3.), χ = 2, threshold = 1e-11, δ = δ)

@@ -388,7 +388,8 @@ end
 function merge_boundaries(partial_s::Vector{Partial_sol{T}}, δ) where T <:Real
     if (length(partial_s) > 1) || δ == .0
         leave = [true for _ in partial_s]
-        boundaries = [ps.boundary for ps in partial_s]
+        boundaries = [ps.spins[ps.boundary] for ps in partial_s]
+
         unique_bondaries = unique(boundaries)
         if boundaries != unique_bondaries
             b = countmap(boundaries)
@@ -396,10 +397,8 @@ function merge_boundaries(partial_s::Vector{Partial_sol{T}}, δ) where T <:Real
                 if b[el] > 1
                     i = findall(x -> x == el, boundaries)
                     objectives = [partial_s[j].objective for j in i]
-                    println(objectives)
-                    println(maximum(objectives))
+
                     objectives = objectives./maximum(objectives)
-                    println(objectives)
                     for ind in i[objectives .< δ]
                         leave[ind] = false
                     end
