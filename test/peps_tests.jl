@@ -4,7 +4,7 @@ import SpinGlassPEPS: compute_single_tensor, conditional_probabs, get_parameters
 import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
-import SpinGlassPEPS: indices_on_boundary
+import SpinGlassPEPS: indices_on_boundary, merge_boundaries
 Random.seed!(1234)
 
 if true
@@ -33,7 +33,7 @@ if true
 
     @testset "functions of graph" begin
 
-        a =  Partial_sol{Float64}([1,1,1,2], 0.2, [1,2,3])
+        a = Partial_sol{Float64}([1,1,1,2], 0.2, [1,2,3])
         b = Partial_sol{Float64}([1,1,2,2], 1., [1,2,3])
 
         M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
@@ -69,12 +69,38 @@ if true
     @testset "droplet hepers" begin
         grid = [1 2 3 4; 5 6 7 8; 9 10 11 12]
         i = indices_on_boundary(grid, 2)
-        println(i == [1])
+        @test i == [1]
         i = indices_on_boundary(grid, 1)
-        println(i == Int[])
+        @test i == Int[]
 
         i = indices_on_boundary(grid, 7)
-        println(i == [3, 4, 5, 6])
+        @test i == [3, 4, 5, 6]
+
+        boundary = [2,3]
+        a = Partial_sol{Float64}([1,1,1], 0.2, boundary)
+        b = Partial_sol{Float64}([2,1,1], 0.18, boundary)
+        c = Partial_sol{Float64}([1,1,2], 1., boundary)
+        d = Partial_sol{Float64}([2,1,2], .1, boundary)
+
+        vps = [a,b,c,d]
+
+        thershold = 0.15
+        # 0.18/0.2 = 0.9
+        # 0.1/1. = 0.1
+
+        ps1 = merge_boundaries(vps, thershold)
+        println(ps1 == [a,b,c])
+
+        thershold = 0.95
+
+        ps1 = merge_boundaries(vps, thershold)
+        println(ps1)
+        println(ps1 == [a,c])
+
+        thershold = 0.
+
+        ps1 = merge_boundaries(vps, thershold)
+        println(ps1 == [a,b,c,d])
     end
 end
 
