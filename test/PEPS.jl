@@ -25,6 +25,7 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
+#=
 for (bd, e) in zip(bond_dimensions, edges(fg))
     pl, en, pr = get_prop(fg, e, :split)
     println(e)
@@ -52,7 +53,7 @@ for (bd, e) in zip(bond_dimensions, edges(fg))
     end
     
 end
-
+=#
 
 x, y = m, n
 
@@ -103,8 +104,11 @@ for origin ∈ (:EN, ) #(:EN, :ES, :WS) # NO
 
     for A ∈ ψ @test size(A, 4) == 1 end
 
-    for i ∈ peps.i_max-1:1
+    println("imax -> ", peps.i_max)
+    
+    for i ∈ peps.i_max-1:-1:1
         println(i)
+        
         R = PEPSRow(peps, i)
         W = MPO(R) 
         M = MPO(peps, i, i+1) 
