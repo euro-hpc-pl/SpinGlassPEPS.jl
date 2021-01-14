@@ -292,18 +292,71 @@ function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mp
     probs_unnormed./sum(probs_unnormed)
 end
 
+"""
+    function dX_inds(grid::Matrix{Int}, j::Int; has_diagonals::Bool = false)
 
-function indices_on_boundary(grid::Matrix{Int}, j::Int)
-    smax = j-1
-    smin = maximum([1, j - size(grid, 2)])
-    collect(smin: smax)
+Returns vector{Int} indexing of the boundary region (dX) given a grid.
+id has diagonals, diagonal bounds on the grid are taken into account
+"""
+
+function dX_inds(grid::Matrix{Int}, j::Int; has_diagonals::Bool = false)
+    last = j-1
+    s = size(grid, 2)
+    first = maximum([1, j - s])
+    if (has_diagonals & (j%s != 1))
+        first = maximum([1, j - s - 1])
+    end
+    return collect(first: last)
 end
+
+"""
+    function merge_dX(partial_s::Vector{Partial_sol{T}}, dX_inds::Vector{Int}, δH::Float64) where T <:Real
+
+Return a vector of Partial_sol{T}, with merged boundaries.
+
+Merging rule is such that the retion of the objective function of the merged item
+to the maximal is lower than δH
+"""
+
+function merge_dX(partial_s::Vector{Partial_sol{T}}, dX_inds::Vector{Int}, δH::Float64) where T <:Real
+    if (length(partial_s) > 1) & (δH != .0)
+        leave = [true for _ in partial_s]
+
+        dXes = [ps.spins[dX_inds] for ps in partial_s]
+
+        unique_dXes = unique(dXes)
+        if dXes != unique_dXes
+            dXcount = countmap(dXes)
+            for dX in unique_dXes
+                if dXcount[dX] > 1
+                    i = findall(k -> k == dX, dXes)
+                    objectives = [partial_s[j].objective for j in i]
+
+                    objectives = objectives./maximum(objectives)
+                    for ind in i[objectives .< δH]
+                        leave[ind] = false
+                    end
+                end
+            end
+            no_reduced = count(.!(leave))
+            # this is just for testing
+            if no_reduced > 0
+                j = length(partial_s[1].spins)
+                k = length(partial_s)
+                println(no_reduced, " out of $k partial solutions deleted at j = $j")
+            end
+            return partial_s[leave]
+        end
+    end
+    partial_s
+end
+
 
 function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1),
                                                β::T, χ::Int = 2^prod(node_size),
                                                threshold::Float64 = 0.,
                                                spectrum_cutoff::Int = 1000,
-                                               δ::Float64 = 0.1) where T <: Real
+                                               δH::Float64 = 0.) where T <: Real
 
     gg = graph4peps(g, node_size, spectrum_cutoff = spectrum_cutoff)
 
@@ -319,11 +372,11 @@ function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1
 
         for j in grid[row,:]
 
-            dX = indices_on_boundary(grid, j)
+            dX = dX_inds(grid, j)
 
             partial_s_temp = Partial_sol{T}[]
 
-            partial_s = merge_boundaries(partial_s, dX, δ)
+            partial_s = merge_dX(partial_s, dX, δH)
             for ps in partial_s
 
                 objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
@@ -376,33 +429,6 @@ function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  wh
     end
 
     return spins, objective
-end
-
-function merge_boundaries(partial_s::Vector{Partial_sol{T}}, dX::Vector{Int}, δ) where T <:Real
-    if (length(partial_s) > 1) & (δ != .0)
-        leave = [true for _ in partial_s]
-
-        boundaries = [ps.spins[dX] for ps in partial_s]
-
-        unique_bondaries = unique(boundaries)
-        if boundaries != unique_bondaries
-            b = countmap(boundaries)
-            for el in unique_bondaries
-                if b[el] > 1
-                    i = findall(x -> x == el, boundaries)
-                    objectives = [partial_s[j].objective for j in i]
-
-                    objectives = objectives./maximum(objectives)
-                    for ind in i[objectives .< δ]
-                        leave[ind] = false
-                        println(leave)
-                    end
-                end
-            end
-            return partial_s[leave]
-        end
-    end
-    partial_s
 end
 
 """

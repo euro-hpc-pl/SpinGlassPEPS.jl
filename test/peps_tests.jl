@@ -4,7 +4,7 @@ import SpinGlassPEPS: compute_single_tensor, conditional_probabs, get_parameters
 import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
-import SpinGlassPEPS: indices_on_boundary, merge_boundaries
+import SpinGlassPEPS: dX_inds, merge_dX
 Random.seed!(1234)
 
 if true
@@ -66,16 +66,44 @@ if true
     end
 
     @testset "droplet hepers" begin
+
         grid = [1 2 3 4; 5 6 7 8; 9 10 11 12]
-        i = indices_on_boundary(grid, 2)
+        i = dX_inds(grid, 2)
         @test i == [1]
-        i = indices_on_boundary(grid, 1)
+        i = dX_inds(grid, 1)
         @test i == Int[]
 
-        i = indices_on_boundary(grid, 7)
+        # 1   2     3    4
+        #        ?  |    |
+        # 5   6    <7>   8
+        # |   |
+        # 9   10   11   12
+        #
+
+        i = dX_inds(grid, 7)
         @test i == [3, 4, 5, 6]
 
-        boundary = [2,3]
+        i = dX_inds(grid, 7; has_diagonals = true)
+        @test i == [2, 3, 4, 5, 6]
+
+
+        # 5     6     7   8
+        # |     |     |    |
+        # <9>   10   11   12
+        #
+        #both cases the same
+        i = dX_inds(grid, 9)
+        @test i == [5,6,7,8]
+
+        i = dX_inds(grid, 9; has_diagonals = true)
+        @test i == [5,6,7,8]
+
+        # other grid
+
+        grid1 = [1 2; 3 4; 5 6; 7 8]
+        i = dX_inds(grid1, 5)
+        @test i == [3,4]
+
         a = Partial_sol{Float64}([1,1,1], 0.2)
         b = Partial_sol{Float64}([2,1,1], 0.18)
         c = Partial_sol{Float64}([1,1,2], 1.)
@@ -83,23 +111,27 @@ if true
 
         vps = [a,b,c,d]
 
-        thershold = 0.15
+        boundary = [2,3]
+
+        #ratio of objectives
+
         # 0.18/0.2 = 0.9
         # 0.1/1. = 0.1
+        thershold = 0.15
 
-        ps1 = merge_boundaries(vps, boundary, thershold)
-        println(ps1 == [a,b,c])
+        ps1 = merge_dX(vps, boundary, thershold)
+        @test ps1 == [a,b,c]
 
         thershold = 0.95
 
-        ps1 = merge_boundaries(vps, boundary, thershold)
+        ps1 = merge_dX(vps, boundary, thershold)
 
-        println(ps1 == [a,c])
+        @test ps1 == [a,c]
 
         thershold = 0.
 
-        ps1 = merge_boundaries(vps, boundary, thershold)
-        println(ps1 == [a,b,c,d])
+        ps1 = merge_dX(vps, boundary, thershold)
+        @test ps1 == [a,b,c,d]
     end
 end
 
@@ -107,7 +139,7 @@ end
 Mq = ones(4,4)
 fullM2grid!(Mq, (2,2))
 
-if true
+
 @testset "tensor construction" begin
 
 
@@ -155,7 +187,7 @@ if true
     t13 = compute_single_tensor(g1, 3, β, sum_over_last = false)
 
     B = generate_tensor(peps, (1,1))
-    println(B == t11)
+    @test B == t11
 
 
     update_cells!(
@@ -207,7 +239,7 @@ if true
     @test vec(T1) ≈ vec(T2)[p]
 end
 
-end
+
 Mq = zeros(9,9)
 Mq[1,1] = 1.
 Mq[2,2] = 1.4
@@ -290,7 +322,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     mpsl = MPS([e[:,:,:,1] for e in mpo3])
 
-    println(right_env(mpsu, mpsl)[end] ≈ [1.])
+    @test right_env(mpsu, mpsl)[end] ≈ [1.]
     g1 = copy(g)
 
     update_cells!(
@@ -407,18 +439,18 @@ end
 end
 
 @testset "test an exemple instance" begin
-    δ = 1e-6
+    δH = 1e-6
     g = make_interactions_case2()
-    spins, objective = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, δ = δ)
+    spins, objective = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, δH = δH)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), δ = δ)
+    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-8
         @test spins[i] == spins_l[i]
     end
     # low energy spectrum
-    spins_s, objective_s = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δ = δ)
+    spins_s, objective_s = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_s[i] atol=1e-8
         @test spins[i] == spins_s[i]
@@ -427,13 +459,13 @@ end
 
 
 @testset "test an exemple instance on Float32" begin
-    δ = 1e-6
+    δH = 1e-6
     g = make_interactions_case2()
     T = Float32
-    spins, objective = solve(g, 10; β = T(3.), χ = 2, threshold = 1e-11, δ = δ)
+    spins, objective = solve(g, 10; β = T(3.), χ = 2, threshold = 1e-11, δH = δH)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), δ = δ)
+    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-5
         @test spins[i] == spins_l[i]

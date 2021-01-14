@@ -23,7 +23,6 @@ function vecvec2matrix(v::Vector{Vector{Int}})
     end
     M
 end
-δ = 0.1
 
 s = ArgParseSettings("description")
   @add_arg_table! s begin
@@ -58,6 +57,10 @@ s = ArgParseSettings("description")
     default = 1000
     arg_type = Int
     help = "size of the lower spectrum"
+    "--deltaH", "-d"
+    default = 0.1
+    arg_type = Float64
+    help = "merge parameter on merging dX, the threshold on ratios of objectives"
   end
 
 fi = parse_args(s)["file"]
@@ -70,6 +73,7 @@ problem_size = parse_args(s)["size"]
 β = parse_args(s)["beta"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
+δH = parse_args(s)["deltaH"]
 
 ig = ising_graph(fi, si, 1)
 
@@ -78,7 +82,7 @@ node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
-@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δ=δ)
+@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δH=δH)
 
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")
