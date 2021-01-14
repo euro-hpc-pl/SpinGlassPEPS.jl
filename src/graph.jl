@@ -118,13 +118,7 @@ function factor_graph(
 
             pl, en = rank_reveal(energy(fg, edg), :PE)
             en, pr = rank_reveal(en, :EP)
-            #=
-            display(energy(fg, edg))
-            display(pl)
-            display(en)
-            display(pr)
-            println("--------------------------")
-            =#
+            
             set_prop!(fg, e, :split, (pl, en, pr))
         end
     end
@@ -137,8 +131,8 @@ function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2
     
-    E, idx = unique_dims(energy, dim)
-    # idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
+    E = unique(energy, dims=dim)
+    idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
 
     P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
 
@@ -154,8 +148,9 @@ function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2
 
-    E = unique(energy, dims=dim)
-    idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
+    # E = unique(energy, dims=dim)
+    # idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
+    E, idx = unique_dims(energy, dim)
 
     P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
 
