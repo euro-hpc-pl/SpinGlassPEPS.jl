@@ -1,3 +1,21 @@
+@testset "LinearIndices" begin
+m = 3
+n = 4
+origin_l = [:NW, :NE, :SE, :SW]
+origin_r = [:WN, :EN, :ES, :WS]
+for i ∈ 1:length(origin_l)
+    o_l = origin_l[i]
+    o_r = origin_r[i]
+    println("origin ", o_l, " ", o_r)
+    ind_l, i_max_l, j_max_l = LinearIndices(m, n, o_l)
+    ind_r, i_max_r, j_max_r = LinearIndices(m, n, o_r)
+    @test i_max_l == m == j_max_r
+    @test j_max_l == n == i_max_r
+    for i ∈ 0:m+1, j ∈ 0:n+1
+        @test ind_l[i,j] == ind_r[j,i]
+    end
+end
+end
 
 @testset "PepsTensor correctly builds PEPS network" begin
 
