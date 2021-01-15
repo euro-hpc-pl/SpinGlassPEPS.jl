@@ -75,9 +75,7 @@ end
 
 x, y = m, n
 
-#for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
-#for origin ∈ (:NW, :SW, :NE, :SE, :WN) # OK
-for origin ∈ (:EN, ) #(:EN, :ES, :WS) # NO
+for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 
     @info "testing peps" origin
     println(origin)
@@ -91,7 +89,6 @@ for origin ∈ (:EN, ) #(:EN, :ES, :WS) # NO
         @test A ≈ B
     end
 
-#=
     @info "contracting MPOs (up -> down)"
 
     ψ = MPO(PEPSRow(peps, 1))
@@ -113,7 +110,7 @@ for origin ∈ (:EN, ) #(:EN, :ES, :WS) # NO
 
         for A ∈ ψ @test size(A, 2) == 1 end
     end
-=#
+
     #for A ∈ ψ @test size(A, 4) == 1 end
 
     @info "contracting MPOs (down -> up)"
