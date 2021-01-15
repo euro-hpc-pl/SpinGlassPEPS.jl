@@ -4,7 +4,6 @@ export Cluster, rank_reveal
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
 
-
 mutable struct Cluster
     tag::Int
     vertices::Dict{Int, Int}
@@ -81,7 +80,7 @@ mutable struct Edge
     end
 end
 
-function _mv(ig::MetaGraph)
+function _max_cell_num(ig::MetaGraph)
     L = 0
     for v ∈ vertices(ig)
         L = max(L, get_prop(ig, v, :cell))        
@@ -94,7 +93,7 @@ function factor_graph(
     energy::Function=energy, 
     spectrum::Function=full_spectrum, 
 ) 
-    L = _mv(ig)
+    L = _max_cell_num(ig)
     fg = MetaDiGraph(L, 0.0)
 
     for v ∈ vertices(fg)
