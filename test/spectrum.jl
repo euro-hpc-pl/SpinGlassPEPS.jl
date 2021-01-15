@@ -67,6 +67,7 @@ states = all_states(get_prop(ig, :rank))
         @test abs(dot(χ, χ) - sum(T)) < ϵ
     end
 
+    x = T ./ sum(T) 
     @test T ./ sum(T) ≈ ϱ 
 end
 

@@ -20,7 +20,7 @@ mutable struct Cluster
             vlist = vertices(ig)
         else
             vlist = filter_vertices(ig, :cell, v)
-        end 
+        end
         vlist = intersect(active, vlist)
 
         L = length(collect(vlist))
@@ -41,7 +41,7 @@ mutable struct Cluster
 
         for e ∈ edges(ig)
             if src(e) ∈ vlist && dst(e) ∈ vlist
-                i, j = cl.vertices[src(e)], cl.vertices[dst(e)] 
+                i, j = cl.vertices[src(e)], cl.vertices[dst(e)]
                 @inbounds cl.J[i, j] = get_prop(ig, e, :J)
                 push!(cl.edges, e)
             end
@@ -65,7 +65,7 @@ mutable struct Edge
 
     function Edge(ig::MetaGraph, v::Cluster, w::Cluster)
         ed = new((v.tag, w.tag))
-        ed.edges = filter_edges(ig, v, w) 
+        ed.edges = filter_edges(ig, v, w)
 
         m = length(v.vertices)
         n = length(w.vertices)
@@ -73,7 +73,7 @@ mutable struct Edge
         ed.J = zeros(m, n)
         for e ∈ ed.edges
             i = v.vertices[src(e)]
-            j = w.vertices[dst(e)] 
+            j = w.vertices[dst(e)]
             @inbounds ed.J[i, j] = get_prop(ig, e, :J)
         end
         ed
@@ -83,10 +83,10 @@ end
 function _max_cell_num(ig::MetaGraph)
     L = 0
     for v ∈ vertices(ig)
-        L = max(L, get_prop(ig, v, :cell))        
+        L = max(L, get_prop(ig, v, :cell))
     end
     L
-end    
+end
 
 function factor_graph(
     ig::MetaGraph;
@@ -108,7 +108,7 @@ function factor_graph(
     for i ∈ 1:L, j ∈ i+1:L
         v = get_prop(fg, i, :cluster)
         w = get_prop(fg, j, :cluster)
-        
+
         edg = Edge(ig, v, w)
         if !isempty(edg.edges)
             e = SimpleEdge(i, j)
@@ -142,4 +142,4 @@ function rank_reveal(energy, order=:PE)
     end
 
     order == :PE ? (P, E) : (E, P)
-end 
+end

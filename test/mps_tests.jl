@@ -2,6 +2,8 @@ import SpinGlassPEPS: connections_for_mps, construct_mps
 import SpinGlassPEPS: contract4probability, compute_probs
 import SpinGlassPEPS: solve_mps, M2graph, graph4mps
 
+Random.seed!(1234)
+
 @testset "grouping of connections" begin
     M = ones(5,5)
     g = M2graph(M)
@@ -47,12 +49,6 @@ end
     g2 = graph4mps(g)
     mps = construct_mps(g2, β, 2, 4, 0.)
 
-    # PEPS for comparison
-    g1 = graph4peps(g, (1,1))
-    M = form_peps(g1, β)
-    # compute probabilities by n-con
-    cc = contract3x3by_ncon(M)
-
 
     v = ones(1)*mps[1][:,1,:]*mps[2][:,1,:]
     v = reshape(v, size(v,2))
@@ -71,27 +67,12 @@ end
     @test compute_probs(mps, [1,1]) ≈ prob_v
 
 
-    @test compute_probs(mps, [1,1]) ≈ sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
-    @test compute_probs(mps, [1,1,2,2,1]) ≈ sum(cc[1,1,2,2,1,:,:,:,:], dims = (2,3,4))
-    @test compute_probs(mps, [1,1,2,2,1,2,2,1]) ≈ cc[1,1,2,2,1,2,2,1,:]
-
     # approximation
 
     mps_a = construct_mps(g, β, 3, 2, 1.e-12)
-    ps = sum(cc[1,1,:,:,:,:,:,:,:], dims = (2,3,4,5,6,7))
     pp = compute_probs(mps, [1,1])
 
-    @test ps/sum(ps) ≈ pp/sum(pp)
-
-    ps = sum(cc[1,1,2,2,:,:,:,:,:], dims = (2,3,4,5))
-    pp = compute_probs(mps, [1,1,2,2])
-
-    @test ps/sum(ps) ≈ pp/sum(pp)
-
-    ps = cc[1,1,2,2,1,2,1,2,:]
-    pp = compute_probs(mps, [1,1,2,2,1,2,1,2])
-
-    @test ps/sum(ps) ≈ pp/sum(pp)
+    @test prob_v/sum(prob_v) ≈ pp/sum(pp)
 end
 
 
@@ -110,7 +91,7 @@ end
 
     spins_exact, _ = solve_mps(g, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
-    spins_peps, _ = solve(g, 10; β = β, χ = 2, threshold = 1e-12)
+    spins_peps, _ = solve(g, 10; β = β, χ = 2, threshold = 1e-12, δH = 0.1)
 
     for k in 1:10
         #testing exact
@@ -126,7 +107,6 @@ end
     β = 0.1
     β_step = 4
 
-    Random.seed!(1234)
     M = rand([-1.,-0.5,0.,0.5,1.], 32,32)
     M = M*(M')
 

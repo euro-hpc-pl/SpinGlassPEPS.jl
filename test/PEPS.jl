@@ -33,17 +33,17 @@ L = m * n * t
 
 bond_dimensions = [2, 2, 8, 4, 2, 2, 8]
 
-instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt" 
+instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
 ig = ising_graph(instance, L)
 update_cells!(
-   ig, 
+   ig,
    rule = square_lattice((m, n, t)),
-) 
+)
 
 fg = factor_graph(
-    ig, 
-    energy=energy, 
+    ig,
+    energy=energy,
     spectrum=full_spectrum,
 )
 
@@ -76,7 +76,7 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
         
         R = PEPSRow(peps, i)
         W = MPO(R)
-        M = MPO(peps, i-1, i) 
+        M = MPO(peps, i-1, i)
 
         println(ψ)
         println(M)
@@ -108,7 +108,7 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
         println(M)
         println(ψ)
 
-        ψ = W * (M * ψ) 
+        ψ = W * (M * ψ)
 
         for A ∈ ψ @test size(A, 4) == 1 end
     end

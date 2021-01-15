@@ -25,15 +25,16 @@ end
    t = 4
 
    β = 1
+   t = 4
 
    L = n * m * (2 * t)
-   instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
+   instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt"
 
    ig = ising_graph(instance, L)
    update_cells!(
-      ig, 
+      ig,
       rule = square_lattice((m, n, 2*t)),
-   ) 
+   )
 
    @time fg = factor_graph(ig)
 
@@ -59,12 +60,8 @@ end
 
    @test isempty(intersect(clv...))
    @test isempty(intersect(cle...))
-
-   peps = PepsNetwork(m, n, fg, β, :NW)
-   for i ∈ 1:m, j ∈ 1:n
-      @time A = generate_tensor(peps, (i, j))
-  end
 end
+
 
 @testset "Testing factor graph" begin
 m = 3
@@ -74,7 +71,7 @@ t = 3
 β = 1
 L = n * m * t
 
-instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt" 
+instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
 edges = Dict()
 push!(edges, (1, 2) => [(1, 4), (1, 5), (1, 6)])
@@ -104,13 +101,13 @@ push!(cells, 12 => [])
 
 ig = ising_graph(instance, L)
 update_cells!(
-   ig, 
+   ig,
    rule = square_lattice((m, n, t)),
-) 
+)
 
 fg = factor_graph(
-    ig, 
-    energy=energy, 
+    ig,
+    energy=energy,
     spectrum=full_spectrum,
 )
 
@@ -126,4 +123,19 @@ for v ∈ vertices(fg)
    end
 end
 
+end
+@testset "Rank reveal correctly decomposes energy row-wise" begin
+   energy = [[1 2 3]; [0 -1 0]; [1 2 3]]
+   P, E = rank_reveal(energy, :PE)
+   @test size(P) == (3, 2)
+   @test size(E) == (2, 3)
+   @test P * E ≈ energy
+end
+
+@testset "Rank reveal correctly decomposes energy column-wise" begin
+   energy = [[1, 2, 3] [0, -1, 1] [1, 2, 3]]
+   E, P = rank_reveal(energy, :EP)
+   @test size(P) == (2, 3)
+   @test size(E) == (3, 2)
+   @test E * P ≈ energy
 end

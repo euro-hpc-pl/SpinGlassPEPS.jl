@@ -8,6 +8,7 @@ module SpinGlassPEPS
     using CSV
     using Infiltrator
     using Logging
+    using StatsBase
 
     using DocStringExtensions
     const product = Iterators.product
@@ -16,6 +17,8 @@ module SpinGlassPEPS
     include("compressions.jl")
     include("contractions.jl")
     include("lattice.jl")
+    #include("graphs/chimera.jl")
+    #include("graphs/lattice.jl")
     include("graph.jl")
     include("ising.jl")
     include("PEPS.jl")

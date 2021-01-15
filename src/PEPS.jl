@@ -1,13 +1,13 @@
 export NetworkGraph, PepsNetwork
 export generate_tensor, MPO
-                              
+
 mutable struct NetworkGraph
     factor_graph::MetaDiGraph
     nbrs::Dict
     β::Number
 
     function NetworkGraph(factor_graph::MetaDiGraph, nbrs::Dict, β::Number)
-        ng = new(factor_graph, nbrs, β) 
+        ng = new(factor_graph, nbrs, β)
 
         count = 0
         for v ∈ vertices(ng.factor_graph), w ∈ ng.nbrs[v]
@@ -16,7 +16,7 @@ mutable struct NetworkGraph
 
         mc = ne(ng.factor_graph)
         if count < mc
-            error("Error: $(count) < $(mc)") 
+            error("Error: $(count) < $(mc)")
         end
         ng
     end
@@ -35,7 +35,7 @@ function generate_tensor(ng::NetworkGraph, v::Int)
             pv = pv'
         elseif has_edge(fg, v, w)
             pv, _, _ = get_prop(fg, v, w, :split)
-        else 
+        else
             pv = ones(length(loc_exp), 1)
         end
 
@@ -50,11 +50,11 @@ function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     fg = ng.factor_graph
     if has_edge(fg, w, v)
         _, e, _ = get_prop(fg, w, v, :split)
-        tensor = exp.(-ng.β .* e') 
+        tensor = exp.(-ng.β .* e')
     elseif has_edge(fg, v, w)
         _, e, _ = get_prop(fg, v, w, :split)
-        tensor = exp.(-ng.β .* e) 
-    else 
+        tensor = exp.(-ng.β .* e)
+    else
         tensor = ones(1, 1)
     end
     tensor
@@ -69,13 +69,13 @@ mutable struct PepsNetwork
     j_max::Int
 
     function PepsNetwork(m::Int, n::Int, fg::MetaDiGraph, β::Number, origin::Symbol)
-        pn = new((m, n)) 
+        pn = new((m, n))
         pn.map, pn.i_max, pn.j_max = LinearIndices(m, n, origin)
 
         nbrs = Dict()
         for i ∈ 1:pn.i_max, j ∈ 1:pn.j_max
-            push!(nbrs, 
-            pn.map[i, j] => (pn.map[i, j-1], pn.map[i-1, j], 
+            push!(nbrs,
+            pn.map[i, j] => (pn.map[i, j-1], pn.map[i-1, j],
                              pn.map[i, j+1], pn.map[i+1, j]))
         end
         pn.network_graph = NetworkGraph(fg, nbrs, β)
@@ -101,7 +101,7 @@ MPO(ψ::PEPSRow) = MPO(Float64, ψ)
 function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     n = peps.j_max
     ψ = PEPSRow(T, n)
-    
+
     for j ∈ 1:n
         ψ[j] = generate_tensor(peps, (i, j))
     end
@@ -124,7 +124,7 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
 
     for j ∈ 1:n
         v, w = peps.map[i, j], peps.map[k, j]
-        
+
         if has_edge(fg, v, w)
             _, en, _ = get_prop(fg, v, w, :split)
         elseif has_edge(fg, w, v)
