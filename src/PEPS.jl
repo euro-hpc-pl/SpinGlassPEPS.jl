@@ -84,11 +84,10 @@ mutable struct PepsNetwork
 end
 
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m])
-_generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
-function MPO(::Type{T}, ψ::PEPSRow) where {T <: Number}
-    n = length(ψ)
+function MPO(::Type{T}, Ψ::PEPSRow) where {T <: Number}
+    n = length(Ψ)
     ϕ = MPO(T, n)
     for i=1:n
         A = ψ[i]
