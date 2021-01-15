@@ -157,7 +157,6 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             en = ones(1, 1)
         end
 
-        #@cast A[_, σ, _, η] := en[σ, η]
         @cast A[u, _, d, _] := en[u, d]
         ψ[j] = A
     end

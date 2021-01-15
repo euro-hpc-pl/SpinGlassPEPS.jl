@@ -1,16 +1,20 @@
-@testset "LinearIndices" begin
+@testset "LinearIndices correctly assigns indices" begin
 m = 3
 n = 4
+
 origin_l = [:NW, :NE, :SE, :SW]
 origin_r = [:WN, :EN, :ES, :WS]
-for i ∈ 1:length(origin_l)
-    o_l = origin_l[i]
-    o_r = origin_r[i]
-    println("origin ", o_l, " ", o_r)
-    ind_l, i_max_l, j_max_l = LinearIndices(m, n, o_l)
-    ind_r, i_max_r, j_max_r = LinearIndices(m, n, o_r)
+
+for (i, (ol, or)) ∈ enumerate(zip(origin_l, origin_r))    
+
+    println("origin ", ol, " ", or)
+
+    ind_l, i_max_l, j_max_l = LinearIndices(m, n, ol)
+    ind_r, i_max_r, j_max_r = LinearIndices(m, n, or)
+
     @test i_max_l == m == j_max_r
     @test j_max_l == n == i_max_r
+
     for i ∈ 0:m+1, j ∈ 0:n+1
         @test ind_l[i,j] == ind_r[j,i]
     end
@@ -43,35 +47,13 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-#=
 for (bd, e) in zip(bond_dimensions, edges(fg))
     pl, en, pr = get_prop(fg, e, :split)
     println(e)
     println(size(pl), "   ", size(en),  "   ", size(pr))
-   #=
-    display(en)
-    println("-------------------")
-    println("-------------------")
-    display(pl)
-    println("-------------------")
-    println("-------------------")
-    display(pr)
-    println("-------------------")
-    println("-------------------")
-    println("-------------------")
-    =#
-    isOK = min(size(en)...) == bd
-    
-    @test isOK
-    if !isOK
-        println(min(size(en)...), " ", bd)
-        display(en)
-        display(pl)
-        display(pr)
-    end
-    
+
+    @test min(size(en)...) == bd
 end
-=#
 
 x, y = m, n
 
@@ -111,7 +93,7 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
         for A ∈ ψ @test size(A, 2) == 1 end
     end
 
-    #for A ∈ ψ @test size(A, 4) == 1 end
+    for A ∈ ψ @test size(A, 4) == 1 end
 
     @info "contracting MPOs (down -> up)"
 
@@ -138,6 +120,6 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end
-
 end
+
 end

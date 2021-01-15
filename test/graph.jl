@@ -29,7 +29,6 @@ end
    L = n * m * (2 * t)
    instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
 
-
    ig = ising_graph(instance, L)
    update_cells!(
       ig, 
@@ -126,11 +125,5 @@ for v ∈ vertices(fg)
       for e in ed.edges @test Tuple(e) ∈ edges[(v, w)] end
    end
 end
- 
-x = m
-y = n
-origin = :NW
-
-peps = PepsNetwork(x, y, fg, β, origin)
 
 end
