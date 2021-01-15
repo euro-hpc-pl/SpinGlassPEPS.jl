@@ -1,9 +1,11 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states, local_basis
+export all_states, local_basis, enum
 
 using Base.Cartesian
 import Base.Prehashed
+
+enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1

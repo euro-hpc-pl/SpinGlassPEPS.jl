@@ -21,6 +21,7 @@ end
 end
 =#
 
+#=
 @testset "Lattice graph" begin
    m = 4
    n = 4
@@ -63,7 +64,7 @@ end
    @test isempty(intersect(clv...))
    @test isempty(intersect(cle...))
 end
-
+=#
 
 @testset "Factor graph builds on pathological instance" begin
 m = 3
@@ -81,8 +82,6 @@ couplings = Dict()
 for (i, j, v) ∈ ising
     push!(couplings, (i, j) => v)
 end
-
-bond_dimensions = [2, 2, 4, 4, 2, 2, 8]
 
 cedges = Dict()
 push!(cedges, (1, 2) => [(1, 4), (1, 5), (1, 6)])
@@ -110,6 +109,16 @@ push!(cells, 10 => [28, 29, 30])
 push!(cells, 11 => [31, 32, 33])
 push!(cells, 12 => [])
 
+d = 2
+rank = Dict()
+for (c, idx) ∈ cells
+   if !isempty(idx) 
+      push!(rank, c => fill(d, length(idx)))
+   end
+end
+
+bond_dimensions = [2, 2, 4, 4, 2, 2, 8]
+
 ig = ising_graph(instance, L)
 update_cells!(
    ig,
@@ -122,31 +131,40 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
+#=
 for (bd, e) in zip(bond_dimensions, edges(fg))
-   pl, en, pr = get_prop(fg, e, :split)
-
    println(e)
    println(size(pl), "   ", size(en),  "   ", size(pr))
 
-   m, n = src(e), dst(e)
-   
-   dm = length(cells[m])
-   dn = length(cells[n])
+   pl, en, pr = get_prop(fg, e, :split)
+   @test min(size(en)...) == bd
+end
+=#
 
-   energy = zeros(m, n)
-   for (i, σ) ∈ enumerate(local_basis(dm))
-      for (j, η) ∈ enumerate(local_basis(dn))
+for (i, j) ∈ keys(cedges)
+   pl, en, pr = get_prop(fg, i, j, :split)
+   
+   println("Edge ", i, " => ", j)
+   println("energy size ", prod(rank[i]), " x ", prod(rank[j]))
+
+   base_i = all_states(rank[i])
+   base_j = all_states(rank[j])
+
+   energy = zeros(prod(rank[i]), prod(rank[j]))
+
+   for (ii, σ) ∈ enumerate(base_i)
+      for (jj, η) ∈ enumerate(base_j)
          eij = 0.
-         for (k, l) ∈ values(cedges[m, n])
-            eij += σ[k] * couplings[l, k] * η[l]
+         for (k, l) ∈ values(cedges[i, j])
+            kk = enum(cells[i])[k]
+            ll = enum(cells[j])[l]
+            eij += σ[kk] * couplings[k, l] * η[ll]
          end
-         energy[i, j] = eij
+         energy[ii, jj] = eij
       end
    end
 
    @test energy ≈ pl * (en * pr)
-
-   #@test min(size(en)...) == bd
 end
 
 for v ∈ vertices(fg)
