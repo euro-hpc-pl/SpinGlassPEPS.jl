@@ -117,7 +117,7 @@ for (c, idx) ∈ cells
    end
 end
 
-bond_dimensions = [2, 2, 4, 4, 2, 2, 8]
+bond_dimensions = [2, 2, 8, 4, 2, 2, 8]
 
 ig = ising_graph(instance, L)
 update_cells!(
@@ -131,24 +131,25 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-#=
+
 for (bd, e) in zip(bond_dimensions, edges(fg))
+   pl, en, pr = get_prop(fg, e, :split)
+
    println(e)
    println(size(pl), "   ", size(en),  "   ", size(pr))
 
-   pl, en, pr = get_prop(fg, e, :split)
    @test min(size(en)...) == bd
 end
-=#
+
 
 for (i, j) ∈ keys(cedges)
    pl, en, pr = get_prop(fg, i, j, :split)
    
-   println("Edge ", i, " => ", j)
-   println("energy size ", prod(rank[i]), " x ", prod(rank[j]))
-
    base_i = all_states(rank[i])
    base_j = all_states(rank[j])
+
+   idx_i = enum(cells[i])
+   idx_j = enum(cells[j])
 
    energy = zeros(prod(rank[i]), prod(rank[j]))
 
@@ -156,13 +157,17 @@ for (i, j) ∈ keys(cedges)
       for (jj, η) ∈ enumerate(base_j)
          eij = 0.
          for (k, l) ∈ values(cedges[i, j])
-            kk = enum(cells[i])[k]
-            ll = enum(cells[j])[l]
-            eij += σ[kk] * couplings[k, l] * η[ll]
+            kk, ll = enum(cells[i])[k], enum(cells[j])[l]
+            s, r = σ[idx_i[k]], η[idx_j[l]]
+            J = couplings[k, l]
+            eij += s * J * r 
          end
          energy[ii, jj] = eij
       end
    end
+
+   println("Edge ", i, " => ", j)
+   display(energy)
 
    @test energy ≈ pl * (en * pr)
 end
