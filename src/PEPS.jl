@@ -93,6 +93,7 @@ function MPO(::Type{T}, Ψ::PEPSRow, σ::Vector{State}) where {T <: Number}
         k = σ[n]
         A = Ψ[i]
         @cast B[l, u, r, d] |= A[l, u, r, d, $k]
+        
         ϕ[i] = B
     end
     ϕ
