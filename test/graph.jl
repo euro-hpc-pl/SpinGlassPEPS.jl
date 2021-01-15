@@ -3,6 +3,7 @@ using LightGraphs
 using GraphPlot
 using CSV
 
+#=
 @testset "Rank reveal correctly decomposes energy row-wise" begin
    energy = [[1 2 3]; [0 -1 0]; [1 2 3]]
    P, E = rank_reveal(energy, :PE)
@@ -18,6 +19,7 @@ end
    @test size(E) == (3, 2)
    @test E * P ≈ energy
 end
+=#
 
 @testset "Lattice graph" begin
    m = 4
@@ -63,7 +65,7 @@ end
 end
 
 
-@testset "Testing factor graph" begin
+@testset "Factor graph builds on pathological instance" begin
 m = 3
 n = 4
 t = 3
@@ -73,17 +75,26 @@ L = n * m * t
 
 instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
-edges = Dict()
-push!(edges, (1, 2) => [(1, 4), (1, 5), (1, 6)])
-push!(edges, (1, 5) => [(1, 13)])
+ising = CSV.File(instance, types=[Int, Int, Float64], header=0, comment = "#")
 
-push!(edges, (2, 3) => [(4, 7), (5, 7), (6, 8), (6, 9)])
-push!(edges, (2, 6) => [(6, 16), (6, 18), (5, 16)])
+couplings = Dict()
+for (i, j, v) ∈ ising
+    push!(couplings, (i, j) => v)
+end
 
-push!(edges, (5, 6) => [(13, 16), (13, 18)])
+bond_dimensions = [2, 2, 4, 4, 2, 2, 8]
 
-push!(edges, (6, 10) => [(18, 28)])
-push!(edges, (10, 11) => [(28, 31), (28, 32), (28, 33), (29, 31), (29, 32), (29, 33), (30, 31), (30, 32), (30, 33)])
+cedges = Dict()
+push!(cedges, (1, 2) => [(1, 4), (1, 5), (1, 6)])
+push!(cedges, (1, 5) => [(1, 13)])
+
+push!(cedges, (2, 3) => [(4, 7), (5, 7), (6, 8), (6, 9)])
+push!(cedges, (2, 6) => [(6, 16), (6, 18), (5, 16)])
+
+push!(cedges, (5, 6) => [(13, 16), (13, 18)])
+
+push!(cedges, (6, 10) => [(18, 28)])
+push!(cedges, (10, 11) => [(28, 31), (28, 32), (28, 33), (29, 31), (29, 32), (29, 33), (30, 31), (30, 32), (30, 33)])
 
 cells = Dict()
 push!(cells, 1 => [1])
@@ -111,6 +122,33 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
+for (bd, e) in zip(bond_dimensions, edges(fg))
+   pl, en, pr = get_prop(fg, e, :split)
+
+   println(e)
+   println(size(pl), "   ", size(en),  "   ", size(pr))
+
+   m, n = src(e), dst(e)
+   
+   dm = length(cells[m])
+   dn = length(cells[n])
+
+   energy = zeros(m, n)
+   for (i, σ) ∈ enumerate(local_basis(dm))
+      for (j, η) ∈ enumerate(local_basis(dn))
+         eij = 0.
+         for (k, l) ∈ values(cedges[m, n])
+            eij += σ[k] * couplings[l, k] * η[l]
+         end
+         energy[i, j] = eij
+      end
+   end
+
+   @test energy ≈ pl * (en * pr)
+
+   #@test min(size(en)...) == bd
+end
+
 for v ∈ vertices(fg)
    cl = get_prop(fg, v, :cluster)
   
@@ -118,8 +156,8 @@ for v ∈ vertices(fg)
 
    for w ∈ neighbors(fg, v)
       ed = get_prop(fg, v, w, :edge)
-      for e in edges[(v, w)] @test e ∈ Tuple.(ed.edges) end
-      for e in ed.edges @test Tuple(e) ∈ edges[(v, w)] end
+      for e in cedges[(v, w)] @test e ∈ Tuple.(ed.edges) end
+      for e in ed.edges @test Tuple(e) ∈ cedges[(v, w)] end
    end
 end
 

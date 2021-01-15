@@ -31,8 +31,6 @@ t = 3
 
 L = m * n * t
 
-bond_dimensions = [2, 2, 8, 4, 2, 2, 8]
-
 instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
 ig = ising_graph(instance, L)
@@ -46,14 +44,6 @@ fg = factor_graph(
     energy=energy,
     spectrum=full_spectrum,
 )
-
-for (bd, e) in zip(bond_dimensions, edges(fg))
-    pl, en, pr = get_prop(fg, e, :split)
-    println(e)
-    println(size(pl), "   ", size(en),  "   ", size(pr))
-
-    @test min(size(en)...) == bd
-end
 
 x, y = m, n
 
