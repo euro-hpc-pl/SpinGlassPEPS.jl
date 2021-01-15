@@ -74,7 +74,7 @@ function make_interactions_case1()
     push!(D, (8,9) => -0.1)
     push!(D, (9,9) => 0.66)
 
-    ising_graph(D, L, 1, 1)
+    ising_graph(D, L, 1)
 end
 
 
@@ -90,5 +90,5 @@ function make_interactions_case2()
     D32 = Dict((10, 14) => 0.21, (11, 11) => -1.8, (11, 12) => 0.19, (11, 15) => 0.18, (12, 12) => 1.7, (12, 16) => 0.27)
     D4 =  Dict((13, 13) => -1.6, (13, 14) => 0.32, (14, 14) => 1.5, (14, 15) => 0.19, (15, 15) => -1.4, (15, 16) => 0.21, (16, 16) => 1.3)
     D = merge!(+, D1, D12, D2, D22, D3, D32, D4)
-    ising_graph(D, L, 1, 1)
+    ising_graph(D, L, 1)
 end

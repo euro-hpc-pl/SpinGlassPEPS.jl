@@ -1,65 +1,143 @@
-@testset "PepsTensor correctly builds PEPS network for Chimera" begin
-m = 4
+@testset "LinearIndices" begin
+m = 3
 n = 4
-t = 4
-
-L = 2 * n * m * t
-instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
-
-ig = ising_graph(instance, L)
-cg = Chimera((m, n, t), ig)
-
-β = get_prop(ig, :β)
-k = 64
-
-for order ∈ (:EP, :PE)
-    for hd ∈ (:LR, :RL), vd ∈ (:BT, :TB)
-
-        @info "Testing factor graph" order hd vd
-
-        fg = factor_graph(cg,
-        #spectrum=full_spectrum,
-        spectrum = cl -> brute_force(cl, num_states=k),
-        energy=energy,
-        cluster=unit_cell,  
-        hdir=hd,
-        vdir=vd,
-        )
-        decompose_edges!(fg, order, β=β)
-
-        @test order == get_prop(fg, :tensors_order)
-        @test (hd, vd) == get_prop(fg, :order)
-
-        for e ∈ edges(fg)
-            dec = get_prop(fg, e, :decomposition)
-            en = get_prop(fg, e, :energy)
-
-            @test exp.(-β .* en) ≈ prod(dec)
-        end
-
-        @info "Testing PEPS"
-        
-        @time begin
-            net = []
-            for v ∈ vertices(fg)
-                peps = PepsTensor(fg, v)
-                push!(net, peps)
-                println(peps.nbrs)
-                println(size(peps))
-            end
-        end    
+origin_l = [:NW, :NE, :SE, :SW]
+origin_r = [:WN, :EN, :ES, :WS]
+for i ∈ 1:length(origin_l)
+    o_l = origin_l[i]
+    o_r = origin_r[i]
+    println("origin ", o_l, " ", o_r)
+    ind_l, i_max_l, j_max_l = LinearIndices(m, n, o_l)
+    ind_r, i_max_r, j_max_r = LinearIndices(m, n, o_r)
+    @test i_max_l == m == j_max_r
+    @test j_max_l == n == i_max_r
+    for i ∈ 0:m+1, j ∈ 0:n+1
+        @test ind_l[i,j] == ind_r[j,i]
     end
 end
-
-@testset "PepsTensor correctly builds PEPS network for Lattice" begin
-
-L = 9
-instance = "$(@__DIR__)/instances/$(L)_001.txt" 
-
-ig = ising_graph(instance, L)
-
-
 end
 
+@testset "PepsTensor correctly builds PEPS network" begin
 
+m = 3
+n = 4
+t = 3
+
+β = 1
+
+L = m * n * t
+
+bond_dimensions = [2, 2, 8, 4, 2, 2, 8]
+
+instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
+
+ig = ising_graph(instance, L)
+update_cells!(
+   ig,
+   rule = square_lattice((m, n, t)),
+)
+
+fg = factor_graph(
+    ig,
+    energy=energy,
+    spectrum=full_spectrum,
+)
+
+#=
+for (bd, e) in zip(bond_dimensions, edges(fg))
+    pl, en, pr = get_prop(fg, e, :split)
+    println(e)
+    println(size(pl), "   ", size(en),  "   ", size(pr))
+   #=
+    display(en)
+    println("-------------------")
+    println("-------------------")
+    display(pl)
+    println("-------------------")
+    println("-------------------")
+    display(pr)
+    println("-------------------")
+    println("-------------------")
+    println("-------------------")
+    =#
+    isOK = min(size(en)...) == bd
+    
+    @test isOK
+    if !isOK
+        println(min(size(en)...), " ", bd)
+        display(en)
+        display(pl)
+        display(pr)
+    end
+    
+end
+=#
+
+x, y = m, n
+
+for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
+
+    @info "testing peps" origin
+    println(origin)
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+    @test typeof(peps) == PepsNetwork
+
+    for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
+        A = SpinGlassPEPS._generate_tensor(peps, (i, j))
+        B = generate_tensor(peps, (i, j))
+        @test A ≈ B
+    end
+
+    @info "contracting MPOs (up -> down)"
+
+    ψ = MPO(PEPSRow(peps, 1))
+    
+    for A ∈ ψ @test size(A, 2) == 1 end
+
+    for i ∈ 2:peps.i_max
+        println(i)
+        
+        R = PEPSRow(peps, i)
+        W = MPO(R)
+        M = MPO(peps, i-1, i)
+
+        println(ψ)
+        println(M)
+        println(W)
+
+        ψ = (ψ * M) * W
+
+        for A ∈ ψ @test size(A, 2) == 1 end
+    end
+
+    #for A ∈ ψ @test size(A, 4) == 1 end
+
+    @info "contracting MPOs (down -> up)"
+
+    ψ = MPO(PEPSRow(peps, peps.i_max))
+
+    for A ∈ ψ @test size(A, 4) == 1 end
+
+    println("imax -> ", peps.i_max)
+    
+    for i ∈ peps.i_max-1:-1:1
+        println(i)
+        
+        R = PEPSRow(peps, i)
+        W = MPO(R) 
+        M = MPO(peps, i, i+1) 
+
+        println(W)
+        println(M)
+        println(ψ)
+
+        ψ = W * (M * ψ)
+
+        for A ∈ ψ @test size(A, 4) == 1 end
+    end
+
+    for A ∈ ψ @test size(A, 4) == 1 end
+
+end
 end

@@ -1,3 +1,5 @@
+import SpinGlassPEPS:  M2graph, solve_mps
+
 @testset "mpo-mps small instance of rail dispratching problem" begin
 
     # the matrix made from the disparching problem

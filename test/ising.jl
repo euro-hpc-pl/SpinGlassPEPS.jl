@@ -60,13 +60,10 @@ using CSV
         # @test energies ≈ sp.energies
         # @test states == sp.states
 
-        set_prop!(ig, :β, rand(Float64))
-        
-        ρ = gibbs_tensor(ig)
+        β = rand(Float64)
+        ρ = gibbs_tensor(ig, β)
 
         @test size(ρ) == Tuple(fill(2, N))
-
-        β = get_prop(ig, :β)
 
         r = exp.(-β .* sp.energies)
         R = r ./ sum(r)
@@ -89,11 +86,11 @@ using CSV
         all = prod(rank)
         sp = brute_force(ig, num_states=all)
 
-        β = get_prop(ig, :β)
+        β = rand(Float64)
         ρ = exp.(-β .* sp.energies)
 
         ϱ = ρ ./ sum(ρ) 
-        ϱ̃ = gibbs_tensor(ig)
+        ϱ̃ = gibbs_tensor(ig, β)
  
         @test [ ϱ̃[idx.(σ)...] for σ ∈ sp.states ] ≈ ϱ 
     end
