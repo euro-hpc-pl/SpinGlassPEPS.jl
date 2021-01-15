@@ -46,29 +46,6 @@ function generate_tensor(ng::NetworkGraph, v::Int)
     reshape(tensor, dim..., :)
 end
 
-function _generate_tensor(ng::NetworkGraph, v::Int)
-    fg = ng.factor_graph
-    loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
-
-    projs = Dict()
-    for (i, w) ∈ enumerate(ng.nbrs[v])    
-        if has_edge(fg, w, v)
-            _, _, pv = get_prop(fg, w, v, :split)
-            pv = pv'
-        elseif has_edge(fg, v, w)
-            pv, _, _ = get_prop(fg, v, w, :split)
-        else 
-            pv = ones(length(loc_exp), 1)
-        end
-        push!(projs, i => pv)
-    end
-
-    L, U, R, D = projs[1], projs[2], projs[3], projs[4]
-    @cast tensor[l, u, r, d, σ] |= L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * loc_exp[σ]
-
-    tensor
-end
-
 function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     fg = ng.factor_graph
     if has_edge(fg, w, v)

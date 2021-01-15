@@ -5,7 +5,7 @@ n = 4
 origin_l = [:NW, :NE, :SE, :SW]
 origin_r = [:WN, :EN, :ES, :WS]
 
-for (i, (ol, or)) ∈ enumerate(zip(origin_l, origin_r))    
+for (ol, or) ∈ zip(origin_l, origin_r)   
 
     println("origin ", ol, " ", or)
 
@@ -16,7 +16,7 @@ for (i, (ol, or)) ∈ enumerate(zip(origin_l, origin_r))
     @test j_max_l == n == i_max_r
 
     for i ∈ 0:m+1, j ∈ 0:n+1
-        @test ind_l[i,j] == ind_r[j,i]
+        @test ind_l[i, j] == ind_r[j, i]
     end
 end
 end
@@ -64,12 +64,6 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 
     peps = PepsNetwork(x, y, fg, β, origin)
     @test typeof(peps) == PepsNetwork
-
-    for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
-        A = SpinGlassPEPS._generate_tensor(peps, (i, j)) 
-        B = generate_tensor(peps, (i, j))
-        @test A ≈ B
-    end
 
     @info "contracting MPOs (up -> down)"
 
