@@ -90,7 +90,7 @@ function MPO(::Type{T}, Ψ::PEPSRow) where {T <: Number}
     n = length(Ψ)
     ϕ = MPO(T, n)
     for i=1:n
-        A = ψ[i]
+        A = Ψ[i]
         @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
         ϕ[i] = B
     end

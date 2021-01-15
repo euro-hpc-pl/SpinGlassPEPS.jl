@@ -132,7 +132,11 @@ function rank_reveal(energy, order=:PE)
     
     E, idx = unique_dims(energy, dim)
 
-    P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
+    if order == :PE 
+        P = zeros(size(energy, 1), size(E, 1)) 
+    else
+        P = zeros(size(E, 2), size(energy, 2))
+    end
 
     for (i, elements) ∈ enumerate(eachslice(P, dims=dim))
         elements[idx[i]] = 1
