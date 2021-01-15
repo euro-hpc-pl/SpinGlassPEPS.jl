@@ -86,6 +86,19 @@ end
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
+function MPO(::Type{T}, Ψ::PEPSRow, σ::Vector{State}) where {T <: Number}
+    n = length(Ψ)
+    ϕ = MPO(T, n)
+    for i=1:n
+        k = σ[n]
+        A = Ψ[i]
+        @cast B[l, u, r, d] |= A[l, u, r, d, $k]
+        ϕ[i] = B
+    end
+    ϕ
+end
+MPO(ψ::PEPSRow, σ::Vector{State}) = MPO(Float64, ψ, σ)
+
 function MPO(::Type{T}, Ψ::PEPSRow) where {T <: Number}
     n = length(Ψ)
     ϕ = MPO(T, n)

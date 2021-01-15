@@ -3,7 +3,6 @@ using LightGraphs
 using GraphPlot
 using CSV
 
-#=
 @testset "Rank reveal correctly decomposes energy row-wise" begin
    energy = [[1 2 3]; [0 -1 0]; [1 2 3]]
    P, E = rank_reveal(energy, :PE)
@@ -19,9 +18,7 @@ end
    @test size(E) == (3, 2)
    @test E * P ≈ energy
 end
-=#
 
-#=
 @testset "Lattice graph" begin
    m = 4
    n = 4
@@ -64,7 +61,6 @@ end
    @test isempty(intersect(clv...))
    @test isempty(intersect(cle...))
 end
-=#
 
 @testset "Factor graph builds on pathological instance" begin
 m = 3

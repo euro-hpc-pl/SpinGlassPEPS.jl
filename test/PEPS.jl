@@ -6,9 +6,6 @@ origin_l = [:NW, :NE, :SE, :SW]
 origin_r = [:WN, :EN, :ES, :WS]
 
 for (ol, or) ∈ zip(origin_l, origin_r)   
-
-    println("origin ", ol, " ", or)
-
     ind_l, i_max_l, j_max_l = LinearIndices(m, n, ol)
     ind_r, i_max_r, j_max_r = LinearIndices(m, n, or)
 
@@ -50,7 +47,6 @@ x, y = m, n
 for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 
     @info "testing peps" origin
-    println(origin)
 
     peps = PepsNetwork(x, y, fg, β, origin)
     @test typeof(peps) == PepsNetwork
@@ -62,15 +58,9 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
     for A ∈ ψ @test size(A, 2) == 1 end
 
     for i ∈ 2:peps.i_max
-        println(i)
-        
         R = PEPSRow(peps, i)
         W = MPO(R)
         M = MPO(peps, i-1, i)
-
-        println(ψ)
-        println(M)
-        println(W)
 
         ψ = (ψ * M) * W
 
@@ -84,19 +74,11 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
     ψ = MPO(PEPSRow(peps, peps.i_max))
 
     for A ∈ ψ @test size(A, 4) == 1 end
-
-    println("imax -> ", peps.i_max)
     
     for i ∈ peps.i_max-1:-1:1
-        println(i)
-        
         R = PEPSRow(peps, i)
         W = MPO(R) 
         M = MPO(peps, i, i+1) 
-
-        println(W)
-        println(M)
-        println(ψ)
 
         ψ = W * (M * ψ)
 
