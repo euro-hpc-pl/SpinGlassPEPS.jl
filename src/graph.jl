@@ -80,7 +80,7 @@ mutable struct Edge
     end
 end
 
-function _mv(ig::MetaGraph)
+function _max_cell_num(ig::MetaGraph)
     L = 0
     for v ∈ vertices(ig)
         L = max(L, get_prop(ig, v, :cell))
@@ -90,10 +90,10 @@ end
 
 function factor_graph(
     ig::MetaGraph;
-    energy::Function=energy,
-    spectrum::Function=full_spectrum,
-)
-    L = _mv(ig)
+    energy::Function=energy, 
+    spectrum::Function=full_spectrum, 
+) 
+    L = _max_cell_num(ig)
     fg = MetaDiGraph(L, 0.0)
 
     for v ∈ vertices(fg)
@@ -125,34 +125,17 @@ function factor_graph(
     fg
 end
 
-#=
-# needs to be rewritten!
 function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2
     
-    E = unique(energy, dims=dim)
-    idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
-
-    P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
-
-    for (i, elements) ∈ enumerate(eachslice(P, dims=dim))
-        elements[idx[i]] = 1
-    end
-
-    order == :PE ? (P, E) : (E, P)
-end 
-=#
-
-function rank_reveal(energy, order=:PE)
-    @assert order ∈ (:PE, :EP)
-    dim = order == :PE ? 1 : 2
-
-    # E = unique(energy, dims=dim)
-    # idx = indexin(eachslice(energy, dims=dim), collect(eachslice(E, dims=dim)))
     E, idx = unique_dims(energy, dim)
 
-    P = order == :PE ? zeros(size(energy, 1), size(E, 1)) : zeros(size(E, 2), size(energy, 2))
+    if order == :PE 
+        P = zeros(size(energy, 1), size(E, 1)) 
+    else
+        P = zeros(size(E, 2), size(energy, 2))
+    end
 
     for (i, elements) ∈ enumerate(eachslice(P, dims=dim))
         elements[idx[i]] = 1

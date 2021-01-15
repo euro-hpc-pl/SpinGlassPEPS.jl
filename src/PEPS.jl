@@ -46,29 +46,6 @@ function generate_tensor(ng::NetworkGraph, v::Int)
     reshape(tensor, dim..., :)
 end
 
-function _generate_tensor(ng::NetworkGraph, v::Int)
-    fg = ng.factor_graph
-    loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
-
-    projs = Dict()
-    for (i, w) ∈ enumerate(ng.nbrs[v])
-        if has_edge(fg, w, v)
-            _, _, pv = get_prop(fg, w, v, :split)
-            pv = pv'
-        elseif has_edge(fg, v, w)
-            pv, _, _ = get_prop(fg, v, w, :split)
-        else
-            pv = ones(length(loc_exp), 1)
-        end
-        push!(projs, i => pv)
-    end
-
-    L, U, R, D = projs[1], projs[2], projs[3], projs[4]
-    @cast tensor[l, u, r, d, σ] |= L[σ, l] * U[σ, u] * R[σ, r] * D[σ, d] * loc_exp[σ]
-
-    tensor
-end
-
 function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     fg = ng.factor_graph
     if has_edge(fg, w, v)
@@ -107,14 +84,27 @@ mutable struct PepsNetwork
 end
 
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m])
-_generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = _generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
-function MPO(::Type{T}, ψ::PEPSRow) where {T <: Number}
-    n = length(ψ)
+function MPO(::Type{T}, Ψ::PEPSRow, σ::Vector{State}) where {T <: Number}
+    n = length(Ψ)
     ϕ = MPO(T, n)
     for i=1:n
-        A = ψ[i]
+        k = σ[n]
+        A = Ψ[i]
+        @cast B[l, u, r, d] |= A[l, u, r, d, $k]
+        
+        ϕ[i] = B
+    end
+    ϕ
+end
+MPO(ψ::PEPSRow, σ::Vector{State}) = MPO(Float64, ψ, σ)
+
+function MPO(::Type{T}, Ψ::PEPSRow) where {T <: Number}
+    n = length(Ψ)
+    ϕ = MPO(T, n)
+    for i=1:n
+        A = Ψ[i]
         @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
         ϕ[i] = B
     end
@@ -157,7 +147,6 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             en = ones(1, 1)
         end
 
-        #@cast A[_, σ, _, η] := en[σ, η]
         @cast A[u, _, d, _] := en[u, d]
         ψ[j] = A
     end
