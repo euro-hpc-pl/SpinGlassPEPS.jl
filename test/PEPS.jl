@@ -1,3 +1,21 @@
+@testset "LinearIndices" begin
+m = 3
+n = 4
+origin_l = [:NW, :NE, :SE, :SW]
+origin_r = [:WN, :EN, :ES, :WS]
+for i ∈ 1:length(origin_l)
+    o_l = origin_l[i]
+    o_r = origin_r[i]
+    println("origin ", o_l, " ", o_r)
+    ind_l, i_max_l, j_max_l = LinearIndices(m, n, o_l)
+    ind_r, i_max_r, j_max_r = LinearIndices(m, n, o_r)
+    @test i_max_l == m == j_max_r
+    @test j_max_l == n == i_max_r
+    for i ∈ 0:m+1, j ∈ 0:n+1
+        @test ind_l[i,j] == ind_r[j,i]
+    end
+end
+end
 
 @testset "PepsTensor correctly builds PEPS network" begin
 
@@ -25,6 +43,7 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
+#=
 for (bd, e) in zip(bond_dimensions, edges(fg))
     pl, en, pr = get_prop(fg, e, :split)
     println(e)
@@ -52,13 +71,11 @@ for (bd, e) in zip(bond_dimensions, edges(fg))
     end
     
 end
-
+=#
 
 x, y = m, n
 
-#for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
-#for origin ∈ (:NW, :SW, :NE, :SE, :WN) # OK
-for origin ∈ (:EN, ) #(:EN, :ES, :WS) # NO
+for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 
     @info "testing peps" origin
     println(origin)
@@ -72,7 +89,6 @@ for origin ∈ (:EN, ) #(:EN, :ES, :WS) # NO
         @test A ≈ B
     end
 
-#=
     @info "contracting MPOs (up -> down)"
 
     ψ = MPO(PEPSRow(peps, 1))
@@ -94,7 +110,7 @@ for origin ∈ (:EN, ) #(:EN, :ES, :WS) # NO
 
         for A ∈ ψ @test size(A, 2) == 1 end
     end
-=#
+
     #for A ∈ ψ @test size(A, 4) == 1 end
 
     @info "contracting MPOs (down -> up)"
@@ -103,8 +119,11 @@ for origin ∈ (:EN, ) #(:EN, :ES, :WS) # NO
 
     for A ∈ ψ @test size(A, 4) == 1 end
 
-    for i ∈ peps.i_max-1:1
+    println("imax -> ", peps.i_max)
+    
+    for i ∈ peps.i_max-1:-1:1
         println(i)
+        
         R = PEPSRow(peps, i)
         W = MPO(R) 
         M = MPO(peps, i, i+1) 
