@@ -88,4 +88,40 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
     for A ∈ ψ @test size(A, 4) == 1 end
 end
 
+@testset "PepsTensor correctly builds PEPS network" begin
+
+m = 3
+n = 3
+t = 1
+
+β = 1
+
+L = m * n * t
+
+instance = "$(@__DIR__)/instances/$(L)_001.txt"
+
+ig = ising_graph(instance, L)
+
+fg = factor_graph(
+    ig,
+    energy=energy,
+    spectrum=full_spectrum,
+)
+
+states = all_states(get_prop(ig, :rank))
+ϱ = gibbs_tensor(ig, β)
+
+@test sum(ϱ) ≈ 1
+
+peps = PepsNetwork(m, n, fg, β)
+
+ψ = MPO(PEPSRow(peps, 1))
+for i ∈ 2:peps.i_max
+    W = MPO(PEPSRow(peps, i))
+    M = MPO(peps, i-1, i)
+    ψ = (ψ * M) * W
+end
+
+end
+
 end
