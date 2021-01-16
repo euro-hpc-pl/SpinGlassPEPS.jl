@@ -68,7 +68,7 @@ mutable struct PepsNetwork
     i_max::Int
     j_max::Int
 
-    function PepsNetwork(m::Int, n::Int, fg::MetaDiGraph, β::Number, origin::Symbol)
+    function PepsNetwork(m::Int, n::Int, fg::MetaDiGraph, β::Number, origin::Symbol=:NW)
         pn = new((m, n))
         pn.map, pn.i_max, pn.j_max = LinearIndices(m, n, origin)
 
@@ -147,7 +147,8 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             en = ones(1, 1)
         end
 
-        @cast A[u, _, d, _] := en[u, d]
+        @cast A[_, u, _, d] := en[u, d] 
+
         ψ[j] = A
     end
     ψ

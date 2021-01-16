@@ -130,13 +130,11 @@ fg = factor_graph(
 
 for (bd, e) in zip(bond_dimensions, edges(fg))
    pl, en, pr = get_prop(fg, e, :split)
-
-   println(e)
+   display(e)
    println(size(pl), "   ", size(en),  "   ", size(pr))
 
    @test min(size(en)...) == bd
 end
-
 
 for (i, j) ∈ keys(cedges)
    pl, en, pr = get_prop(fg, i, j, :split)
