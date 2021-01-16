@@ -150,7 +150,7 @@ end
                     collided[j] || continue
                     uniquerow[j] = get!(firstrow, Prehashed(hashes[j]), j)
                 end
-                for v in values(firstrow)
+                for v ∈ values(firstrow)
                     push!(uniquerows, v)
                 end
 

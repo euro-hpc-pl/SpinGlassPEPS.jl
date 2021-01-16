@@ -1,9 +1,12 @@
 export bond_dimension, is_left_normalized, is_right_normalized
 export verify_bonds, verify_physical_dims, tensor, rank
+export State
+
+const State = Union{Vector, NTuple}
 
 abstract type AbstractTensorNetwork{T} end
 
-for (T, N) in ((:PEPSRow, 5), (:MPO, 4), (:MPS, 3))
+for (T, N) ∈ ((:PEPSRow, 5), (:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
     @eval begin
         export $AT
@@ -22,11 +25,10 @@ for (T, N) in ((:PEPSRow, 5), (:MPO, 4), (:MPS, 3))
         @inline Base.setindex!(a::$AT, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
         @inline bond_dimension(a::$AT) = maximum(size.(a.tensors, $N))
         Base.copy(a::$T) = $T(copy(a.tensors))
+        # @inline Base.getindex(a::Array{T, $N}) where {T}
         @inline Base.eltype(::$AT{T}) where {T} = T
     end
 end
-
-# const MPSorMPO = Union{MPS, MPO}
 
 @inline Base.:(==)(a::AbstractTensorNetwork, b::AbstractTensorNetwork) = a.tensors == b.tensors
 @inline Base.:(≈)(a::AbstractTensorNetwork, b::AbstractTensorNetwork)  = a.tensors ≈ b.tensors
@@ -37,6 +39,7 @@ end
 @inline Base.lastindex(a::AbstractTensorNetwork) = lastindex(a.tensors)
 @inline Base.length(a::AbstractTensorNetwork) = length(a.tensors)
 @inline Base.size(a::AbstractTensorNetwork) = (length(a.tensors), )
+@inline Base.eachindex(a::AbstractTensorNetwork) = eachindex(a.tensors)
 
 @inline LinearAlgebra.rank(ψ::MPS) = Tuple(size(A, 2) for A ∈ ψ)
 
@@ -174,7 +177,7 @@ function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
 end  
 
 function is_left_normalized(ψ::MPS)
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         A = ψ[i]
         DD = size(A, 3)
     
@@ -185,7 +188,7 @@ function is_left_normalized(ψ::MPS)
 end
 
 function is_right_normalized(ϕ::MPS)   
-    for i ∈ 1:length(ϕ)
+    for i ∈ eachindex(ϕ)
         B = ϕ[i]
         DD = size(B, 1)
 
@@ -201,7 +204,7 @@ function _verify_square(ψ::AbstractMPS)
 end
 
 function verify_physical_dims(ψ::AbstractMPS, dims::NTuple)
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         @assert size(ψ[i], 2) == dims[i] "Incorrect physical dim at site $(i)." 
     end     
 end  
@@ -219,7 +222,7 @@ end
 
 function Base.show(::IO, ψ::AbstractTensorNetwork)
     L = length(ψ)
-    dims = [size(A) for A in ψ]
+    dims = [size(A) for A ∈ ψ]
 
     @info "Matrix product state on $L sites:" 
     _show_sizes(dims)

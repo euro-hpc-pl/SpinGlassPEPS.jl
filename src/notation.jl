@@ -3,8 +3,8 @@
 #############    forming varous grids    #############
 function nxmgrid(n::Int, m::Int)
     grid = zeros(Int, n, m)
-    for i in 1:m
-       for j in 1:n
+    for i ∈ 1:m
+       for j ∈ 1:n
            grid[j,i] = i+m*(j-1)
        end
    end
@@ -20,8 +20,8 @@ function grid_cel(i::Int, j::Int, block_s::Tuple{Int, Int}, size::Tuple{Int, Int
     cel = zeros(Int, s1, s2)
     delta_i = (i-1)*block_s[1]*size[2]
     delta_j = (j-1)*block_s[2]
-    for k in 1:s1
-        for l in 1:s2
+    for k ∈ 1:s1
+        for l ∈ 1:s2
             cel[k,l] = delta_i+ l + delta_j + (k-1)*size[2]
         end
     end
@@ -34,8 +34,8 @@ function form_a_grid(block_size::Tuple{Int, Int}, size::Tuple{Int, Int})
     s2 = ceil(Int, size[2]/block_size[2])
     M = nxmgrid(s1,s2)
     grid1 = Array{Array{Int}}(undef, (s1,s2))
-    for i in 1:s1
-        for j in 1:s2
+    for i ∈ 1:s1
+        for j ∈ 1:s2
             grid1[i,j] = grid_cel(i,j, block_size, size)
         end
     end
@@ -46,15 +46,15 @@ function chimera_cell(i::Int, j::Int, size::Int)
     size = Int(sqrt(size/8))
     ofset = 8*(j-1)+8*size*(i-1)
     cel = zeros(Int, 4, 2)
-    cel[:,1] = [k+ofset for k in 1:4]
-    cel[:,2] = [k+ofset for k in 5:8]
+    cel[:,1] = [k+ofset for k ∈ 1:4]
+    cel[:,2] = [k+ofset for k ∈ 5:8]
     cel
 end
 
 function chimera_cells(i::Int, j::Int, size::Int, cell_size::Tuple{Int, Int})
     cels = zeros(Int, 4*cell_size[1], 2*cell_size[2])
-    for k1 in 1:cell_size[1]
-        for k2 in 1:cell_size[2]
+    for k1 ∈ 1:cell_size[1]
+        for k2 ∈ 1:cell_size[2]
             ip = k1+(i-1)*cell_size[1]
             jp = k2+(j-1)*cell_size[2]
             cels[(k1-1)*4+1:k1*4, (k2-1)*2+1:k2*2] = chimera_cell(ip, jp, size)
@@ -73,8 +73,8 @@ function form_a_chimera_grid(n::Int, cell_size::Tuple{Int, Int})
 
     grid = Array{Array{Int}}(undef, (n1,n2))
 
-    for i in 1:n1
-        for j in 1:n2
+    for i ∈ 1:n1
+        for j ∈ 1:n2
 
             grid[i,j] = chimera_cells(i,j, problem_size, cell_size)
         end
@@ -88,7 +88,7 @@ function fullM2grid!(M::Matrix{Float64}, s::Tuple{Int, Int})
     s1 = s[1]
     s2 = s[2]
     pairs = Vector{Int}[]
-    for i in 1:s1*s2
+    for i ∈ 1:s1*s2
         if (i%s2 > 0 && i < s1*s2)
             push!(pairs, [i, i+1])
         end
@@ -97,10 +97,10 @@ function fullM2grid!(M::Matrix{Float64}, s::Tuple{Int, Int})
         end
     end
 
-    for k in CartesianIndices(size(M))
+    for k ∈ CartesianIndices(size(M))
         i1 = [k[1], k[2]]
         i2 = [k[2], k[1]]
-        if !(i1 in pairs) && !(i2 in pairs) && (k[1] != k[2])
+        if !(i1 ∈ pairs) && !(i2 ∈ pairs) && (k[1] != k[2])
             M[i1...] = M[i2...] = 0.
         end
     end
@@ -114,7 +114,7 @@ function position_in_cluster(cluster::Vector{Int}, i::Int)
 end
 
 function positions_in_cluster(all::Vector{Int}, part::Vector{Int})
-    [position_in_cluster(all, i) for i in part]
+    [position_in_cluster(all, i) for i ∈ part]
 end
 
 
@@ -210,13 +210,13 @@ struct Element_of_chimera_grid
         end
         if row > 1
             up = Int[]
-            for i in 1:cell_columns
+            for i ∈ 1:cell_columns
                  up = vcat(up, positions_in_cluster(spins, spins_inds[1:4, 2*i-1]))
             end
         end
         if row < size(grid, 1)*cell_rows
             down = Int[]
-            for i in 1:cell_columns
+            for i ∈ 1:cell_columns
                  down = vcat(down, positions_in_cluster(spins, spins_inds[end-3:end, 2*i-1]))
             end
         end
@@ -239,8 +239,8 @@ function M2graph(M::Matrix{Float64}, sgn::Int = 1)
     #TODO we do not require symmetric, is it ok?
 
     D = Dict{Tuple{Int64,Int64},Float64}()
-    for j in 1:size(M, 1)
-        for i in 1:j
+    for j ∈ 1:size(M, 1)
+        for i ∈ 1:j
             if (i == j)
                 push!(D, (i,j) => M[j,i])
             elseif M[j,i] != 0.
@@ -253,7 +253,7 @@ end
 
 
 function graph4mps(ig::MetaGraph)
-    for v in vertices(ig)
+    for v ∈ vertices(ig)
         h = props(ig, v)[:h]
         # -∑hs convention
         set_prop!(ig, v, :energy, [h, -h])
@@ -276,18 +276,18 @@ function make_inner_graph(ig::MetaGraph, g_element::EE)
     set_props!(gg, p)
     set_prop!(gg, :rank, fill(2, LL))
 
-    for i in 1:LL
+    for i ∈ 1:LL
         v = g_element.spins_inds[i]
         p = props(ig, v)
         set_props!(gg, i, p)
     end
 
-    for i in 1:LL
-        for j in i+1:LL
+    for i ∈ 1:LL
+        for j ∈ i+1:LL
             v1 =  g_element.spins_inds[i]
             v2 =  g_element.spins_inds[j]
 
-            if v2 in all_neighbors(ig, v1)
+            if v2 ∈ all_neighbors(ig, v1)
 
                 p = props(ig, v1, v2)
                 add_edge!(gg, i,j)
@@ -313,12 +313,12 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1); spectrum_
         s1 = Int(L/s2)
 
         grid, M = form_a_grid(cell_size, (s1, s2))
-        g_elements = [Element_of_square_grid(i, M, grid) for i in 1:maximum(M)]
+        g_elements = [Element_of_square_grid(i, M, grid) for i ∈ 1:maximum(M)]
     elseif degree(ig, 1) == 5
         # error will be rised if not Int
         n = Int(sqrt(L/8))
         grid, M = form_a_chimera_grid(n, cell_size)
-        g_elements = [Element_of_chimera_grid(i, M, grid) for i in 1:maximum(M)]
+        g_elements = [Element_of_chimera_grid(i, M, grid) for i ∈ 1:maximum(M)]
     else
         error("degree of first node = $degree(ig, 1), neither grid nor chimera")
     end
@@ -327,7 +327,7 @@ function graph4peps(ig::MetaGraph, cell_size::Tuple{Int, Int} = (1,1); spectrum_
 
     set_prop!(g, :grid, M)
 
-    for i in 1:L1
+    for i ∈ 1:L1
 
         g_element = g_elements[i]
 
@@ -395,7 +395,7 @@ function get_Js(g::EE, g1::EE, ig::MetaGraph)
         v1 = g1.down
     end
 
-    for i in 1:length(v)
+    for i ∈ eachindex(v)
         i1 = v[i]
         i2 = v1[i]
         j = props(ig, g.spins_inds[i1], g1.spins_inds[i2])[:J]
@@ -418,11 +418,11 @@ function M_of_interaction(g::EE, g1::EE, ig::MetaGraph, spectrum)
 
     energy = zeros(2^subset_size, length(spectrum))
 
-    for i in 1:length(spectrum)
+    for i ∈ eachindex(spectrum)
 
         σ_cluster = spectrum[i]
 
-        for j in 1:2^subset_size
+        for j ∈ 1:2^subset_size
             σ = ind2spin(j, subset_size)
             @inbounds energy[j,i] = sum(J.*σ.*σ_cluster[spin_subset])
         end
@@ -435,20 +435,20 @@ end
 
 
 function ind2spin(i::Int, no_spins::Int = 1)
-    s = [2^i for i in 1:no_spins]
-    return [1-2*Int((i-1)%j < div(j,2)) for j in s]
+    s = [2^i for i ∈ 1:no_spins]
+    return [1-2*Int((i-1)%j < div(j,2)) for j ∈ s]
 end
 
 function spins2ind(s::Vector{Int})
-    s = [Int(el == 1) for el in s]
-    v = [2^i for i in 0:1:length(s)-1]
+    s = [Int(el == 1) for el ∈ s]
+    v = [2^i for i ∈ 0:eachindex(s)-1]
     transpose(s)*v+1
 end
 
 
-spins2binary(spins::Vector{Int}) = [Int(i > 0) for i in spins]
+spins2binary(spins::Vector{Int}) = [Int(i > 0) for i ∈ spins]
 
-binary2spins(spins::Vector{Int}) = [2*i-1 for i in spins]
+binary2spins(spins::Vector{Int}) = [2*i-1 for i ∈ spins]
 
 
 function get_system_size(g::MetaGraph)
@@ -481,12 +481,12 @@ function last_m_els(vector::Vector{Int}, m::Int)
 end
 
 function s2i(a)
-    if Int[] in a
+    if Int[] ∈ a
         return ones(Int, length(a))
     else
         ret = zeros(Int, length(a))
         k = 1
-        for u in unique(a)
+        for u ∈ unique(a)
            ret = ret + (a .== [u]).*k
            k = k+1
         end

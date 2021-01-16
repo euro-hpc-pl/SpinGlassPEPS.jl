@@ -1,8 +1,6 @@
 export ising_graph, update_cells!
 export energy, gibbs_tensor
-export State
 
-const State = Union{Vector, NTuple}
 const Instance = Union{String, Dict}
 
 """
