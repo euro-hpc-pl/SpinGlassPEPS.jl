@@ -194,3 +194,35 @@ end
    @test size(E) == (3, 2)
    @test E * P ≈ energy
 end
+
+@testset "Rank reveal correctly decomposes energy into projector, energy, projector" begin
+   #energy = [[1 2 3]; [0 -1 0]; [1 2 3]]
+   energy = [[1.0  -0.5   1.5   0.0   0.0  -1.5   0.5  -1.0];
+   [0.0   0.5   0.5   1.0  -1.0  -0.5  -0.5   0.0];
+   [0.5   0.0   1.0   0.5  -0.5  -1.0   0.0  -0.5];
+   [-0.5   1.0   0.0   1.5  -1.5   0.0  -1.0   0.5];
+   [0.5  -1.0   0.0  -1.5   1.5   0.0   1.0  -0.5];
+   [-0.5   0.0  -1.0  -0.5   0.5   1.0   0.0   0.5];
+   [0.0  -0.5  -0.5  -1.0   1.0   0.5   0.5   0.0];
+   [-1.0   0.5  -1.5   0.0   0.0   1.5  -0.5   1.0]]
+   Pl, E_old = rank_reveal(energy, :PE)
+   @test size(Pl) == (8, 8)
+   @test size(E_old) == (8, 8)
+   println("energy: ")
+   display(energy)
+   println("Pl: ")
+   display(Pl)
+   println("E_old: ")
+   display(E_old)
+   @test Pl * E_old ≈ energy
+
+   E, Pr = rank_reveal(E_old, :EP)
+   @test size(Pr) == (8, 8)
+   @test size(E) == (8, 8)
+   println("E: ")
+   display(E)
+   println("Pr: ")
+   display(Pr)
+   @test E * Pr ≈ E_old
+   @test Pl * E * Pr ≈ energy
+end
