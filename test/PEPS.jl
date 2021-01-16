@@ -45,11 +45,7 @@ fg = factor_graph(
 
 x, y = m, n
 
-#for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-for origin ∈ (:NW, :SW, :WS, :WN, :NE, :SE)
-#
-#for origin ∈ (:ES, :EN) # NO
-#for origin ∈ (:WS, :WN) # NO if en'
+for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     @info "testing peps" origin
 
@@ -81,7 +77,6 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :SE)
         @test size(ψ[peps.j_max], 3) == 1
     end
 
-    #=
     for A ∈ ψ @test size(A, 4) == 1 end
     println(ψ)
 
@@ -112,7 +107,6 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :SE)
     
     for A ∈ ψ @test size(A, 4) == 1 end
     println(ψ)
-    =#
 end
 end 
 

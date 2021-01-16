@@ -143,6 +143,7 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             _, en, _ = get_prop(fg, v, w, :split)
         elseif has_edge(fg, w, v)
             _, en, _ = get_prop(fg, w, v, :split)
+            en = en'
         else
             en = ones(1, 1)
         end
