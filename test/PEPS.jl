@@ -46,8 +46,10 @@ fg = factor_graph(
 x, y = m, n
 
 #for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-#for origin ∈ (:NW, :SW, :WS, :WN, :NE, :SE)
-for origin ∈ (:EN,)# :ES)
+for origin ∈ (:NW, :SW, :WS, :WN, :NE, :SE)
+#
+#for origin ∈ (:ES, :EN) # NO
+#for origin ∈ (:WS, :WN) # NO if en'
 
     @info "testing peps" origin
 
