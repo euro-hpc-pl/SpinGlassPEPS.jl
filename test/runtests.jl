@@ -10,7 +10,7 @@ using Logging
 using Statistics
 using NPZ
 
-disable_logging(LogLevel(0))
+disable_logging(LogLevel(1))
 
 using Test
 
@@ -36,8 +36,8 @@ push!(my_tests,
     #"compressions.jl",
     #"ising.jl",
     #"spectrum.jl",
-    #"graph.jl",
-    "PEPS.jl",
+    "graph.jl",
+    #"PEPS.jl",
     #"notation_tests.jl",
     #"peps_tests.jl",
     #"mps_tests.jl",
