@@ -28,7 +28,7 @@ macro state(ex)
         a = ex.args[1]
         inds = ex.args[2:end]
         rex = quote
-            filtered_inds = [state_to_ind($a, j, l) for (j, l) ∈ enumerate($inds)]
+            filtered_inds = [state_to_ind($a, j, eval(l)) for (j, l) ∈ enumerate($inds)]
             $a[filtered_inds...]
         end
     elseif ex.head == :(=)
