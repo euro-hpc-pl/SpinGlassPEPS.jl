@@ -10,7 +10,7 @@ using Logging
 using Statistics
 using NPZ
 
-disable_logging(LogLevel(0))
+disable_logging(LogLevel(1))
 
 using Test
 

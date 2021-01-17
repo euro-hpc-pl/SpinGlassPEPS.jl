@@ -1,3 +1,4 @@
+
 @testset "LinearIndices correctly assigns indices" begin
 m = 3
 n = 4
@@ -44,7 +45,7 @@ fg = factor_graph(
 
 x, y = m, n
 
-for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
+for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     @info "testing peps" origin
 
@@ -58,16 +59,26 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
     for A ∈ ψ @test size(A, 2) == 1 end
 
     for i ∈ 2:peps.i_max
+        println("row -> ", i)
+
         R = PEPSRow(peps, i)
         W = MPO(R)
         M = MPO(peps, i-1, i)
 
+        println(ψ)
+        println(M)
+        println(W)
+        
         ψ = (ψ * M) * W
 
         for A ∈ ψ @test size(A, 2) == 1 end
+        
+        @test size(ψ[1], 1) == 1
+        @test size(ψ[peps.j_max], 3) == 1
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end
+    println(ψ)
 
     @info "contracting MPOs (down -> up)"
 
@@ -76,16 +87,70 @@ for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
     for A ∈ ψ @test size(A, 4) == 1 end
     
     for i ∈ peps.i_max-1:-1:1
+        println("row -> ", i)
+
         R = PEPSRow(peps, i)
         W = MPO(R) 
         M = MPO(peps, i, i+1) 
 
+        println(W)
+        println(M)
+        println(ψ)
+
         ψ = W * (M * ψ)
 
         for A ∈ ψ @test size(A, 4) == 1 end
+
+        @test size(ψ[1], 1) == 1
+        @test size(ψ[peps.j_max], 3) == 1
     end
-
+    
     for A ∈ ψ @test size(A, 4) == 1 end
+    println(ψ)
 end
+end 
+
+@testset "Partition function from PEPS network" begin
+
+m = 3
+n = 3
+t = 1
+
+β = 1
+
+L = m * n * t
+
+instance = "$(@__DIR__)/instances/$(L)_001.txt"
+
+ig = ising_graph(instance, L)
+
+states = collect.(all_states(get_prop(ig, :rank)))
+ρ = exp.(-β .* energy.(states, Ref(ig)))
+Z = sum(ρ)
+
+fg = factor_graph(
+    ig,
+    energy=energy,
+    spectrum=full_spectrum,
+)
+
+peps = PepsNetwork(m, n, fg, β)
+ψ = MPO(PEPSRow(peps, 1))
+
+for i ∈ 2:peps.i_max
+    W = MPO(PEPSRow(peps, i))
+    M = MPO(peps, i-1, i)
+    ψ = (ψ * M) * W
+
+    for A ∈ ψ @test size(A, 2) == 1 end
+
+    @test size(ψ[1], 1) == 1
+    @test size(ψ[peps.j_max], 3) == 1
+end
+for A ∈ ψ @test size(A, 4) == 1 end
+
+println(ψ)
 
 end
+
+
