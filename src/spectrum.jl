@@ -44,8 +44,8 @@ function solve(ψ::MPS, keep::Int)
             for σ ∈ local_basis(d)
                 m = idx(σ)
 
-                # LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
-                (@state LL[:, :, j, (σ, )]) = (@state M[:, (σ, ), :]') * (L * (@state M[:, (σ, ), :]))
+                LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
+                # (@state LL[:, :, j, (σ, )]) = (@state M[:, (σ, ), :]') * (L * (@state M[:, (σ, ), :]))
                 pdo[j, m] = tr(LL[:, :, j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
             end
