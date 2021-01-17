@@ -1,6 +1,7 @@
 export idx, ising, proj
 export HadamardMPS, rq
 export all_states, local_basis, enum
+export @state
 
 using Base.Cartesian
 import Base.Prehashed
@@ -9,6 +10,25 @@ enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1
+
+@inline state_to_ind(::AbstractArray, ::Int, i) = i
+
+@inline function state_to_ind(a::AbstractArray, k::Int, σ::State)
+    n = length(σ)
+    if n == 1 return idx(σ[1]) end
+    d = size(a, k)
+    @show (n, d)
+    base = Int(d ^ (1/n))
+    ind = idx.(σ) .- 1
+    i = sum(l*base^(j-1) for (j, l) ∈ enumerate(reverse(ind)))
+    i + 1
+end
+
+macro state(ex)
+    a = ex.args[1]
+    args = ex.args[2:end]
+    esc(:($a[[SpinGlassPEPS.state_to_ind($a, j, eval(l)) for (j, l) ∈ enumerate($args)]...]))
+end
 
 LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
 
