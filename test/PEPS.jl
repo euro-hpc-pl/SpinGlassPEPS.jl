@@ -134,22 +134,31 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-peps = PepsNetwork(m, n, fg, β)
-ψ = MPO(PEPSRow(peps, 1))
+for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
-for i ∈ 2:peps.i_max
-    W = MPO(PEPSRow(peps, i))
-    M = MPO(peps, i-1, i)
-    ψ = (ψ * M) * W
+    peps = PepsNetwork(m, n, fg, β, origin)
+    
+    ψ = MPO(PEPSRow(peps, 1))
+    for i ∈ 2:peps.i_max
+        W = MPO(PEPSRow(peps, i))
+        M = MPO(peps, i-1, i)
+        ψ = (ψ * M) * W
 
-    for A ∈ ψ @test size(A, 2) == 1 end
+        for A ∈ ψ @test size(A, 2) == 1 end
 
-    @test size(ψ[1], 1) == 1
-    @test size(ψ[peps.j_max], 3) == 1
+        @test size(ψ[1], 1) == 1
+        @test size(ψ[peps.j_max], 3) == 1
+    end
+    for A ∈ ψ @test size(A, 4) == 1 end
+
+    ZZ = []
+    for A ∈ ψ
+        push!(ZZ, dropdims(A, dims=(2, 4))) 
+    end
+    @test Z ≈ prod(ZZ)[]
+
+    println(ψ)
 end
-for A ∈ ψ @test size(A, 4) == 1 end
-
-println(ψ)
 
 end
 
