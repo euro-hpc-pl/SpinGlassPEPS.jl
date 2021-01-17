@@ -1,6 +1,6 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states, local_basis, enum
+export all_states, local_basis, enum, state_to_ind
 export @state
 
 using Base.Cartesian
@@ -12,7 +12,6 @@ idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1
 
 @inline state_to_ind(::AbstractArray, ::Int, i) = i
-
 @inline function state_to_ind(a::AbstractArray, k::Int, σ::State)
     n = length(σ)
     if n == 1 return idx(σ[1]) end
@@ -25,9 +24,18 @@ _σ(idx::Int) = (idx == 1) ? -1 : idx - 1
 end
 
 macro state(ex)
-    a = ex.args[1]
-    args = ex.args[2:end]
-    esc(:($a[[SpinGlassPEPS.state_to_ind($a, j, eval(l)) for (j, l) ∈ enumerate($args)]...]))
+    if ex.head == :ref
+        a = ex.args[1]
+        inds = ex.args[2:end]
+        rex = quote
+            filtered_inds = [state_to_ind($a, j, l) for (j, l) ∈ enumerate($inds)]
+            $a[filtered_inds...]
+        end
+    elseif ex.head == :(=)
+    else
+        error("Not supported operation: $(ex.head)")
+    end
+    esc(rex)
 end
 
 LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))

@@ -45,7 +45,7 @@ function solve(ψ::MPS, keep::Int)
                 m = idx(σ)
 
                 # LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
-                LL[:, :, j, (σ, )] = M[:, (σ, ), :]' * (L * M[:, (σ, ), :])
+                (@state LL[:, :, j, (σ, )]) = (@state M[:, (σ, ), :]') * (L * (@state M[:, (σ, ), :]))
                 pdo[j, m] = tr(LL[:, :, j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
             end
