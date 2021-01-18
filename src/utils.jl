@@ -16,7 +16,6 @@ _σ(idx::Int) = (idx == 1) ? -1 : idx - 1
     n = length(σ)
     if n == 1 return idx(σ[1]) end
     d = size(a, k)
-    @show (n, d)
     base = Int(d ^ (1/n))
     ind = idx.(σ) .- 1
     i = sum(l*base^(j-1) for (j, l) ∈ enumerate(reverse(ind)))
@@ -25,12 +24,14 @@ end
 
 macro state(ex)
     if ex.head == :ref
-        a = ex.args[1]
-        inds = ex.args[2:end]
-        rex = quote
-            filtered_inds = [state_to_ind($a, j, eval(l)) for (j, l) ∈ enumerate($inds)]
-            $a[filtered_inds...]
+        n = length(ex.args)
+        args = Vector(undef, n)
+        args[1] = ex.args[1]
+        for i=2:length(ex.args)
+            args[i] = :(state_to_ind($(ex.args[1]), $(i-1), $(ex.args[i])))
         end
+        rex = Expr(:ref)
+        rex.args = args
     elseif ex.head == :(=)
     else
         error("Not supported operation: $(ex.head)")
