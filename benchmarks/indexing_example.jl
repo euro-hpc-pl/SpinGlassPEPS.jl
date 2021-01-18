@@ -34,11 +34,13 @@ push!(D, (2,4) => 1.7)
 push!(D, (4,6) => -1.5)
 push!(D, (6,8) => 1.2)
 
-g_ising = ising_graph(D, 8, 1)
-
 m = 1
 n = 2
 t = 4
+
+L = m * n * t 
+
+g_ising = ising_graph(D, L)
 
 update_cells!(
   g_ising,
@@ -60,7 +62,7 @@ origin = :NW
 x, y = m, n
 peps = PepsNetwork(x, y, fg, β, origin)
 pp = PEPSRow(peps, 1)
-#println(pp)
+println(pp)
 
 bf = brute_force(g_ising; num_states = 1)
 #println(bf.energies)
@@ -74,9 +76,9 @@ cell_A2_right = states[5:6]
 
 A2 = @state pp[2][cell_A1_left, 1, 1, 1, :]
 
-ocjective, spins = findmax(A2)
+_, spins = findmax(A2)
 
 st = get_prop(fg, 2, :spectrum).states
-println("ground state of A2 from PEPS i.e. at index#  $(spins)  = ", st[spins] )
 
+println("ground state of A2 from PEPS i.e. at index #  $(spins)  = ", st[spins] )
 println("this should correspond to the ground state of A2 from brute force = ", cell_A2)
