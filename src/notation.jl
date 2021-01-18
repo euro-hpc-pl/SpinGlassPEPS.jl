@@ -441,7 +441,7 @@ end
 
 function spins2ind(s::Vector{Int})
     s = [Int(el == 1) for el ∈ s]
-    v = [2^i for i ∈ 0:eachindex(s)-1]
+    v = [2^i for i ∈ 0:length(s)-1]
     transpose(s)*v+1
 end
 
