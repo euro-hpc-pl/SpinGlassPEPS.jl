@@ -42,7 +42,7 @@ t = 4
 
 update_cells!(
   g_ising,
-  rule = square_lattice((m, 2, n, 1, t)),
+  rule = square_lattice((m, 1, n, 1, t)),
 )
 
 fg = factor_graph(
