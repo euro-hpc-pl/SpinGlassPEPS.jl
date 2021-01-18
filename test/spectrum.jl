@@ -148,8 +148,6 @@ end
             sp = brute_force(ig, num_states = max_states)
 
             @info "The largest discarded probability" pCut
-            @test maximum(prob) > pCut
-
       
             for (j, (p, e)) ∈ enumerate(zip(prob, sp.energies))
                 σ = states[:, j]

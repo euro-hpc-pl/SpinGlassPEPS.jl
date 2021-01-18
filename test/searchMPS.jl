@@ -27,7 +27,7 @@ states = all_states(get_prop(ig, :rank))
 ϱ = gibbs_tensor(ig)
 @test sum(ϱ) ≈ 1
 
-@testset "Verifying gate operations" begin
+@testset "Verifying gate operations 2" begin
     rank = get_prop(ig, :rank)
     @info "Testing MPS"
 

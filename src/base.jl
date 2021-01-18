@@ -1,13 +1,15 @@
 export bond_dimension, is_left_normalized, is_right_normalized
 export verify_bonds, verify_physical_dims, tensor, rank
 
-for (T, N) in ((:MPO, 4), (:MPS, 3))
+abstract type AbstractTensorNetwork{T} end
+
+for (T, N) in ((:PEPSRow, 5), (:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
     @eval begin
         export $AT
         export $T
 
-        abstract type $AT{T} end
+        abstract type $AT{T} <: AbstractTensorNetwork{T} end
 
         struct $T{T <: Number} <: $AT{T}
             tensors::Vector{Array{T, $N}}
@@ -24,18 +26,17 @@ for (T, N) in ((:MPO, 4), (:MPS, 3))
     end
 end
 
-const AbstractMPSorMPO = Union{AbstractMPS, AbstractMPO}
-const MPSorMPO = Union{MPS, MPO}
+# const MPSorMPO = Union{MPS, MPO}
 
-@inline Base.:(==)(a::AbstractMPSorMPO, b::AbstractMPSorMPO) = a.tensors == b.tensors
-@inline Base.:(≈)(a::AbstractMPSorMPO, b::AbstractMPSorMPO)  = a.tensors ≈ b.tensors
+@inline Base.:(==)(a::AbstractTensorNetwork, b::AbstractTensorNetwork) = a.tensors == b.tensors
+@inline Base.:(≈)(a::AbstractTensorNetwork, b::AbstractTensorNetwork)  = a.tensors ≈ b.tensors
 
-@inline Base.getindex(a::AbstractMPSorMPO, i) = getindex(a.tensors, i)
-@inline Base.iterate(a::AbstractMPSorMPO) = iterate(a.tensors)
-@inline Base.iterate(a::AbstractMPSorMPO, state) = iterate(a.tensors, state)
-@inline Base.lastindex(a::AbstractMPSorMPO) = lastindex(a.tensors)
-@inline Base.length(a::AbstractMPSorMPO) = length(a.tensors)
-@inline Base.size(a::AbstractMPSorMPO) = (length(a.tensors), )
+@inline Base.getindex(a::AbstractTensorNetwork, i) = getindex(a.tensors, i)
+@inline Base.iterate(a::AbstractTensorNetwork) = iterate(a.tensors)
+@inline Base.iterate(a::AbstractTensorNetwork, state) = iterate(a.tensors, state)
+@inline Base.lastindex(a::AbstractTensorNetwork) = lastindex(a.tensors)
+@inline Base.length(a::AbstractTensorNetwork) = length(a.tensors)
+@inline Base.size(a::AbstractTensorNetwork) = (length(a.tensors), )
 
 @inline LinearAlgebra.rank(ψ::MPS) = Tuple(size(A, 2) for A ∈ ψ)
 
@@ -216,7 +217,7 @@ function verify_bonds(ψ::AbstractMPS)
     end     
 end  
 
-function Base.show(::IO, ψ::AbstractMPS)
+function Base.show(::IO, ψ::AbstractTensorNetwork)
     L = length(ψ)
     dims = [size(A) for A in ψ]
 

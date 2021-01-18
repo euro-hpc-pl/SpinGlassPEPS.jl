@@ -1,6 +1,6 @@
 import SpinGlassPEPS: connections_for_mps, construct_mps
 import SpinGlassPEPS: contract4probability, compute_probs
-import SpinGlassPEPS: solve_mps
+import SpinGlassPEPS: solve_mps, M2graph, graph4mps
 
 Random.seed!(1234)
 
@@ -45,7 +45,7 @@ end
     d = 2
 
     # construct form mpo-mps
-    g =  make_interactions_case1()
+    g =  make_interactions_case2()
     g2 = graph4mps(g)
     mps = construct_mps(g2, β, 2, 4, 0.)
 
@@ -91,7 +91,7 @@ end
 
     spins_exact, _ = solve_mps(g, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
-    spins_peps, _ = solve(g, 10; β = β, χ = 2, threshold = 1e-12)
+    spins_peps, _ = solve(g, 10; β = β, χ = 2, threshold = 1e-12, δH = 0.1)
 
     for k in 1:10
         #testing exact

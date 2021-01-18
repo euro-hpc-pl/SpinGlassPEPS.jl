@@ -1,3 +1,5 @@
+import SpinGlassPEPS:  M2graph, brute_force, solve_mps
+
 @testset "mps on full graphs" begin
 
     @testset "L = 15 testing with brute force" begin

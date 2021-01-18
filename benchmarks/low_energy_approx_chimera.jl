@@ -14,7 +14,7 @@ using Test
 import SpinGlassPEPS: solve, solve_mps, M2graph, energy, binary2spins, ising_graph
 
 disable_logging(LogLevel(0))
-
+δH = 0.9
 # this is axiliary function for npz write
 
 function vecvec2matrix(v::Vector{Vector{Int}})
@@ -28,7 +28,7 @@ end
 
 s = ArgParseSettings("description")
   @add_arg_table! s begin
-    "--file", "-f"
+    "--file", "-i"
     arg_type = String
     help = "the file name"
     "--size", "-s"
@@ -72,7 +72,7 @@ problem_size = parse_args(s)["size"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
 
-ig = ising_graph(fi, si, 1, 1)
+ig = ising_graph(fi, si, 1)
 
 n_sols = parse_args(s)["n_sols"]
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
@@ -88,9 +88,8 @@ energy_ref = energy(ground_spins, ig)
 
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
-ses = collect(spectrum_cutoff:-10:1)
-step = 9
-step = 100
+ses = collect(spectrum_cutoff:-10:40)
+step = 10
 n_s = collect(n_sols:-step:1)
 
 delta_e = ones(length(ses), length(n_s))
@@ -102,7 +101,7 @@ function proceed()
     i = 1
     for s in ses
 
-      @time spins, _ = solve(ig, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s)
+      @time spins, _ = solve(ig, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s, δH=δH)
 
       en = minimum([energy(s, ig) for s in spins])
 

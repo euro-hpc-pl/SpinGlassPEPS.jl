@@ -1,65 +1,91 @@
-@testset "PepsTensor correctly builds PEPS network for Chimera" begin
-m = 4
+@testset "LinearIndices correctly assigns indices" begin
+m = 3
 n = 4
-t = 4
 
-L = 2 * n * m * t
-instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt" 
+origin_l = [:NW, :NE, :SE, :SW]
+origin_r = [:WN, :EN, :ES, :WS]
 
-ig = ising_graph(instance, L)
-cg = Chimera((m, n, t), ig)
+for (ol, or) ∈ zip(origin_l, origin_r)   
+    ind_l, i_max_l, j_max_l = LinearIndices(m, n, ol)
+    ind_r, i_max_r, j_max_r = LinearIndices(m, n, or)
 
-β = get_prop(ig, :β)
-k = 64
+    @test i_max_l == m == j_max_r
+    @test j_max_l == n == i_max_r
 
-for order ∈ (:EP, :PE)
-    for hd ∈ (:LR, :RL), vd ∈ (:BT, :TB)
-
-        @info "Testing factor graph" order hd vd
-
-        fg = factor_graph(cg,
-        #spectrum=full_spectrum,
-        spectrum = cl -> brute_force(cl, num_states=k),
-        energy=energy,
-        cluster=unit_cell,  
-        hdir=hd,
-        vdir=vd,
-        )
-        decompose_edges!(fg, order, β=β)
-
-        @test order == get_prop(fg, :tensors_order)
-        @test (hd, vd) == get_prop(fg, :order)
-
-        for e ∈ edges(fg)
-            dec = get_prop(fg, e, :decomposition)
-            en = get_prop(fg, e, :energy)
-
-            @test exp.(-β .* en) ≈ prod(dec)
-        end
-
-        @info "Testing PEPS"
-        
-        @time begin
-            net = []
-            for v ∈ vertices(fg)
-                peps = PepsTensor(fg, v)
-                push!(net, peps)
-                println(peps.nbrs)
-                println(size(peps))
-            end
-        end    
+    for i ∈ 0:m+1, j ∈ 0:n+1
+        @test ind_l[i, j] == ind_r[j, i]
     end
 end
-
-@testset "PepsTensor correctly builds PEPS network for Lattice" begin
-
-L = 9
-instance = "$(@__DIR__)/instances/$(L)_001.txt" 
-
-ig = ising_graph(instance, L)
-
-
 end
 
+@testset "PepsTensor correctly builds PEPS network" begin
+
+m = 3
+n = 4
+t = 3
+
+β = 1
+
+L = m * n * t
+
+instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
+
+ig = ising_graph(instance, L)
+update_cells!(
+   ig,
+   rule = square_lattice((m, n, t)),
+)
+
+fg = factor_graph(
+    ig,
+    energy=energy,
+    spectrum=full_spectrum,
+)
+
+x, y = m, n
+
+for origin ∈ (:NW, :SW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
+
+    @info "testing peps" origin
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+    @test typeof(peps) == PepsNetwork
+
+    @info "contracting MPOs (up -> down)"
+
+    ψ = MPO(PEPSRow(peps, 1))
+    
+    for A ∈ ψ @test size(A, 2) == 1 end
+
+    for i ∈ 2:peps.i_max
+        R = PEPSRow(peps, i)
+        W = MPO(R)
+        M = MPO(peps, i-1, i)
+
+        ψ = (ψ * M) * W
+
+        for A ∈ ψ @test size(A, 2) == 1 end
+    end
+
+    for A ∈ ψ @test size(A, 4) == 1 end
+
+    @info "contracting MPOs (down -> up)"
+
+    ψ = MPO(PEPSRow(peps, peps.i_max))
+
+    for A ∈ ψ @test size(A, 4) == 1 end
+    
+    for i ∈ peps.i_max-1:-1:1
+        R = PEPSRow(peps, i)
+        W = MPO(R) 
+        M = MPO(peps, i, i+1) 
+
+        ψ = W * (M * ψ)
+
+        for A ∈ ψ @test size(A, 4) == 1 end
+    end
+
+    for A ∈ ψ @test size(A, 4) == 1 end
+end
 
 end

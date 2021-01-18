@@ -1,15 +1,14 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states, local_basis
-export enum
+export all_states, local_basis, enum
 
 using Base.Cartesian
 import Base.Prehashed
 
+enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
+
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1
-
-enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 
 LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
 
@@ -67,7 +66,48 @@ function LinearAlgebra.svd(A::AbstractMatrix, Dcut::Int, args...)
     return  U * Diagonal(ph), Σ, V * Diagonal(ph)
 end
 
-@generated function _unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}
+function Base.LinearIndices(m::Int, n::Int, origin::Symbol=:NW)
+    @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
+
+    ind = Dict()
+    if origin == :NW
+        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (i - 1) * n + j) end
+    elseif origin == :WN
+        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (j - 1) * n + i) end
+    elseif origin == :NE
+        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (i - 1) * n + (n + 1 - j)) end
+    elseif origin == :EN
+        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (j - 1) * n + (n + 1 - i)) end
+    elseif origin == :SE
+        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (m - i) * n + (n + 1 - j)) end
+    elseif origin == :ES
+        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (m - j) * n + (n + 1 - i)) end
+    elseif origin == :SW
+        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (m - i) * n + j) end
+    elseif origin == :WS
+        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (m - j) * n + i) end
+    end
+
+    if origin ∈ (:NW, :NE, :SE, :SW)
+        i_max, j_max = m, n
+    else 
+        i_max, j_max = n, m
+    end
+
+    for i ∈ 0:i_max+1
+        push!(ind, (i, 0) => 0)
+        push!(ind, (i, j_max + 1) => 0)
+    end
+
+    for j ∈ 0:j_max+1
+        push!(ind, (0, j) => 0)
+        push!(ind, (i_max + 1, j) => 0)
+    end
+
+    ind, i_max, j_max
+end
+
+@generated function unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}
     quote
         1 <= dim <= $N || return copy(A)
         hashes = zeros(UInt, axes(A, dim))
@@ -133,6 +173,6 @@ end
             end
         end
 
-        (@nref $N A d->d == dim ? sort!(uniquerows) : (axes(A, d)))
+        (@nref $N A d->d == dim ? sort!(uniquerows) : (axes(A, d))), indexin(uniquerow, uniquerows)
     end
 end

@@ -248,7 +248,7 @@ function M2graph(M::Matrix{Float64}, sgn::Int = 1)
             end
         end
     end
-    ising_graph(D, L, 1, sgn)
+    ising_graph(D, L, sgn)
 end
 
 
