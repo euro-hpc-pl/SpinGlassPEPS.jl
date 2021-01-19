@@ -74,15 +74,13 @@ cell_A1_left = states[3:4]
 cell_A2 = states[5:8]
 cell_A2_right = states[5:6]
 
-println(cell_A1_left)
-cell_A1_left = 1
 A2 = @state pp[2][cell_A1_left, 1, 1, 1, :]
 
 _, spins = findmax(A2)
 
 st = get_prop(fg, 2, :spectrum).states
 
-println("ground state of A2 from PEPS i.e. at index #  $(spins)  = ", st[spins] )
+println("ground state of A2 from PEPS at left index $(cell_A1_left) equals to = ", st[spins] )
 println("this should correspond to the ground state of A2 from brute force = ", cell_A2)
 
 
