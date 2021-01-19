@@ -134,19 +134,20 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     peps = PepsNetwork(m, n, fg, β, origin)
 
     ψ = MPO(PEPSRow(peps, 1))
+
     for i ∈ 2:peps.i_max
         W = MPO(PEPSRow(peps, i))
         M = MPO(peps, i-1, i)
+ 
         ψ = (ψ * M) * W
 
         @test length(W) == peps.j_max
         for A ∈ ψ @test size(A, 2) == 1 end
-
         @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
     end
     for A ∈ ψ @test size(A, 4) == 1 end
