@@ -83,10 +83,12 @@ st = get_prop(fg, 2, :spectrum).states
 println("ground state of A2 from PEPS at left index $(cell_A1_left) equals to = ", st[spins] )
 println("this should correspond to the ground state of A2 from brute force = ", cell_A2)
 
+println("............................")
 
-i = 2
-A2p = @state pp[2][i, 1, 1, 1, :]
+for i in 1:4
+    A2p = @state pp[2][i, 1, 1, 1, :]
 
-_, spins_p = findmax(A2p)
+    _, spins_p = findmax(A2p)
 
-println("at arbitrary left index $i ground state of A2 from PEPS is = ", st[spins_p])
+    println("at arbitrary left index $i ground state of A2 from PEPS is = ", st[spins_p])
+end

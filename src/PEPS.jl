@@ -42,7 +42,6 @@ function generate_tensor(ng::NetworkGraph, v::Int)
         @cast tensor[(c, γ), σ] |= tensor[c, σ] * pv[σ, γ]
         push!(dim, size(pv, 2))
     end
-
     reshape(tensor, dim..., :)
 end
 
@@ -124,7 +123,7 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
         ten = generate_tensor(peps, (i, j), (i, j+1))
         A = ψ[j]
         @tensor B[l, u, r, d, σ] := A[l, u, r̃, d, σ] * ten[r̃, r]
-         ψ[j] = B
+        ψ[j] = B
     end
     ψ
 end
@@ -134,7 +133,8 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
     n = peps.j_max
 
     ψ = MPO(T, n)
-    fg = peps.network_graph.factor_graph
+    ng = peps.network_graph
+    fg = ng.factor_graph
 
     for j ∈ 1:n
         v, w = peps.map[i, j], peps.map[k, j]
@@ -148,7 +148,7 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             en = ones(1, 1)
         end
 
-        @cast A[_, u, _, d] |= en[u, d] 
+        @cast A[_, u, _, d] |= exp(-ng.β * en[u, d]) 
         ψ[j] = A
     end
     ψ

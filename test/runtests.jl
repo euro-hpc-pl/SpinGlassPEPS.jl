@@ -31,8 +31,7 @@ if CUDA.functional() && CUDA.has_cutensor() && false
 end
 
 push!(my_tests,
-    # "base.jl",
-    "utils.jl",
+    "base.jl",
     "contractions.jl",
     "compressions.jl",
     "ising.jl",
