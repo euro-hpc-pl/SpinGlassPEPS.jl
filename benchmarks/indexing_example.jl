@@ -101,30 +101,29 @@ using TensorCast
 
     @test st[spins] == sol_A1
 
-    a,b,c = get_prop(fg, 1, 2, :split)
+    a, b, c = get_prop(fg, 1, 2, :split)
     println(spins)
 
     println(a)
     println(transpose(c))
 
-    p1 = 0
-    if has_edge(fg, 1,2)
-        p1, _, _ = get_prop(fg, 1, 2, :split)
-    elseif has_edge(fg, 2,1)
-        _ , _, p1 = get_prop(fg, 2, 1, :split)
+    if has_edge(fg, 1, 2)
+        p1, en, p2 = get_prop(fg, 1, 2, :split)
+    elseif has_edge(fg, 2, 1)
+        p2, en, p1 = get_prop(fg, 2, 1, :split)
     else
         p1 = ones(1,1)
+        en = p1
     end
 
     #println(collect(edges(fg)))
 
-    proj_column = p1[spins,:]
     # should be 1 at 2'nd position and is on 1'st
-    println(proj_column)
+    println(p1[spins, :])
     T = pp[2]
 
-    @reduce C[a,b,c,d] := sum(x) proj_column[x]* T[x, a,b,c,d]
-    println(C[1,1,1,:])
+    @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * T[x, a, b, c, d]
+    println(C[1, 1, 1, :])
     #println(size(C))
 
     _, s = findmax(C[1,1,1,:])
@@ -140,5 +139,4 @@ using TensorCast
 
     @test st[spins_p] == sol_A2
     @test st[s] == sol_A2
-
 end
