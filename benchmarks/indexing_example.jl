@@ -101,21 +101,6 @@ using TensorCast
 
     @test st[spins] == sol_A1
 
-    println("grount state of A2 from brute force is ", sol_A2)
-
-    for i in 1:4
-        A2p = @state pp[2][i, 1, 1, 1, :]
-
-        _, spins_p = findmax(A2p)
-
-        println("at arbitrary left index $i ground state of A2 from PEPS is = ", st[spins_p])
-    end
-
-    # solutions from A2
-    # seting spins
-    A1_left = sol_A1[3:4]
-
-    println("left spins from A1", A1_left)
 
     p1 = 0
     if has_edge(fg, 1,2)
@@ -126,22 +111,24 @@ using TensorCast
         p1 = ones(1,1)
     end
 
+    #println(collect(edges(fg)))
+
     proj_column = p1[spins,:]
+    # should be 1 at 2'nd position and is on 1'st
     println(proj_column)
     T = pp[2]
 
     @reduce C[a,b,c,d] := sum(x) proj_column[x]* T[x, a,b,c,d]
     println(C[1,1,1,:])
+    #println(size(C))
 
     _, s = findmax(C[1,1,1,:])
 
-
-    A2 = @state pp[2][A1_left, 1, 1, 1, :]
-    A2p = @state pp[2][2, 1, 1, 1, :]
+    A2 = pp[2][1, 1, 1, 1, :]
+    A2p = pp[2][2, 1, 1, 1, :]
     println(A2)
     println(A2p)
 
-    _, spins = findmax(A2)
     _, spins_p = findmax(A2p)
 
     st = get_prop(fg, 2, :spectrum).states
