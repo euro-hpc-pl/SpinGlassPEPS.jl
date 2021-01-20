@@ -92,7 +92,6 @@ function MPO(::Type{T}, Ψ::PEPSRow, σ::Vector{State}) where {T <: Number}
         k = σ[n]
         A = Ψ[i]
         @cast B[l, u, r, d] |= A[l, u, r, d, $k]
-        
         ϕ[i] = B
     end
     ϕ
@@ -115,9 +114,7 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     n = peps.j_max
     ψ = PEPSRow(T, n)
 
-    for j ∈ 1:n
-        ψ[j] = generate_tensor(peps, (i, j))
-    end
+    for j ∈ 1:n ψ[j] = generate_tensor(peps, (i, j)) end
 
     for j ∈ 1:n-1
         ten = generate_tensor(peps, (i, j), (i, j+1))
