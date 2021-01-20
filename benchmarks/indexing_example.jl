@@ -101,6 +101,11 @@ using TensorCast
 
     @test st[spins] == sol_A1
 
+    a,b,c = get_prop(fg, 1, 2, :split)
+    println(spins)
+
+    println(a)
+    println(transpose(c))
 
     p1 = 0
     if has_edge(fg, 1,2)
