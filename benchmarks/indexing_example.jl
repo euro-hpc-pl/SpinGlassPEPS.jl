@@ -2,6 +2,7 @@ using SpinGlassPEPS
 using MetaGraphs
 using LightGraphs
 using Test
+using TensorCast
 
 @testset "test weather the solution of the tensor comply with the brute force" begin
 
@@ -100,8 +101,6 @@ using Test
 
     @test st[spins] == sol_A1
 
-
-
     println("grount state of A2 from brute force is ", sol_A2)
 
     for i in 1:4
@@ -118,8 +117,29 @@ using Test
 
     println("left spins from A1", A1_left)
 
+    p1 = 0
+    if has_edge(fg, 1,2)
+        p1, _, _ = get_prop(fg, 1, 2, :split)
+    elseif has_edge(fg, 2,1)
+        _ , _, p1 = get_prop(fg, 2, 1, :split)
+    else
+        p1 = ones(1,1)
+    end
+
+    proj_column = p1[spins,:]
+    println(proj_column)
+    T = pp[2]
+
+    @reduce C[a,b,c,d] := sum(x) proj_column[x]* T[x, a,b,c,d]
+    println(C[1,1,1,:])
+
+    _, s = findmax(C[1,1,1,:])
+
+
     A2 = @state pp[2][A1_left, 1, 1, 1, :]
     A2p = @state pp[2][2, 1, 1, 1, :]
+    println(A2)
+    println(A2p)
 
     _, spins = findmax(A2)
     _, spins_p = findmax(A2p)
@@ -127,6 +147,6 @@ using Test
     st = get_prop(fg, 2, :spectrum).states
 
     @test st[spins_p] == sol_A2
-    @test st[spins] == sol_A2
+    @test st[s] == sol_A2
 
 end
