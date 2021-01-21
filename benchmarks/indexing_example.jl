@@ -57,28 +57,35 @@ using TensorCast
         spectrum=full_spectrum,
     )
 
-    println("vertices of factor graph ", collect(vertices(fg)))
-    for v in vertices(fg)
-        println("vertex = ", v)
-        c = get_prop(fg, v, :cluster)
-        println(c.tag)
-        println(c.vertices)
-        println(c.edges)
-        println(c.rank)
-        println(c.J)
-        println(c.h)
+    if false
+        println("vertices of factor graph ", collect(vertices(fg)))
+        for v in vertices(fg)
+            println("vertex = ", v)
+            c = get_prop(fg, v, :cluster)
+            println(c.tag)
+            println(c.vertices)
+            println(c.edges)
+            println(c.rank)
+            println(c.J)
+            println(c.h)
+        end
+
+        println("edges of factor graph")
+        for e in edges(fg)
+            println("edge = ", e)
+            println(get_prop(fg, e, :edge))
+
+            p1, e, p2 = get_prop(fg, e, :split)
+            println(p1)
+            #println(e)
+            println(p2)
+        end
     end
 
-    println("edges of factor graph")
-    for e in edges(fg)
-        println("edge = ", e)
-        println(get_prop(fg, e, :edge))
+    println(get_prop(fg, 1, :cluster).edges)
+    println("should return Edge 1 => 2, Edge 2 => 6, Edge 5 => 6, Edge 1 => 5")
 
-        p1, e, p2 = get_prop(fg, e, :split)
-        println(p1)
-        #println(e)
-        println(p2)
-    end
+
 
     origin = :NW
     β = 2.
