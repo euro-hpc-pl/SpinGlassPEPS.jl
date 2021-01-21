@@ -26,13 +26,11 @@ using TensorCast
     push!(D1, (1,1) => 0.704)
     push!(D1, (2,2) => 0.868)
     push!(D1, (3,3) => 0.592)
-    #push!(D1, (4,4) => 0.130)
+
 
     push!(D1, (1, 2) => 0.652)
     push!(D1, (2, 3) => 0.730)
-    #push!(D1, (3, 4) => 0.314)
 
-    println(D1)
    D = Dict{Tuple{Int64,Int64},Float64}()
 
    push!(D, (1,1) => 2.5)
@@ -98,7 +96,7 @@ using TensorCast
     println("brute force projector")
     display(p1)
     println()
-    
+
 
 
     if false
@@ -139,9 +137,6 @@ using TensorCast
     states = bf.states[1]
 
     println("brute force solution = ", states)
-    println()
-    display(pp[2][:,1,1,1,:])
-    println()
 
     #sol_A1 = states[[1,2,3,4]]
     #sol_A2 = states[[5,6,7,8]]
@@ -179,6 +174,12 @@ using TensorCast
 
     st = get_prop(fg, 1, :spectrum).states
 
+    println("index from first tensor = ", spins, " its configurstion = ", st[spins])
+
+    println("matricised second tensor")
+    display(pp[2][:,1,1,1,:])
+    println()
+
     # reading solution from energy numbering and comparison with brute force
 
     @test st[spins] == sol_A1
@@ -195,20 +196,20 @@ using TensorCast
     end
 
     # should be 1 at 2'nd position and is on 1'st
-    println(spins)
-    println(p1[spins, :])
+
     T = pp[2]
 
     @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * T[x, a, b, c, d]
 
-    println()
+    println("irs selected row")
     display(C[1,1,1,:])
     println()
 
     _, s = findmax(C[1,1,1,:])
 
     st = get_prop(fg, 2, :spectrum).states
-    println(st)
+
+    println("spectrum from second ", st)
     @test st[s] == sol_A2
 
     A2p = pp[2][1, 1, 1, 1, :]
