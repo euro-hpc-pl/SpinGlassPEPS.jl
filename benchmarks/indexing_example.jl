@@ -11,16 +11,6 @@ using TensorCast
     #           |
     #   1 -- 2 -|- 3
 
-
-    #      grid
-    #     A1    |    A2
-    #           |
-    #   1 -- 3 -|- 5 -- 7
-    #   |    |  |  |    |
-    #   |    |  |  |    |
-    #   2 -- 4 -|- 6 -- 8
-    #           |
-
     D1 = Dict{Tuple{Int64,Int64},Float64}()
 
     push!(D1, (1,1) => 0.704)
@@ -31,6 +21,16 @@ using TensorCast
     push!(D1, (1, 2) => 0.652)
     push!(D1, (2, 3) => 0.730)
 
+    #      grid
+    #     A1    |    A2
+    #           |
+    #   1 -- 3 -|- 5 -- 7
+    #   |    |  |  |    |
+    #   |    |  |  |    |
+    #   2 -- 4 -|- 6 -- 8
+    #           |
+
+#=
    D = Dict{Tuple{Int64,Int64},Float64}()
 
    push!(D, (1,1) => 2.5)
@@ -54,7 +54,7 @@ using TensorCast
    push!(D, (2,4) => 1.7)
    push!(D, (4,6) => -1.5)
    push!(D, (6,8) => 1.2)
-
+=#
     m = 1
     n = 2
     t = 2
@@ -83,6 +83,12 @@ using TensorCast
     )
 
 
+    sp = get_prop(fg, 1, :spectrum)
+    sp2 = get_prop(fg2, 1, :spectrum)
+
+    display(sp.states)
+    display(sp2.states)
+
     p1, en, p2 = get_prop(fg, 1, 2, :split)
     r1, sn, r2 = get_prop(fg2, 1, 2, :split)
 
@@ -97,8 +103,7 @@ using TensorCast
     display(p1)
     println()
 
-
-
+    #=
     if false
         println("vertices of factor graph ", collect(vertices(fg)))
         for v in vertices(fg)
@@ -121,10 +126,11 @@ using TensorCast
 
         end
     end
+    =#
 
 
     origin = :NW
-    β = 2.
+    β = 1.
 
     x, y = m, n
     peps = PepsNetwork(x, y, fg, β, origin)
