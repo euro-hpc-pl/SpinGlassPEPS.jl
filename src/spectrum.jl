@@ -242,6 +242,9 @@ function brute_force(cl::Cluster; num_states::Int=1)
     if isempty(cl.vertices)
         return Spectrum(zeros(1), [])   
     end
+
+    if num_states > prod(cl.rank) num_states = prod(cl.rank) end
+
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
     perm = partialsortperm(vec(energies), 1:num_states) 
