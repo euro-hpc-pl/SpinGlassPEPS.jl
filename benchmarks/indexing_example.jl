@@ -6,6 +6,11 @@ using TensorCast
 
 @testset "test weather the solution of the tensor comply with the brute force" begin
 
+    #      grid
+    #     A1    |    A2
+    #           |
+    #   1 -- 2 -|- 3
+
 
     #      grid
     #     A1    |    A2
@@ -15,6 +20,16 @@ using TensorCast
     #   |    |  |  |    |
     #   2 -- 4 -|- 6 -- 8
     #           |
+
+    D1 = Dict{Tuple{Int64,Int64},Float64}()
+
+    push!(D1, (1,1) => 2.5)
+    push!(D1, (2,2) => 1.4)
+    push!(D1, (3,3) => 1.0)
+
+
+    push!(D1, (1,2) => 1.3)
+    push!(D1, (2,3) => -1.3)
 
 
    D = Dict{Tuple{Int64,Int64},Float64}()
@@ -43,7 +58,9 @@ using TensorCast
 
     m = 1
     n = 2
-    t = 4
+    t = 2
+
+    D = D1
 
     L = m * n * t
 
@@ -57,7 +74,7 @@ using TensorCast
     fg = factor_graph(
         g_ising,
         energy=energy,
-        spectrum = x -> brute_force(x, num_states=16),
+        spectrum = x -> brute_force(x, num_states=4),
     )
 
     fg2 = factor_graph(
@@ -70,14 +87,20 @@ using TensorCast
     p1, en, p2 = get_prop(fg, 1, 2, :split)
     r1, sn, r2 = get_prop(fg2, 1, 2, :split)
 
-    @test size(p1) == size(r1)
-    @test size(p2) == size(r2)
+    #@test size(p1) == size(r1)
+    #@test size(p2) == size(r2)
 
     #@test p1 ≈ r1
     #@test p2 ≈ r2
 
     display(p1)
     display(r1)
+
+
+    for i in size(p1, 1)
+        _, j = findmax(p1[i, :])
+        println("j = ", j)
+    end
 
     if true
         println("vertices of factor graph ", collect(vertices(fg)))
@@ -109,8 +132,8 @@ using TensorCast
     vert = keys(D)
     @test 1 in vert
     @test 2 in vert
-    @test 3 in vert
-    @test 4 in vert
+    #@test 3 in vert
+    #@test 4 in vert
 
 
     origin = :NW
@@ -125,17 +148,21 @@ using TensorCast
     bf = brute_force(g_ising; num_states = 1)
     states = bf.states[1]
 
-    sol_A1 = states[[1,2,3,4]]
-    sol_A2 = states[[5,6,7,8]]
+    #sol_A1 = states[[1,2,3,4]]
+    #sol_A2 = states[[5,6,7,8]]
+
+    sol_A1 = states[[1,2]]
+    sol_A2 = states[[3]]
 
 
     # solutions from A1
     # index 3 (right) and % (physical are not trivial)
     A1 = pp[1][1,1,:,1,:]
-
+    Aa1 = pp[1]
     # A2 traced
     # index 1 (left is not trivial)
     A2 = MPO(pp)[2][:,1,1,1]
+    Aa2 = MPO(pp)[2]
 
     # contraction of A1 with A2
     #
@@ -143,9 +170,13 @@ using TensorCast
     #            .           .
     #   A1 -- A2      =  A12
     #
-    A12 = (transpose(A2)*A1)[1,:]
+    #A12 = (transpose(A2)*A1)[1,:]
+    @reduce A12[l, u, d, uu, rr, dd, σ] |= sum(x) Aa1[l, u, x, d, σ] * Aa2[x, uu, rr, dd]
+    #@test size(A12) == (1,1,1,1,1,1,16)
+    A12 = dropdims(A12, dims=(1,2,3,4,5,6))
 
     # maximal margianl probability
+
 
     _, spins = findmax(A12)
 
@@ -166,23 +197,24 @@ using TensorCast
         en = p1
     end
 
-    #println(size(p1))
+    println(size(A12))
 
     # should be 1 at 2'nd position and is on 1'st
-    #println(p1[spins, :])
+    println(spins)
+    println(p1[spins, :])
     T = pp[2]
 
-    @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * T[x, a, b, c, d]
+    @reduce C[a, b, c, d] := sum(x) p2[$spins, x] * T[x, a, b, c, d]
 
     #println(size(C))
 
     _, s = findmax(C[1,1,1,:])
 
-    A2 = @state pp[2][sol_A1[3:4], 1, 1, 1, :]
+    #A2 = @state pp[2][sol_A1[3:4], 1, 1, 1, :]
     A2p = pp[2][2, 1, 1, 1, :]
-    println("projector gives the same as @state")
-    println(A2 == C[1, 1, 1, :])
-    println("for what we need the projector ???")
+    #println("projector gives the same as @state")
+    #println(A2 == C[1, 1, 1, :])
+    #println("for what we need the projector ???")
     #println(A2p)
 
     _, spins_p = findmax(A2p)
