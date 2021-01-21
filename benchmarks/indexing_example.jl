@@ -95,31 +95,13 @@ using TensorCast
     #@test p2 ≈ r2
 
     println()
-    println("brute force projs")
+    println("brute force projector")
     display(p1)
     println()
-    println("energy")
-    display(en)
-    println()
-    println(get_prop(fg, 1, :spectrum))
-    println("full spectrum projs")
-    display(r1)
-    println()
-    println("energy")
-    display(sn)
-    println()
-    println(get_prop(fg2, 1, :spectrum))
-    println("brute force projs")
-    display(p2)
-    println()
-    println(get_prop(fg, 2, :spectrum))
-    println("full spectrum projs")
-    display(r2)
-    println()
-    println(get_prop(fg2, 2, :spectrum))
+    
 
 
-    if true
+    if false
         println("vertices of factor graph ", collect(vertices(fg)))
         for v in vertices(fg)
             println("vertex = ", v)
@@ -141,14 +123,6 @@ using TensorCast
 
         end
     end
-
-    D = get_prop(fg, 1, :cluster).vertices
-    println("vertices of edge 1")
-    vert = keys(D)
-    @test 1 in vert
-    @test 2 in vert
-    #@test 3 in vert
-    #@test 4 in vert
 
 
     origin = :NW
