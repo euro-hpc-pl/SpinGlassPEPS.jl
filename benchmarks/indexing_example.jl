@@ -9,34 +9,34 @@ using TensorCast
     #      grid
     #     A1    |    A2
     #           |
-    #   1 -- 3 -|- 5 -- 7
+    #   1 -- 2 -|- 3 -- 4
     #   |    |  |  |    |
     #   |    |  |  |    |
-    #   2 -- 4 -|- 6 -- 8
+    #   5 -- 6 -|- 7 -- 8
     #           |
 
     D = Dict{Tuple{Int64,Int64},Float64}()
     push!(D, (1,1) => 2.5)
-    push!(D, (2,2) => 1.4)
-    push!(D, (3,3) => 2.3)
-    push!(D, (4,4) => 1.2)
-    push!(D, (5,5) => -2.5)
-    push!(D, (6,6) => -.5)
-    push!(D, (7,7) => -.3)
+    push!(D, (5,5) => 1.4)
+    push!(D, (2,2) => 2.3)
+    push!(D, (6,6) => 1.2)
+    push!(D, (3,3) => -2.5)
+    push!(D, (7,7) => -.5)
+    push!(D, (4,4) => -.3)
     push!(D, (8,8) => -.2)
 
-    push!(D, (1,2) => 1.3)
+    push!(D, (1,5) => 1.3)
+    push!(D, (2,6) => -1.)
+    push!(D, (3,7) => 1.1)
+    push!(D, (4,8) => .1)
+
+    push!(D, (1,2) => .8)
+    push!(D, (2,3) => .5)
     push!(D, (3,4) => -1.)
-    push!(D, (5,6) => 1.1)
-    push!(D, (7,8) => .1)
 
-    push!(D, (1,3) => .8)
-    push!(D, (3,5) => .5)
-    push!(D, (5,7) => -1.)
-
-    push!(D, (2,4) => 1.7)
-    push!(D, (4,6) => -1.5)
-    push!(D, (6,8) => 1.2)
+    push!(D, (5,6) => 1.7)
+    push!(D, (6,7) => -1.5)
+    push!(D, (7,8) => 1.2)
 
     m = 1
     n = 2
@@ -66,13 +66,14 @@ using TensorCast
     x, y = m, n
     peps = PepsNetwork(x, y, fg, β, origin)
     pp = PEPSRow(peps, 1)
+    println(pp)
 
     # brute force solution
     bf = brute_force(g_ising; num_states = 1)
     states = bf.states[1]
 
-    sol_A1 = states[1:4]
-    sol_A2 = states[5:8]
+    sol_A1 = states[[1,2,5,6]]
+    sol_A2 = states[[3,4,7,8]]
 
 
     # solutions from A1
@@ -116,7 +117,7 @@ using TensorCast
         en = p1
     end
 
-    #println(collect(edges(fg)))
+    println(size(p1))
 
     # should be 1 at 2'nd position and is on 1'st
     println(p1[spins, :])
