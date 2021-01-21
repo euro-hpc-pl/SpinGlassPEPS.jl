@@ -224,10 +224,18 @@ for (i, j) ∈ keys(cedges)
             s = configurations[k][m]
             r = configurations[l][m]
             J = couplings[k, l]
-            e[m] += dot(s, J, r)
+            if k == l
+                e[m] += dot(s,J)
+            else
+                e[m] += dot(s, J, r)
+            end
         end
    end
 end
 @test e[1] == e[2] == e[3] == e[4]
+@test e[1] == low_energies[1]
+@test e[2] == low_energies[2]
+@test e[3] == low_energies[3]
+@test e[4] == low_energies[4]
 println("low energies: ", e)
 end
