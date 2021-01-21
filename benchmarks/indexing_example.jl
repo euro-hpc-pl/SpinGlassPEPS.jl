@@ -57,8 +57,27 @@ using TensorCast
     fg = factor_graph(
         g_ising,
         energy=energy,
-        spectrum=full_spectrum,
+        spectrum = x -> brute_force(x, num_states=16),
     )
+
+    fg2 = factor_graph(
+        g_ising,
+        energy=energy,
+        spectrum = full_spectrum,
+    )
+
+
+    p1, en, p2 = get_prop(fg, 1, 2, :split)
+    r1, sn, r2 = get_prop(fg2, 1, 2, :split)
+
+    @test size(p1) == size(r1)
+    @test size(p2) == size(r2)
+
+    #@test p1 ≈ r1
+    #@test p2 ≈ r2
+
+    display(p1)
+    display(r1)
 
     if true
         println("vertices of factor graph ", collect(vertices(fg)))
@@ -79,9 +98,9 @@ using TensorCast
             println(get_prop(fg, e, :edge))
 
             p1, e, p2 = get_prop(fg, e, :split)
-            println(p1)
+            display(p1)
             #println(e)
-            println(p2)
+            display(p2')
         end
     end
 
