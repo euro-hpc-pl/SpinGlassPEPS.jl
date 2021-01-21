@@ -57,7 +57,7 @@ using TensorCast
         spectrum=full_spectrum,
     )
 
-    if false
+    if true
         println("vertices of factor graph ", collect(vertices(fg)))
         for v in vertices(fg)
             println("vertex = ", v)
@@ -81,7 +81,7 @@ using TensorCast
             println(p2)
         end
     end
-
+    println("xxxxxxxxxxxxxx  edges xxxxxxxxxxxxxxxx")
     println(get_prop(fg, 1, :cluster).edges)
     println("should return Edge 1 => 2, Edge 2 => 6, Edge 5 => 6, Edge 1 => 5")
 
