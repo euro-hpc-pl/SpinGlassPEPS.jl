@@ -201,7 +201,7 @@ using TensorCast
 
     @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * T[x, a, b, c, d]
 
-    println("irs selected row")
+    println("its selected row")
     display(C[1,1,1,:])
     println()
 
