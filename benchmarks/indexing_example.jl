@@ -23,15 +23,16 @@ using TensorCast
 
     D1 = Dict{Tuple{Int64,Int64},Float64}()
 
-    push!(D1, (1,1) => 2.5)
-    push!(D1, (2,2) => 1.4)
-    push!(D1, (3,3) => 1.0)
+    push!(D1, (1,1) => 0.704)
+    push!(D1, (2,2) => 0.868)
+    push!(D1, (3,3) => 0.592)
+    #push!(D1, (4,4) => 0.130)
 
+    push!(D1, (1, 2) => 0.652)
+    push!(D1, (2, 3) => 0.730)
+    #push!(D1, (3, 4) => 0.314)
 
-    push!(D1, (1,2) => 1.3)
-    push!(D1, (2,3) => -1.3)
-
-
+    println(D1)
    D = Dict{Tuple{Int64,Int64},Float64}()
 
    push!(D, (1,1) => 2.5)
@@ -158,13 +159,15 @@ using TensorCast
     pp = PEPSRow(peps, 1)
     println(pp)
 
-    peps2 = PepsNetwork(x, y, fg2, β, origin)
-    pp2 = PEPSRow(peps2, 1)
-    println(pp2)
 
     # brute force solution
     bf = brute_force(g_ising; num_states = 1)
     states = bf.states[1]
+
+    println("brute force solution = ", states)
+    println()
+    display(pp[2][:,1,1,1,:])
+    println()
 
     #sol_A1 = states[[1,2,3,4]]
     #sol_A2 = states[[5,6,7,8]]
@@ -194,6 +197,7 @@ using TensorCast
     #@test size(A12) == (1,1,1,1,1,1,16)
     A12 = dropdims(A12, dims=(1,2,3,4,5,6))
 
+
     # maximal margianl probability
 
 
@@ -216,30 +220,26 @@ using TensorCast
         en = p1
     end
 
-    println(size(A12))
-
     # should be 1 at 2'nd position and is on 1'st
     println(spins)
     println(p1[spins, :])
     T = pp[2]
 
-    @reduce C[a, b, c, d] := sum(x) p2[$spins, x] * T[x, a, b, c, d]
+    @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * T[x, a, b, c, d]
 
-    #println(size(C))
+    println()
+    display(C[1,1,1,:])
+    println()
 
     _, s = findmax(C[1,1,1,:])
 
-    #A2 = @state pp[2][sol_A1[3:4], 1, 1, 1, :]
-    A2p = pp[2][2, 1, 1, 1, :]
-    #println("projector gives the same as @state")
-    #println(A2 == C[1, 1, 1, :])
-    #println("for what we need the projector ???")
-    #println(A2p)
+    st = get_prop(fg, 2, :spectrum).states
+    println(st)
+    @test st[s] == sol_A2
 
+    A2p = pp[2][1, 1, 1, 1, :]
     _, spins_p = findmax(A2p)
 
-    st = get_prop(fg, 2, :spectrum).states
+    println(st[spins_p] == sol_A2)
 
-    @test st[spins_p] == sol_A2
-    @test st[s] == sol_A2
 end
