@@ -57,8 +57,28 @@ using TensorCast
         spectrum=full_spectrum,
     )
 
+    println("vertices of factor graph ", collect(vertices(fg)))
+    for v in vertices(fg)
+        println("vertex = ", v)
+        c = get_prop(fg, v, :cluster)
+        println(c.tag)
+        println(c.vertices)
+        println(c.edges)
+        println(c.rank)
+        println(c.J)
+        println(c.h)
+    end
 
-    #println([get_prop(fg, e, :edge) for e in edges(fg)])
+    println("edges of factor graph")
+    for e in edges(fg)
+        println("edge = ", e)
+        println(get_prop(fg, e, :edge))
+
+        p1, e, p2 = get_prop(fg, e, :split)
+        println(p1)
+        #println(e)
+        println(p2)
+    end
 
     origin = :NW
     β = 2.
@@ -102,11 +122,7 @@ using TensorCast
 
     @test st[spins] == sol_A1
 
-    a, b, c = get_prop(fg, 1, 2, :split)
     println(spins)
-
-    println(a)
-    println(transpose(c))
 
     if has_edge(fg, 1, 2)
         p1, en, p2 = get_prop(fg, 1, 2, :split)
