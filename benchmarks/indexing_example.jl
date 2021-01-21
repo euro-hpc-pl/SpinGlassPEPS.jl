@@ -93,14 +93,30 @@ using TensorCast
     #@test p1 ≈ r1
     #@test p2 ≈ r2
 
+    println()
+    println("brute force projs")
     display(p1)
+    println()
+    println("energy")
+    display(en)
+    println()
+    println(get_prop(fg, 1, :spectrum))
+    println("full spectrum projs")
     display(r1)
+    println()
+    println("energy")
+    display(sn)
+    println()
+    println(get_prop(fg2, 1, :spectrum))
+    println("brute force projs")
+    display(p2)
+    println()
+    println(get_prop(fg, 2, :spectrum))
+    println("full spectrum projs")
+    display(r2)
+    println()
+    println(get_prop(fg2, 2, :spectrum))
 
-
-    for i in size(p1, 1)
-        _, j = findmax(p1[i, :])
-        println("j = ", j)
-    end
 
     if true
         println("vertices of factor graph ", collect(vertices(fg)))
@@ -121,9 +137,7 @@ using TensorCast
             println(get_prop(fg, e, :edge))
 
             p1, e, p2 = get_prop(fg, e, :split)
-            display(p1)
-            #println(e)
-            display(p2')
+
         end
     end
 
@@ -144,6 +158,10 @@ using TensorCast
     pp = PEPSRow(peps, 1)
     println(pp)
 
+    peps2 = PepsNetwork(x, y, fg2, β, origin)
+    pp2 = PEPSRow(peps2, 1)
+    println(pp2)
+
     # brute force solution
     bf = brute_force(g_ising; num_states = 1)
     states = bf.states[1]
@@ -157,11 +175,12 @@ using TensorCast
 
     # solutions from A1
     # index 3 (right) and % (physical are not trivial)
-    A1 = pp[1][1,1,:,1,:]
+
     Aa1 = pp[1]
+
     # A2 traced
     # index 1 (left is not trivial)
-    A2 = MPO(pp)[2][:,1,1,1]
+
     Aa2 = MPO(pp)[2]
 
     # contraction of A1 with A2
