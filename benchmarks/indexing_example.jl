@@ -81,10 +81,14 @@ using TensorCast
             println(p2)
         end
     end
-    println("xxxxxxxxxxxxxx  edges xxxxxxxxxxxxxxxx")
-    println(get_prop(fg, 1, :cluster).edges)
-    println("should return Edge 1 => 2, Edge 2 => 6, Edge 5 => 6, Edge 1 => 5")
 
+    D = get_prop(fg, 1, :cluster).vertices
+    println("vertices of edge 1")
+    vert = keys(D)
+    @test 1 in vert
+    @test 2 in vert
+    @test 5 in vert
+    @test 6 in vert
 
 
     origin = :NW
