@@ -19,6 +19,7 @@ end
    @test E * P ≈ energy
 end
 
+
 @testset "Lattice graph" begin
    m = 4
    n = 4
