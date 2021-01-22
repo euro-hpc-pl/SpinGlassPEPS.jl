@@ -208,6 +208,12 @@ using TensorCast
     end
 
     # should be 1 at 2'nd position and is on 1'st
+    println("projector again")
+    display(p1)
+    println()
+    println("second projector")
+    display(p2)
+    println()
 
     println("this correspond to following row of the projector  = ", p1[spins, :])
 
