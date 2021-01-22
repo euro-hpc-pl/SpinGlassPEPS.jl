@@ -84,10 +84,15 @@ using TensorCast
 
 
     sp = get_prop(fg, 1, :spectrum)
+
     sp2 = get_prop(fg2, 1, :spectrum)
 
+    println("brute force (local) factor graph")
     display(sp.states)
+    println()
+    println("fill spectrum factor graph")
     display(sp2.states)
+    println()
 
     p1, en, p2 = get_prop(fg, 1, 2, :split)
     r1, sn, r2 = get_prop(fg2, 1, 2, :split)
@@ -99,8 +104,11 @@ using TensorCast
     #@test p2 ≈ r2
 
     println()
-    println("brute force projector")
+    println("brute force (local) projector")
     display(p1)
+    println()
+    println("full spectrum (local) projector")
+    display(r1)
     println()
 
     #=
@@ -142,7 +150,9 @@ using TensorCast
     bf = brute_force(g_ising; num_states = 1)
     states = bf.states[1]
 
-    println("brute force solution = ", states)
+    println("brute force (global) solution = ", states)
+
+    println("it sould equal to the peps solution that is:")
 
     #sol_A1 = states[[1,2,3,4]]
     #sol_A2 = states[[5,6,7,8]]
@@ -180,11 +190,7 @@ using TensorCast
 
     st = get_prop(fg, 1, :spectrum).states
 
-    println("index from first tensor = ", spins, " its configurstion = ", st[spins])
-
-    println("matricised second tensor")
-    display(pp[2][:,1,1,1,:])
-    println()
+    println("solution of A1, index = ", spins, " partial configuration = ", st[spins])
 
     # reading solution from energy numbering and comparison with brute force
 
@@ -203,19 +209,31 @@ using TensorCast
 
     # should be 1 at 2'nd position and is on 1'st
 
+    println("this correspond to following row of the projector  = ", p1[spins, :])
+
+    println("and index = ", findall(p1[spins, :] .== 1))
+
     T = pp[2]
 
     @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * T[x, a, b, c, d]
 
-    println("its selected row")
+    println("matricised A2")
+    display(pp[2][:,1,1,1,:])
+    println()
+
+    println("its selected row at index ", findall(p1[spins, :] .== 1))
     display(C[1,1,1,:])
     println()
 
     _, s = findmax(C[1,1,1,:])
 
     st = get_prop(fg, 2, :spectrum).states
+    println("the solution of A2 is indexed by   ", s)
 
-    println("spectrum from second ", st)
+    println("spectrum of A2 ", st)
+    println("it gives the solution is spin configuration ", st[s])
+    println("and gflobal brute force gives", sol_A2)
+
     @test st[s] == sol_A2
 
     A2p = pp[2][1, 1, 1, 1, :]
