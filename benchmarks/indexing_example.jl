@@ -232,7 +232,7 @@ using TensorCast
 
     println("spectrum of A2 ", st)
     println("it gives the solution is spin configuration ", st[s])
-    println("and gflobal brute force gives", sol_A2)
+    println("and global brute force gives ", sol_A2)
 
     @test st[s] == sol_A2
 
