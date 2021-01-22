@@ -1,16 +1,27 @@
 
-
 @testset "Factor graph correctly indexing states" begin
 
-m = 3
-n = 3
-t = 1
+#     A1    |  A2
+#           |
+#   1 -- 2 -|- 3
+
+instance = Dict{Tuple{Int64,Int64},Float64}()
+
+push!(instance, (1,1) => 0.704)
+push!(instance, (2,2) => 0.868)
+push!(instance, (3,3) => 0.592)
+
+push!(instance, (1, 2) => 0.652)
+push!(instance, (2, 3) => 0.730)
+
+m = 1
+n = 2
+t = 2
 
 β = 1
 
 L = m * n * t
 
-instance = "$(@__DIR__)/instances/$(L)_001.txt"
 
 ig = ising_graph(instance, L)
 
