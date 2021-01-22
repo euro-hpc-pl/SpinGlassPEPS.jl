@@ -225,6 +225,7 @@ using TensorCast
 
     println("matricised A2")
     display(pp[2][:,1,1,1,:])
+    println("why it is diagonal?")
     println()
 
     println("its selected row at index ", findall(p1[spins, :] .== 1))
