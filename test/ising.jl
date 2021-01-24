@@ -178,64 +178,54 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-low_energies = [-16.4, -16.4, -16.4, -16.4, -16.1, -16.1, -16.1, -16.1, -15.9, -15.9, -15.9, -15.9, -15.9, -15.9, -15.6, -15.6, -15.6, -15.6, -15.6, -15.6, -15.4, -15.4]
+configuration = [-1, 0, 0, 1, 1, -1, -1, -1, 1, 0, 0, 0, 1, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, -1, 1, -1, 1, 0, 0, 0]
+low_energies = [[-16.4, -16.4, -16.4, -16.4, -16.1, -16.1, -16.1, -16.1, -15.9, -15.9, -15.9, -15.9, -15.9, -15.9, -15.6, -15.6, -15.6, -15.6, -15.6, -15.6, -15.4, -15.4]]
 configurations = Dict()
-push!(configurations, 1 => [-1, -1, -1, -1])
-push!(configurations, 2 => [0, 0, 0, 0])
-push!(configurations, 3 => [0, 0, 0, 0])
-push!(configurations, 4 => [1, 1, 1, 1])
-push!(configurations, 5 => [1, 1, 1, 1])
-push!(configurations, 6 => [-1, -1, -1, -1])
-push!(configurations, 7 => [-1, -1, -1, -1])
-push!(configurations, 8 => [-1, -1, 1, 1])
-push!(configurations, 9 => [1, 1, 1, 1])
-push!(configurations, 10 => [0, 0, 0, 0])
-push!(configurations, 11 => [0, 0, 0, 0])
-push!(configurations, 12 => [0, 0, 0, 0])
-push!(configurations, 13 => [1, 1, 1, 1])
-push!(configurations, 14 => [0, 0, 0, 0])
-push!(configurations, 15 => [0, 0, 0, 0])
-push!(configurations, 16 => [1, 1, 1, 1])
-push!(configurations, 17 => [0, 0, 0, 0])
-push!(configurations, 18 => [-1, -1, -1, -1])
-push!(configurations, 19 => [0, 0, 0, 0])
-push!(configurations, 20 => [0, 0, 0, 0])
-push!(configurations, 21 => [0, 0, 0, 0])
-push!(configurations, 22 => [0, 0, 0, 0])
-push!(configurations, 23 => [0, 0, 0, 0])
-push!(configurations, 24 => [0, 0, 0, 0])
-push!(configurations, 25 => [0, 0, 0, 0])
-push!(configurations, 26 => [0, 0, 0, 0])
-push!(configurations, 27 => [0, 0, 0, 0])
-push!(configurations, 28 => [1, 1, 1, 1])
-push!(configurations, 29 => [1, 1, 1, 1])
-push!(configurations, 30 => [-1, -1, -1, -1])
-push!(configurations, 31 => [1, 1, 1, 1])
-push!(configurations, 32 => [-1, -1, -1, -1])
-push!(configurations, 33 => [1,-1, 1, -1])
-push!(configurations, 34 => [0, 0, 0, 0])
-push!(configurations, 35 => [0, 0, 0, 0])
-push!(configurations, 36 => [0, 0, 0, 0])
+push!(configurations, 1 => [-1])
+push!(configurations, 2 => [0])
+push!(configurations, 3 => [0])
+push!(configurations, 4 => [1])
+push!(configurations, 5 => [1])
+push!(configurations, 6 => [-1])
+push!(configurations, 7 => [-1])
+push!(configurations, 8 => [-1])
+push!(configurations, 9 => [1])
+push!(configurations, 10 => [0])
+push!(configurations, 11 => [0])
+push!(configurations, 12 => [0])
+push!(configurations, 13 => [1])
+push!(configurations, 14 => [0])
+push!(configurations, 15 => [0])
+push!(configurations, 16 => [1])
+push!(configurations, 17 => [0])
+push!(configurations, 18 => [-1])
+push!(configurations, 19 => [0])
+push!(configurations, 20 => [0])
+push!(configurations, 21 => [0])
+push!(configurations, 22 => [0])
+push!(configurations, 23 => [0])
+push!(configurations, 24 => [0])
+push!(configurations, 25 => [0])
+push!(configurations, 26 => [0])
+push!(configurations, 27 => [0])
+push!(configurations, 28 => [1])
+push!(configurations, 29 => [1])
+push!(configurations, 30 => [-1])
+push!(configurations, 31 => [1])
+push!(configurations, 32 => [-1])
+push!(configurations, 33 => [1])
+push!(configurations, 34 => [0])
+push!(configurations, 35 => [0])
+push!(configurations, 36 => [0])
 
-e = zeros(1,4)
+e = 0
 for (i, j) ∈ keys(cedges)
-    for (k, l) ∈ values(cedges[i, j])
-        for m ∈ 1:length(configurations[k])
-            s = configurations[k][m]
-            r = configurations[l][m]
-            J = couplings[k, l]
-            if k == l
-                e[m] += dot(s,J)
-            else
-                e[m] += dot(s, J, r)
-            end
-        end
+   for (k, l) ∈ values(cedges[i, j])
+      s = configurations[k]
+      r = configurations[l]
+      J = couplings[k, l]
+      e += dot(s, J, r)
    end
 end
-@test e[1] == e[2] == e[3] == e[4]
-@test e[1] == low_energies[1]
-@test e[2] == low_energies[2]
-@test e[3] == low_energies[3]
-@test e[4] == low_energies[4]
-println("low energies: ", e)
+println("low energy: ", e)
 end

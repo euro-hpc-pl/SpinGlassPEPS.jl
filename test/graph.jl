@@ -19,6 +19,7 @@ end
    @test E * P ≈ energy
 end
 
+
 @testset "Lattice graph" begin
    m = 4
    n = 4
@@ -36,7 +37,7 @@ end
       rule = square_lattice((m, n, 2*t)),
    )
 
-   @time fg = factor_graph(ig)
+   @time fg = factor_graph(ig, 2)
 
    @test collect(vertices(fg)) == collect(1:m * n)
    @test nv(fg) == m * n
@@ -123,6 +124,7 @@ update_cells!(
 
 fg = factor_graph(
     ig,
+    
     energy=energy,
     spectrum=full_spectrum,
 )

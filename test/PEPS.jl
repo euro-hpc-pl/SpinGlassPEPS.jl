@@ -68,9 +68,8 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         ψ = (ψ * M) * W
 
         for A ∈ ψ @test size(A, 2) == 1 end
-
+        
         @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
-        @test size(ψ[peps.j_max], 3) == 1
     end
 
     for A ∈ ψ @test size(A, 4) == 1 end

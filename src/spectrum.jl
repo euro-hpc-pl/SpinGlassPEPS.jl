@@ -251,11 +251,21 @@ function brute_force(cl::Cluster; num_states::Int=1)
     Spectrum(energies[perm], σ[perm])
 end
 
-function full_spectrum(cl::Cluster)
+function full_spectrum(cl::Cluster; num_states::Int=prod(cl.rank))
     if isempty(cl.vertices)
         return Spectrum(zeros(1), [])   
     end
     σ = collect.(all_states(cl.rank))
+    energies = energy.(σ, Ref(cl))
+    Spectrum(energies[1:num_states], σ[1:num_states])   
+end
+
+
+function _full_spectrum(cl::Cluster; num_states::Int=prod(cl.rank))
+    if isempty(cl.vertices)
+        return Spectrum(zeros(1), [])   
+    end
+    σ = collect.(all_states(num_states))
     energies = energy.(σ, Ref(cl))
     Spectrum(energies, σ)   
 end
