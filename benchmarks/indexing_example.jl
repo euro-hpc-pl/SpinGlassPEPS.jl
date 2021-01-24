@@ -13,8 +13,8 @@ using TensorCast
 
     D1 = Dict{Tuple{Int64,Int64},Float64}()
 
-    push!(D1, (1,1) => 0.704)
-    push!(D1, (2,2) => 0.868)
+    push!(D1, (2,2) => 0.704)
+    push!(D1, (1,1) => 0.868)
     push!(D1, (3,3) => 0.592)
 
 
