@@ -23,17 +23,32 @@ t = 2
 L = m * n * t
 
 ig = ising_graph(instance, L)
+<<<<<<< HEAD
 
 fg = factor_graph(
     ig,
     Dict(1=>4, 2=>1),
+=======
+update_cells!(
+   ig,
+   rule = square_lattice((m, n, t)),
+)
+
+fg = factor_graph(
+    ig,
+    Dict(1=>4, 2=>2),
+>>>>>>> origin/lp/spectrum
     energy=energy,
     spectrum=full_spectrum,
 )
 
 fg_bf = factor_graph(
     ig,
+<<<<<<< HEAD
     Dict(1=>4, 2=>1),
+=======
+    Dict(1=>4, 2=>2),
+>>>>>>> origin/lp/spectrum
     energy=energy,
     spectrum=brute_force,
 )
