@@ -118,7 +118,6 @@ function factor_graph(
         set_prop!(fg, v, :cluster, cl)
         r = prod(cl.rank)
         num_states = get(num_states_cl, v, r)
-        num_states = min(num_states, r)
         sp = spectrum(cl, num_states=num_states)
         set_prop!(fg, v, :spectrum, sp)
         set_prop!(fg, v, :loc_en, vec(sp.energies))
