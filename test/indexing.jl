@@ -22,19 +22,20 @@ t = 2
 
 L = m * n * t
 
-
 ig = ising_graph(instance, L)
 
 fg = factor_graph(
     ig,
+    Dict(1=>4, 2=>1),
     energy=energy,
     spectrum=full_spectrum,
 )
 
 fg_bf = factor_graph(
     ig,
+    Dict(1=>4, 2=>1),
     energy=energy,
-    spectrum= x -> brute_force(x, num_states=2),
+    spectrum=brute_force,
 )
 
 sp = get_prop(fg, 1, :spectrum)
