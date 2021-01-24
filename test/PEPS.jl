@@ -64,11 +64,7 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         R = PEPSRow(peps, i)
         W = MPO(R)
         M = MPO(peps, i-1, i)
-
-        println(ψ)
-        println(M)
-        println(W)
-
+        
         ψ = (ψ * M) * W
 
         for A ∈ ψ @test size(A, 2) == 1 end
@@ -92,10 +88,6 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         R = PEPSRow(peps, i)
         W = MPO(R)
         M = MPO(peps, i, i+1)
-
-        println(W)
-        println(M)
-        println(ψ)
 
         ψ = W * (M * ψ)
 
