@@ -5,10 +5,10 @@
 #           |
 #   1 -- 2 -|- 3
 
-instance = Dict{Tuple{Int64,Int64},Float64}()
+instance = Dict{Tuple{Int64, Int64}, Float64}()
 
-push!(instance, (1,1) => 0.704)
-push!(instance, (2,2) => 0.868)
+push!(instance, (2,2) => 0.704)
+push!(instance, (1,1) => 0.868)
 push!(instance, (3,3) => 0.592)
 
 push!(instance, (1, 2) => 0.652)
@@ -23,12 +23,6 @@ t = 2
 L = m * n * t
 
 ig = ising_graph(instance, L)
-<<<<<<< HEAD
-
-fg = factor_graph(
-    ig,
-    Dict(1=>4, 2=>1),
-=======
 update_cells!(
    ig,
    rule = square_lattice((m, n, t)),
@@ -37,18 +31,13 @@ update_cells!(
 fg = factor_graph(
     ig,
     Dict(1=>4, 2=>2),
->>>>>>> origin/lp/spectrum
     energy=energy,
     spectrum=full_spectrum,
 )
 
 fg_bf = factor_graph(
     ig,
-<<<<<<< HEAD
-    Dict(1=>4, 2=>1),
-=======
     Dict(1=>4, 2=>2),
->>>>>>> origin/lp/spectrum
     energy=energy,
     spectrum=brute_force,
 )
@@ -57,6 +46,8 @@ sp = get_prop(fg, 1, :spectrum)
 sp_bf = get_prop(fg_bf, 1, :spectrum)
 
 display(sp.states)
+println()
 display(sp_bf.states)
+println()
 
 end
