@@ -14,9 +14,9 @@ if true
 
     D = Dict{Tuple{Int64,Int64},Float64}()
 
-    push!(D1, (2,2) => 0.704)
-    push!(D1, (1,1) => 0.868)
-    push!(D1, (3,3) => 0.592)
+    push!(D, (2,2) => 0.704)
+    push!(D, (1,1) => 0.868)
+    push!(D, (3,3) => 0.592)
 
 
     push!(D, (1, 2) => 0.652)
@@ -38,12 +38,14 @@ if true
 
     fg = factor_graph(
         g_ising,
+        Dict(1=>4, 2=>2),
         energy=energy,
-        spectrum = x -> brute_force(x, num_states=4),
+        spectrum = brute_force,
     )
 
     fg2 = factor_graph(
         g_ising,
+        Dict(1=>4, 2=>2),
         energy=energy,
         spectrum = full_spectrum,
     )
