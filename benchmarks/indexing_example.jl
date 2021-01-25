@@ -403,7 +403,7 @@ if true
         h3 = D[(3,3)]
         println("matricised A2")
         display(pp[2][:,1,1,1,:])
-        println()
+        println("  ==?")
         display([exp(h3) 0.; 0. exp(-h3)])
         println()
         println("why it is diagonal?")
