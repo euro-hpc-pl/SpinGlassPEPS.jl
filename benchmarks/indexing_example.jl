@@ -4,7 +4,7 @@ using LightGraphs
 using Test
 using TensorCast
 
-if false
+if true
 @testset "test the solution of the tensor with the brute force, random case" begin
 
     #      grid
@@ -13,12 +13,11 @@ if false
     #   1 -- 2 -|- 3
 
     D = Dict{Tuple{Int64,Int64},Float64}()
-    f() = 2*rand()-1
+    f() = 2 * rand() - 1
 
     push!(D, (2,2) => f())
     push!(D, (1,1) => f())
     push!(D, (3,3) => f())
-
 
     push!(D, (1, 2) => f())
     push!(D, (2, 3) => f())
@@ -56,14 +55,12 @@ if false
     #Partition function
     β = 1
     states = collect.(all_states(get_prop(g_ising, :rank)))
-    println("states ", states)
     ρ = exp.(-β .* energy.(states, Ref(g_ising)))
     Z = sum(ρ)
-    println("Z ", Z)
 
     @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
 
-    for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+    for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
         peps = PepsNetwork(m, n, fg, β, origin)
 
@@ -83,15 +80,11 @@ if false
         println("ψ ", ψ)
 
         ZZ = []
-        for A ∈ ψ
-            println("A ", A)
-            push!(ZZ, dropdims(A, dims=(2, 4)))
-            println("ZZ ", ZZ)
-        end
-        @test Z ≈ 2*prod(ZZ)[]
+        for A ∈ ψ push!(ZZ, dropdims(A, dims=(2, 4))) end
+        @test Z ≈ prod(ZZ)[]
     end
 
-
+#=
     sp = get_prop(fg, 1, :spectrum)
 
     sp2 = get_prop(fg2, 1, :spectrum)
@@ -703,7 +696,7 @@ if false
     _, spins_p = findmax(A2p)
 
     println(st[spins_p] == sol_A2)
-
+=#
 
 end
 end
