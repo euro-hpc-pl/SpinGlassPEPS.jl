@@ -4,7 +4,7 @@ using LightGraphs
 using Test
 using TensorCast
 
-if true
+if false
 @testset "test weather the solution of the tensor comply with the brute force" begin
 
     #      grid
@@ -58,7 +58,7 @@ if true
     Z = sum(ρ)
     println("Z ", Z)
 
-    #@test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
+    @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
 
     for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
@@ -72,11 +72,11 @@ if true
 
             ψ = (ψ * M) * W
 
-            #@test length(W) == peps.j_max
-            #for A ∈ ψ @test size(A, 2) == 1 end
-            #@test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
+            @test length(W) == peps.j_max
+            for A ∈ ψ @test size(A, 2) == 1 end
+            @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
         end
-        #for A ∈ ψ @test size(A, 4) == 1 end
+        for A ∈ ψ @test size(A, 4) == 1 end
         println("ψ ", ψ)
 
         ZZ = []
@@ -288,15 +288,55 @@ end
 
     fg = factor_graph(
         g_ising,
+        Dict(1=>16, 2=>16),
         energy=energy,
-        spectrum = x -> brute_force(x, num_states=16),
+        spectrum = brute_force,
     )
 
     fg2 = factor_graph(
         g_ising,
+        Dict(1=>16, 2=>16),
         energy=energy,
         spectrum = full_spectrum,
     )
+
+    #Partition function
+    β = 1
+    states = collect.(all_states(get_prop(g_ising, :rank)))
+    println("states ", states)
+    ρ = exp.(-β .* energy.(states, Ref(g_ising)))
+    Z = sum(ρ)
+    println("Z ", Z)
+
+    @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
+
+    for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+
+        peps = PepsNetwork(m, n, fg, β, origin)
+
+        ψ = MPO(PEPSRow(peps, 1))
+
+        for i ∈ 2:peps.i_max
+            W = MPO(PEPSRow(peps, i))
+            M = MPO(peps, i-1, i)
+
+            ψ = (ψ * M) * W
+
+            @test length(W) == peps.j_max
+            for A ∈ ψ @test size(A, 2) == 1 end
+            @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
+        end
+        for A ∈ ψ @test size(A, 4) == 1 end
+        println("ψ ", ψ)
+
+        ZZ = []
+        for A ∈ ψ
+            println("A ", A)
+            push!(ZZ, dropdims(A, dims=(2, 4)))
+            println("ZZ ", ZZ)
+        end
+        @test Z ≈ prod(ZZ)[]
+    end
 
 
     origin = :NW
