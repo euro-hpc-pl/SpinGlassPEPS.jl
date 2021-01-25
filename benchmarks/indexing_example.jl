@@ -15,12 +15,12 @@ if true
     D = Dict{Tuple{Int64,Int64},Float64}()
     f() = 2 * rand() - 1
 
-    push!(D, (2,2) => 0 * f())
-    push!(D, (1,1) => 0 * f())
-    push!(D, (3,3) => 0 * f())
+    push!(D, (2,2) => f())
+    push!(D, (1,1) => f())
+    push!(D, (3,3) => f())
 
-    push!(D, (1, 2) => 0 * f())
-    push!(D, (2, 3) => 0 * f())
+    push!(D, (1, 2) => f())
+    push!(D, (2, 3) => f())
 
     m = 1
     n = 2
@@ -28,7 +28,7 @@ if true
 
     L = m * n * t
 
-    g_ising = ising_graph(D, L)
+    g_ising = ising_graph(D, L-1)
 
     update_cells!(
       g_ising,
@@ -51,6 +51,9 @@ if true
 
     # Partition function
     β = 1
+ 
+    println(get_prop(g_ising, :rank))
+
     states = collect.(all_states(get_prop(g_ising, :rank)))
     ρ = exp.(-β .* energy.(states, Ref(g_ising)))
     Z = sum(ρ)
