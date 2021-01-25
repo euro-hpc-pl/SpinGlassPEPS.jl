@@ -1,6 +1,6 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states, local_basis, enum, state_to_ind
+export all_states, local_basis, enum, state_to_ind, rank_vec
 export @state
 
 using Base.Cartesian
@@ -211,4 +211,10 @@ end
 
         (@nref $N A d->d == dim ? sort!(uniquerows) : (axes(A, d))), indexin(uniquerow, uniquerows)
     end
+end
+
+function rank_vec(ig::MetaGraph)
+    rank = get_prop(ig, :rank)
+    L = get_prop(ig, :L)
+    Int[get(rank, i, 1) for i=1:L]
 end

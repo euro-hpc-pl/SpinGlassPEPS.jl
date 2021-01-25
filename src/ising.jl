@@ -17,8 +17,7 @@ Calculates matrix elements (probabilities) of \$\\rho\$
 for all possible configurations \$\\σ\$.
 """
 function gibbs_tensor(ig::MetaGraph, β=Float64=1.0)
-    rank = get_prop(ig, :rank)
-    states = collect.(all_states(rank))
+    states = collect.(all_states(rank_vec(ig)))
     ρ = exp.(-β .* energy.(states, Ref(ig)))
     ρ ./ sum(ρ)
 end
@@ -65,7 +64,8 @@ function ising_graph(
     instance::Instance,
     L::Int,
     sgn::Number=1.0,
-    rank_override::Dict{Int, Int}=Dict{Int, Int}())
+    rank_override::Dict{Int, Int}=Dict{Int, Int}()
+)
 
     # load the Ising instance
     if typeof(instance) == String
@@ -76,6 +76,7 @@ function ising_graph(
 
     ig = MetaGraph(L, 0.0)
     set_prop!(ig, :description, "The Ising model.")
+    set_prop!(ig, :L, L)
 
     for v ∈ 1:L
         set_prop!(ig, v, :active, false)
