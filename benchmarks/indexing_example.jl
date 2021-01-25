@@ -3,7 +3,7 @@ using MetaGraphs
 using LightGraphs
 using Test
 using TensorCast
-
+#=
 if true
 @testset "test the solution of the tensor with the brute force, random case" begin
 
@@ -84,7 +84,6 @@ if true
         @test Z ≈ prod(ZZ)[]
     end
 
-#=
     sp = get_prop(fg, 1, :spectrum)
 
     sp2 = get_prop(fg2, 1, :spectrum)
@@ -241,7 +240,7 @@ if true
 
 end
 end
-
+=#
 if true
 @testset "test weather the solution of the tensor comply with the brute force" begin
 
@@ -262,7 +261,7 @@ if true
 
     D2 = Dict((1, 2) => -0.9049,(2, 3) => 0.2838,(3, 3) => -0.7928,(2, 2) => 0.1208,(1, 1) => -0.3342)
 
-    for D in [D1, D2]
+    for D in [D1]#, D2]
 
         m = 1
         n = 2
@@ -279,14 +278,14 @@ if true
 
         fg = factor_graph(
             g_ising,
-            Dict(1=>4, 2=>2),
+            #Dict(1=>4, 2=>2),
             energy=energy,
-            spectrum = brute_force,
+            spectrum = x -> brute_force(x, num_states=4) #brute_force,
         )
 
         fg2 = factor_graph(
             g_ising,
-            Dict(1=>4, 2=>2),
+            #Dict(1=>4, 2=>2),
             energy=energy,
             spectrum = full_spectrum,
         )
@@ -358,9 +357,6 @@ if true
         display(r1)
         println()
 
-
-
-
         origin = :NW
         β = 1.
 
@@ -368,20 +364,6 @@ if true
         peps = PepsNetwork(x, y, fg, β, origin)
         pp = PEPSRow(peps, 1)
         println(pp)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         println("matricised A1")
         display(pp[1][1,1,:,1,:])
@@ -400,6 +382,24 @@ if true
         display([exp(h3) 0.; 0. exp(-h3)])
         println()
         println("why it is diagonal?")
+
+        Aa1 = pp[1]
+        println("Aa1 ", Aa1)
+        println("Matricized Aa1")
+        display(pp[1][:,1,1,1,:])
+        display(pp[1][:,1,2,1,:])
+        #@test pp[1][:,1,1,1,:] ≈ [1.20925 4.69266 0.785056 0.224473]
+        @test isapprox(pp[1][:,1,1,1,:], [1.20925 4.69266 0.785056 0.224473], atol=1e-5)
+        #@test pp[1][:,1,2,1,:] ≈ [5.20698 1.08981 3.38042 0.0521308]
+        @test isapprox(pp[1][:,1,2,1,:], [5.206979 1.089806 3.3804201 0.052130765], atol=1e-5)
+
+        # A2 traced
+        # index 1 (left is not trivial)
+
+        Aa2 = MPO(pp)[2]
+        println("Aa2 ", Aa2)
+        @test isapprox(pp[2][:,1,1,1,:] , [1.8076000  0.; 0. 0.5532197], atol=1e-5)
+        #@test pp[2][:,1,1,1,:] ≈ [1.8076000026120045  0.; 0. 0.5532197380808739]
 
         # the solution without cutting off, it works
         M1 = pp[1][1,1,:,1,:]
@@ -428,12 +428,10 @@ if true
         # index 3 (right) and % (physical are not trivial)
 
         Aa1 = pp[1]
-
         # A2 traced
         # index 1 (left is not trivial)
 
         Aa2 = MPO(pp)[2]
-
         # contraction of A1 with A2
         #
         #              .           .
@@ -513,7 +511,7 @@ if true
 
 end
 end
-
+#=
 if false
 @testset "lerger example" begin
     #      grid
@@ -696,7 +694,8 @@ if false
     _, spins_p = findmax(A2p)
 
     println(st[spins_p] == sol_A2)
-=#
+
 
 end
 end
+=#
