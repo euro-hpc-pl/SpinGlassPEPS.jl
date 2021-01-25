@@ -23,7 +23,7 @@ mutable struct Cluster
         end
         vlist = intersect(active, vlist)
 
-        L = length(collect(vlist))
+        L = length(vlist)
         cl.h = zeros(L)
         cl.J = zeros(L, L)
 
@@ -31,7 +31,9 @@ mutable struct Cluster
         cl.edges = SimpleEdge[]
 
         rank = get_prop(ig, :rank)
-        cl.rank = rank[1:L]
+        
+        # cl.rank = rank[1:L]
+        cl.rank = zeros(Int, L)
 
         for (i, w) ∈ enumerate(vlist)
             push!(cl.vertices, w => i)

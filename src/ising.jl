@@ -61,7 +61,11 @@ Create the Ising spin glass model.
 
 Store extra information
 """
-function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
+function ising_graph(
+    instance::Instance,
+    L::Int,
+    sgn::Number=1.0,
+    rank_override::Dict{Int, Int}=Dict{Int, Int}())
 
     # load the Ising instance
     if typeof(instance) == String
@@ -103,7 +107,14 @@ function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
     end
 
     # store extra information
-    set_prop!(ig, :rank, fill(2, L))
+    rank = Dict{Int, Int}()
+    for v in vertices(ig)
+        if get_prop(ig, v, :active)
+            rank[v] = get(rank_override, v, 2)
+        end
+    end
+    
+    set_prop!(ig, :rank, rank)
 
     set_prop!(ig, :J, J)
     set_prop!(ig, :h, h)

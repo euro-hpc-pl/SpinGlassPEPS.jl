@@ -51,7 +51,7 @@ LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
 local_basis(d::Int) = union(-1, 1:d-1)
 local_basis(ψ::AbstractMPS, i::Int) = local_basis(size(ψ[i], 2))
 
-function proj(state, dims::T) where {T <: Union{Vector, NTuple}}
+function proj(state, dims::Union{Vector, NTuple})
     P = Matrix{Float64}[] 
     for (σ, r) ∈ zip(state, dims)
         v = zeros(r)
@@ -61,12 +61,12 @@ function proj(state, dims::T) where {T <: Union{Vector, NTuple}}
     P
 end
 
-function all_states(rank::T) where T <: Union{Vector, NTuple}
+function all_states(rank::Union{Vector, NTuple})
     basis = [local_basis(r) for r ∈ rank]
     product(basis...)
 end
 
-function HadamardMPS(rank::T) where T <: Union{Vector, NTuple}
+function HadamardMPS(rank::Union{Vector, NTuple})
     vec = [ fill(1, r) ./ sqrt(r) for r ∈ rank ]
     MPS(vec)
 end
