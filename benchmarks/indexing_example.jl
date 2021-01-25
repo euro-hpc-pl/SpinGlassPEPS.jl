@@ -15,19 +15,16 @@ if true
     D = Dict{Tuple{Int64,Int64},Float64}()
     f() = 2 * rand() - 1
 
-    push!(D, (2,2) => f())
-    push!(D, (1,1) => f())
-    push!(D, (3,3) => f())
+    push!(D, (2,2) => 0 * f())
+    push!(D, (1,1) => 0 * f())
+    push!(D, (3,3) => 0 * f())
 
-    push!(D, (1, 2) => f())
-    push!(D, (2, 3) => f())
-
+    push!(D, (1, 2) => 0 * f())
+    push!(D, (2, 3) => 0 * f())
 
     m = 1
     n = 2
     t = 2
-
-    println(D)
 
     L = m * n * t
 
@@ -52,7 +49,7 @@ if true
         spectrum = full_spectrum,
     )
 
-    #Partition function
+    # Partition function
     β = 1
     states = collect.(all_states(get_prop(g_ising, :rank)))
     ρ = exp.(-β .* energy.(states, Ref(g_ising)))
@@ -60,7 +57,7 @@ if true
 
     @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
 
-    for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+    for origin ∈ (:NW,) # :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
         peps = PepsNetwork(m, n, fg, β, origin)
 
