@@ -407,6 +407,12 @@ if true
     println()
     println("why it is diagonal?")
 
+    # the solution without cutting off, it works
+    M1 = pp[1][1,1,:,1,:]
+    M2 = pp[2][:,1,1,1,:]
+    @reduce MM[a,b] |= sum(x) M1[x,a]*M2[x,b]
+    println(MM)
+    _, inds = findmax(MM)
 
 
     # brute force solution
@@ -458,6 +464,7 @@ if true
     # reading solution from energy numbering and comparison with brute force
 
     @test st[spins] == sol_A1
+    @test st[inds[1]] == sol_A1
 
     #println(spins)
 
@@ -501,6 +508,7 @@ if true
     println("and global brute force gives ", sol_A2)
 
     @test st[s] == sol_A2
+    @test st[inds[2]] == sol_A2
 
     #arbitrary other index for which it works
     A2p = pp[2][1, 1, 1, 1, :]
