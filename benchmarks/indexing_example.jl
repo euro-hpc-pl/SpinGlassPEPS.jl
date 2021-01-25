@@ -85,7 +85,7 @@ if true
             push!(ZZ, dropdims(A, dims=(2, 4)))
             println("ZZ ", ZZ)
         end
-        @test Z ≈ prod(ZZ)[]
+        @test Z ≈ 2*prod(ZZ)[]
     end
 
 
