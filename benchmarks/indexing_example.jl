@@ -49,7 +49,7 @@ if true
         energy=energy,
         spectrum = full_spectrum,
     )
-    #=
+
     #Partition function
     β = 1
     states = collect.(all_states(get_prop(g_ising, :rank)))
@@ -58,7 +58,7 @@ if true
     Z = sum(ρ)
     println("Z ", Z)
 
-    @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
+    #@test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
 
     for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
@@ -72,22 +72,22 @@ if true
 
             ψ = (ψ * M) * W
 
-            @test length(W) == peps.j_max
-            for A ∈ ψ @test size(A, 2) == 1 end
-            @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
+            #@test length(W) == peps.j_max
+            #for A ∈ ψ @test size(A, 2) == 1 end
+            #@test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
         end
-        for A ∈ ψ @test size(A, 4) == 1 end
+        #for A ∈ ψ @test size(A, 4) == 1 end
         println("ψ ", ψ)
 
         ZZ = []
-        for A ∈ ψ 
+        for A ∈ ψ
             println("A ", A)
-            push!(ZZ, dropdims(A, dims=(2, 4))) 
+            push!(ZZ, dropdims(A, dims=(2, 4)))
             println("ZZ ", ZZ)
         end
         @test Z ≈ prod(ZZ)[]
     end
-    =#
+
 
     sp = get_prop(fg, 1, :spectrum)
 
