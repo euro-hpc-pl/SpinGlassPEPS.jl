@@ -4,7 +4,7 @@ using LightGraphs
 using Test
 using TensorCast
 
-if true
+if false
 @testset "test the solution of the tensor with the brute force, random case" begin
 
     #      grid
@@ -120,31 +120,6 @@ if true
     display(r1)
     println()
 
-    #=
-    if false
-        println("vertices of factor graph ", collect(vertices(fg)))
-        for v in vertices(fg)
-            println("vertex = ", v)
-            c = get_prop(fg, v, :cluster)
-            println(c.tag)
-            println(c.vertices)
-            println(c.edges)
-            println(c.rank)
-            println(c.J)
-            println(c.h)
-        end
-
-        println("edges of factor graph")
-        for e in edges(fg)
-            println("edge = ", e)
-            println(get_prop(fg, e, :edge))
-
-            p1, e, p2 = get_prop(fg, e, :split)
-
-        end
-    end
-    =#
-
 
     origin = :NW
     β = 1.
@@ -155,13 +130,13 @@ if true
     println(pp)
 
     println("matricised A1")
-    display(pp[2][1,1,:,1,:])
+    display(pp[1][1,1,:,1,:])
     println()
 
     println("matricised A2")
     display(pp[2][:,1,1,1,:])
     println()
-    println("why it is diagonal?")
+
 
 
 
@@ -242,10 +217,6 @@ if true
 
     @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * T[x, a, b, c, d]
 
-    println("matricised A2")
-    display(pp[2][:,1,1,1,:])
-    println("why it is diagonal?")
-    println()
 
     println("its selected row at index ", findall(p1[spins, :] .== 1))
     display(C[1,1,1,:])
@@ -271,7 +242,7 @@ if true
 end
 end
 
-if false
+if true
 @testset "test weather the solution of the tensor comply with the brute force" begin
 
     #      grid
@@ -419,11 +390,20 @@ if false
     println(pp)
 
     println("matricised A1")
-    display(pp[2][1,1,:,1,:])
+    display(pp[1][1,1,:,1,:])
+    println()
+    h1 = D[(1,1)]
+    h2 = D[(2,2)]
+    J12 = D[(1,2)]
+    J23 = D[(2,3)]
+    println(pp[1][1,1,:,1,:] ≈ [exp(h1+h2-J12-J23) exp(h1-h2+J12+J23) exp(-h1+h2+J12-J23) exp(-h1-h2-J12+J23); exp(h1+h2-J12+J23) exp(h1-h2+J12-J23) exp(-h1+h2+J12+J23) exp(-h1-h2-J12-J23)])
     println()
 
+    h3 = D[(3,3)]
     println("matricised A2")
     display(pp[2][:,1,1,1,:])
+    println()
+    println(pp[2][:,1,1,1,:] ≈ [exp(h3) 0.; 0. exp(-h3)])
     println()
     println("why it is diagonal?")
 
@@ -506,10 +486,6 @@ if false
 
     @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * T[x, a, b, c, d]
 
-    println("matricised A2")
-    display(pp[2][:,1,1,1,:])
-    println("why it is diagonal?")
-    println()
 
     println("its selected row at index ", findall(p1[spins, :] .== 1))
     display(C[1,1,1,:])
