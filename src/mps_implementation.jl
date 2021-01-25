@@ -32,7 +32,7 @@ end
 
 function Btensor(T::Type, d::Int)
     B_tensor = zeros(T, d,d,d,d)
-    for i in 1:d
+    for i ∈ 1:d
         @inbounds B_tensor[i,i,i,i] = T(1.)
     end
     # always most left
@@ -42,8 +42,8 @@ end
 function Ctensor(T::Type, J::Float64, d::Int, most_right::Bool = false)
 
     ret = zeros(T, d,d,d,d)
-    for i in 1:d
-        for k in 1:d
+    for i ∈ 1:d
+        for k ∈ 1:d
             # TODO assumed d = 2 otherwise correct
             ret[i,k,i,k] = exp(J*(2*i-3)*(2*k-3))
         end
@@ -61,14 +61,14 @@ function add_MPO!(mpo::AbstractMPO{T}, vec_edges::VE, g::MetaGraph, β::T) where
     d = length(props(g, i)[:energy])
 
     l = dst(vec_edges[end])
-    for j in src(vec_edges[1]):dst(vec_edges[end])
+    for j ∈ src(vec_edges[1]):dst(vec_edges[end])
         mpo[j] = ones13_24(T, d)
     end
 
     mpo[i] = Btensor(T, d)
-    for e in vec_edges
+    for e ∈ vec_edges
         j = dst(e)
-        # minus for convention 1/2 since each is taken doubled in the product
+        # minus for convention 1/2 since each is taken doubled ∈ the product
         J = 1/2*props(g, e)[:J]
         # minus for probability
         mpo[j] = Ctensor(T, -J*β, d, j==l)
@@ -78,9 +78,9 @@ end
 
 function add_phase!(mps::AbstractMPS{T}, g::MetaGraph, β::T) where T<: Real
 
-    for i in 1:length(mps)
+    for i ∈ eachindex(mps)
         internal_e = props(g, i)[:energy]
-        for j in 1:length(internal_e)
+        for j ∈ eachindex(internal_e)
             mps[i][:,j,:] = mps[i][:,j,:]*exp(β/2*internal_e[j])
         end
     end
@@ -91,10 +91,10 @@ function construct_mps_step(mps::AbstractMPS{T}, g::MetaGraph, β::T, edges_sets
 
     phys_dims = size(mps[1], 2)
 
-    mpo = MPO([ones24(T, phys_dims) for _ in 1:length(mps)])
+    mpo = MPO([ones24(T, phys_dims) for _ ∈ eachindex(mps)])
 
-    sources = [src(e) for e in edges_sets]
-    for v in unique(sources)
+    sources = [src(e) for e ∈ edges_sets]
+    for v ∈ unique(sources)
          edges = filter(x -> src(x) == v, edges_sets)
          add_MPO!(mpo, edges, g, β)
     end
@@ -106,20 +106,20 @@ function connections_for_mps(g::MetaGraph)
 
      g1 = copy(g)
      connections = Vector{LightGraphs.SimpleGraphs.SimpleEdge{Int}}[]
-     for v in vertices(g1)
+     for v ∈ vertices(g1)
          es = edges(g1)
          pe = filter(x -> src(x) == v, collect(es))
          if pe != Int[]
-             for j in v:nv(g1)
+             for j ∈ v:nv(g1)
                  # to make mps elements to be disconected
-                 if j > maximum([dst(e) for e in pe])
+                 if j > maximum([dst(e) for e ∈ pe])
                      pe1 = filter(x -> src(x) == j, collect(es))
                      pe = vcat(pe, pe1)
                  end
              end
              push!(connections, pe)
          end
-        for e in pe
+        for e ∈ pe
             rem_edge!(g1, e)
         end
     end
@@ -135,11 +135,11 @@ function construct_mps(g::MetaGraph, β::T, β_step::Int, χ::Int, threshold::T)
     l = nv(g)
     #TODO, get d from g
     d = 2
-    mps = MPS([ones(T, 1,d,1) for _ in 1:l])
-    for _ in 1:β_step
-        for el in v
+    mps = MPS([ones(T, 1,d,1) for _ ∈ 1:l])
+    for _ ∈ 1:β_step
+        for el ∈ v
             mps = construct_mps_step(mps, g,  β/β_step, el)
-            s = maximum([size(e, 1) for e in mps])
+            s = maximum([size(e, 1) for e ∈ mps])
             if ((threshold > 0) && (s > χ))
                 mps = compress(mps, χ, threshold)
             end
@@ -167,7 +167,7 @@ return vector diag(prob) the result of the following contraction
 
 function contract4probability(A::Array{T,3}, M::Matrix{T}, v::Vector{T}) where T <: Real
     probs = zeros(T, size(A,2))
-    for i in 1:size(A,2)
+    for i ∈ 1:size(A,2)
         @inbounds A1 = A[:,i,:]
         @inbounds probs[i] = transpose(v)*A1*M*transpose(A1)*v
     end
@@ -178,7 +178,7 @@ end
 function compute_probs(mps::AbstractMPS{T}, spins::Vector{Int}) where T <: Real
 
     k = length(spins)
-    mm = [mps[i][:,spins[i],:] for i in 1:k]
+    mm = [mps[i][:,spins[i],:] for i ∈ 1:k]
 
     left_v = ones(T,1)
     if k > 0
@@ -202,13 +202,13 @@ function solve_mps(g::MetaGraph, no_sols::Int; β::T, β_step::Int, χ::Int = 10
     mps = construct_mps(g, β, β_step, χ, threshold)
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
-    for j in 1:problem_size
+    for j ∈ 1:problem_size
 
         partial_s_temp = Partial_sol{T}[]
-        for ps in partial_s
+        for ps ∈ partial_s
             objectives = compute_probs(mps, ps.spins)
 
-            for l in 1:length(objectives)
+            for l ∈ eachindex(objectives)
                 push!(partial_s_temp, update_partial_solution(ps, l, objectives[l]))
             end
         end

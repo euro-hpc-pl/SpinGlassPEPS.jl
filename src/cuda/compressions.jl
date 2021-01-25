@@ -1,7 +1,7 @@
 function _right_sweep_SVD!(ψ::CuMPS, Dcut::Int=typemax(Int))
     Σ = V = CUDA.ones(eltype(ψ), 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         A = ψ[i]
         C = Diagonal(Σ) * V'
 
@@ -85,7 +85,7 @@ function _right_sweep_var!!(ϕ::CuMPS, env::Vector{<:CuMatrix}, ψ::CuMPS, Dcut:
     # overwrite the overlap
     env[1] = CUDA.ones(S, 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         L = env[i]
         R = env[i+1]
 
@@ -122,7 +122,7 @@ end
 function _qr_fix!(Q::CuMatrix, R::CuMatrix)
     d = diag(R)
     ph = d./abs.(d)
-    for i = 1:length(ph)
+    for i = eachindex(ph)
         Q[:, i] .*= ph[i]
     end
     Q
