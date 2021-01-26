@@ -261,7 +261,7 @@ if true
 
     D2 = Dict((1, 2) => -0.9049,(2, 3) => 0.2838,(3, 3) => -0.7928,(2, 2) => 0.1208,(1, 1) => -0.3342)
 
-    for D in [D2]#, D1]
+    for D in [D1, D2]
 
         m = 1
         n = 2
@@ -278,14 +278,14 @@ if true
 
         fg = factor_graph(
             g_ising,
-            #Dict(1=>4, 2=>2),
+            Dict(1=>4, 2=>2),
             energy=energy,
-            spectrum = x -> brute_force(x, num_states=4) #brute_force,
+            spectrum = brute_force,
         )
 
         fg2 = factor_graph(
             g_ising,
-            #Dict(1=>4, 2=>2),
+            Dict(1=>4, 2=>2),
             energy=energy,
             spectrum = full_spectrum,
         )
@@ -372,62 +372,63 @@ if true
         h2 = D[(2,2)]
         J12 = D[(1,2)]
         J23 = D[(2,3)]
+        if D[(1, 2)] == 0.652
+            #for D1
+            display([exp(h1+h2-J12-J23) exp(h1-h2+J12+J23) exp(-h1+h2+J12-J23) exp(-h1-h2-J12+J23); exp(h1+h2-J12+J23) exp(h1-h2+J12-J23) exp(-h1+h2+J12+J23) exp(-h1-h2-J12-J23)])
+            println()
+            @test isapprox(pp[1][:,1,1,1,:], [exp(h1+h2-J12-J23) exp(h1-h2+J12+J23) exp(-h1+h2+J12-J23) exp(-h1-h2-J12+J23)], atol=1e-5)
+            @test isapprox(pp[1][:,1,2,1,:], [exp(h1+h2-J12+J23) exp(h1-h2+J12-J23) exp(-h1+h2+J12+J23) exp(-h1-h2-J12-J23)], atol=1e-5)
 
-#=
-        #for D1
-        display([exp(h1+h2-J12-J23) exp(h1-h2+J12+J23) exp(-h1+h2+J12-J23) exp(-h1-h2-J12+J23); exp(h1+h2-J12+J23) exp(h1-h2+J12-J23) exp(-h1+h2+J12+J23) exp(-h1-h2-J12-J23)])
-        println()
-        @test isapprox(pp[1][:,1,1,1,:], [exp(h1+h2-J12-J23) exp(h1-h2+J12+J23) exp(-h1+h2+J12-J23) exp(-h1-h2-J12+J23)], atol=1e-5)
-        @test isapprox(pp[1][:,1,2,1,:], [exp(h1+h2-J12+J23) exp(h1-h2+J12-J23) exp(-h1+h2+J12+J23) exp(-h1-h2-J12-J23)], atol=1e-5)
+            h3 = D[(3,3)]
+            println("matricised A2")
+            display(pp[2][:,1,1,1,:])
+            println("  ==?")
+            display([exp(h3) 0.; 0. exp(-h3)])
+            println()
+            @test isapprox(pp[2][:,1,1,1,:] , [exp(h3) 0.; 0. exp(-h3)], atol=1e-5)
 
-        h3 = D[(3,3)]
-        println("matricised A2")
-        display(pp[2][:,1,1,1,:])
-        println("  ==?")
-        display([exp(h3) 0.; 0. exp(-h3)])
-        println()
-        @test isapprox(pp[2][:,1,1,1,:] , [exp(h3) 0.; 0. exp(-h3)], atol=1e-5)
+            println("why it is diagonal?")
 
-        println("why it is diagonal?")
-
-        Aa1 = pp[1]
-        println("Aa1 ", Aa1)
-        println("Matricized Aa1")
-        display(pp[1][:,1,1,1,:])
-        display(pp[1][:,1,2,1,:])
-        Aa2 = MPO(pp)[2]
-        println("Aa2 ", Aa2)
+            Aa1 = pp[1]
+            println("Aa1 ", Aa1)
+            println("Matricized Aa1")
+            display(pp[1][:,1,1,1,:])
+            display(pp[1][:,1,2,1,:])
+            Aa2 = MPO(pp)[2]
+            println("Aa2 ", Aa2)
         
-        @test isapprox(pp[1][:,1,1,1,:], [1.20925 4.69266 0.785056 0.224473], atol=1e-5)
-        #@test pp[1][:,1,1,1,:] ≈ [1.20925 4.69266 0.785056 0.224473]
-        #@test pp[1][:,1,2,1,:] ≈ [5.20698 1.08981 3.38042 0.0521308]
-        @test isapprox(pp[1][:,1,2,1,:], [5.206979 1.089806 3.3804201 0.052130765], atol=1e-5)
-        @test isapprox(pp[2][:,1,1,1,:] , [1.8076000  0.; 0. 0.5532197], atol=1e-5)
-        #@test pp[2][:,1,1,1,:] ≈ [1.8076000026120045  0.; 0. 0.5532197380808739]
-=#
-        #for D2
-        display([exp(-h1-h2-J12-J23) exp(h1+h2+-J12+J23) exp(-h1+h2+J12+J23) exp(h1-h2+J12-J23); exp(-h1-h2-J12+J23) exp(h1+h2-J12-J23) exp(-h1+h2+J12-J23) exp(h1-h2+J12+J23)])
-        println()
-        @test isapprox(pp[1][:,1,1,1,:], [exp(-h1-h2-J12-J23) exp(h1+h2+-J12+J23) exp(-h1+h2+J12+J23) exp(h1-h2+J12-J23)], atol=1e-5)
-        @test isapprox(pp[1][:,1,2,1,:], [exp(-h1-h2-J12+J23) exp(h1+h2-J12-J23) exp(-h1+h2+J12-J23) exp(h1-h2+J12+J23)], atol=1e-5)
+            @test isapprox(pp[1][:,1,1,1,:], [1.20925 4.69266 0.785056 0.224473], atol=1e-5)
+            #@test pp[1][:,1,1,1,:] ≈ [1.20925 4.69266 0.785056 0.224473]
+            #@test pp[1][:,1,2,1,:] ≈ [5.20698 1.08981 3.38042 0.0521308]
+            @test isapprox(pp[1][:,1,2,1,:], [5.206979 1.089806 3.3804201 0.052130765], atol=1e-5)
+            @test isapprox(pp[2][:,1,1,1,:] , [1.8076000  0.; 0. 0.5532197], atol=1e-5)
+            #@test pp[2][:,1,1,1,:] ≈ [1.8076000026120045  0.; 0. 0.5532197380808739]
+        elseif D[(1, 2)] == -0.9049
+            #for D2
+            display([exp(-h1-h2-J12-J23) exp(h1+h2+-J12+J23) exp(-h1+h2+J12+J23) exp(h1-h2+J12-J23); exp(-h1-h2-J12+J23) exp(h1+h2-J12-J23) exp(-h1+h2+J12-J23) exp(h1-h2+J12+J23)])
+            println()
+            @test isapprox(pp[1][:,1,1,1,:], [exp(-h1-h2-J12-J23) exp(h1+h2+-J12+J23) exp(-h1+h2+J12+J23) exp(h1-h2+J12-J23)], atol=1e-5)
+            @test isapprox(pp[1][:,1,2,1,:], [exp(-h1-h2-J12+J23) exp(h1+h2-J12-J23) exp(-h1+h2+J12-J23) exp(h1-h2+J12+J23)], atol=1e-5)
 
-        h3 = D[(3,3)]
-        println("matricised A2")
-        display(pp[2][:,1,1,1,:])
-        println("  ==?")
-        display([exp(-h3) 0.; 0. exp(h3)])
-        println()
-        @test isapprox(pp[2][:,1,1,1,:] , [exp(-h3) 0.; 0. exp(h3)], atol=1e-5)
+            h3 = D[(3,3)]
+            println("matricised A2")
+            display(pp[2][:,1,1,1,:])
+            println("  ==?")
+            display([exp(-h3) 0.; 0. exp(h3)])
+            println()
+            @test isapprox(pp[2][:,1,1,1,:] , [exp(-h3) 0.; 0. exp(h3)], atol=1e-5)
 
-        println("why it is diagonal?")
+            println("why it is diagonal?")
 
-        Aa1 = pp[1]
-        println("Aa1 ", Aa1)
-        println("Matricized Aa1")
-        display(pp[1][:,1,1,1,:])
-        display(pp[1][:,1,2,1,:])
-        Aa2 = MPO(pp)[2]
-        println("Aa2 ", Aa2)
+            Aa1 = pp[1]
+            println("Aa1 ", Aa1)
+            println("Matricized Aa1")
+                display(pp[1][:,1,1,1,:])
+            display(pp[1][:,1,2,1,:])
+            Aa2 = MPO(pp)[2]
+            println("Aa2 ", Aa2)
+        end
+        
        
         # A2 traced
         # index 1 (left is not trivial)
