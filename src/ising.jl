@@ -89,7 +89,7 @@ function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
     J = zeros(L, L)
     h = zeros(L)
 
-    r
+    #r
     # setup the model (J_ij, h_i)
     for (i, j, v) ∈ ising
         v *= sgn
