@@ -2,30 +2,33 @@ using MetaGraphs
 using LightGraphs
 using GraphPlot
 
-L = 4
+L = 2
 N = L^2
 
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
-β = 5.
+set_prop!(ig, :β, 1.) #rand(Float64))
 #r = [3, 2, 5, 4]
 r = fill(2, N)
 set_prop!(ig, :rank, r)
+set_prop!(ig, :dβ, 0.01)
 
 sgn = -1.
-ϵ = 1E-7
+ϵ = 1E-8
 D = prod(r) + 1
 var_ϵ = 1E-8
 sweeps = 4
-schedule = [β]
-control = MPSControl(D, var_ϵ, sweeps, schedule) 
+schedule = [get_prop(ig, :β)]
+dβ = [get_prop(ig, :dβ)]
+control = MPSControl(D, var_ϵ, sweeps, schedule, dβ) 
 
 states = all_states(get_prop(ig, :rank))
-ϱ = gibbs_tensor(ig, β)
+ϱ = gibbs_tensor(ig)
 @test sum(ϱ) ≈ 1
 
 @testset "Verifying gate operations" begin
+    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
 
     χ = HadamardMPS(rank)
@@ -56,7 +59,7 @@ states = all_states(get_prop(ig, :rank))
                 end
             end
 
-            for l ∈ SpinGlassPEPS._holes(nbrs, i) 
+            for l ∈ SpinGlassPEPS._holes(i, nbrs)
                 SpinGlassPEPS._apply_nothing!(χ, l, i) 
             end
         end
@@ -75,6 +78,7 @@ end
 
     @testset "Exact Gibbs pure state (MPS)" begin
         L = nv(ig)
+        β = get_prop(ig, :β)
         rank = get_prop(ig, :rank)
 
         @info "Generating Gibbs state - |ρ>" L rank β ϵ
@@ -117,7 +121,7 @@ end
 
         @info "Verifying MPS from gates"
 
-        Gψ = MPS(ig, control, β) 
+        Gψ = MPS(ig, control) 
 
         @test_nowarn is_right_normalized(Gψ)
         @test bond_dimension(Gψ) > 1
@@ -136,7 +140,7 @@ end
             @test ϱ[idx.(σ)...] ≈ p
         end 
 
-        for max_states ∈ [N, 2*N, N^2]
+        for max_states ∈ [1, N, 2*N, N^2]
 
             @info "Verifying low energy spectrum" max_states
             @info "Testing spectrum"
@@ -144,8 +148,6 @@ end
             sp = brute_force(ig, num_states = max_states)
 
             @info "The largest discarded probability" pCut
-            @test maximum(prob) > pCut
-
       
             for (j, (p, e)) ∈ enumerate(zip(prob, sp.energies))
                 σ = states[:, j]
@@ -174,5 +176,6 @@ end
             @info "The lowest energy" eng_new[1]
            
         end
-    end    
+
+    end
 end

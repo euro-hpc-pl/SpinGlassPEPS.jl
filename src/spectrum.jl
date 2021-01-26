@@ -2,6 +2,7 @@ export unique_neighbors
 export full_spectrum, brute_force
 export MPSControl
 export solve, solve_new
+export MPS2
 
 struct Spectrum
     energies::Array{<:Number}
@@ -12,7 +13,8 @@ struct MPSControl
     max_bond::Int
     var_ϵ::Number
     max_sweeps::Int
-    β::Vector
+    β::Vector 
+    dβ::Vector
 end
 
 # ρ needs to be ∈ the right canonical form
@@ -170,30 +172,32 @@ function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int)
     ψ[l] = M̃
 end
 
-_holes(nbrs::Vector, i::Int) = setdiff(i + 1 : last(nbrs), nbrs)
 
-function MPS(ig::MetaGraph, control::MPSControl, β::Float64=1.0)
+function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, L::Int)
+    T = eltype(χ)
+    ψ = MPS(T, L)
+
+    for i ∈ 1:L 
+        A1 = χ[i]
+        A2 = ϕ[i]
+        
+        @cast B[(l, x), σ, (r, y)] := A1[l, σ, r] * A2[x, σ, y]
+        ψ[i] = B
+    end
+    ψ
+
+end
+
+_holes(l::Int, nbrs::Vector) = setdiff(l+1 : last(nbrs), nbrs)
+
+function _apply_layer_of_gates(ig::MetaGraph, ρ::AbstractMPS, control::MPSControl, dβ::Number)
     L = nv(ig)
-
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
-    schedule = control.β
-    @info "Set control parameters for MPS" Dcut tol max_sweeps
-
-    rank = get_prop(ig, :rank)
-
-    @assert β ≈ sum(schedule) "Incorrect β schedule."
-
-    @info "Preparing Hadamard state as MPS"
-    ρ = HadamardMPS(rank)
-    is_right = true
-
-    @info "Sweeping through β and σ" schedule
-    for dβ ∈ schedule, i ∈ 1:L
-        _apply_bias!(ρ, ig, dβ, i)
+    for i ∈ 1:L
+        _apply_bias!(ρ, ig, dβ, i) 
         is_right = false
-
         nbrs = unique_neighbors(ig, i)
         if !isempty(nbrs)
             _apply_projector!(ρ, i)
@@ -202,8 +206,8 @@ function MPS(ig::MetaGraph, control::MPSControl, β::Float64=1.0)
                 _apply_exponent!(ρ, ig, dβ, i, j, last(nbrs))
             end
 
-            for l ∈ _holes(nbrs, i)
-                _apply_nothing!(ρ, l, i) 
+            for l ∈ _holes(i, nbrs) 
+                _apply_nothing!(ρ, l, i)  
             end
         end
 
@@ -212,8 +216,8 @@ function MPS(ig::MetaGraph, control::MPSControl, β::Float64=1.0)
             ρ = compress(ρ, Dcut, tol, max_sweeps)
             is_right = true
         end
-    end
-
+        
+    end 
     if !is_right
         canonise!(ρ, :right)
         is_right = true
@@ -221,6 +225,74 @@ function MPS(ig::MetaGraph, control::MPSControl, β::Float64=1.0)
     ρ
 end
 
+function MPS(ig::MetaGraph, control::MPSControl)
+    
+    Dcut = control.max_bond
+    tol = control.var_ϵ
+    max_sweeps = control.max_sweeps
+    schedule = control.β
+    @info "Set control parameters for MPS" Dcut tol max_sweeps
+
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
+
+    @assert β ≈ sum(schedule) "Incorrect β schedule."
+
+    @info "Preparing Hadamard state as MPS"
+    ρ = HadamardMPS(rank)
+    is_right = true
+    @info "Sweeping through β and σ" schedule
+    for dβ ∈ schedule
+        ρ = _apply_layer_of_gates(ig, ρ, control, dβ)
+    end
+    ρ
+end
+
+function MPS(ig::MetaGraph, control::MPSControl, type::Symbol) 
+    L = nv(ig)
+    Dcut = control.max_bond
+    tol = control.var_ϵ
+    max_sweeps = control.max_sweeps
+    @info "Set control parameters for MPS" Dcut tol max_sweeps
+    dβ = get_prop(ig, :dβ)
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
+
+    @info "Preparing Hadamard state as MPS"
+    ρ = HadamardMPS(rank)
+    is_right = true
+    @info "Sweeping through β and σ" dβ
+
+    if type == :log
+        k = ceil(log2(β/dβ))
+        dβmax = β/(2^k)
+        ρ = _apply_layer_of_gates(ig, ρ, control, dβmax)
+        for j ∈ 1:k
+            ρ = multiply_purifications(ρ, ρ, L)
+            if bond_dimension(ρ) > Dcut
+                @info "Compresing MPS" bond_dimension(ρ), Dcut
+                ρ = compress(ρ, Dcut, tol, max_sweeps) 
+                is_right = true
+            end
+        end
+        ρ
+    elseif type == :lin
+        k = β/dβ
+        dβmax = β/k
+        ρ = _apply_layer_of_gates(ig, ρ, control, dβmax)
+        ρ0 = copy(ρ)
+        for j ∈ 1:k
+            ρ = multiply_purifications(ρ, ρ0, L)
+            if bond_dimension(ρ) > Dcut
+                @info "Compresing MPS" bond_dimension(ρ), Dcut
+                ρ = compress(ρ, Dcut, tol, max_sweeps) 
+                is_right = true
+            end
+        end
+    end
+    ρ
+
+end
 
 """
 $(TYPEDSIGNATURES)
