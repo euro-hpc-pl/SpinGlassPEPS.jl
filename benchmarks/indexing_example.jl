@@ -538,8 +538,8 @@ if false
 
 end
 end
-#=
-if false
+
+if true
 @testset "lerger example" begin
     #      grid
     #     A1    |    A2
@@ -715,14 +715,5 @@ if false
     println("and global brute force gives ", sol_A2)
 
     @test st[s] == sol_A2
-
-    #arbitrary other index for which it works
-    A2p = pp[2][1, 1, 1, 1, :]
-    _, spins_p = findmax(A2p)
-
-    println(st[spins_p] == sol_A2)
-
-
 end
 end
-=#
