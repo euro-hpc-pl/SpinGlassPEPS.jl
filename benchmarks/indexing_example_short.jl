@@ -60,27 +60,13 @@ using TensorCast
             J23 = D[(2,3)]
             h3 = D[(3,3)]
 
-            println("matricised A1")
-            display(pp[1][1,1,:,1,:])
-            println()
-            #its explicite form including J23
-            A1ex = [exp(h1+h2-J12-J23) exp(h1-h2+J12+J23) exp(-h1+h2+J12-J23) exp(-h1-h2-J12+J23); exp(h1+h2-J12+J23) exp(h1-h2+J12-J23) exp(-h1+h2+J12+J23) exp(-h1-h2-J12-J23)]
-            println("A1 equal to its explicite form including J23")
-            println(pp[1][1,1,:,1,:] ≈ A1ex)
-            # but J23 should be in A2
+            A1ex = reshape([exp(h1+h2-J12) 0. exp(-h1+h2+J12) 0.; 0. exp(h1-h2+J12) 0. exp(-h1-h2-J12)], (1,1,2,1,4))
+            @test A1ex ≈ pp[1]
 
-            println("matricised A2")
-            display(pp[2][:,1,1,1,:])
-            println()
-            println("its explicite form do not include J23")
-            #but should
-            println(pp[2][:,1,1,1,:] ≈ [exp(h3) 0.; 0. exp(-h3)])
-            println("why A2 is diagonal")
+            A2ex = reshape([exp(h3-J23) exp(-h3+J23); exp(h3+J23) exp(-h3-J23)],(2,1,1,1,2))
+            @test A2ex ≈ pp[2]
+
         end
-
-
-
-
 
         # peps solution
         Aa1 = pp[1]
