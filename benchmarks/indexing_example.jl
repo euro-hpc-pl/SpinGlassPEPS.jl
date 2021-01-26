@@ -232,12 +232,6 @@ if true
     @test st[s] == sol_A2
     @test st[inds[2]] == sol_A2
 
-    #arbitrary other index for which it works
-    A2p = pp[2][1, 1, 1, 1, :]
-    _, spins_p = findmax(A2p)
-
-    println(st[spins_p] == sol_A2)
-
 end
 end
 
