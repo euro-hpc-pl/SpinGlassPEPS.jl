@@ -47,38 +47,6 @@ using TensorCast
             spectrum = brute_force,
         )
 
-        # test Z
-        β = 1.
-        states = collect.(all_states(rank_vec(g_ising)))
-        ρ = exp.(-β .* energy.(states, Ref(g_ising)))
-        Z = sum(ρ)
-
-        @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
-
-        for origin ∈ (:NW,) #, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-            peps = PepsNetwork(m, n, fg, β, origin)
-
-            ψ = MPO(PEPSRow(peps, 1))
-
-            for i ∈ 2:peps.i_max
-                W = MPO(PEPSRow(peps, i))
-                M = MPO(peps, i-1, i)
-
-                ψ = (ψ * M) * W
-
-                @test length(W) == peps.j_max
-                for A ∈ ψ @test size(A, 2) == 1 end
-                @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
-            end
-            for A ∈ ψ @test size(A, 4) == 1 end
-            println("ψ ", ψ)
-
-            ZZ = []
-            for A ∈ ψ push!(ZZ, dropdims(A, dims=(2, 4))) end
-            @test Z ≈ prod(ZZ)[]
-        end
-
-
         origin = :NW
         β = 1.
 
@@ -108,23 +76,42 @@ using TensorCast
             A1ex = reshape([exp(-h1-h2-J12) 0. 0. exp(h1-h2+J12); 0. exp(h1+h2-J12) exp(-h1+h2+J12) 0.], (1,1,2,1,4))
             display(A1ex[1,1,:,1,:])
             println()
+            a = [1 2;3 4]
 
             A2ex = reshape([exp(-h3-J23) exp(h3+J23); exp(-h3+J23) exp(h3-J23)],(2,1,1,1,2))
             display(A2ex[:,1,1,1,:])
             println()
 
         end
+        # the solution without cutting off
+        M1 = pp[1][1,1,:,1,:]
+        M2 = pp[2][:,1,1,1,:]
+        @reduce MM[a,b] |= sum(x) M1[x,a]*M2[x,b]
+
+        _, inds = findmax(MM)
+        display(MM)
+        println()
+        println(sum(MM))
+        display(sum(MM, dims = 2))
+        println()
 
         # peps solution
         Aa1 = pp[1]
         Aa2 = MPO(pp)[2]
+
         @reduce A12[l, u, d, uu, rr, dd, σ] |= sum(x) Aa1[l, u, x, d, σ] * Aa2[x, uu, rr, dd]
         A12 = dropdims(A12, dims=(1,2,3,4,5,6))
+        display(A12)
+        println()
+        println(sum(A12))
         _, spins = findmax(A12)
 
         #solution from the first tensor
         st = get_prop(fg, 1, :spectrum).states
         @test st[spins] == sol_A1
+        @test st[inds[1]] == sol_A1
+        println(spins)
+        println(inds[1])
 
         if has_edge(fg, 1, 2)
             p1, en, p2 = get_prop(fg, 1, 2, :split)
@@ -141,5 +128,6 @@ using TensorCast
         # solution form the second tensor
         st = get_prop(fg, 2, :spectrum).states
         @test st[s] == sol_A2
+        @test st[inds[2]] == sol_A2
     end
 end
