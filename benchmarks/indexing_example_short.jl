@@ -71,7 +71,8 @@ using TensorCast
 
             println("matricised A2")
             display(pp[2][:,1,1,1,:])
-            println("is explicite form do not include J23")
+            println()
+            println("its explicite form do not include J23")
             #but should
             println(pp[2][:,1,1,1,:] ≈ [exp(h3) 0.; 0. exp(-h3)])
             println("why A2 is diagonal")
