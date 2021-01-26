@@ -157,8 +157,8 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
         end
 
         # Krzysiek's request:
-        @cast A[_, u, _, d] |= exp(-ng.β * en[d, u]) 
-        #@cast A[_, u, _, d] |= exp(-ng.β * en[u, d]) 
+        # @cast A[_, u, _, d] |= exp(-ng.β * en[d, u]) 
+        @cast A[_, u, _, d] |= exp(-ng.β * en[u, d]) 
         ψ[j] = A
     end
     ψ
