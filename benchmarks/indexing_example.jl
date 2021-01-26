@@ -51,7 +51,7 @@ if true
 
     # Partition function
     β = 1
- 
+
     println(get_prop(g_ising, :rank))
 
     states = collect.(all_states(get_prop(g_ising, :rank)))
@@ -292,7 +292,8 @@ if true
 
         #Partition function
         β = 1
-        states = collect.(all_states(get_prop(g_ising, :rank)))
+        states = collect.(all_states(rank_vec(g_ising)))
+        #states = collect.(all_states(get_prop(g_ising, :rank)))
         println("states ", states)
         ρ = exp.(-β .* energy.(states, Ref(g_ising)))
         Z = sum(ρ)
@@ -325,7 +326,7 @@ if true
                 push!(ZZ, dropdims(A, dims=(2, 4)))
                 println("ZZ ", ZZ)
             end
-            @test Z ≈ 2*prod(ZZ)[]
+            @test Z ≈ prod(ZZ)[]
         end
 
 
@@ -396,7 +397,7 @@ if true
             display(pp[1][:,1,2,1,:])
             Aa2 = MPO(pp)[2]
             println("Aa2 ", Aa2)
-        
+
             @test isapprox(pp[1][:,1,1,1,:], [1.20925 4.69266 0.785056 0.224473], atol=1e-5)
             #@test pp[1][:,1,1,1,:] ≈ [1.20925 4.69266 0.785056 0.224473]
             #@test pp[1][:,1,2,1,:] ≈ [5.20698 1.08981 3.38042 0.0521308]
@@ -428,8 +429,8 @@ if true
             Aa2 = MPO(pp)[2]
             println("Aa2 ", Aa2)
         end
-        
-       
+
+
         # A2 traced
         # index 1 (left is not trivial)
 

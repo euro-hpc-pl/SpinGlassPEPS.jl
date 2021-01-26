@@ -64,11 +64,11 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         R = PEPSRow(peps, i)
         W = MPO(R)
         M = MPO(peps, i-1, i)
-        
+
         ψ = (ψ * M) * W
 
         for A ∈ ψ @test size(A, 2) == 1 end
-        
+
         @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
     end
 
@@ -114,7 +114,8 @@ instance = "$(@__DIR__)/instances/$(L)_001.txt"
 
 ig = ising_graph(instance, L)
 
-states = collect.(all_states(get_prop(ig, :rank)))
+#states = collect.(all_states(get_prop(ig, :rank)))
+states = collect.(all_states(rank_vec(ig)))
 ρ = exp.(-β .* energy.(states, Ref(ig)))
 Z = sum(ρ)
 
