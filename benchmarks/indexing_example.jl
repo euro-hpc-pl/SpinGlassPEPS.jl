@@ -584,7 +584,7 @@ if true
 
     #Partition function
     β = 1
-    states = collect.(all_states(get_prop(g_ising, :rank)))
+    states = collect.(all_states(rank_vec(g_ising)))
     println("states ", states)
     ρ = exp.(-β .* energy.(states, Ref(g_ising)))
     Z = sum(ρ)
