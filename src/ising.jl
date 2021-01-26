@@ -17,8 +17,7 @@ Calculates matrix elements (probabilities) of \$\\rho\$
 for all possible configurations \$\\σ\$.
 """
 function gibbs_tensor(ig::MetaGraph, β=Float64=1.0)
-    rank = get_prop(ig, :rank)
-    states = collect.(all_states(rank))
+    states = collect.(all_states(rank_vec(ig)))
     ρ = exp.(-β .* energy.(states, Ref(ig)))
     ρ ./ sum(ρ)
 end
@@ -61,7 +60,12 @@ Create the Ising spin glass model.
 
 Store extra information
 """
-function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
+function ising_graph(
+    instance::Instance,
+    L::Int,
+    sgn::Number=1.0,
+    rank_override::Dict{Int, Int}=Dict{Int, Int}()
+)
 
     # load the Ising instance
     if typeof(instance) == String
@@ -72,6 +76,7 @@ function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
 
     ig = MetaGraph(L, 0.0)
     set_prop!(ig, :description, "The Ising model.")
+    set_prop!(ig, :L, L)
 
     for v ∈ 1:L
         set_prop!(ig, v, :active, false)
@@ -103,7 +108,14 @@ function ising_graph(instance::Instance, L::Int, sgn::Number=1.0)
     end
 
     # store extra information
-    set_prop!(ig, :rank, fill(2, L))
+    rank = Dict{Int, Int}()
+    for v in vertices(ig)
+        if get_prop(ig, v, :active)
+            rank[v] = get(rank_override, v, 2)
+        end
+    end
+    
+    set_prop!(ig, :rank, rank)
 
     set_prop!(ig, :J, J)
     set_prop!(ig, :h, h)
