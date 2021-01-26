@@ -47,6 +47,9 @@ states = all_states(get_prop(ig, :rank))
         states_new2, prob_new2, pCut_new2 = solve_new(rψ2, max_states)
         states_new3, prob_new3, pCut_new3 = solve_new(rψ3, max_states)         
 
+        for st ∈ states_new1
+            @test st ∈ states_new2
+        end
         eng_new1 = zeros(length(prob_new1))
         eng_new2 = zeros(length(prob_new2))
         eng_new3 = zeros(length(prob_new3))
@@ -95,6 +98,15 @@ states = all_states(get_prop(ig, :rank))
         @info "State with the lowest energy" state3
         @info "Probability of the state with the lowest energy" prob_new3[1]
         @info "The lowest energy" eng_new3[1]
+
+        if state1 == state2
+            @test eng_new1[1] == eng_new2[1]
+        elseif state2 == state3
+            @test eng_new2[1] == eng_new3[1]
+        elseif state1 == state3
+            @test eng_new1[1] == eng_new3[1]
+        end
+
 
     end
 end
