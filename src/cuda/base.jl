@@ -1,4 +1,4 @@
-for (T, N) in ((:MPO, 4), (:MPS, 3))
+for (T, N) ∈ ((:MPO, 4), (:MPS, 3))
     CuT = Symbol(:Cu, T)
     AT = Symbol(:Abstract, T)
     @eval begin
@@ -66,7 +66,7 @@ function CuMPS(O::CuMPO)
 end
 
 function is_left_normalized(ψ::CuMPS)
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         A = ψ[i]
         DD = size(A, 3)
     
@@ -77,7 +77,7 @@ function is_left_normalized(ψ::CuMPS)
 end
 
 function is_right_normalized(ϕ::CuMPS)   
-    for i ∈ 1:length(ϕ)
+    for i ∈ eachindex(ϕ)
         B = ϕ[i]
         DD = size(B, 1)
 

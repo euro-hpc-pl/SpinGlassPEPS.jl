@@ -15,7 +15,7 @@ struct MPSControl
     β::Vector
 end
 
-# ρ needs to be in the right canonical form
+# ρ needs to be ∈ the right canonical form
 function solve(ψ::MPS, keep::Int)
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
@@ -45,6 +45,7 @@ function solve(ψ::MPS, keep::Int)
                 m = idx(σ)
 
                 LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
+                # (@state LL[:, :, j, (σ, )]) = (@state M[:, (σ, ), :]') * (L * (@state M[:, (σ, ), :]))
                 pdo[j, m] = tr(LL[:, :, j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
             end
@@ -68,7 +69,7 @@ function solve(ψ::MPS, keep::Int)
     states[:, 1:keep], prob[1:keep], pCut
 end
 
-# ρ needs to be in the right canonical form
+# ρ needs to be ∈ the right canonical form
 function solve_new(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)

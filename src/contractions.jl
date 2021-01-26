@@ -23,7 +23,7 @@ function LinearAlgebra.dot(ϕ::AbstractMPS, ψ::AbstractMPS)
     T = promote_type(eltype(ψ), eltype(ϕ))
     C = ones(T, 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         M = ψ[i]
         M̃ = conj(ϕ[i])
         @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ) 
@@ -95,7 +95,7 @@ function LinearAlgebra.dot(ϕ::AbstractMPS, O::Union{Vector, NTuple}, ψ::Abstra
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
     C = ones(S, 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         M = ψ[i]
         M̃ = conj.(ϕ[i])
         Mat = O[i]
@@ -110,7 +110,7 @@ function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}
     S = promote_type(eltype(ψ), eltype(O))
     ϕ = T.name.wrapper(S, L)
 
-    for i in 1:L
+    for i ∈ 1:L
         W = O[i]
         M = ψ[i]
 
@@ -122,7 +122,7 @@ end
 
 function dot!(ψ::AbstractMPS, O::AbstractMPO)
     L = length(ψ)
-    for i in 1:L
+    for i ∈ 1:L
         W = O[i]
         M = ψ[i]
 
@@ -138,7 +138,7 @@ function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
     T = promote_type(eltype(O1), eltype(O2))
     O = MPO(T, L)
 
-    for i in 1:L
+    for i ∈ 1:L
         W1 = O1[i]
         W2 = O2[i]    
         @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]  

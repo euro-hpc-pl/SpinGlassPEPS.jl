@@ -1,6 +1,7 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states, local_basis, enum
+export all_states, local_basis, enum, state_to_ind, rank_vec
+export @state
 
 using Base.Cartesian
 import Base.Prehashed
@@ -10,12 +11,47 @@ enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1
 
+@inline state_to_ind(::AbstractArray, ::Int, i) = i
+@inline function state_to_ind(a::AbstractArray, k::Int, σ::State)
+    n = length(σ)
+    if n == 1 return idx(σ[1]) end
+    d = size(a, k)
+    base = Int(d ^ (1/n))
+    ind = idx.(σ) .- 1
+    i = sum(l*base^(j-1) for (j, l) ∈ enumerate(reverse(ind)))
+    i + 1
+end
+
+function process_ref(ex)
+    n = length(ex.args)
+    args = Vector(undef, n)
+    args[1] = ex.args[1]
+    for i=2:length(ex.args)
+        args[i] = :(state_to_ind($(ex.args[1]), $(i-1), $(ex.args[i])))
+    end
+    rex = Expr(:ref)
+    rex.args = args
+    rex
+end
+
+macro state(ex)
+    if ex.head == :ref
+        rex = process_ref(ex)
+    elseif ex.head == :(=) || ex.head == Symbol("'")
+        rex = copy(ex)
+        rex.args[1] = process_ref(ex.args[1])
+    else
+        error("Not supported operation: $(ex.head)")
+    end
+    esc(rex)
+end
+
 LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
 
 local_basis(d::Int) = union(-1, 1:d-1)
 local_basis(ψ::AbstractMPS, i::Int) = local_basis(size(ψ[i], 2))
 
-function proj(state, dims::T) where {T <: Union{Vector, NTuple}}
+function proj(state, dims::Union{Vector, NTuple})
     P = Matrix{Float64}[] 
     for (σ, r) ∈ zip(state, dims)
         v = zeros(r)
@@ -25,12 +61,12 @@ function proj(state, dims::T) where {T <: Union{Vector, NTuple}}
     P
 end
 
-function all_states(rank::T) where T <: Union{Vector, NTuple}
+function all_states(rank::Union{Vector, NTuple})
     basis = [local_basis(r) for r ∈ rank]
     product(basis...)
 end
 
-function HadamardMPS(rank::T) where T <: Union{Vector, NTuple}
+function HadamardMPS(rank::Union{Vector, NTuple})
     vec = [ fill(1, r) ./ sqrt(r) for r ∈ rank ]
     MPS(vec)
 end
@@ -150,7 +186,7 @@ end
                     collided[j] || continue
                     uniquerow[j] = get!(firstrow, Prehashed(hashes[j]), j)
                 end
-                for v in values(firstrow)
+                for v ∈ values(firstrow)
                     push!(uniquerows, v)
                 end
 
@@ -175,4 +211,10 @@ end
 
         (@nref $N A d->d == dim ? sort!(uniquerows) : (axes(A, d))), indexin(uniquerow, uniquerows)
     end
+end
+
+function rank_vec(ig::MetaGraph)
+    rank = get_prop(ig, :rank)
+    L = get_prop(ig, :L)
+    Int[get(rank, i, 1) for i=1:L]
 end

@@ -16,7 +16,7 @@ struct Chimera <: Model
             set_prop!(cg, v, :cell, ij)
         end
 
-        for e in edges(cg)
+        for e ∈ edges(cg)
             v = get_prop(cg, src(e), :cell)
             w = get_prop(cg, dst(e), :cell)
             set_prop!(cg, e, :cells, (v, w))
