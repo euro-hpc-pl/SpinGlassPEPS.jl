@@ -267,5 +267,5 @@ function _full_spectrum(cl::Cluster; num_states::Int=prod(cl.rank))
     end
     σ = collect.(all_states(num_states))
     energies = energy.(σ, Ref(cl))
-    Spectrum(energies, σ)   
+    Spectrum(energies[1:num_states], σ[1:num_states])   
 end

@@ -7,8 +7,8 @@
 
 instance = Dict{Tuple{Int64, Int64}, Float64}()
 
-push!(instance, (2,2) => 0.704)
-push!(instance, (1,1) => 0.868)
+push!(instance, (1,1) => 0.704)
+push!(instance, (2,2) => 0.868)
 push!(instance, (3,3) => 0.592)
 
 push!(instance, (1, 2) => 0.652)
@@ -46,8 +46,6 @@ sp = get_prop(fg, 1, :spectrum)
 sp_bf = get_prop(fg_bf, 1, :spectrum)
 
 display(sp.states)
-println()
 display(sp_bf.states)
-println()
 
 end

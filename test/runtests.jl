@@ -32,9 +32,11 @@ end
 
 push!(my_tests,
     "base.jl",
+    "utils.jl",
     "contractions.jl",
     "compressions.jl",
     "ising.jl",
+    "indexing.jl",
     "spectrum.jl",
     "graph.jl",
     "PEPS.jl",
