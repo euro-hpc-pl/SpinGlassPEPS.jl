@@ -108,6 +108,7 @@ using TensorCast
 
         #solution from the first tensor
         st = get_prop(fg, 1, :spectrum).states
+        println(st)
         @test st[spins] == sol_A1
         @test st[inds[1]] == sol_A1
         println(spins)
