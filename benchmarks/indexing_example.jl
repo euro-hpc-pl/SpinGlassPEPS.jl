@@ -30,6 +30,7 @@ if true
 
     g_ising = ising_graph(D, L-1)
 
+
     update_cells!(
       g_ising,
       rule = square_lattice((m, 1, n, 1, t)),
@@ -91,7 +92,7 @@ if true
     println("brute force (local) factor graph")
     display(sp.states)
     println()
-    println("fill spectrum factor graph")
+    println("full spectrum factor graph")
     display(sp2.states)
     println()
 

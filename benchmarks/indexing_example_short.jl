@@ -47,24 +47,71 @@ using TensorCast
             spectrum = brute_force,
         )
 
+        # test Z
+        β = 1.
+        states = collect.(all_states(rank_vec(g_ising)))
+        ρ = exp.(-β .* energy.(states, Ref(g_ising)))
+        Z = sum(ρ)
+
+        @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
+
+        for origin ∈ (:NW,) #, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+            peps = PepsNetwork(m, n, fg, β, origin)
+
+            ψ = MPO(PEPSRow(peps, 1))
+
+            for i ∈ 2:peps.i_max
+                W = MPO(PEPSRow(peps, i))
+                M = MPO(peps, i-1, i)
+
+                ψ = (ψ * M) * W
+
+                @test length(W) == peps.j_max
+                for A ∈ ψ @test size(A, 2) == 1 end
+                @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
+            end
+            for A ∈ ψ @test size(A, 4) == 1 end
+            println("ψ ", ψ)
+
+            ZZ = []
+            for A ∈ ψ push!(ZZ, dropdims(A, dims=(2, 4))) end
+            @test Z ≈ prod(ZZ)[]
+        end
+
+
         origin = :NW
         β = 1.
 
         x, y = m, n
         peps = PepsNetwork(x, y, fg, β, origin)
         pp = PEPSRow(peps, 1)
+
+        display(pp[1][1,1,:,1,:])
+        println()
+        display(pp[2][:,1,1,1,:])
+        println()
+
+        h1 = D[(1,1)]
+        h2 = D[(2,2)]
+        J12 = D[(1,2)]
+        J23 = D[(2,3)]
+        h3 = D[(3,3)]
+
         if D[(1, 2)] == 0.652
-            h1 = D[(1,1)]
-            h2 = D[(2,2)]
-            J12 = D[(1,2)]
-            J23 = D[(2,3)]
-            h3 = D[(3,3)]
 
             A1ex = reshape([exp(h1+h2-J12) 0. exp(-h1+h2+J12) 0.; 0. exp(h1-h2+J12) 0. exp(-h1-h2-J12)], (1,1,2,1,4))
             @test A1ex ≈ pp[1]
 
             A2ex = reshape([exp(h3-J23) exp(-h3+J23); exp(h3+J23) exp(-h3-J23)],(2,1,1,1,2))
             @test A2ex ≈ pp[2]
+        else
+            A1ex = reshape([exp(-h1-h2-J12) 0. 0. exp(h1-h2+J12); 0. exp(h1+h2-J12) exp(-h1+h2+J12) 0.], (1,1,2,1,4))
+            display(A1ex[1,1,:,1,:])
+            println()
+
+            A2ex = reshape([exp(-h3-J23) exp(h3+J23); exp(-h3+J23) exp(h3-J23)],(2,1,1,1,2))
+            display(A2ex[:,1,1,1,:])
+            println()
 
         end
 
