@@ -36,7 +36,7 @@ end
       rule = square_lattice((m, n, 2*t)),
    )
 
-   @time fg = factor_graph(ig)
+   @time fg = factor_graph(ig, 2)
 
    @test collect(vertices(fg)) == collect(1:m * n)
    @test nv(fg) == m * n
@@ -123,6 +123,7 @@ update_cells!(
 
 fg = factor_graph(
     ig,
+    
     energy=energy,
     spectrum=full_spectrum,
 )
@@ -130,13 +131,11 @@ fg = factor_graph(
 
 for (bd, e) in zip(bond_dimensions, edges(fg))
    pl, en, pr = get_prop(fg, e, :split)
-
-   println(e)
+   display(e)
    println(size(pl), "   ", size(en),  "   ", size(pr))
 
    @test min(size(en)...) == bd
 end
-
 
 for (i, j) ∈ keys(cedges)
    pl, en, pr = get_prop(fg, i, j, :split)
@@ -195,4 +194,36 @@ end
    @test size(P) == (2, 3)
    @test size(E) == (3, 2)
    @test E * P ≈ energy
+end
+
+@testset "Rank reveal correctly decomposes energy into projector, energy, projector" begin
+   #energy = [[1 2 3]; [0 -1 0]; [1 2 3]]
+   energy = [[1.0  -0.5   1.5   0.0   0.0  -1.5   0.5  -1.0];
+   [0.0   0.5   0.5   1.0  -1.0  -0.5  -0.5   0.0];
+   [0.5   0.0   1.0   0.5  -0.5  -1.0   0.0  -0.5];
+   [-0.5   1.0   0.0   1.5  -1.5   0.0  -1.0   0.5];
+   [0.5  -1.0   0.0  -1.5   1.5   0.0   1.0  -0.5];
+   [-0.5   0.0  -1.0  -0.5   0.5   1.0   0.0   0.5];
+   [0.0  -0.5  -0.5  -1.0   1.0   0.5   0.5   0.0];
+   [-1.0   0.5  -1.5   0.0   0.0   1.5  -0.5   1.0]]
+   Pl, E_old = rank_reveal(energy, :PE)
+   @test size(Pl) == (8, 8)
+   @test size(E_old) == (8, 8)
+   println("energy: ")
+   display(energy)
+   println("Pl: ")
+   display(Pl)
+   println("E_old: ")
+   display(E_old)
+   @test Pl * E_old ≈ energy
+
+   E, Pr = rank_reveal(E_old, :EP)
+   @test size(Pr) == (8, 8)
+   @test size(E) == (8, 8)
+   println("E: ")
+   display(E)
+   println("Pr: ")
+   display(Pr)
+   @test E * Pr ≈ E_old
+   @test Pl * E * Pr ≈ energy
 end

@@ -13,6 +13,7 @@ module SpinGlassPEPS
     const product = Iterators.product
 
     include("base.jl")
+    include("utils.jl")
     include("compressions.jl")
     include("contractions.jl")
     include("lattice.jl")
@@ -22,7 +23,6 @@ module SpinGlassPEPS
     include("ising.jl")
     include("PEPS.jl")
     include("spectrum.jl")
-    include("utils.jl")
     include("notation.jl")
     include("peps_no_types.jl")
     include("mps_implementation.jl")

@@ -10,7 +10,7 @@ using Logging
 using Statistics
 using NPZ
 
-disable_logging(LogLevel(0))
+disable_logging(LogLevel(1))
 
 using Test
 
@@ -31,11 +31,12 @@ if CUDA.functional() && CUDA.has_cutensor() && false
 end
 
 push!(my_tests,
-    "base.jl",
+    # "base.jl",
+    "utils.jl",
     "contractions.jl",
     "compressions.jl",
     "ising.jl",
-    #"indexing.jl",
+    "indexing.jl",
     "searchMPS.jl",
     "spectrum.jl",
     "graph.jl",

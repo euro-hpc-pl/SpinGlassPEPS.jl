@@ -1,6 +1,7 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states, local_basis, enum
+export all_states, local_basis, enum, state_to_ind
+export @state
 
 using Base.Cartesian
 import Base.Prehashed
@@ -9,6 +10,41 @@ enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
 _σ(idx::Int) = (idx == 1) ? -1 : idx - 1
+
+@inline state_to_ind(::AbstractArray, ::Int, i) = i
+@inline function state_to_ind(a::AbstractArray, k::Int, σ::State)
+    n = length(σ)
+    if n == 1 return idx(σ[1]) end
+    d = size(a, k)
+    base = Int(d ^ (1/n))
+    ind = idx.(σ) .- 1
+    i = sum(l*base^(j-1) for (j, l) ∈ enumerate(reverse(ind)))
+    i + 1
+end
+
+function process_ref(ex)
+    n = length(ex.args)
+    args = Vector(undef, n)
+    args[1] = ex.args[1]
+    for i=2:length(ex.args)
+        args[i] = :(state_to_ind($(ex.args[1]), $(i-1), $(ex.args[i])))
+    end
+    rex = Expr(:ref)
+    rex.args = args
+    rex
+end
+
+macro state(ex)
+    if ex.head == :ref
+        rex = process_ref(ex)
+    elseif ex.head == :(=) || ex.head == Symbol("'")
+        rex = copy(ex)
+        rex.args[1] = process_ref(ex.args[1])
+    else
+        error("Not supported operation: $(ex.head)")
+    end
+    esc(rex)
+end
 
 LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
 
@@ -150,7 +186,7 @@ end
                     collided[j] || continue
                     uniquerow[j] = get!(firstrow, Prehashed(hashes[j]), j)
                 end
-                for v in values(firstrow)
+                for v ∈ values(firstrow)
                     push!(uniquerows, v)
                 end
 

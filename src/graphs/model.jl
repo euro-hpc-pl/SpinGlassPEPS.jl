@@ -2,7 +2,7 @@ export Model
 
 abstract type Model end
 
-for op in [
+for op ∈ [
     :nv,
     :ne,
     :eltype,
@@ -14,7 +14,7 @@ for op in [
     @eval LightGraphs.$op(c::Model) = $op(c.graph)
 end
 
-for op in [
+for op ∈ [
     :get_prop,
     :set_prop!,
     :has_vertex,

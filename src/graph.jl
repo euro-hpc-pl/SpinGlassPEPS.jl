@@ -89,9 +89,26 @@ function _max_cell_num(ig::MetaGraph)
 end
 
 function factor_graph(
-    ig::MetaGraph;
+    ig::MetaGraph,
+    num_states_cl::Int;
     energy::Function=energy, 
-    spectrum::Function=full_spectrum, 
+    spectrum::Function=full_spectrum
+    )
+    d = _max_cell_num(ig)
+    ns = Dict(enumerate(fill(num_states_cl)))
+    factor_graph(
+        ig,
+        ns,
+        energy=energy,
+        spectrum=spectrum
+    )
+end
+
+function factor_graph(
+    ig::MetaGraph,
+    num_states_cl::Dict{Int, Int}=Dict{Int, Int}();
+    energy::Function=energy, 
+    spectrum::Function=full_spectrum
 ) 
     L = _max_cell_num(ig)
     fg = MetaDiGraph(L, 0.0)
@@ -99,8 +116,9 @@ function factor_graph(
     for v ∈ vertices(fg)
         cl = Cluster(ig, v)
         set_prop!(fg, v, :cluster, cl)
-
-        sp = spectrum(cl)
+        r = prod(cl.rank)
+        num_states = get(num_states_cl, v, r)
+        sp = spectrum(cl, num_states=num_states)
         set_prop!(fg, v, :spectrum, sp)
         set_prop!(fg, v, :loc_en, vec(sp.energies))
     end

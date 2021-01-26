@@ -16,7 +16,7 @@ truncate!(ψ::AbstractMPS, ::Val{:left}, Dcut::Int) = _right_sweep_SVD!(ψ, Dcut
 function _right_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
     Σ = V = ones(eltype(ψ), 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         A = ψ[i]
         C = Diagonal(Σ) * V'
 
@@ -79,7 +79,7 @@ function compress(ψ::AbstractMPS, Dcut::Int, tol::Number=1E-8, max_sweeps::Int=
         @info "Convergence" diff
 
         if diff < tol
-            @info "Finished in $sweep sweeps of $(max_sweeps)."
+            @info "Finished ∈ $sweep sweeps of $(max_sweeps)."
             break
         else
             overlap_before = overlap
@@ -124,7 +124,7 @@ function _right_sweep_var!!(ϕ::AbstractMPS, env::Vector{<:AbstractMatrix}, ψ::
     # overwrite the overlap
     env[1] = ones(S, 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         L = env[i]
         R = env[i+1]
 

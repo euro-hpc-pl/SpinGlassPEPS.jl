@@ -12,22 +12,22 @@ function get_parameters_for_T(g::MetaGraph, i::Int)
     M_left = zeros(1, length(spectrum))
     M_up = zeros(1, length(spectrum))
 
-    for n in all_neighbors(g, i)
+    for n ∈ all_neighbors(g, i)
 
         if props(g, i)[:column] -1 == props(g, n)[:column]
 
             spectrum = props(g, n)[:spectrum]
             ind = props(g, i, n)[:inds]
-            rrr = [s[ind] for s in spectrum]
-            k1 = unique([spins2ind(e) for e in rrr])
+            rrr = [s[ind] for s ∈ spectrum]
+            k1 = unique([spins2ind(e) for e ∈ rrr])
             p = invperm(sortperm(k1))
             M_left = props(g, i, n)[:M][p,:]
 
         elseif props(g, i)[:row] -1 == props(g, n)[:row]
             spectrum = props(g, n)[:spectrum]
             ind = props(g, i, n)[:inds]
-            rrr = [s[ind] for s in spectrum]
-            k1 = unique([spins2ind(e) for e in rrr])
+            rrr = [s[ind] for s ∈ spectrum]
+            k1 = unique([spins2ind(e) for e ∈ rrr])
             p = invperm(sortperm(k1))
             M_up = props(g, i, n)[:M][p,:]
 
@@ -74,11 +74,11 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
     tensor_size = [size(M_left, 1), size(M_up, 1) ,1,1, length(spectrum)]
 
 
-    r = [s[right] for s in spectrum]
+    r = [s[right] for s ∈ spectrum]
     k1 = s2i(r)
     tensor_size[3] = maximum(k1)
 
-    d = [s[down] for s in spectrum]
+    d = [s[down] for s ∈ spectrum]
     k2 = s2i(d)
     tensor_size[4] = maximum(k2)
 
@@ -87,7 +87,7 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
         tensor = zeros(T, (tensor_size...))
     end
 
-    for k in CartesianIndices(tuple(tensor_size[1], tensor_size[2]))
+    for k ∈ CartesianIndices(tuple(tensor_size[1], tensor_size[2]))
         energy = log_energy
 
         # conctraction with Ms
@@ -104,7 +104,7 @@ function compute_single_tensor(g::MetaGraph, i::Int, β::T; sum_over_last::Bool 
         # itteration over physical index
 
 
-        for i in 1:tensor_size[5]
+        for i ∈ 1:tensor_size[5]
 
             if !sum_over_last
                 @inbounds tensor[k[1], k[2], k1[i], k2[i], i] = energy[i]
@@ -130,7 +130,7 @@ Further are traced over the physical (last) dimension.
 function set_spin_from_letf(mpo::AbstractMPO{T}, new_s::Int) where T <: Real
     B = mpo[1][new_s,:,:,:]
     B = permutedims(B, (3,1,2))
-    mps = vcat([B], [sum_over_last(el) for el in mpo[2:end]])
+    mps = vcat([B], [sum_over_last(el) for el ∈ mpo[2:end]])
     MPS(mps)
 end
 
@@ -146,17 +146,17 @@ end
 
 function set_spins_from_above(vec_of_T::Vector{Array{T,5}}, upper_right::Vector{Int}) where T <: Real
     l = length(vec_of_T) - length(upper_right)+1
-    M = [vec_of_T[k][:,upper_right[k-l+1],:,:,:] for k in l:length(vec_of_T)]
-    MPO([permutedims(e, (1,3,2,4)) for e in M])
+    M = [vec_of_T[k][:,upper_right[k-l+1],:,:,:] for k ∈ l:length(vec_of_T)]
+    MPO([permutedims(e, (1,3,2,4)) for e ∈ M])
 end
 
 function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64) where T <: Real
     grid = props(g)[:grid]
     s = size(grid,1)
-    mps = MPS([ones(T, (1,1,1)) for _ in 1:size(grid,2)])
+    mps = MPS([ones(T, (1,1,1)) for _ ∈ 1:size(grid,2)])
 
-    for i in s:-1:k
-        mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j in grid[i,:]]
+    for i ∈ s:-1:k
+        mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j ∈ grid[i,:]]
         mps = MPO(mpo)*mps
         if (threshold > 0.) & (χ < size(mps[1], 3))
             mps = compress(mps, χ, threshold)
@@ -216,7 +216,7 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
     upper_left = ones(Int, column-1)
 
     if row > 1
-        for i in column:s[2]
+        for i ∈ column:s[2]
             k = grid[row-1,i]
             k1 = grid[row,i]
             all = props(gg, k)[:spins]
@@ -225,14 +225,14 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
             index = ps.spins[k]
             ind = props(gg, k, k1)[:inds]
 
-            d = [s[ind] for s in spectrum]
+            d = [s[ind] for s ∈ spectrum]
             k2 = s2i(d)
 
             upper_right[i-column+1] = k2[index]
         end
     end
     if row < s[1]
-        for i in 1:column-1
+        for i ∈ 1:column-1
             k = grid[row,i]
             k1 = grid[row+1,i]
 
@@ -242,7 +242,7 @@ function spin_indices_from_above(gg::MetaGraph, ps::Partial_sol, j::Int)
 
             index = ps.spins[k]
 
-            d = [s[ind] for s in spectrum]
+            d = [s[ind] for s ∈ spectrum]
             k2 = s2i(d)
 
             upper_left[i] = k2[index]
@@ -263,7 +263,7 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
         spectrum = props(gg, jp)[:spectrum]
         ind = props(gg, j, jp)[:inds]
 
-        d = [s[ind] for s in spectrum]
+        d = [s[ind] for s ∈ spectrum]
         k2 = s2i(d)
         return k2[ps.spins[end]]
     end
@@ -284,7 +284,7 @@ function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mp
 
     weight = ones(T, 1,1)
     if l > 1
-        Mat = [lower_mps[i][:,upper_left[i],:] for i in 1:l-1]
+        Mat = [lower_mps[i][:,upper_left[i],:] for i ∈ 1:l-1]
         weight = prod(Mat)
     end
     probs_unnormed = re*transpose(weight)
@@ -320,20 +320,20 @@ to the maximal is lower than δH
 
 function merge_dX(partial_s::Vector{Partial_sol{T}}, dX_inds::Vector{Int}, δH::Float64) where T <:Real
     if (length(partial_s) > 1) & (δH != .0)
-        leave = [true for _ in partial_s]
+        leave = [true for _ ∈ partial_s]
 
-        dXes = [ps.spins[dX_inds] for ps in partial_s]
+        dXes = [ps.spins[dX_inds] for ps ∈ partial_s]
 
         unique_dXes = unique(dXes)
         if dXes != unique_dXes
             dXcount = countmap(dXes)
-            for dX in unique_dXes
+            for dX ∈ unique_dXes
                 if dXcount[dX] > 1
                     i = findall(k -> k == dX, dXes)
-                    objectives = [partial_s[j].objective for j in i]
+                    objectives = [partial_s[j].objective for j ∈ i]
 
                     objectives = objectives./maximum(objectives)
-                    for ind in i[objectives .< δH]
+                    for ind ∈ i[objectives .< δH]
                         leave[ind] = false
                     end
                 end
@@ -363,25 +363,25 @@ function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1
     grid = props(gg)[:grid]
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
-    for row in 1:size(grid,1)
+    for row ∈ 1:size(grid,1)
         @info "row of peps = " row
         #this may be cashed
         lower_mps = make_lower_mps(gg, row + 1, β, χ, threshold)
 
-        vec_of_T = [compute_single_tensor(gg, j, β) for j in grid[row,:]]
+        vec_of_T = [compute_single_tensor(gg, j, β) for j ∈ grid[row,:]]
 
-        for j in grid[row,:]
+        for j ∈ grid[row,:]
 
             dX = dX_inds(grid, j)
 
             partial_s_temp = Partial_sol{T}[]
 
             partial_s = merge_dX(partial_s, dX, δH)
-            for ps in partial_s
+            for ps ∈ partial_s
 
                 objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
 
-                for l in 1:length(objectives)
+                for l ∈ eachindex(objectives)
                     new_objectives = ps.objective*objectives[l]
                     ps1 = update_partial_solution(ps, l, new_objectives)
                     push!(partial_s_temp, ps1)
@@ -400,28 +400,28 @@ end
 """
     return_solutions(partial_s::Vector{Partial_sol{T}})
 
-return final solutions sorted backwards in form Vector{Partial_sol{T}}
-spins are given in -1,1
+return final solutions sorted backwards ∈ form Vector{Partial_sol{T}}
+spins are given ∈ -1,1
 """
 function return_solutions(partial_s::Vector{Partial_sol{T}}, ns:: MetaGraph)  where T <: Real
 
     l = length(partial_s)
     objective = zeros(T, l)
-    spins = [Int[] for _ in 1:l]
+    spins = [Int[] for _ ∈ 1:l]
     size = get_system_size(ns)
     # order is reversed, to correspond with sort
-    for i in 1:l
+    for i ∈ 1:l
         one_solution = zeros(Int, size)
         objective[l-i+1] = partial_s[i].objective
 
         ses = partial_s[i].spins
 
-        for k in vertices(ns)
+        for k ∈ vertices(ns)
             spins_inds = props(ns, k)[:spins]
             spectrum = props(ns, k)[:spectrum]
             iii = spectrum[ses[k]]
 
-            for j in 1:length(iii)
+            for j ∈ eachindex(iii)
                 one_solution[spins_inds[j]] = iii[j]
             end
         end
@@ -437,7 +437,7 @@ end
 returns Vector{Partial_sol{T}}, a vector of no_sols best solutions
 """
 function select_best_solutions(partial_s_temp::Vector{Partial_sol{T}}, no_sols::Int) where T <:Real
-    obj = [ps.objective for ps in partial_s_temp]
+    obj = [ps.objective for ps ∈ partial_s_temp]
     perm = sortperm(obj)
     p = last_m_els(perm, no_sols)
 
