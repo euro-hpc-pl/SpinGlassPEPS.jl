@@ -127,7 +127,7 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     =#
 
     for j ∈ 2:n
-        ten = generate_tensor(peps, (i, j), (i, j+1))
+        ten = generate_tensor(peps, (i, j-1), (i, j))
         A = ψ[j]
         @tensor B[l, u, r, d, σ] := ten[l, l̃] * A[l̃, u, r, d, σ] 
         ψ[j] = B
@@ -156,9 +156,9 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             en = ones(1, 1)
         end
 
-        # Krzysiek's request
+        # Krzysiek's request:
         @cast A[_, u, _, d] |= exp(-ng.β * en[d, u]) 
-        # @cast A[_, u, _, d] |= exp(-ng.β * en[u, d]) 
+        #@cast A[_, u, _, d] |= exp(-ng.β * en[u, d]) 
         ψ[j] = A
     end
     ψ
