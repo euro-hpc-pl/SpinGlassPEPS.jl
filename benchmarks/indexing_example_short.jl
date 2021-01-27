@@ -94,7 +94,11 @@ end
 
             println("D2, tensor with beta = $β")
             display(C.^β)
-            println()
+            #states = collect.(all_states(rank_vec(g_ising)))
+            #ρ = exp.(-β .* energy.(states, Ref(g_ising)))
+            #println()
+            #println(ρ - reshape(C.^β, (2,2,2)))
+
         end
 
         @test pp[1] ≈ A1ex.^β
