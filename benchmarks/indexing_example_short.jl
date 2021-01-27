@@ -4,20 +4,7 @@ using LightGraphs
 using Test
 using TensorCast
 
-function read_projectors(fg::MetaDiGraph, i::Int, j::Int)
-    if has_edge(fg, i, j)
-        p1, en, p2 = get_prop(fg, i, j, :split)
-    elseif has_edge(fg, j, i)
-        p2, en, p1 = get_prop(fg, j, i, :split)
-    else
-        p1 = ones(1,1)
-        en = p1
-        p2 = p1
-    end
-    p1, en, p2
-end
-
-@testset "test weather the solution of the tensor comply with the brute force" begin
+@testset "test if the solution of the tensor agreeds with the BF" begin
 
     #      grid
     #     A1    |    A2
