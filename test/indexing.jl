@@ -46,8 +46,6 @@ sp = get_prop(fg, 1, :spectrum)
 sp_bf = get_prop(fg_bf, 1, :spectrum)
 
 display(sp.states)
-println()
 display(sp_bf.states)
-println()
 
 end
