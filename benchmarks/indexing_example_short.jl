@@ -92,7 +92,7 @@ end
             display(C)
             println()
 
-            println("D2, tensor with beta = β")
+            println("D2, tensor with beta = $β")
             display(C.^β)
             println()
         end
