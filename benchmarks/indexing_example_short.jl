@@ -4,7 +4,7 @@ using LightGraphs
 using Test
 using TensorCast
 
-function read_projectors(fg, i::Int, j::Int)
+function read_projectors(fg::MetaDiGraph, i::Int, j::Int)
     if has_edge(fg, i, j)
         p1, en, p2 = get_prop(fg, i, j, :split)
     elseif has_edge(fg, j, i)
@@ -260,7 +260,7 @@ end
 
         @test st[spins] == sol_A1
 
-        p1, en, p2 = read_projectors(fg, 1, 2)
+        p1, _, _ = read_projectors(fg, 1, 2)
 
         @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * pp[$2][x, a, b, c, d]
 
