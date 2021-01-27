@@ -172,7 +172,7 @@ end
 
     for fg in [fg1, fg2]
         #Partition function
-        β = 2.
+        β = 3.
         states = collect.(all_states(rank_vec(g_ising)))
 
         ρ = exp.(-β .* energy.(states, Ref(g_ising)))
