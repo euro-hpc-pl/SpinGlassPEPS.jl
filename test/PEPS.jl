@@ -169,6 +169,8 @@ ig = ising_graph(instance, L)
 states = collect.(all_states(rank_vec(ig)))
 ρ = exp.(-β .* energy.(states, Ref(ig)))
 Z = sum(ρ)
+ 
+@test gibbs_tensor(ig, β)  ≈ ρ ./ Z
 
 fg = factor_graph(
     ig,
@@ -176,21 +178,27 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-peps = PepsNetwork(m, n, fg, β)
-ψ = MPO(PEPSRow(peps, 1))
+for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
-for i ∈ 2:peps.i_max
-    W = MPO(PEPSRow(peps, i))
-    M = MPO(peps, i-1, i)
-    ψ = (ψ * M) * W
+    peps = PepsNetwork(m, n, fg, β, origin)
 
-    for A ∈ ψ @test size(A, 2) == 1 end
+    ψ = MPO(PEPSRow(peps, 1))
+    for i ∈ 2:peps.i_max
+        W = MPO(PEPSRow(peps, i))
+        M = MPO(peps, i-1, i)
+        ψ = (ψ * M) * W
 
-    @test size(ψ[1], 1) == 1
-    @test size(ψ[peps.j_max], 3) == 1
+        @test length(W) == peps.j_max
+        for A ∈ ψ @test size(A, 2) == 1 end
+
+        @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
+    end
+    for A ∈ ψ @test size(A, 4) == 1 end
+    println(ψ)
+
+    ZZ = []
+    for A ∈ ψ push!(ZZ, dropdims(A, dims=(2, 4))) end
+    @test Z ≈ prod(ZZ)[]
 end
-for A ∈ ψ @test size(A, 4) == 1 end
-
-println(ψ)
 
 end
