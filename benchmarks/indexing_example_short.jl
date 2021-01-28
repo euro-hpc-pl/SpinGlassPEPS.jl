@@ -43,7 +43,7 @@ using TensorCast
             spectrum = brute_force
         )
 
-        for origin ∈ (:NW, :SW)#, :WS, :WN, :NE, :EN, :SE, :ES)
+        for origin ∈ (:NW, :SW) # :WS, :WN, :NE, :EN, :SE, :ES)
 
             β = 2.
 
