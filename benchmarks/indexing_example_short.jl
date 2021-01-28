@@ -4,6 +4,39 @@ using LightGraphs
 using Test
 using TensorCast
 
+function make_particular_tensors(D)
+    h1 = D[(1,1)]
+    h2 = D[(2,2)]
+    J12 = D[(1,2)]
+    J23 = D[(2,3)]
+    h3 = D[(3,3)]
+
+    if D[(1, 2)] == 0.652
+        A1ex = reshape([exp(h1+h2-J12) 0. exp(-h1+h2+J12) 0.; 0. exp(h1-h2+J12) 0. exp(-h1-h2-J12)], (1,1,2,1,4))
+        A2ex = reshape([exp(h3-J23) exp(-h3+J23); exp(h3+J23) exp(-h3-J23)],(2,1,1,1,2))
+        C = [exp(h1+h2-J12+h3-J23) exp(h1-h2+J12+h3+J23) exp(-h1+h2+J12+h3-J23) exp(-h1-h2-J12+h3+J23); exp(h1+h2-J12-h3+J23) exp(h1-h2+J12-h3-J23) exp(-h1+h2+J12-h3+J23) exp(-h1-h2-J12-h3-J23)]
+    else
+        A1ex = reshape([exp(-h1-h2-J12) 0. 0. exp(h1-h2+J12); 0. exp(h1+h2-J12) exp(-h1+h2+J12) 0.], (1,1,2,1,4))
+        A2ex = reshape([exp(-h3-J23) exp(h3+J23); exp(-h3+J23) exp(h3-J23)],(2,1,1,1,2))
+        C = [exp(-h1-h2-J12-h3-J23) exp(h1+h2-J12-h3+J23) exp(-h1+h2+J12-h3+J23) exp(h1-h2+J12-h3-J23); exp(-h1-h2-J12+h3+J23) exp(h1+h2-J12+h3-J23) exp(-h1+h2+J12+h3-J23) exp(h1-h2+J12+h3+J23)]
+    end
+    A1ex, A2ex, C
+end
+
+function show_dificult_example(C, fg)
+
+    println("states of T1  ", get_prop(fg, 1, :spectrum).states)
+    println("x")
+    println("states of T2  ", get_prop(fg, 2, :spectrum).states)
+    println("D2, tensor with beta = 1")
+    display(C)
+    println()
+
+    println("D2, tensor with beta = $β")
+    display(C.^β)
+    println()
+end
+
 @testset "Test if the solution of the tensor agreeds with the BF" begin
 
     #      grid
@@ -43,13 +76,14 @@ using TensorCast
             spectrum = brute_force
         )
 
-        for origin ∈ (:NW, :SW) # :WS, :WN, :NE, :EN, :SE, :ES)
+        for origin ∈ (:NW, :SW)
 
             β = 2.
 
             x, y = m, n
             peps = PepsNetwork(x, y, fg, β, origin)
             pp = PEPSRow(peps, 1)
+
 
             # the solution without cutting off
             M1 = pp[1][1,1,:,1,:]
@@ -58,36 +92,12 @@ using TensorCast
 
             _, inds = findmax(MM)
 
-            h1 = D[(1,1)]
-            h2 = D[(2,2)]
-            J12 = D[(1,2)]
-            J23 = D[(2,3)]
-            h3 = D[(3,3)]
-
-            if D[(1, 2)] == 0.652
-                A1ex = reshape([exp(h1+h2-J12) 0. exp(-h1+h2+J12) 0.; 0. exp(h1-h2+J12) 0. exp(-h1-h2-J12)], (1,1,2,1,4))
-                A2ex = reshape([exp(h3-J23) exp(-h3+J23); exp(h3+J23) exp(-h3-J23)],(2,1,1,1,2))
-                C = [exp(h1+h2-J12+h3-J23) exp(h1-h2+J12+h3+J23) exp(-h1+h2+J12+h3-J23) exp(-h1-h2-J12+h3+J23); exp(h1+h2-J12-h3+J23) exp(h1-h2+J12-h3-J23) exp(-h1+h2+J12-h3+J23) exp(-h1-h2-J12-h3-J23)]
-            else
-                A1ex = reshape([exp(-h1-h2-J12) 0. 0. exp(h1-h2+J12); 0. exp(h1+h2-J12) exp(-h1+h2+J12) 0.], (1,1,2,1,4))
-                A2ex = reshape([exp(-h3-J23) exp(h3+J23); exp(-h3+J23) exp(h3-J23)],(2,1,1,1,2))
-                C = [exp(-h1-h2-J12-h3-J23) exp(h1+h2-J12-h3+J23) exp(-h1+h2+J12-h3+J23) exp(h1-h2+J12-h3-J23); exp(-h1-h2-J12+h3+J23) exp(h1+h2-J12+h3-J23) exp(-h1+h2+J12+h3-J23) exp(h1-h2+J12+h3+J23)]
-
-                println("states of T1  ", get_prop(fg, 1, :spectrum).states)
-                println("x")
-                println("states of T2  ", get_prop(fg, 2, :spectrum).states)
-                println("D2, tensor with beta = 1")
-                display(C)
-                println()
-
-                println("D2, tensor with beta = $β")
-                display(C.^β)
-                println()
-            end
+            A1ex, A2ex, C = make_particular_tensors(D)
 
             @test pp[1] ≈ A1ex.^β
             @test pp[2] ≈ A2ex.^β
             @test MM ≈ transpose(C.^β)
+
 
             # peps solution, first tensor
             Aa1 = pp[1]

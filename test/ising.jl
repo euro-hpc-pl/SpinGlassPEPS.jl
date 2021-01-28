@@ -6,8 +6,8 @@ using CSV
 @testset "Ising" begin
 
     L = 4
-    N = L^2 
-    instance = "$(@__DIR__)/instances/$(N)_001.txt"  
+    N = L^2
+    instance = "$(@__DIR__)/instances/$(N)_001.txt"
 
     ig = ising_graph(instance, N)
 
@@ -24,7 +24,7 @@ using CSV
 
     for i ∈ 1:N
         @test has_vertex(ig, i)
-    end    
+    end
 
     A = adjacency_matrix(ig)
     display(Matrix{Int}(A))
@@ -35,11 +35,11 @@ using CSV
         nbrs = unique_neighbors(ig, i)
         for j ∈ nbrs
             B[i, j] = 1
-        end    
+        end
     end
 
     @test B + B' == A
-   
+
     gplot(ig, nodelabel=1:N)
 
     @testset "Naive brute force for +/-1" begin
@@ -69,14 +69,14 @@ using CSV
         R = r ./ sum(r)
 
         @test sum(R) ≈ 1
-        @test sum(ρ) ≈ 1        
+        @test sum(ρ) ≈ 1
 
         @test [ ρ[idx.(σ)...] for σ ∈ sp.states ] ≈ R
     end
 
     @testset "Naive brute force for general spins" begin
-        L = 4 
-        instance = "$(@__DIR__)/instances/$(L)_001.txt"  
+        L = 4
+        instance = "$(@__DIR__)/instances/$(L)_001.txt"
 
         ig = ising_graph(instance, L)
 
@@ -89,10 +89,10 @@ using CSV
         β = rand(Float64)
         ρ = exp.(-β .* sp.energies)
 
-        ϱ = ρ ./ sum(ρ) 
+        ϱ = ρ ./ sum(ρ)
         ϱ̃ = gibbs_tensor(ig, β)
- 
-        @test [ ϱ̃[idx.(σ)...] for σ ∈ sp.states ] ≈ ϱ 
+
+        @test [ ϱ̃[idx.(σ)...] for σ ∈ sp.states ] ≈ ϱ
     end
 
     @testset "Reading from Dict" begin
@@ -107,125 +107,5 @@ using CSV
         ig_dict = ising_graph(instance_dict, N)
 
         @test gibbs_tensor(ig) ≈ gibbs_tensor(ig_dict)
-    end 
-end
-
-@testset "Ground state energy for pathological instance " begin
-m = 3
-n = 4
-t = 3
-
-β = 1
-L = n * m * t
-
-instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
-
-ising = CSV.File(instance, types=[Int, Int, Float64], header=0, comment = "#")
-
-couplings = Dict()
-for (i, j, v) ∈ ising
-    push!(couplings, (i, j) => v)
-end
-
-cedges = Dict()
-push!(cedges, (1, 2) => [(1, 4), (1, 5), (1, 6)])
-push!(cedges, (1, 5) => [(1, 13)])
-
-push!(cedges, (2, 3) => [(4, 7), (5, 7), (6, 8), (6, 9)])
-push!(cedges, (2, 6) => [(6, 16), (6, 18), (5, 16)])
-
-push!(cedges, (5, 6) => [(13, 16), (13, 18)])
-
-push!(cedges, (6, 10) => [(18, 28)])
-push!(cedges, (10, 11) => [(28, 31), (28, 32), (28, 33), (29, 31), (29, 32), (29, 33), (30, 31), (30, 32), (30, 33)])
-
-push!(cedges, (2, 2) => [(4, 5), (4, 6), (5, 6), (6, 6)])
-push!(cedges, (3, 3) => [(7, 8), (7, 9)])
-push!(cedges, (6, 6) => [(16, 18), (16, 16)])
-push!(cedges, (10, 10) => [(28, 29), (28, 30), (29, 30)])
-
-cells = Dict()
-push!(cells, 1 => [1])
-push!(cells, 2 => [4, 5, 6])
-push!(cells, 3 => [7, 8, 9])
-push!(cells, 4 => [])
-push!(cells, 5 => [13])
-push!(cells, 6 => [16, 18])
-push!(cells, 7 => [])
-push!(cells, 8 => [])
-push!(cells, 9 => [])
-push!(cells, 10 => [28, 29, 30])
-push!(cells, 11 => [31, 32, 33])
-push!(cells, 12 => [])
-
-d = 2
-rank = Dict()
-for (c, idx) ∈ cells
-   if !isempty(idx) 
-      push!(rank, c => fill(d, length(idx)))
-   end
-end
-
-ig = ising_graph(instance, L)
-update_cells!(
-   ig,
-   rule = square_lattice((m, n, t)),
-)
-
-fg = factor_graph(
-    ig,
-    energy=energy,
-    spectrum=full_spectrum,
-)
-
-configuration = [-1, 0, 0, 1, 1, -1, -1, -1, 1, 0, 0, 0, 1, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, -1, 1, -1, 1, 0, 0, 0]
-low_energies = [[-16.4, -16.4, -16.4, -16.4, -16.1, -16.1, -16.1, -16.1, -15.9, -15.9, -15.9, -15.9, -15.9, -15.9, -15.6, -15.6, -15.6, -15.6, -15.6, -15.6, -15.4, -15.4]]
-configurations = Dict()
-push!(configurations, 1 => [-1])
-push!(configurations, 2 => [0])
-push!(configurations, 3 => [0])
-push!(configurations, 4 => [1])
-push!(configurations, 5 => [1])
-push!(configurations, 6 => [-1])
-push!(configurations, 7 => [-1])
-push!(configurations, 8 => [-1])
-push!(configurations, 9 => [1])
-push!(configurations, 10 => [0])
-push!(configurations, 11 => [0])
-push!(configurations, 12 => [0])
-push!(configurations, 13 => [1])
-push!(configurations, 14 => [0])
-push!(configurations, 15 => [0])
-push!(configurations, 16 => [1])
-push!(configurations, 17 => [0])
-push!(configurations, 18 => [-1])
-push!(configurations, 19 => [0])
-push!(configurations, 20 => [0])
-push!(configurations, 21 => [0])
-push!(configurations, 22 => [0])
-push!(configurations, 23 => [0])
-push!(configurations, 24 => [0])
-push!(configurations, 25 => [0])
-push!(configurations, 26 => [0])
-push!(configurations, 27 => [0])
-push!(configurations, 28 => [1])
-push!(configurations, 29 => [1])
-push!(configurations, 30 => [-1])
-push!(configurations, 31 => [1])
-push!(configurations, 32 => [-1])
-push!(configurations, 33 => [1])
-push!(configurations, 34 => [0])
-push!(configurations, 35 => [0])
-push!(configurations, 36 => [0])
-
-e = 0
-for (i, j) ∈ keys(cedges)
-   for (k, l) ∈ values(cedges[i, j])
-      s = configurations[k]
-      r = configurations[l]
-      J = couplings[k, l]
-      e += dot(s, J, r)
-   end
-end
-println("low energy: ", e)
+    end
 end
