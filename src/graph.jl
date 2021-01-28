@@ -31,8 +31,6 @@ mutable struct Cluster
         cl.edges = SimpleEdge[]
 
         rank = get_prop(ig, :rank)
-        
-        # cl.rank = rank[1:L]
         cl.rank = zeros(Int, L)
 
         for (i, w) ∈ enumerate(vlist)
