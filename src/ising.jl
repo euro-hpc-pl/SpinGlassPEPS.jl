@@ -48,13 +48,6 @@ function energy(fg::MetaDiGraph, edge::Edge)
     for (j, η) ∈ enumerate(vec(wSp))
         en[:, j] = energy.(vec(vSp), Ref(edge.J), Ref(η))
     end
-    #=
-    for (j, η) ∈ enumerate(vec(wSp))
-        for (i, σ) ∈ enumerate(vec(vSp))
-            en[i, j] = energy(σ, Ref(edge.J), η)
-        end
-    end
-    =#
     en
 end
 
