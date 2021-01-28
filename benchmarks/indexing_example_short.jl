@@ -54,7 +54,7 @@ using TensorCast
             # the solution without cutting off
             M1 = pp[1][1,1,:,1,:]
             M2 = pp[2][:,1,1,1,:]
-            @reduce MM[a,b] |= sum(x) M1[x,a]*M2[x,b]
+            @reduce MM[a,b] |= sum(x) M1[x,a] * M2[x,b]
 
             _, inds = findmax(MM)
 
