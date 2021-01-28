@@ -4,7 +4,7 @@ using LightGraphs
 using Test
 using TensorCast
 
-@testset "test if the solution of the tensor agreeds with the BF" begin
+@testset "Test if the solution of the tensor agreeds with the BF" begin
 
     #      grid
     #     A1    |    A2
@@ -43,84 +43,86 @@ using TensorCast
             spectrum = brute_force
         )
 
-        origin = :NW
-        β = 2.
+        for origin ∈ (:NW, :SW)#, :WS, :WN, :NE, :EN, :SE, :ES)
 
-        x, y = m, n
-        peps = PepsNetwork(x, y, fg, β, origin)
-        pp = PEPSRow(peps, 1)
+            β = 2.
 
-        # the solution without cutting off
-        M1 = pp[1][1,1,:,1,:]
-        M2 = pp[2][:,1,1,1,:]
-        @reduce MM[a,b] |= sum(x) M1[x,a]*M2[x,b]
+            x, y = m, n
+            peps = PepsNetwork(x, y, fg, β, origin)
+            pp = PEPSRow(peps, 1)
 
-        _, inds = findmax(MM)
+            # the solution without cutting off
+            M1 = pp[1][1,1,:,1,:]
+            M2 = pp[2][:,1,1,1,:]
+            @reduce MM[a,b] |= sum(x) M1[x,a]*M2[x,b]
 
-        h1 = D[(1,1)]
-        h2 = D[(2,2)]
-        J12 = D[(1,2)]
-        J23 = D[(2,3)]
-        h3 = D[(3,3)]
+            _, inds = findmax(MM)
 
-        if D[(1, 2)] == 0.652
-            A1ex = reshape([exp(h1+h2-J12) 0. exp(-h1+h2+J12) 0.; 0. exp(h1-h2+J12) 0. exp(-h1-h2-J12)], (1,1,2,1,4))
-            A2ex = reshape([exp(h3-J23) exp(-h3+J23); exp(h3+J23) exp(-h3-J23)],(2,1,1,1,2))
-            C = [exp(h1+h2-J12+h3-J23) exp(h1-h2+J12+h3+J23) exp(-h1+h2+J12+h3-J23) exp(-h1-h2-J12+h3+J23); exp(h1+h2-J12-h3+J23) exp(h1-h2+J12-h3-J23) exp(-h1+h2+J12-h3+J23) exp(-h1-h2-J12-h3-J23)]
-        else
-            A1ex = reshape([exp(-h1-h2-J12) 0. 0. exp(h1-h2+J12); 0. exp(h1+h2-J12) exp(-h1+h2+J12) 0.], (1,1,2,1,4))
-            A2ex = reshape([exp(-h3-J23) exp(h3+J23); exp(-h3+J23) exp(h3-J23)],(2,1,1,1,2))
-            C = [exp(-h1-h2-J12-h3-J23) exp(h1+h2-J12-h3+J23) exp(-h1+h2+J12-h3+J23) exp(h1-h2+J12-h3-J23); exp(-h1-h2-J12+h3+J23) exp(h1+h2-J12+h3-J23) exp(-h1+h2+J12+h3-J23) exp(h1-h2+J12+h3+J23)]
+            h1 = D[(1,1)]
+            h2 = D[(2,2)]
+            J12 = D[(1,2)]
+            J23 = D[(2,3)]
+            h3 = D[(3,3)]
 
-            println("states of T1  ", get_prop(fg, 1, :spectrum).states)
-            println("x")
-            println("states of T2  ", get_prop(fg, 2, :spectrum).states)
-            println("D2, tensor with beta = 1")
-            display(C)
-            println()
+            if D[(1, 2)] == 0.652
+                A1ex = reshape([exp(h1+h2-J12) 0. exp(-h1+h2+J12) 0.; 0. exp(h1-h2+J12) 0. exp(-h1-h2-J12)], (1,1,2,1,4))
+                A2ex = reshape([exp(h3-J23) exp(-h3+J23); exp(h3+J23) exp(-h3-J23)],(2,1,1,1,2))
+                C = [exp(h1+h2-J12+h3-J23) exp(h1-h2+J12+h3+J23) exp(-h1+h2+J12+h3-J23) exp(-h1-h2-J12+h3+J23); exp(h1+h2-J12-h3+J23) exp(h1-h2+J12-h3-J23) exp(-h1+h2+J12-h3+J23) exp(-h1-h2-J12-h3-J23)]
+            else
+                A1ex = reshape([exp(-h1-h2-J12) 0. 0. exp(h1-h2+J12); 0. exp(h1+h2-J12) exp(-h1+h2+J12) 0.], (1,1,2,1,4))
+                A2ex = reshape([exp(-h3-J23) exp(h3+J23); exp(-h3+J23) exp(h3-J23)],(2,1,1,1,2))
+                C = [exp(-h1-h2-J12-h3-J23) exp(h1+h2-J12-h3+J23) exp(-h1+h2+J12-h3+J23) exp(h1-h2+J12-h3-J23); exp(-h1-h2-J12+h3+J23) exp(h1+h2-J12+h3-J23) exp(-h1+h2+J12+h3-J23) exp(h1-h2+J12+h3+J23)]
 
-            println("D2, tensor with beta = $β")
-            display(C.^β)
-            println()
+                println("states of T1  ", get_prop(fg, 1, :spectrum).states)
+                println("x")
+                println("states of T2  ", get_prop(fg, 2, :spectrum).states)
+                println("D2, tensor with beta = 1")
+                display(C)
+                println()
+
+                println("D2, tensor with beta = $β")
+                display(C.^β)
+                println()
+            end
+
+            @test pp[1] ≈ A1ex.^β
+            @test pp[2] ≈ A2ex.^β
+            @test MM ≈ transpose(C.^β)
+
+            # peps solution, first tensor
+            Aa1 = pp[1]
+            Aa2 = MPO(pp)[2]
+
+            @reduce A12[l, u, d, uu, rr, dd, σ] |= sum(x) Aa1[l, u, x, d, σ] * Aa2[x, uu, rr, dd]
+            A12 = dropdims(A12, dims=(1,2,3,4,5,6))
+            _, spins = findmax(A12)
+
+            #solution from the first tensor
+            st = get_prop(fg, 1, :spectrum).states
+            @test st[spins] == sol_A1
+            @test st[inds[1]] == sol_A1
+
+            # reading projector
+            p1, en, p2 = projectors(fg, 1, 2)
+            if D[(1, 2)] == 0.652
+                @test p1 == [1.0 0.0; 0.0 1.0; 1.0 0.0; 0.0 1.0]
+                @test en == [0.73 -0.73; -0.73 0.73]
+                @test p2 == [1.0 0.0; 0.0 1.0]
+            end
+            r1, rn, r2 = projectors(fg, 2, 1)
+            @test p1 == r2
+            @test p2 == r1
+            @test en == rn
+            @test projectors(fg, 3, 1) == (ones(1,1), ones(1,1), ones(1,1))
+
+            @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * pp[$2][x, a, b, c, d]
+            _, s = findmax(C[1,1,1,:])
+
+            # solution form the second tensor
+            st = get_prop(fg, 2, :spectrum).states
+            @test st[s] == sol_A2
+            @test st[inds[2]] == sol_A2
         end
-
-        @test pp[1] ≈ A1ex.^β
-        @test pp[2] ≈ A2ex.^β
-        @test MM ≈ transpose(C.^β)
-
-        # peps solution, first tensor
-        Aa1 = pp[1]
-        Aa2 = MPO(pp)[2]
-
-        @reduce A12[l, u, d, uu, rr, dd, σ] |= sum(x) Aa1[l, u, x, d, σ] * Aa2[x, uu, rr, dd]
-        A12 = dropdims(A12, dims=(1,2,3,4,5,6))
-        _, spins = findmax(A12)
-
-        #solution from the first tensor
-        st = get_prop(fg, 1, :spectrum).states
-        @test st[spins] == sol_A1
-        @test st[inds[1]] == sol_A1
-
-        # reading projector
-        p1, en, p2 = read_projectors(fg, 1, 2)
-        if D[(1, 2)] == 0.652
-            @test p1 == [1.0 0.0; 0.0 1.0; 1.0 0.0; 0.0 1.0]
-            @test en == [0.73 -0.73; -0.73 0.73]
-            @test p2 == [1.0 0.0; 0.0 1.0]
-        end
-        r1, rn, r2 = read_projectors(fg, 2, 1)
-        @test p1 == r2
-        @test p2 == r1
-        @test en == rn
-        @test read_projectors(fg, 3, 1) == (ones(1,1), ones(1,1), ones(1,1))
-
-        @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * pp[$2][x, a, b, c, d]
-        _, s = findmax(C[1,1,1,:])
-
-        # solution form the second tensor
-        st = get_prop(fg, 2, :spectrum).states
-        @test st[s] == sol_A2
-        @test st[inds[2]] == sol_A2
     end
 end
 
@@ -247,7 +249,7 @@ end
 
         @test st[spins] == sol_A1
 
-        p1, _, _ = read_projectors(fg, 1, 2)
+        p1, _, _ = projectors(fg, 1, 2)
 
         @reduce C[a, b, c, d] := sum(x) p1[$spins, x] * pp[$2][x, a, b, c, d]
 

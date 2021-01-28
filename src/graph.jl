@@ -1,4 +1,4 @@
-export factor_graph #decompose_edges!
+export factor_graph, projectors
 export Cluster, rank_reveal
 
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
