@@ -1,4 +1,4 @@
-export factor_graph #decompose_edges!
+export factor_graph, projectors
 export Cluster, rank_reveal
 
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
@@ -31,8 +31,6 @@ mutable struct Cluster
         cl.edges = SimpleEdge[]
 
         rank = get_prop(ig, :rank)
-        
-        # cl.rank = rank[1:L]
         cl.rank = zeros(Int, L)
 
         for (i, w) ∈ enumerate(vlist)
@@ -143,6 +141,17 @@ function factor_graph(
         end
     end
     fg
+end
+
+function projectors(fg::MetaDiGraph, i::Int, j::Int)
+    if has_edge(fg, i, j)
+        p1, en, p2 = get_prop(fg, i, j, :split)
+    elseif has_edge(fg, j, i)
+        p2, en, p1 = get_prop(fg, j, i, :split)
+    else
+        p1 = en = p2 = ones(1, 1)
+    end
+    p1, en, p2
 end
 
 function rank_reveal(energy, order=:PE)

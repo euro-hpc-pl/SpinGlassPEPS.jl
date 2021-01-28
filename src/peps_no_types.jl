@@ -375,7 +375,7 @@ function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1
             dX = dX_inds(grid, j)
 
             partial_s_temp = Partial_sol{T}[]
-
+            # TODO better compare energies, think it over
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
@@ -383,6 +383,7 @@ function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1
 
                 for l ∈ eachindex(objectives)
                     new_objectives = ps.objective*objectives[l]
+                    # TODO use log of probabilities
                     ps1 = update_partial_solution(ps, l, new_objectives)
                     push!(partial_s_temp, ps1)
                 end
@@ -438,6 +439,7 @@ returns Vector{Partial_sol{T}}, a vector of no_sols best solutions
 """
 function select_best_solutions(partial_s_temp::Vector{Partial_sol{T}}, no_sols::Int) where T <:Real
     obj = [ps.objective for ps ∈ partial_s_temp]
+    # TODO change sortperm to partial sort
     perm = sortperm(obj)
     p = last_m_els(perm, no_sols)
 

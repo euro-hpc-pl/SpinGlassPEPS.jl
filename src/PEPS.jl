@@ -42,7 +42,6 @@ function generate_tensor(ng::NetworkGraph, v::Int)
         @cast tensor[(c, γ), σ] |= tensor[c, σ] * pv[σ, γ]
         push!(dim, size(pv, 2))
     end
-
     reshape(tensor, dim..., :)
 end
 
@@ -86,20 +85,6 @@ end
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m])
 generate_tensor(pn::PepsNetwork, m::NTuple{2,Int}, n::NTuple{2,Int}) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
-function MPO(::Type{T}, Ψ::PEPSRow, σ::Vector{State}) where {T <: Number}
-    n = length(Ψ)
-    ϕ = MPO(T, n)
-    for i=1:n
-        k = σ[n]
-        A = Ψ[i]
-        @cast B[l, u, r, d] |= A[l, u, r, d, $k]
-        
-        ϕ[i] = B
-    end
-    ϕ
-end
-MPO(ψ::PEPSRow, σ::Vector{State}) = MPO(Float64, ψ, σ)
-
 function MPO(::Type{T}, Ψ::PEPSRow) where {T <: Number}
     n = length(Ψ)
     ϕ = MPO(T, n)
@@ -116,15 +101,13 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     n = peps.j_max
     ψ = PEPSRow(T, n)
 
-    for j ∈ 1:n
-        ψ[j] = generate_tensor(peps, (i, j))
-    end
+    for j ∈ 1:n ψ[j] = generate_tensor(peps, (i, j)) end
 
-    for j ∈ 1:n-1
-        ten = generate_tensor(peps, (i, j), (i, j+1))
+    for j ∈ 2:n
+        ten = generate_tensor(peps, (i, j-1), (i, j))
         A = ψ[j]
-        @tensor B[l, u, r, d, σ] := A[l, u, r̃, d, σ] * ten[r̃, r]
-         ψ[j] = B
+        @tensor B[l, u, r, d, σ] := ten[l, l̃] * A[l̃, u, r, d, σ] 
+        ψ[j] = B
     end
     ψ
 end
@@ -134,7 +117,8 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
     n = peps.j_max
 
     ψ = MPO(T, n)
-    fg = peps.network_graph.factor_graph
+    ng = peps.network_graph
+    fg = ng.factor_graph
 
     for j ∈ 1:n
         v, w = peps.map[i, j], peps.map[k, j]
@@ -148,7 +132,7 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             en = ones(1, 1)
         end
 
-        @cast A[_, u, _, d] |= en[u, d] 
+        @cast A[_, u, _, d] |= exp(-ng.β * en[u, d]) 
         ψ[j] = A
     end
     ψ

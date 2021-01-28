@@ -6,8 +6,8 @@ using CSV
 @testset "Ising" begin
 
     L = 4
-    N = L^2 
-    instance = "$(@__DIR__)/instances/$(N)_001.txt"  
+    N = L^2
+    instance = "$(@__DIR__)/instances/$(N)_001.txt"
 
     ig = ising_graph(instance, N)
 
@@ -24,7 +24,7 @@ using CSV
 
     for i ∈ 1:N
         @test has_vertex(ig, i)
-    end    
+    end
 
     A = adjacency_matrix(ig)
     display(Matrix{Int}(A))
@@ -35,11 +35,11 @@ using CSV
         nbrs = unique_neighbors(ig, i)
         for j ∈ nbrs
             B[i, j] = 1
-        end    
+        end
     end
 
     @test B + B' == A
-   
+
     gplot(ig, nodelabel=1:N)
 
     @testset "Naive brute force for +/-1" begin
@@ -69,14 +69,14 @@ using CSV
         R = r ./ sum(r)
 
         @test sum(R) ≈ 1
-        @test sum(ρ) ≈ 1        
+        @test sum(ρ) ≈ 1
 
         @test [ ρ[idx.(σ)...] for σ ∈ sp.states ] ≈ R
     end
 
     @testset "Naive brute force for general spins" begin
-        L = 4 
-        instance = "$(@__DIR__)/instances/$(L)_001.txt"  
+        L = 4
+        instance = "$(@__DIR__)/instances/$(L)_001.txt"
 
         ig = ising_graph(instance, L)
 
@@ -89,10 +89,10 @@ using CSV
         β = rand(Float64)
         ρ = exp.(-β .* sp.energies)
 
-        ϱ = ρ ./ sum(ρ) 
+        ϱ = ρ ./ sum(ρ)
         ϱ̃ = gibbs_tensor(ig, β)
- 
-        @test [ ϱ̃[idx.(σ)...] for σ ∈ sp.states ] ≈ ϱ 
+
+        @test [ ϱ̃[idx.(σ)...] for σ ∈ sp.states ] ≈ ϱ
     end
 
     @testset "Reading from Dict" begin
@@ -107,5 +107,5 @@ using CSV
         ig_dict = ising_graph(instance_dict, N)
 
         @test gibbs_tensor(ig) ≈ gibbs_tensor(ig_dict)
-    end 
+    end
 end
