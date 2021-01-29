@@ -61,7 +61,7 @@ Random.seed!(1234)
         @test ne(fg) == 4
 
         peps = PepsNetwork(x, y, fg, β, origin)
-        @test peps.size == (4,4)
+        @test peps.size == (2,2)
     end
 
 end
