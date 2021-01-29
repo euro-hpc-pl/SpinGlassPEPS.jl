@@ -22,7 +22,7 @@ Random.seed!(1234)
         energy=energy,
         spectrum=brute_force,
     )
-
+    @test props(fg, 1)[:cluster].vertices == Dict(1 => 1)
     @test nv(fg) == 16
     @test ne(fg) == 24
 
@@ -56,6 +56,13 @@ Random.seed!(1234)
             energy=energy,
             spectrum=brute_force,
         )
+
+        D = props(fg, 1)[:cluster].vertices
+        println(keys(D))
+        D = props(fg, 2)[:cluster].vertices
+        println(keys(D))
+        D = props(fg, 3)[:cluster].vertices
+        println(keys(D))
 
         @test nv(fg) == 4
         @test ne(fg) == 4
