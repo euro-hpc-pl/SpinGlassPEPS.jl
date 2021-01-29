@@ -34,6 +34,14 @@ Random.seed!(1234)
     @test peps.i_max == 4
     @test peps.j_max == 4
 
+    #   1 -- 2 -- 3 -- 4
+    #   |    |    |    |
+    #   5 -- 6 -- 7 -- 8
+    #   |    |    |    |
+    #   9 -- 10 --11 --12
+    #   |     |   |    |
+    #   13 --14 --15 --16
+
     g3 = make_interactions_case2()
     L = m * n * t
     instance = "$(@__DIR__)/instances/$(L)_001.txt"
@@ -58,13 +66,21 @@ Random.seed!(1234)
         )
 
         D = props(fg, 1)[:cluster].vertices
-        @test sort(keys(D)) == [1,2,5,6]
+        values(D)
+        nodes = [e for e in keys(D)]
+        @test sort(nodes) == [1,2,5,6]
+
         D = props(fg, 2)[:cluster].vertices
-        @test sort(keys(D)) == [3,4,7,8]
+        nodes = [e for e in keys(D)]
+        @test sort(nodes) == [3,4,7,8]
+
         D = props(fg, 3)[:cluster].vertices
-        @test sort(keys(D)) == [9,10,13,14]
+        nodes = [e for e in keys(D)]
+        @test sort(nodes) == [9,10,13,14]
+
         D = props(fg, 4)[:cluster].vertices
-        @test sort(keys(D)) == [11,12,15,16]
+        nodes = [e for e in keys(D)]
+        @test sort(nodes) == [11,12,15,16]
 
         @test nv(fg) == 4
         @test ne(fg) == 4
