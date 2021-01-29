@@ -461,15 +461,16 @@ end
     spins, objective = solve(g, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    m = 2
-    n = 2
-    t = 4
 
     g1 = make_interactions_case2()
 
+    m = 4
+    n = 4
+    t = 4
+
     update_cells!(
       g1,
-      rule = square_lattice((m, 1, n, 1, t)),
+      rule = square_lattice((m, 2, n, 2, t)),
     )
 
     fg = factor_graph(
@@ -479,15 +480,11 @@ end
         spectrum=brute_force,
     )
 
-    #println(props(fg, v)[:Cluster] for v in vertices(fg))
-
-    L = m * n * t
-
     origin = :NW
     x, y = m, n
 
     peps = PepsNetwork(x, y, fg, β, origin)
-
+    println(peps)
     spins_l, objective_l = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-8
@@ -495,17 +492,15 @@ end
     end
     # low energy spectrum
 
-    m = 2
-    n = 2
+    m = 4
+    n = 4
     t = 4
-
-    L = m * n * t
 
     g1 = make_interactions_case2()
 
     update_cells!(
       g1,
-      rule = square_lattice((m, 1, n, 1, t)),
+      rule = square_lattice((m, 2, n, 2, t)),
     )
 
     fg = factor_graph(
@@ -519,7 +514,7 @@ end
     x, y = m, n
 
     peps = PepsNetwork(x, y, fg, β, origin)
-
+    println(peps)
     spins_s, objective_s = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_s[i] atol=1e-8
