@@ -447,6 +447,7 @@ end
 
     n = 4
     m = 4
+    t = 1
     fg = factor_graph(
         g,
         2,
@@ -526,7 +527,7 @@ end
         @test objective[i] ≈ objective_s[i] atol=1e-8
         @test spins[i] == spins_s[i]
     end
- =#   
+ =#
 end
 
 
