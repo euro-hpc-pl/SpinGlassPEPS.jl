@@ -7,6 +7,7 @@ import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
 Random.seed!(1234)
 
+#=
 if true
 @testset "PEPS - axiliary functions" begin
 
@@ -438,6 +439,7 @@ end
 end
 end
 
+=#
 @testset "test an exemple instance" begin
     δH = 1e-6
     β = 3.
@@ -452,7 +454,6 @@ end
         spectrum=brute_force,
     )
 
-
     origin = :NW
     x, y = n, m
 
@@ -465,11 +466,14 @@ end
     n = 2
     t = 4
 
-    g1 = make_interactions_case2()
+    #g1 = make_interactions_case2()
+    L = m * n * t
+    instance = "$(@__DIR__)/instances/$(L)_001.txt"
+    g1 = ising_graph(instance, L)
 
     update_cells!(
       g1,
-      rule = square_lattice((m, 1, n, 1, t)),
+      rule = square_lattice((m, n, t)),
     )
 
     fg = factor_graph(
@@ -479,8 +483,10 @@ end
         spectrum=brute_force,
     )
 
+    println(nv(fg), " ", ne(fg))
     #println(props(fg, v)[:Cluster] for v in vertices(fg))
 
+    #=
     L = m * n * t
 
     origin = :NW
@@ -525,6 +531,7 @@ end
         @test objective[i] ≈ objective_s[i] atol=1e-8
         @test spins[i] == spins_s[i]
     end
+ =#   
 end
 
 
