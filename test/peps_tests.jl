@@ -30,7 +30,7 @@ Random.seed!(1234)
     x, y = n, m
 
     peps = PepsNetwork(x, y, fg, β, origin)
-
+    @test peps.size == (4,4)
 
     g3 = make_interactions_case2()
     L = m * n * t
