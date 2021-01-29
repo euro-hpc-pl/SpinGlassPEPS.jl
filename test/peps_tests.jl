@@ -33,6 +33,10 @@ Random.seed!(1234)
     @test peps.size == (4,4)
     @test peps.i_max == 4
     @test peps.j_max == 4
+
+    #  T1 -- T2
+    #  |     |
+    #  T3 -- T4
     #            .
     #   1 -- 2 --.-- 3 -- 4
     #   |    |   .   |    |
@@ -51,13 +55,13 @@ Random.seed!(1234)
 
     for g in [g2, g3]
 
-        m = 2
-        n = 2
-        t = 4
+        m = 4
+        n = 4
+        t = 1
 
         update_cells!(
           g,
-          rule = square_lattice((m, n, t)),
+          rule = square_lattice((m, 2, n, 2, t)),
         )
 
         fg = factor_graph(
@@ -88,7 +92,7 @@ Random.seed!(1234)
         @test ne(fg) == 4
 
         origin = :NW
-        x, y = n, m
+        x, y = 2,2
         peps = PepsNetwork(x, y, fg, β, origin)
         @test peps.size == (2,2)
     end
