@@ -47,13 +47,35 @@ Random.seed!(1234)
     #   9 -- 10 -.-- 11 --12
     #   |     |  .    |    |
     #   13 --14 -.-- 15 --16
-    #            .
+    #
+    nodes1 = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
+
     g3 = make_interactions_case2()
     L = m * n * t
     instance = "$(@__DIR__)/instances/$(L)_001.txt"
     g2 = ising_graph(instance, L)
 
-    for g in [g2, g3]
+    #  T1 -- T2
+    #  |     |
+    #  T3 -- T4
+    #            .
+    #   1 -- 2 --.-- 5 -- 6
+    #   |    |   .   |    |
+    #   3 -- 4 --.-- 7 -- 8
+    #   |    |   .   |    |
+    # .......................
+    #   |    |   .   |    |
+    #   9 -- 10 -.-- 13 --14
+    #   |     |  .    |    |
+    #   11 --12 -.-- 15 --16
+    #
+    nodes2 = [1 2 5 6; 3 4 7 8; 9 10 13 14; 11 12 15 16]
+
+    g4 = make_interactions_case3()
+
+    all_nodes = [nodes2, nodes1, nodes1]
+    i = 0
+    for g in [g4, g2, g3]
 
         m = 4
         n = 4
@@ -71,22 +93,24 @@ Random.seed!(1234)
             spectrum=brute_force,
         )
 
+        i = i+1
+        ns = all_nodes[i]
         D = props(fg, 1)[:cluster].vertices
         values(D)
         nodes = [e for e in keys(D)]
-        @test sort(nodes) == [1,2,5,6]
+        @test sort(nodes) == sort(vec(ns[1:2, 1:2]))
 
         D = props(fg, 2)[:cluster].vertices
         nodes = [e for e in keys(D)]
-        @test sort(nodes) == [3,4,7,8]
+        @test sort(nodes) == sort(vec(ns[1:2, 3:4]))
 
         D = props(fg, 3)[:cluster].vertices
         nodes = [e for e in keys(D)]
-        @test sort(nodes) == [9,10,13,14]
+        @test sort(nodes) == sort(vec(ns[3:4, 1:2]))
 
         D = props(fg, 4)[:cluster].vertices
         nodes = [e for e in keys(D)]
-        @test sort(nodes) == [11,12,15,16]
+        @test sort(nodes) == sort(vec(ns[3:4, 3:4]))
 
         @test nv(fg) == 4
         @test ne(fg) == 4
