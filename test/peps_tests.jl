@@ -7,6 +7,59 @@ import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
 Random.seed!(1234)
 
+
+@testset "factor graph and peps formation" begin
+
+    β = 3.
+    g = make_interactions_case2()
+
+    n = 4
+    m = 4
+    t = 1
+    fg = factor_graph(
+        g,
+        2,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    @test nv(fg) == 16
+    @test ne(fg) == 24
+
+    origin = :NW
+    x, y = n, m
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+
+
+    g3 = make_interactions_case2()
+    L = m * n * t
+    instance = "$(@__DIR__)/instances/$(L)_001.txt"
+    g2 = ising_graph(instance, L)
+
+    for g in [g2, g3]
+
+        m = 4
+        n = 4
+        t = 4
+
+        update_cells!(
+          g,
+          rule = square_lattice((m, n, t)),
+        )
+
+        fg = factor_graph(
+            g1,
+            16,
+            energy=energy,
+            spectrum=brute_force,
+        )
+
+        @test nv(fg) == 4
+        @test ne(fg) == 4
+    end
+
+end
 #=
 if true
 @testset "PEPS - axiliary functions" begin
@@ -455,6 +508,9 @@ end
         spectrum=brute_force,
     )
 
+    @test nv(fg) == 16
+    @test ne(fg) == 24
+
     origin = :NW
     x, y = n, m
 
@@ -485,7 +541,8 @@ end
         spectrum=brute_force,
     )
 
-    println(nv(fg), " ", ne(fg))
+    @test nv(fg) == 4
+    @test ne(fg) == 4
     #=
     origin = :NW
     x, y = m, n
