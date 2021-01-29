@@ -58,11 +58,13 @@ Random.seed!(1234)
         )
 
         D = props(fg, 1)[:cluster].vertices
-        println(keys(D))
+        @test sort(keys(D)) == [1,2,5,6]
         D = props(fg, 2)[:cluster].vertices
-        println(keys(D))
+        @test sort(keys(D)) == [3,4,7,8]
         D = props(fg, 3)[:cluster].vertices
-        println(keys(D))
+        @test sort(keys(D)) == [9,10,13,14]
+        D = props(fg, 4)[:cluster].vertices
+        @test sort(keys(D)) == [11,12,15,16]
 
         @test nv(fg) == 4
         @test ne(fg) == 4
