@@ -124,10 +124,15 @@ update_cells!(
 
 fg = factor_graph(
     ig,
-    
     energy=energy,
     spectrum=full_spectrum,
 )
+
+for v ∈ vertices(fg)
+   cl = get_prop(fg, v, :cluster)
+   nodes = [e for e in keys(cl.vertices)]
+   @test sort(nodes) == cells[v]
+end
 
 
 for (bd, e) in zip(bond_dimensions, edges(fg))

@@ -114,7 +114,6 @@ instance = "$(@__DIR__)/instances/$(L)_001.txt"
 
 ig = ising_graph(instance, L)
 
-#states = collect.(all_states(get_prop(ig, :rank)))
 states = collect.(all_states(rank_vec(ig)))
 ρ = exp.(-β .* energy.(states, Ref(ig)))
 Z = sum(ρ)
