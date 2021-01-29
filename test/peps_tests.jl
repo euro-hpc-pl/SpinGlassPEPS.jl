@@ -440,17 +440,87 @@ end
 
 @testset "test an exemple instance" begin
     δH = 1e-6
+    β = 3.
     g = make_interactions_case2()
-    spins, objective = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, δH = δH)
+
+    n = 4
+    m = 4
+    fg = factor_graph(
+        g,
+        2,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+
+    origin = :NW
+    x, y = n, m
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+
+    spins, objective = solve(g, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    m = 2
+    n = 2
+    t = 4
+
+    g1 = make_interactions_case2()
+
+    update_cells!(
+      g1,
+      rule = square_lattice((m, 1, n, 1, t)),
+    )
+
+    fg = factor_graph(
+        g1,
+        16,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    #println(props(fg, v)[:Cluster] for v in vertices(fg))
+
+    L = m * n * t
+
+    origin = :NW
+    x, y = m, n
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+
+    spins_l, objective_l = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-8
         @test spins[i] == spins_l[i]
     end
     # low energy spectrum
-    spins_s, objective_s = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
+
+    m = 2
+    n = 2
+    t = 4
+
+    L = m * n * t
+
+    g1 = make_interactions_case2()
+
+    update_cells!(
+      g1,
+      rule = square_lattice((m, 1, n, 1, t)),
+    )
+
+    fg = factor_graph(
+        g1,
+        15,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    origin = :NW
+    x, y = m, n
+
+    peps = PepsNetwork(x, y, fg, β, origin)
+
+    spins_s, objective_s = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_s[i] atol=1e-8
         @test spins[i] == spins_s[i]
