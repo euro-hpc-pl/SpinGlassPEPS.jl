@@ -41,8 +41,8 @@ Random.seed!(1234)
 
     for g in [g2, g3]
 
-        m = 4
-        n = 4
+        m = 2
+        n = 2
         t = 4
 
         update_cells!(
@@ -60,6 +60,8 @@ Random.seed!(1234)
         @test nv(fg) == 4
         @test ne(fg) == 4
 
+        origin = :NW
+        x, y = n, m
         peps = PepsNetwork(x, y, fg, β, origin)
         @test peps.size == (2,2)
     end
