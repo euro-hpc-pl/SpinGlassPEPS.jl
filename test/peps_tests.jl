@@ -49,7 +49,7 @@ Random.seed!(1234)
         )
 
         fg = factor_graph(
-            g1,
+            g,
             16,
             energy=energy,
             spectrum=brute_force,
