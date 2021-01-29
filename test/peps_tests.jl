@@ -57,11 +57,11 @@ Random.seed!(1234)
 
         m = 4
         n = 4
-        t = 1
+        t = 4
 
         update_cells!(
           g,
-          rule = square_lattice((m, 2, n, 2, t)),
+          rule = square_lattice((m, n, t)),
         )
 
         fg = factor_graph(
