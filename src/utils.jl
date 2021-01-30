@@ -6,6 +6,12 @@ export @state
 using Base.Cartesian
 import Base.Prehashed
 
+function reshape_row(A::AbstractArray{T}, dims::Tuple) where {T <: Number}
+    ord = reverse(1:length(dims))
+    A = reshape(A, reverse(dims))
+    permutedims(A, ord)
+end
+
 enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
