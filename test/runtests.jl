@@ -25,7 +25,7 @@ end
 
 push!(my_tests,
     #"base.jl",
-    #"utils.jl",
+    "utils.jl",
     #"contractions.jl",
     #"compressions.jl",
     #"ising.jl",
@@ -36,7 +36,7 @@ push!(my_tests,
     #"PEPS.jl",
     #"indexing.jl",
     #"notation_tests.jl",
-    "peps_tests.jl",
+    #"peps_tests.jl",
     #"mps_tests.jl",
     #"tests_full_graph.jl",
     #"tests_on_data.jl"

@@ -2,6 +2,7 @@ export idx, ising, proj
 export HadamardMPS, rq
 export all_states, local_basis, enum, state_to_ind, rank_vec
 export @state
+export reshape_row
 
 using Base.Cartesian
 import Base.Prehashed
