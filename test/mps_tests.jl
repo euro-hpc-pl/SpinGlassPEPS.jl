@@ -91,6 +91,15 @@ end
 
     spins_exact, _ = solve_mps(g, 10; β=β, β_step=1, χ=12, threshold = 0.)
 
+    fg = factor_graph(
+        g,
+        2,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    peps = PepsNetwork(4, 4, fg, β, :NW)
+    
     spins_peps, _ = solve(g, 10; β = β, χ = 2, threshold = 1e-12, δH = 0.1)
 
     for k in 1:10

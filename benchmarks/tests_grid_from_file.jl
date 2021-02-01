@@ -65,9 +65,18 @@ for k in 1:examples
     energies_given = data["energies"][k,:,:]
 
     g = M2graph(Mat_of_interactions, -1)
+    si = Int(sqrt(size(Mat_of_interactions, 1)))
 
     ################ exact method ###################
+    fg = factor_graph(
+        g,
+        2,
+        energy=energy,
+        spectrum=brute_force,
+    )
 
+    peps = PepsNetwork(si, si, fg, β, :NW)
+    println("size of peps = ", peps.size)
     print("peps time  = ")
 
 
@@ -102,6 +111,24 @@ for k in 1:examples
     @test objective ≈ objective_approx atol = 1.e-7
 
     print("peps larger T")
+    s1 = ceil(Int, si/2)
+
+
+    update_cells!(
+      g,
+      rule = square_lattice((s1, 2, s1, 2, 1)),
+    )
+
+    fg = factor_graph(
+        g,
+        16,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    peps = PepsNetwork(s1, s1, fg, β, :NW)
+    println("size of peps = ", peps.size)
+
     number = number_of_states + more_states_for_peps
     @time spins_larger_nodes, objective_larger_nodes = solve(g, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, δH = δH)
 
@@ -117,6 +144,14 @@ for k in 1:examples
     @test objective ≈ objective_larger_nodes atol = 1.e-7
 
     print("peps larger T, limited spectrum")
+    fg = factor_graph(
+        g,
+        15,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    peps = PepsNetwork(s1, s2, fg, β, :NW)
     number = number_of_states + more_states_for_peps
     @time spins_spec, objective_spec = solve(g, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, spectrum_cutoff = 15, δH = δH)
 

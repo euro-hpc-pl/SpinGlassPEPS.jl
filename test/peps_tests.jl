@@ -14,9 +14,6 @@ Random.seed!(1234)
     β = 3.
     g = make_interactions_case2()
 
-    n = 4
-    m = 4
-    t = 1
     fg = factor_graph(
         g,
         2,
@@ -27,10 +24,7 @@ Random.seed!(1234)
     @test nv(fg) == 16
     @test ne(fg) == 24
 
-    origin = :NW
-    x, y = n, m
-
-    peps = PepsNetwork(x, y, fg, β, origin)
+    peps = PepsNetwork(4, 4, fg, β, :NW)
     @test peps.size == (4,4)
     @test peps.i_max == 4
     @test peps.j_max == 4
@@ -49,82 +43,49 @@ Random.seed!(1234)
     #   |     |  .    |    |
     #   13 --14 -.-- 15 --16
     #
-    nodes1 = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    g3 = make_interactions_case2()
-    L = m * n * t
-    instance = "$(@__DIR__)/instances/$(L)_001.txt"
-    g2 = ising_graph(instance, L)
+    ns = [1 2 3 4; 5 6 7 8; 9 10 11 12; 13 14 15 16]
 
-    #  T1 -- T2
-    #  |     |
-    #  T3 -- T4
-    #            .
-    #   1 -- 2 --.-- 5 -- 6
-    #   |    |   .   |    |
-    #   3 -- 4 --.-- 7 -- 8
-    #   |    |   .   |    |
-    # .......................
-    #   |    |   .   |    |
-    #   9 -- 10 -.-- 13 --14
-    #   |     |  .    |    |
-    #   11 --12 -.-- 15 --16
-    #
-    nodes2 = [1 2 5 6; 3 4 7 8; 9 10 13 14; 11 12 15 16]
+    g = make_interactions_case2()
 
-    g4 = make_interactions_case3()
+    update_cells!(
+      g,
+      rule = square_lattice((2, 2, 2, 2, 1)),
+    )
 
-    all_nodes = [nodes2, nodes1, nodes1]
-    i = 0
-    for g in [g4, g2, g3]
+    fg = factor_graph(
+        g,
+        16,
+        energy=energy,
+        spectrum=brute_force,
+    )
 
-        m = 4
-        n = 4
-        t = 4
 
-        update_cells!(
-          g,
-          rule = square_lattice((m, n, t)),
-        )
+    D = props(fg, 1)[:cluster].vertices
+    println(sort([v for v in values(D)]) == [1,2,3,4])
+    nodes = [e for e in keys(D)]
+    @test sort(nodes) == sort(vec(ns[1:2, 1:2]))
 
-        fg = factor_graph(
-            g,
-            16,
-            energy=energy,
-            spectrum=brute_force,
-        )
+    D = props(fg, 2)[:cluster].vertices
+    nodes = [e for e in keys(D)]
+    @test sort(nodes) == sort(vec(ns[1:2, 3:4]))
 
-        i = i+1
-        ns = all_nodes[i]
-        D = props(fg, 1)[:cluster].vertices
-        values(D)
-        nodes = [e for e in keys(D)]
-        @test sort(nodes) == sort(vec(ns[1:2, 1:2]))
+    D = props(fg, 3)[:cluster].vertices
+    nodes = [e for e in keys(D)]
+    @test sort(nodes) == sort(vec(ns[3:4, 1:2]))
 
-        D = props(fg, 2)[:cluster].vertices
-        nodes = [e for e in keys(D)]
-        @test sort(nodes) == sort(vec(ns[1:2, 3:4]))
+    D = props(fg, 4)[:cluster].vertices
+    nodes = [e for e in keys(D)]
+    @test sort(nodes) == sort(vec(ns[3:4, 3:4]))
 
-        D = props(fg, 3)[:cluster].vertices
-        nodes = [e for e in keys(D)]
-        @test sort(nodes) == sort(vec(ns[3:4, 1:2]))
+    @test nv(fg) == 4
+    @test ne(fg) == 4
 
-        D = props(fg, 4)[:cluster].vertices
-        nodes = [e for e in keys(D)]
-        @test sort(nodes) == sort(vec(ns[3:4, 3:4]))
-
-        @test nv(fg) == 4
-        @test ne(fg) == 4
-
-        origin = :NW
-        x, y = 2,2
-        peps = PepsNetwork(x, y, fg, β, origin)
-        @test peps.size == (2,2)
-    end
-
+    peps = PepsNetwork(2, 2, fg, β, :NW)
+    @test peps.size == (2,2)
 end
-#=
-if true
+
+
 @testset "PEPS - axiliary functions" begin
 
     @testset "partial solution type" begin
@@ -259,7 +220,6 @@ fullM2grid!(Mq, (2,2))
 
 @testset "tensor construction" begin
 
-
     g = M2graph(Mq)
 
     g_ising = M2graph(Mq)
@@ -267,23 +227,14 @@ fullM2grid!(Mq, (2,2))
     n = 2
     t = 1
 
-    #update_cells!(
-     #  g_ising,
-     #  rule = square_lattice((m, 1, n, 1, t)),
-    #)
-
     fg = factor_graph(
         g_ising,
         energy=energy,
         spectrum=full_spectrum,
     )
 
-    origin = :NW
     β = 2.
-    x, y = m, n
-
-    peps = PepsNetwork(x, y, fg, β, origin)
-
+    peps = PepsNetwork(2, 2,  fg, β, :NW)
 
     #smaller tensors
     g1 = graph4peps(g, (1,1))
@@ -306,10 +257,9 @@ fullM2grid!(Mq, (2,2))
     B = generate_tensor(peps, (1,1))
     @test B == t11
 
-
     update_cells!(
        g_ising,
-       rule = square_lattice((m, 2, n, 2, 4)),
+       rule = square_lattice((1, 2, 1, 2, 1)),
     )
 
     fg = factor_graph(
@@ -318,17 +268,15 @@ fullM2grid!(Mq, (2,2))
         spectrum=full_spectrum,
     )
 
-    origin = :NW
     β = 2.
-    x, y = m, n
 
-    peps = PepsNetwork(x, y, fg, β, origin)
+    peps = PepsNetwork(1, 1, fg, β, :NW)
     B = generate_tensor(peps, (1,1))
 
     gg = graph4peps(g, (2,2))
     T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
 
-    @test sum(B)== T1[1]
+    @test sum(B) == T1[1]
 
 
     @test size(t1) == (1, 1, 2, 2)
@@ -407,17 +355,13 @@ Mq[8,9] = Mq[9,8] = -0.05
     ii = [p[2] for p in ps]
     @test exp.(-β*energy(v, g)) ≈ cc[ii...]
 
-    m, n = 3, 3
     fg = factor_graph(
         g,
         energy=energy,
         spectrum=full_spectrum,
     )
 
-    origin = :NW
-    x, y = m, n
-
-    peps = PepsNetwork(x, y, fg, β, origin)
+    peps = PepsNetwork(3, 3, fg, β, :NW)
     B = generate_tensor(peps, (1,1))
 
     mpo1 = MPO(PEPSRow(peps, 1))
@@ -444,7 +388,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     update_cells!(
        g1,
-       rule = square_lattice((m, 3, n, 3, 9)),
+       rule = square_lattice((1, 3, 1, 3, 1)),
     )
 
     fg = factor_graph(
@@ -453,16 +397,11 @@ Mq[8,9] = Mq[9,8] = -0.05
         spectrum=full_spectrum,
     )
 
-    origin = :NW
-    x, y = m, n
-
-    peps = PepsNetwork(x, y, fg, β, origin)
+    peps = PepsNetwork(1, 1, fg, β, :NW)
     B = generate_tensor(peps, (1,1))
     println(size(B))
     println(size(vec(cc)))
     @test sum(cc) ≈ sum(B)
-
-
 end
 
 # TODO this will be the ilustative step by step how does the probability computation work
@@ -551,19 +490,14 @@ end
     p2 = sum(cc[1,1,1,1,2,:,:,:,:])/sum(cc[1,1,1,1,:,:,:,:,:])
     # approx due to numerical accuracy
     @test objective ≈ [p1, p2]
-
-end
 end
 
-=#
+
 @testset "test an exemple instance" begin
     δH = 1e-6
     β = 3.
     g = make_interactions_case2()
 
-    n = 4
-    m = 4
-    t = 1
     fg = factor_graph(
         g,
         2,
@@ -571,47 +505,27 @@ end
         spectrum=brute_force,
     )
 
-    @test nv(fg) == 16
-    @test ne(fg) == 24
-
-    origin = :NW
-    x, y = n, m
-
-    peps = PepsNetwork(x, y, fg, β, origin)
+    peps = PepsNetwork(4, 4, fg, β, :NW)
 
     spins, objective = solve(g, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-
-    #g1 = make_interactions_case2()
-    L = m * n * t
-    instance = "$(@__DIR__)/instances/$(L)_001.txt"
-    g1 = ising_graph(instance, L)
-
-    m = 4
-    n = 4
-    t = 4
+    g1 = make_interactions_case2()
 
     update_cells!(
-      g1,
-      rule = square_lattice((m, n, t)),
+      g,
+      rule = square_lattice((2, 2, 2, 2, 1)),
     )
 
     fg = factor_graph(
-        g1,
+        g,
         16,
         energy=energy,
         spectrum=brute_force,
     )
 
-    @test nv(fg) == 4
-    @test ne(fg) == 4
-    #=
-    origin = :NW
-    x, y = m, n
+    peps = PepsNetwork(2, 2, fg, β, :NW)
 
-    peps = PepsNetwork(x, y, fg, β, origin)
-    println(peps)
     spins_l, objective_l = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-8
@@ -619,15 +533,11 @@ end
     end
     # low energy spectrum
 
-    m = 4
-    n = 4
-    t = 4
-
     g1 = make_interactions_case2()
 
     update_cells!(
       g1,
-      rule = square_lattice((m, 2, n, 2, t)),
+      rule = square_lattice((2, 2, 2, 2, 1)),
     )
 
     fg = factor_graph(
@@ -636,29 +546,49 @@ end
         energy=energy,
         spectrum=brute_force,
     )
+    peps = PepsNetwork(2,2, fg, β, :NW)
 
-    origin = :NW
-    x, y = m, n
-
-    peps = PepsNetwork(x, y, fg, β, origin)
-    println(peps)
     spins_s, objective_s = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_s[i] atol=1e-8
         @test spins[i] == spins_s[i]
     end
- =#
 end
 
 
 @testset "test an exemple instance on Float32" begin
     δH = 1e-6
     g = make_interactions_case2()
+
     T = Float32
-    spins, objective = solve(g, 10; β = T(3.), χ = 2, threshold = 1e-11, δH = δH)
+    β = T(3.)
+    fg = factor_graph(
+        g,
+        2,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    peps = PepsNetwork(4, 4, fg, β, :NW)
+
+    spins, objective = solve(g, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    spins_l, objective_l = solve(g, 10; β = 3., χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    update_cells!(
+      g,
+      rule = square_lattice((2, 2, 2, 2, 1)),
+    )
+
+    fg = factor_graph(
+        g,
+        16,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    peps = PepsNetwork(2, 2, fg, β, :NW)
+
+    spins_l, objective_l = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-5
         @test spins[i] == spins_l[i]
