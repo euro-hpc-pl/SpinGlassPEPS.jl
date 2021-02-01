@@ -86,11 +86,13 @@ Random.seed!(1234)
 end
 
 
-@testset "factor graph 5 x 5" begin
+@testset "factor graph 3 x 3" begin
     #this is full graph
-    M = ones(25, 25)
-    #this is grid of size 5x5
-    fullM2grid!(M, (5,5))
+    M = ones(9,9)
+    #this is grid of size 3x3
+    fullM2grid!(M, (3,3))
+    display(M)
+    println()
     # change it to Ising
     g = M2graph(M)
 
@@ -103,15 +105,15 @@ end
         spectrum=brute_force,
     )
 
-    @test nv(fg) == 25
-    @test ne(fg) == 40
+    @test nv(fg) == 9
+    @test ne(fg) == 12
 
-    peps = PepsNetwork(5,5, fg, β, :NW)
-    @test peps.size == (5,5)
+    peps = PepsNetwork(3,3, fg, β, :NW)
+    @test peps.size == (3,3)
 
     update_cells!(
       g,
-      rule = square_lattice((3, 2, 3, 2, 1)),
+      rule = square_lattice((2, 2, 2, 2, 1)),
     )
 
     fg = factor_graph(
@@ -121,11 +123,11 @@ end
         spectrum=brute_force,
     )
 
-    @test nv(fg) == 9
-    @test ne(fg) == 12
+    @test nv(fg) == 4
+    @test ne(fg) == 4
 
-    peps = PepsNetwork(3,3, fg, β, :NW)
-    @test peps.size == (3,3)
+    peps = PepsNetwork(2,2, fg, β, :NW)
+    @test peps.size == (2,2)
 end
 
 
