@@ -86,6 +86,36 @@ Random.seed!(1234)
 end
 
 
+@testset "factor graph 5 x 5" begin
+    #this is full graph
+    M = ones(25, 25)
+    #this is grid of size 5x5
+    fullM2grid!(M, (5,5))
+    # change it to Ising
+    g = M2graph(M)
+
+    β = 3.
+
+    update_cells!(
+      g,
+      rule = square_lattice((3, 2, 3, 2, 1)),
+    )
+
+    fg = factor_graph(
+        g,
+        16,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    @test nv(fg) == 9
+    @test ne(fg) == 12
+
+    peps = PepsNetwork(3,3, fg, β, :NW)
+    @test peps.size == (3,3)
+end
+
+
 @testset "PEPS - axiliary functions" begin
 
     @testset "partial solution type" begin
