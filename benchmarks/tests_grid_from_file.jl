@@ -112,7 +112,7 @@ for k in 1:examples
 
     print("peps larger T")
     s1 = ceil(Int, si/2)
-
+    s2 = floor(Int, si/2)
 
     update_cells!(
       g,
