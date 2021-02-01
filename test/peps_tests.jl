@@ -96,6 +96,19 @@ end
 
     β = 3.
 
+    fg = factor_graph(
+        g,
+        2,
+        energy=energy,
+        spectrum=brute_force,
+    )
+
+    @test nv(fg) == 25
+    @test ne(fg) == 40
+
+    peps = PepsNetwork(5,5, fg, β, :NW)
+    @test peps.size == (5,5)
+
     update_cells!(
       g,
       rule = square_lattice((3, 2, 3, 2, 1)),
