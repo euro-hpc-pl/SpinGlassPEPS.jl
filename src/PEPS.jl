@@ -93,8 +93,7 @@ end
 MPS(peps::PepsNetwork, i::Int, k::Int) = MPS(Float64, peps, i, k)
 
 function make_lower_MPS(peps::PepsNetwork, i::Int, k::Int, s::Int, Dcut::Int, tol::Number=1E-8, max_sweeps=4)
-    ψ = MPO(PEPSRow(peps, 1))
-    #ψ = MPS(peps, i, k)
+    ψ = MPS(peps, i, k)
 
     for i ∈ s:peps.i_max
 
