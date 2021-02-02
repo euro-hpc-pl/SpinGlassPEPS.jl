@@ -197,7 +197,7 @@ end
 
 end
 
-@testset "Make_lower_MPS" begin
+@testset "Boundary MPS bulids correctly" begin
     m = 3
     n = 4
     t = 3
@@ -226,8 +226,8 @@ end
     x, y = m, n
     origin = :NW
     peps = PepsNetwork(x, y, fg, β, origin)
+ 
     @test typeof(peps) == PepsNetwork
 
-    #ψ = MPS(peps)
     ψ = MPS(peps, Dcut, tol, max_sweeps)
 end
