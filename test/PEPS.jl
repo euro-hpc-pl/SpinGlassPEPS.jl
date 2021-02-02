@@ -202,7 +202,7 @@ end
     n = 4
     t = 3
 
-    Dcut = 2
+    Dcut = 4
     tol = 1E-4
     max_sweeps = 4
     β = 1
@@ -224,10 +224,13 @@ end
     )
 
     x, y = m, n
-    origin = :NW
-    peps = PepsNetwork(x, y, fg, β, origin)
- 
-    @test typeof(peps) == PepsNetwork
+    for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+        peps = PepsNetwork(x, y, fg, β, origin)
+        @test typeof(peps) == PepsNetwork
 
-    ψ = MPS(peps, Dcut, tol, max_sweeps)
+        ψ = MPS(peps, Dcut, tol, max_sweeps)
+        @test typeof(ψ) == MPS{Float64}
+        for A ∈ ψ @test size(A, 2) == 1 end
+        @test bond_dimension(ψ) < Dcut
+    end
 end
