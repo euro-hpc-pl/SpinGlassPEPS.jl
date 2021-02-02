@@ -54,11 +54,12 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     @info "contracting MPOs (up -> down)"
 
-    ψ = MPO(PEPSRow(peps, 1))
+    #ψ = MPO(PEPSRow(peps, 1))
+    ψ = MPS(peps)
 
-    for A ∈ ψ @test size(A, 2) == 1 end
+    #for A ∈ ψ @test size(A, 2) == 1 end
 
-    for i ∈ 2:peps.i_max
+    #for i ∈ 2:peps.i_max
         println("row -> ", i)
 
         R = PEPSRow(peps, i)

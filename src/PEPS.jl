@@ -82,15 +82,16 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
 end
 MPO(peps::PepsNetwork, i::Int, k::Int) = MPO(Float64, peps, i, k)
 
-function MPS(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
-    W = MPO(T, peps, i, k)
+function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
+    W = MPO(PEPSRow(peps, 1))
     ψ = MPS(T, length(W))
+
     for (O, i) ∈ enumerate(W) 
-        ψ[i] = dropdims(O, dims=(2, 4)) 
+        ψ[i] = dropdims(O, dims=2) 
     end
     ψ
 end
-MPS(peps::PepsNetwork, i::Int, k::Int) = MPS(Float64, peps, i, k)
+MPS(peps::PepsNetwork) = MPS(Float64, peps)
 
 function make_lower_MPS(peps::PepsNetwork, i::Int, k::Int, s::Int, Dcut::Int, tol::Number=1E-8, max_sweeps=4)
     ψ = MPS(peps, i, k)
@@ -103,7 +104,7 @@ function make_lower_MPS(peps::PepsNetwork, i::Int, k::Int, s::Int, Dcut::Int, to
 
         ψ = (ψ * M) * W
 
-        if (tol > 0.) & (Dcut < size(ψ[1], 3))
+        if tol > 0. & Dcut < size(ψ[1], 3)
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
     end
