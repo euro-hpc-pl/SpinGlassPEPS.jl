@@ -113,10 +113,27 @@ for k in 1:examples
     print("peps larger T")
     s1 = ceil(Int, si/2)
     s2 = floor(Int, si/2)
+    println(s1)
+
+    if s1 == s2
+        rule = square_lattice((s1, 2, s1, 2, 1))
+    else
+        D1 = Dict{Any,Any}(1 => 1, 2 => 1, 6 => 1, 7 => 1)
+        D2 = Dict{Any,Any}(3 => 2, 4 => 2, 8 => 2, 9 => 2)
+        D3 = Dict{Any,Any}(5 => 3, 10 => 3)
+        D4 = Dict{Any,Any}(11 => 4, 12 => 4, 16 => 4, 17 => 4)
+        D5 = Dict{Any,Any}(13 => 5, 14 => 5, 18 => 5, 19 => 5)
+        D6 = Dict{Any,Any}(15 => 6, 20 => 6)
+        D7 = Dict{Any,Any}(21 => 7, 22 => 7)
+        D8 = Dict{Any,Any}(23 => 8, 24 => 8)
+        D9 = Dict{Any,Any}(25 => 9)
+
+        rule = merge(D1, D2, D3, D4, D5, D6, D7, D8, D9)
+    end
 
     update_cells!(
       g,
-      rule = square_lattice((s1, 2, s1, 2, 1)),
+      rule = rule,
     )
 
     fg = factor_graph(
@@ -151,7 +168,7 @@ for k in 1:examples
         spectrum=brute_force,
     )
 
-    peps = PepsNetwork(s1, s2, fg, β, :NW)
+    peps = PepsNetwork(s1, s1, fg, β, :NW)
     number = number_of_states + more_states_for_peps
     @time spins_spec, objective_spec = solve(g, peps, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, spectrum_cutoff = 15, δH = δH)
 

@@ -111,9 +111,11 @@ end
     peps = PepsNetwork(3,3, fg, β, :NW)
     @test peps.size == (3,3)
 
+    rule = Dict{Any,Any}(1 => 1, 2 => 1, 4 => 1, 5 => 1, 3=>2, 6 => 2, 7 => 3, 8 => 3, 9 => 4)
+
     update_cells!(
       g,
-      rule = square_lattice((2, 2, 2, 2, 1)),
+      rule = rule,
     )
 
     fg = factor_graph(
