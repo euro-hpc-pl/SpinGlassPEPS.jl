@@ -352,12 +352,13 @@ function merge_dX(partial_s::Vector{Partial_sol{T}}, dX_inds::Vector{Int}, δH::
 end
 
 
-function solve(g::MetaGraph, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1),
+function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1),
                                                β::T, χ::Int = 2^prod(node_size),
                                                threshold::Float64 = 0.,
                                                spectrum_cutoff::Int = 1000,
                                                δH::Float64 = 0.) where T <: Real
 
+    
     gg = graph4peps(g, node_size, spectrum_cutoff = spectrum_cutoff)
 
     grid = props(gg)[:grid]

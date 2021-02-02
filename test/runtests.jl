@@ -14,13 +14,6 @@ disable_logging(LogLevel(1))
 
 using Test
 
-function reshape_row(A::AbstractArray{T}, dims::Tuple) where {T <: Number}
-    ord = reverse(1:length(dims))
-
-    A = reshape(A, reverse(dims))
-    permutedims(A, ord)
-end
-
 my_tests = []
 if CUDA.functional() && CUDA.has_cutensor() && false
     push!(my_tests,

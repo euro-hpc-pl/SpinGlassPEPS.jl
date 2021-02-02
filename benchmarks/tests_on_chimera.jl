@@ -54,7 +54,7 @@ s = ArgParseSettings("description")
     arg_type = Int
     help = "chimera node size in columns"
     "--spectrum_cutoff", "-u"
-    default = 1000
+    default = 256
     arg_type = Int
     help = "size of the lower spectrum"
     "--deltaH", "-d"
@@ -74,15 +74,37 @@ problem_size = parse_args(s)["size"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
 δH = parse_args(s)["deltaH"]
+spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
+node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
+s1 = Int(sqrt(si/8))
+
+n = ceil(Int, s1/node_size[1])
+m = ceil(Int, s1/node_size[2])
 
 ig = ising_graph(fi, si, 1)
 
-n_sols = parse_args(s)["n_sols"]
-node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
-println(node_size)
-spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
+ig1 = ising_graph(fi, si, 1)
+update_cells!(
+    ig1,
+    rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
+  )
 
-@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δH=δH)
+fg = factor_graph(
+      ig1,
+      spectrum_cutoff,
+      energy=energy,
+      spectrum=brute_force,
+  )
+
+peps = PepsNetwork(m, n, fg, β, :NW)
+
+println("size od peps = ", peps.size)
+
+n_sols = parse_args(s)["n_sols"]
+
+println(node_size)
+
+@time spins, objective = solve(ig, peps, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δH=δH)
 
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")
