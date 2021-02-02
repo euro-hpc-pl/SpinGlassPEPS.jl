@@ -54,12 +54,11 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     @info "contracting MPOs (up -> down)"
 
-    #ψ = MPO(PEPSRow(peps, 1))
-    ψ = MPS(peps)
+    ψ = MPO(PEPSRow(peps, 1))
 
-    #for A ∈ ψ @test size(A, 2) == 1 end
+    for A ∈ ψ @test size(A, 2) == 1 end
 
-    #for i ∈ 2:peps.i_max
+    for i ∈ 2:peps.i_max
         println("row -> ", i)
 
         R = PEPSRow(peps, i)
@@ -68,7 +67,7 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
         ψ = (ψ * M) * W
 
-        for A ∈ ψ @test size(A, 2) == 1 end
+        #for A ∈ ψ @test size(A, 2) == 1 end
 
         @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
     end
@@ -178,11 +177,12 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     peps = PepsNetwork(m, n, fg, β, origin)
 
     ψ = MPO(PEPSRow(peps, 1))
+    
     for i ∈ 2:peps.i_max
         W = MPO(PEPSRow(peps, i))
         M = MPO(peps, i-1, i)
@@ -203,6 +203,7 @@ end
 
 end
 
+#=
 @testset "Make_lower_MPS" begin
     m = 3
     n = 4
@@ -235,6 +236,8 @@ end
     origin = :NW
     peps = PepsNetwork(x, y, fg, β, origin)
     @test typeof(peps) == PepsNetwork
+
     ψ = MPS(peps, i, k)
     #ψ = make_lower_MPS(peps, i, k, s, Dcut, tol, max_sweeps)
 end
+=#

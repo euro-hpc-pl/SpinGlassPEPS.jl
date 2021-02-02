@@ -83,28 +83,36 @@ end
 MPO(peps::PepsNetwork, i::Int, k::Int) = MPO(Float64, peps, i, k)
 
 function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
-    W = MPO(PEPSRow(peps, 1))
+    W = MPO(PEPSRow(peps, peps.i_max))
     ψ = MPS(T, length(W))
 
-    for (O, i) ∈ enumerate(W) 
-        ψ[i] = dropdims(O, dims=2) 
+    for (i, O) ∈ enumerate(W) 
+        ψ[i] = dropdims(O, dims=4) 
     end
     ψ
 end
 MPS(peps::PepsNetwork) = MPS(Float64, peps)
 
-function make_lower_MPS(peps::PepsNetwork, i::Int, k::Int, s::Int, Dcut::Int, tol::Number=1E-8, max_sweeps=4)
-    ψ = MPS(peps, i, k)
+# TODO: this is not good! WTF is i, k, s?
+function MPS(
+    peps::PepsNetwork,
+    i::Int,
+    k::Int,
+    s::Int,
+    Dcut::Int, 
+    tol::Number=1E-8,
+    max_sweeps=4)
 
-    for i ∈ s:peps.i_max
+    ψ = MPS(peps)
+    for i ∈ peps.i_max-1:-1:1
 
         R = PEPSRow(peps, i)
         W = MPO(R)
-        M = MPO(peps, i-1, i)
+        M = MPO(peps, i, i+1)
 
-        ψ = (ψ * M) * W
+        ψ = W * (M * ψ)
 
-        if tol > 0. & Dcut < size(ψ[1], 3)
+        if tol > 0. & bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
     end
