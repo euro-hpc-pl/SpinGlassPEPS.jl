@@ -197,14 +197,11 @@ end
 
 end
 
-#=
 @testset "Make_lower_MPS" begin
     m = 3
     n = 4
     t = 3
-    i = 3
-    k = 4
-    s = 2
+
     Dcut = 2
     tol = 1E-4
     max_sweeps = 4
@@ -231,7 +228,6 @@ end
     peps = PepsNetwork(x, y, fg, β, origin)
     @test typeof(peps) == PepsNetwork
 
-    ψ = MPS(peps, i, k)
-    #ψ = make_lower_MPS(peps, i, k, s, Dcut, tol, max_sweeps)
+    #ψ = MPS(peps)
+    ψ = MPS(peps, Dcut, tol, max_sweeps)
 end
-=#
