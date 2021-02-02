@@ -14,11 +14,11 @@ module SpinGlassPEPS
 
     include("base.jl")
     include("utils.jl")
-    include("exact.jl")
     include("compressions.jl")
     include("contractions.jl")
     include("lattice.jl")
     include("ising.jl")
+    include("exact.jl")
     include("factor.jl")
     include("network.jl")
     include("PEPS.jl")

@@ -1,5 +1,5 @@
-export factor_graph, projectors
-export rank_reveal
+export factor_graph
+export rank_reveal, projectors
 
 function _max_cell_num(ig::MetaGraph)
     L = 0

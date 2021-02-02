@@ -14,7 +14,6 @@ mutable struct NetworkGraph
         end
 
         mc = ne(ng.factor_graph)
-        #TODO: 
         if count < mc
             error("Error: $(count) < $(mc)")
         end

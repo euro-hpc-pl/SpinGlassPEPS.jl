@@ -1,5 +1,6 @@
 export ising_graph, update_cells!
-export energy, Cluster, rank_vec, Spectrum
+export energy, rank_vec
+export Cluster, Spectrum
 
 const Instance = Union{String, Dict}
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
@@ -79,8 +80,7 @@ function ising_graph(
         if get_prop(ig, v, :active)
             rank[v] = get(rank_override, v, 2)
         end
-    end
-    
+    end   
     set_prop!(ig, :rank, rank)
 
     set_prop!(ig, :J, J)
