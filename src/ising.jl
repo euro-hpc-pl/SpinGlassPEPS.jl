@@ -204,34 +204,3 @@ function energy(fg::MetaDiGraph, edge::Edge)
     end
     en
 end
-
-#todo: this is too complicated and inefficient to be in src
-#=
-function energy(configurations::Dict, couplings::Dict, cedges::Dict, n::Int)
-    eng = zeros(1,n)
-    for (i, j) ∈ keys(cedges)
-        for (k, l) ∈ values(cedges[i, j])
-            for m ∈ 1:length(configurations[k])
-                s = configurations[k][m]
-                r = configurations[l][m]
-                J = couplings[k, l]
-                if k == l
-                    eng[m] += dot(s, J)
-                else
-                    eng[m] += dot(s, J, r)
-                end
-            end
-       end
-    end
-    eng
-end
-
-function energy(ig::MetaGraph, configurations::Array)
-    s = size(configurations, 1)
-    eng = zeros(s)
-    for i ∈ 1:s
-        eng[i] = energy(configurations[i,:], ig)
-    end
-    eng
-end
-=#

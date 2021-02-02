@@ -3,6 +3,34 @@ using LightGraphs
 using GraphPlot
 using CSV
 
+function _energy(config::Dict, couplings::Dict, cedges::Dict, n::Int)
+    eng = zeros(1,n)
+    for (i, j) ∈ keys(cedges)
+        for (k, l) ∈ values(cedges[i, j])
+            for m ∈ 1:length(config[k])
+                s = config[k][m]
+                r = config[l][m]
+                J = couplings[k, l]
+                if k == l
+                    eng[m] += dot(s, J)
+                else
+                    eng[m] += dot(s, J, r)
+                end
+            end
+       end
+    end
+    eng
+end
+
+function _energy(ig::MetaGraph, config::Array)
+    s = size(config, 1)
+    eng = zeros(s)
+    for i ∈ 1:s
+        eng[i] = energy(config[i, :], ig)
+    end
+    eng
+end
+
 @testset "Ising" begin
 
     L = 4
@@ -55,11 +83,6 @@ using CSV
 
         @test sp.energies ≈ energy.(sp.states, Ref(ig))
 
-        # states, energies = brute_force(ig, num_states=k)
-
-        # @test energies ≈ sp.energies
-        # @test states == sp.states
-
         β = rand(Float64)
         ρ = gibbs_tensor(ig, β)
 
@@ -110,7 +133,7 @@ using CSV
     end
 end
 
-#=
+
 @testset "Ground state energy for pathological instance " begin
 m = 3
 n = 4
@@ -123,12 +146,13 @@ instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
 ising = CSV.File(instance, types=[Int, Int, Float64], header=0, comment = "#")
 ig = ising_graph(instance, L)
+
 conf = [-1 0 0 1 1 -1 -1 -1 1 0 0 0 1 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 1 1 -1 1 -1 1 0 0 0;
 -1 0 0 1 1 -1 -1 -1 1 0 0 0 1 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 1 1 -1 1 -1 -1 0 0 0;
 -1 0 0 1 1 -1 -1 1 1 0 0 0 1 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 1 1 -1 1 -1 1 0 0 0;
 -1 0 0 1 1 -1 -1 1 1 0 0 0 1 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 1 1 -1 1 -1 -1 0 0 0]
 
-eng = energy(ig, conf)
+eng = _energy(ig, conf)
 
 couplings = Dict()
 for (i, j, v) ∈ ising
@@ -152,53 +176,51 @@ push!(cedges, (3, 3) => [(7, 8), (7, 9)])
 push!(cedges, (6, 6) => [(16, 18), (16, 16)])
 push!(cedges, (10, 10) => [(28, 29), (28, 30), (29, 30)])
 
-configurations = Dict()
-push!(configurations, 1 => [-1, -1, -1, -1])
-push!(configurations, 2 => [0, 0, 0, 0])
-push!(configurations, 3 => [0, 0, 0, 0])
-push!(configurations, 4 => [1, 1, 1, 1])
-push!(configurations, 5 => [1, 1, 1, 1])
-push!(configurations, 6 => [-1, -1, -1, -1])
-push!(configurations, 7 => [-1, -1, -1, -1])
-push!(configurations, 8 => [-1, -1, 1, 1])
-push!(configurations, 9 => [1, 1, 1, 1])
-push!(configurations, 10 => [0, 0, 0, 0])
-push!(configurations, 11 => [0, 0, 0, 0])
-push!(configurations, 12 => [0, 0, 0, 0])
-push!(configurations, 13 => [1, 1, 1, 1])
-push!(configurations, 14 => [0, 0, 0, 0])
-push!(configurations, 15 => [0, 0, 0, 0])
-push!(configurations, 16 => [1, 1, 1, 1])
-push!(configurations, 17 => [0, 0, 0, 0])
-push!(configurations, 18 => [-1, -1, -1, -1])
-push!(configurations, 19 => [0, 0, 0, 0])
-push!(configurations, 20 => [0, 0, 0, 0])
-push!(configurations, 21 => [0, 0, 0, 0])
-push!(configurations, 22 => [0, 0, 0, 0])
-push!(configurations, 23 => [0, 0, 0, 0])
-push!(configurations, 24 => [0, 0, 0, 0])
-push!(configurations, 25 => [0, 0, 0, 0])
-push!(configurations, 26 => [0, 0, 0, 0])
-push!(configurations, 27 => [0, 0, 0, 0])
-push!(configurations, 28 => [1, 1, 1, 1])
-push!(configurations, 29 => [1, 1, 1, 1])
-push!(configurations, 30 => [-1, -1, -1, -1])
-push!(configurations, 31 => [1, 1, 1, 1])
-push!(configurations, 32 => [-1, -1, -1, -1])
-push!(configurations, 33 => [1,-1, 1, -1])
-push!(configurations, 34 => [0, 0, 0, 0])
-push!(configurations, 35 => [0, 0, 0, 0])
-push!(configurations, 36 => [0, 0, 0, 0])
+config = Dict()
+push!(config, 1 => [-1, -1, -1, -1])
+push!(config, 2 => [0, 0, 0, 0])
+push!(config, 3 => [0, 0, 0, 0])
+push!(config, 4 => [1, 1, 1, 1])
+push!(config, 5 => [1, 1, 1, 1])
+push!(config, 6 => [-1, -1, -1, -1])
+push!(config, 7 => [-1, -1, -1, -1])
+push!(config, 8 => [-1, -1, 1, 1])
+push!(config, 9 => [1, 1, 1, 1])
+push!(config, 10 => [0, 0, 0, 0])
+push!(config, 11 => [0, 0, 0, 0])
+push!(config, 12 => [0, 0, 0, 0])
+push!(config, 13 => [1, 1, 1, 1])
+push!(config, 14 => [0, 0, 0, 0])
+push!(config, 15 => [0, 0, 0, 0])
+push!(config, 16 => [1, 1, 1, 1])
+push!(config, 17 => [0, 0, 0, 0])
+push!(config, 18 => [-1, -1, -1, -1])
+push!(config, 19 => [0, 0, 0, 0])
+push!(config, 20 => [0, 0, 0, 0])
+push!(config, 21 => [0, 0, 0, 0])
+push!(config, 22 => [0, 0, 0, 0])
+push!(config, 23 => [0, 0, 0, 0])
+push!(config, 24 => [0, 0, 0, 0])
+push!(config, 25 => [0, 0, 0, 0])
+push!(config, 26 => [0, 0, 0, 0])
+push!(config, 27 => [0, 0, 0, 0])
+push!(config, 28 => [1, 1, 1, 1])
+push!(config, 29 => [1, 1, 1, 1])
+push!(config, 30 => [-1, -1, -1, -1])
+push!(config, 31 => [1, 1, 1, 1])
+push!(config, 32 => [-1, -1, -1, -1])
+push!(config, 33 => [1,-1, 1, -1])
+push!(config, 34 => [0, 0, 0, 0])
+push!(config, 35 => [0, 0, 0, 0])
+push!(config, 36 => [0, 0, 0, 0])
 
-j = length(configurations[1])
-e = energy(configurations, couplings, cedges, j)
+num_config = length(config[1])
+exact_energy = _energy(config, couplings, cedges, num_config)
 
 low_energies = [-16.4, -16.4, -16.4, -16.4, -16.1, -16.1, -16.1, -16.1, -15.9, -15.9, -15.9, -15.9, -15.9, -15.9, -15.6, -15.6, -15.6, -15.6, -15.6, -15.6, -15.4, -15.4]
 
-for i ∈ 1:j
-    @test e[i] == low_energies[i] == eng[i]
+for i ∈ 1:num_config
+    @test exact_energy[i] == low_energies[i] == eng[i]
 end
-println("low energies from BF: ", e)
-println("low energies from ig: ", eng)
+
 end
-=#
