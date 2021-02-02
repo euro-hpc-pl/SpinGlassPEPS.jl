@@ -2,16 +2,9 @@ export idx, ising, proj
 export HadamardMPS, rq
 export all_states, local_basis, enum, state_to_ind, rank_vec
 export @state
-export reshape_row
 
 using Base.Cartesian
 import Base.Prehashed
-
-function reshape_row(A::AbstractArray{T}, dims::Tuple) where {T <: Number}
-    ord = reverse(1:length(dims))
-    A = reshape(A, reverse(dims))
-    permutedims(A, ord)
-end
 
 enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
 
@@ -59,7 +52,7 @@ local_basis(d::Int) = union(-1, 1:d-1)
 local_basis(ψ::AbstractMPS, i::Int) = local_basis(size(ψ[i], 2))
 
 function proj(state, dims::Union{Vector, NTuple})
-    P = Matrix{Float64}[] 
+    P = Matrix{Float64}[]
     for (σ, r) ∈ zip(state, dims)
         v = zeros(r)
         v[idx(σ)...] = 1.
@@ -133,7 +126,7 @@ function Base.LinearIndices(m::Int, n::Int, origin::Symbol=:NW)
 
     if origin ∈ (:NW, :NE, :SE, :SW)
         i_max, j_max = m, n
-    else 
+    else
         i_max, j_max = n, m
     end
 
