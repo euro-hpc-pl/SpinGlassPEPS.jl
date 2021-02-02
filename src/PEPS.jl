@@ -80,3 +80,12 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
     ψ
 end
 MPO(peps::PepsNetwork, i::Int, k::Int) = MPO(Float64, peps, i, k)
+
+function MPS(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
+    W = MPO(T, peps, i, k)
+    ψ = MPS(T, length(W))
+    for (O, i) ∈ enumerate(W) 
+        ψ[i] = dropdims(O, dims=(2, 4)) 
+    end
+    ψ
+end
