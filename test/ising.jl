@@ -110,6 +110,7 @@ using CSV
     end
 end
 
+#=
 @testset "Ground state energy for pathological instance " begin
 m = 3
 n = 4
@@ -200,3 +201,4 @@ end
 println("low energies from BF: ", e)
 println("low energies from ig: ", eng)
 end
+=#
