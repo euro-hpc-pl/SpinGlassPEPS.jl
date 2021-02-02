@@ -67,7 +67,7 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
         ψ = (ψ * M) * W
 
-        #for A ∈ ψ @test size(A, 2) == 1 end
+        for A ∈ ψ @test size(A, 2) == 1 end
 
         @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
     end
@@ -77,11 +77,8 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     @info "contracting MPOs (down -> up)"
 
-    ψ = MPO(PEPSRow(peps, peps.i_max))
-
-    for A ∈ ψ @test size(A, 4) == 1 end
-
-    for i ∈ peps.i_max-1:-1:1
+    ψ = MPS(peps)
+    for i ∈ peps.i_max:-1:1
         println("row -> ", i)
 
         R = PEPSRow(peps, i)
@@ -89,9 +86,6 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         M = MPO(peps, i, i+1)
 
         ψ = W * (M * ψ)
-
-        for A ∈ ψ @test size(A, 4) == 1 end
-
         @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
     end
 

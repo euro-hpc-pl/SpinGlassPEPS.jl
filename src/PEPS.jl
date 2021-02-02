@@ -82,7 +82,7 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
 end
 MPO(peps::PepsNetwork, i::Int, k::Int) = MPO(Float64, peps, i, k)
 
-function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
+function _MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
     W = MPO(PEPSRow(peps, peps.i_max))
     ψ = MPS(T, length(W))
 
@@ -91,21 +91,28 @@ function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
     end
     ψ
 end
+
+function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
+    ψ = MPS(T, peps.j_max)
+    for i ∈ 1:length(ψ)
+        ψ[i] = ones(1, 1, 1) 
+    end
+    ψ
+end
 MPS(peps::PepsNetwork) = MPS(Float64, peps)
 
-# TODO: this is not good! WTF is i, k, s?
+# TODO: WTF is i, k, s?
 function MPS(
     peps::PepsNetwork,
-    i::Int,
-    k::Int,
-    s::Int,
+    #i::Int,
+    #k::Int,
+    #s::Int,
     Dcut::Int, 
     tol::Number=1E-8,
     max_sweeps=4)
 
     ψ = MPS(peps)
-    for i ∈ peps.i_max-1:-1:1
-
+    for i ∈ peps.i_max:-1:1
         R = PEPSRow(peps, i)
         W = MPO(R)
         M = MPO(peps, i, i+1)
