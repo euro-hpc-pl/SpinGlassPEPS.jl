@@ -14,8 +14,8 @@ mutable struct NetworkGraph
         end
 
         mc = ne(fg)
-        if count < mc 
-            error("Factor and Ising graphs are incompatible: $(count) < $(mc)") 
+        if count < mc  
+            error("Factor and Ising graphs are incompatible. Edges: $(count) vs $(mc).") 
         end
         ng
     end

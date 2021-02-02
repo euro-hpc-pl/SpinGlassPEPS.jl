@@ -18,4 +18,4 @@ function square_lattice(size::NTuple{3, Int})
     square_lattice((m, 1, n, 1, t))
 end
 
-cluster(i::Int, rule::Dict) = collect(keys(filter(kv -> kv.second == i, rule)))
+cluster(i::Int, rule::Dict{Int, Int}) = collect(keys(filter(kv -> kv.second == i, rule)))
