@@ -116,6 +116,7 @@ function MPS(
 
         ψ = W * (M * ψ)
         
+        #todo: why tol > 0?
         if tol > 0. && bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
