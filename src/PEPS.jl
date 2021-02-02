@@ -1,5 +1,6 @@
 export PepsNetwork
-export MPO
+export MPO, MPS
+export make_lower_MPS
 
 mutable struct PepsNetwork
     size::NTuple{2, Int}
@@ -86,6 +87,26 @@ function MPS(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
     ψ = MPS(T, length(W))
     for (O, i) ∈ enumerate(W) 
         ψ[i] = dropdims(O, dims=(2, 4)) 
+    end
+    ψ
+end
+MPS(peps::PepsNetwork, i::Int, k::Int) = MPS(Float64, peps, i, k)
+
+function make_lower_MPS(peps::PepsNetwork, i::Int, k::Int, s::Int, Dcut::Int, tol::Number=1E-8, max_sweeps=4)
+    ψ = MPO(PEPSRow(peps, 1))
+    #ψ = MPS(peps, i, k)
+
+    for i ∈ s:peps.i_max
+
+        R = PEPSRow(peps, i)
+        W = MPO(R)
+        M = MPO(peps, i-1, i)
+
+        ψ = (ψ * M) * W
+
+        if (tol > 0.) & (Dcut < size(ψ[1], 3))
+            ψ = compress(ψ, Dcut, tol, max_sweeps)
+        end
     end
     ψ
 end
