@@ -5,17 +5,17 @@ mutable struct NetworkGraph
     nbrs::Dict
     β::Number
 
-    function NetworkGraph(factor_graph::MetaDiGraph, nbrs::Dict, β::Number)
-        ng = new(factor_graph, nbrs, β)
+    function NetworkGraph(fg::MetaDiGraph, nbrs::Dict, β::Number)
+        ng = new(fg, nbrs, β)
 
         count = 0
-        for v ∈ vertices(ng.factor_graph), w ∈ ng.nbrs[v]
-            if has_edge(ng.factor_graph, v, w) count += 1 end
+        for v ∈ vertices(fg), w ∈ ng.nbrs[v]
+            if has_edge(fg, v, w) count += 1 end
         end
 
-        mc = ne(ng.factor_graph)
-        if count < mc
-            error("Error: $(count) < $(mc)")
+        mc = ne(fg)
+        if count < mc 
+            error("Factor and Ising graphs are incompatible: $(count) < $(mc)") 
         end
         ng
     end

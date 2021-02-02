@@ -1,4 +1,5 @@
 export square_lattice
+export cluster
 
  function square_lattice(size::NTuple{5, Int})  
     m, um, n, un, t = size  
@@ -16,3 +17,5 @@ function square_lattice(size::NTuple{3, Int})
     m, n, t = size  
     square_lattice((m, 1, n, 1, t))
 end
+
+cluster(i::Int, rule::Dict) = collect(keys(filter(kv -> kv.second == i, rule)))
