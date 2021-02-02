@@ -81,7 +81,7 @@ for k in 1:examples
 
 
     number = number_of_states + more_states_for_peps
-    @time spins, objective = solve(g, number ; β = T(β), threshold = 0., δH = δH)
+    @time spins, objective = solve(g, peps, number ; β = T(β), threshold = 0., δH = δH)
 
     for i in 1:number_of_states
 
@@ -97,7 +97,7 @@ for k in 1:examples
     print("approx peps  ")
 
     number = number_of_states + more_states_for_peps
-    @time spins_approx, objective_approx = solve(g, number; β = T(β), χ = χ, threshold = 1e-12, δH = δH)
+    @time spins_approx, objective_approx = solve(g, peps, number; β = T(β), χ = χ, threshold = 1e-12, δH = δH)
 
     for i in 1:number_of_states
 
@@ -130,7 +130,7 @@ for k in 1:examples
     println("size of peps = ", peps.size)
 
     number = number_of_states + more_states_for_peps
-    @time spins_larger_nodes, objective_larger_nodes = solve(g, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, δH = δH)
+    @time spins_larger_nodes, objective_larger_nodes = solve(g, peps, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, δH = δH)
 
     for i in 1:number_of_states
 
@@ -153,7 +153,7 @@ for k in 1:examples
 
     peps = PepsNetwork(s1, s2, fg, β, :NW)
     number = number_of_states + more_states_for_peps
-    @time spins_spec, objective_spec = solve(g, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, spectrum_cutoff = 15, δH = δH)
+    @time spins_spec, objective_spec = solve(g, peps, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, spectrum_cutoff = 15, δH = δH)
 
     for i in 1:minimum([number_of_states, 60])
         @test energy(spins_spec[i], g) ≈ energies_given[i]

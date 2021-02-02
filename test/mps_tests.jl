@@ -99,8 +99,8 @@ end
     )
 
     peps = PepsNetwork(4, 4, fg, β, :NW)
-    
-    spins_peps, _ = solve(g, 10; β = β, χ = 2, threshold = 1e-12, δH = 0.1)
+
+    spins_peps, _ = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-12, δH = 0.1)
 
     for k in 1:10
         #testing exact

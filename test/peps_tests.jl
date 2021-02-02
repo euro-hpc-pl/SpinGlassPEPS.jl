@@ -131,6 +131,7 @@ end
 end
 
 
+
 @testset "PEPS - axiliary functions" begin
 
     @testset "partial solution type" begin
@@ -280,6 +281,7 @@ fullM2grid!(Mq, (2,2))
 
     β = 2.
     peps = PepsNetwork(2, 2,  fg, β, :NW)
+
 
     #smaller tensors
     g1 = graph4peps(g, (1,1))
@@ -552,7 +554,7 @@ end
 
     peps = PepsNetwork(4, 4, fg, β, :NW)
 
-    spins, objective = solve(g, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
+    spins, objective = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
     g1 = make_interactions_case2()
@@ -571,7 +573,7 @@ end
 
     peps = PepsNetwork(2, 2, fg, β, :NW)
 
-    spins_l, objective_l = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    spins_l, objective_l = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-8
         @test spins[i] == spins_l[i]
@@ -593,7 +595,7 @@ end
     )
     peps = PepsNetwork(2,2, fg, β, :NW)
 
-    spins_s, objective_s = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
+    spins_s, objective_s = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_s[i] atol=1e-8
         @test spins[i] == spins_s[i]
@@ -616,7 +618,7 @@ end
 
     peps = PepsNetwork(4, 4, fg, β, :NW)
 
-    spins, objective = solve(g, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
+    spins, objective = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
     update_cells!(
@@ -633,7 +635,7 @@ end
 
     peps = PepsNetwork(2, 2, fg, β, :NW)
 
-    spins_l, objective_l = solve(g, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    spins_l, objective_l = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-5
         @test spins[i] == spins_l[i]

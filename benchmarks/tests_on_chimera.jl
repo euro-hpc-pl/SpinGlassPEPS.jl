@@ -104,7 +104,7 @@ n_sols = parse_args(s)["n_sols"]
 
 println(node_size)
 
-@time spins, objective = solve(ig, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δH=δH)
+@time spins, objective = solve(ig, peps, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δH=δH)
 
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")
