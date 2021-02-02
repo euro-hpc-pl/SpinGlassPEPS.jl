@@ -205,6 +205,8 @@ function energy(fg::MetaDiGraph, edge::Edge)
     en
 end
 
+#todo: this is too complicated and inefficient to be in src
+#=
 function energy(configurations::Dict, couplings::Dict, cedges::Dict, n::Int)
     eng = zeros(1,n)
     for (i, j) ∈ keys(cedges)
@@ -214,7 +216,7 @@ function energy(configurations::Dict, couplings::Dict, cedges::Dict, n::Int)
                 r = configurations[l][m]
                 J = couplings[k, l]
                 if k == l
-                    eng[m] += dot(s,J)
+                    eng[m] += dot(s, J)
                 else
                     eng[m] += dot(s, J, r)
                 end
@@ -225,10 +227,11 @@ function energy(configurations::Dict, couplings::Dict, cedges::Dict, n::Int)
 end
 
 function energy(ig::MetaGraph, configurations::Array)
-    s = size(configurations,1)
+    s = size(configurations, 1)
     eng = zeros(s)
     for i ∈ 1:s
         eng[i] = energy(configurations[i,:], ig)
     end
     eng
 end
+=#
