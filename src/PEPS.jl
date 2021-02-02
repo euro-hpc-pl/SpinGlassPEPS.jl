@@ -101,12 +101,8 @@ function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
 end
 MPS(peps::PepsNetwork) = MPS(Float64, peps)
 
-# TODO: WTF is i, k, s?
 function MPS(
     peps::PepsNetwork,
-    #i::Int,
-    #k::Int,
-    #s::Int,
     Dcut::Int, 
     tol::Number=1E-8,
     max_sweeps=4)
@@ -120,7 +116,7 @@ function MPS(
 
         ψ = W * (M * ψ)
 
-        if tol > 0. & bond_dimension(ψ) > Dcut
+        if tol > 0. && bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
     end
