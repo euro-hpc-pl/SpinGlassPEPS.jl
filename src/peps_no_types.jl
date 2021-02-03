@@ -299,9 +299,8 @@ Returns vector{Int} indexing of the boundary region (dX) given a grid.
 id has diagonals, diagonal bounds on the grid are taken into account
 """
 
-function dX_inds(grid::Matrix{Int}, j::Int; has_diagonals::Bool = false)
+function dX_inds(s::Int, j::Int; has_diagonals::Bool = false)
     last = j-1
-    s = size(grid, 2)
     first = maximum([1, j - s])
     if (has_diagonals & (j%s != 1))
         first = maximum([1, j - s - 1])
@@ -360,20 +359,28 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
 
 
     gg = graph4peps(g, node_size, spectrum_cutoff = spectrum_cutoff)
+    max_sweeps=4
+
+    boundary_mps = boundaryMPS(peps, χ, threshold, max_sweeps)
 
     grid = props(gg)[:grid]
 
     partial_s = Partial_sol{T}[Partial_sol{T}()]
-    for row ∈ 1:size(grid,1)
+    for row ∈ 1:peps.i_max
         @info "row of peps = " row
-        #this may be cashed
+
         lower_mps = make_lower_mps(gg, row + 1, β, χ, threshold)
 
         vec_of_T = [compute_single_tensor(gg, j, β) for j ∈ grid[row,:]]
 
-        for j ∈ grid[row,:]
+        peps_row = PEPSRow(peps, row)
 
-            dX = dX_inds(grid, j)
+        a = (row-1)*peps.j_max+1
+        b = row*peps.j_max
+        #println([x for x in a:1:b] - grid[row,:])
+        for j ∈ a:1:b
+
+            dX = dX_inds(peps.j_max, j)
 
             partial_s_temp = Partial_sol{T}[]
             # TODO better compare energies, think it over
@@ -392,7 +399,7 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
             end
             partial_s = select_best_solutions(partial_s_temp, no_sols)
 
-            if j == maximum(grid)
+            if j == peps.i_max*peps.j_max
                 return return_solutions(partial_s, gg)
             end
         end

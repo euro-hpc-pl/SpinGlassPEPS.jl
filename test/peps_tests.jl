@@ -194,9 +194,9 @@ end
     @testset "droplet hepers" begin
 
         grid = [1 2 3 4; 5 6 7 8; 9 10 11 12]
-        i = dX_inds(grid, 2)
+        i = dX_inds(size(grid, 2), 2)
         @test i == [1]
-        i = dX_inds(grid, 1)
+        i = dX_inds(size(grid, 2), 1)
         @test i == Int[]
 
         # 1   2     3    4
@@ -206,10 +206,10 @@ end
         # 9   10   11   12
         #
 
-        i = dX_inds(grid, 7)
+        i = dX_inds(size(grid, 2), 7)
         @test i == [3, 4, 5, 6]
 
-        i = dX_inds(grid, 7; has_diagonals = true)
+        i = dX_inds(size(grid, 2), 7; has_diagonals = true)
         @test i == [2, 3, 4, 5, 6]
 
 
@@ -218,16 +218,16 @@ end
         # <9>   10   11   12
         #
         #both cases the same
-        i = dX_inds(grid, 9)
+        i = dX_inds(size(grid, 2), 9)
         @test i == [5,6,7,8]
 
-        i = dX_inds(grid, 9; has_diagonals = true)
+        i = dX_inds(size(grid, 2), 9; has_diagonals = true)
         @test i == [5,6,7,8]
 
         # other grid
 
         grid1 = [1 2; 3 4; 5 6; 7 8]
-        i = dX_inds(grid1, 5)
+        i = dX_inds(size(grid1, 2), 5)
         @test i == [3,4]
 
         a = Partial_sol{Float64}([1,1,1], 0.2)
