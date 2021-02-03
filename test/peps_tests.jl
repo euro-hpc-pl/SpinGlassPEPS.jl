@@ -604,7 +604,8 @@ end
     end
 end
 
-
+# TODO chech different types of Float
+#=
 @testset "test an exemple instance on Float32" begin
     δH = 1e-6
     g = make_interactions_case2()
@@ -643,3 +644,4 @@ end
         @test spins[i] == spins_l[i]
     end
 end
+=#

@@ -271,50 +271,78 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
 end
 
 
-function conditional_probabs1(peps, ps::Partial_sol{T}, boundary_mps,
-                                            peps_row) where T <: Real
+function set_mps_el_from_above(up_p::Array{T,2}, spins::Int64, mps_el::Array{T,3}) where T <: Real
+    @reduce B[a, b] := sum(x) up_p[$spins, x] * mps_el[a, x, b]
+    B
+end
+
+function set_mpo_el_from_above(up_p::Array{T,2}, spins::Int64, mpo_el::Array{T,4}) where T <: Real
+    @reduce B[a, d, c] := sum(x) up_p[$spins, x] * mpo_el[a, x, c, d]
+    B
+end
+
+function conditional_probabs1(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T},
+                             peps_row::PEPSRow{T}) where T <: Real
 
 
     j =  length(ps.spins) + 1
     ng = peps.network_graph
     fg = ng.factor_graph
 
-    left_p, _, _ = projectors(fg, j-1, j)
 
     k = j % peps.j_max
     if k == 0
         k = peps.j_max
     end
 
+    # set from above left
+    # not in last row
+    if j > peps.j_max*(peps.i_max-1)
+        spins = [1 for _ in 1:k-1]
+    else
+        spins = [ps.spins[i] for i in j-k+1:j-1]
+    end
+    up_p = [projectors(fg, i, i+peps.j_max)[1] for i in j-k+1:j-1]
+
+    BB = [set_mps_el_from_above(up_p[i], spins[i], boundary_mps[i]) for i in 1:k-1]
+
+    weight = ones(T, 1,1)
+    if k > 1
+        weight = prod(BB)
+    end
+
+    # set form left
     if k == 1
         spins = 1
     else
         spins = ps.spins[end]
     end
+    left_p, _, _ = projectors(fg, j-1, j)
+    @reduce A[d, a, b, c] := sum(x) left_p[$spins, x] * peps_row[$k][x, a, b, c, d]
 
-    @reduce A[a, b, c, d] := sum(x) left_p[$spins, x] * peps_row[$k][x, a, b, c, d]
-
-
-    #=
-    upper_left, upper_right = spin_indices_from_above(gg, ps, j)
-    left_s = spin_index_from_left(gg, ps, j)
-    l = props(gg, j)[:column]
-    grid = props(gg)[:grid]
-
-    upper_mpo = set_spins_from_above(vec_of_T, upper_right)
-    upper_mps = set_spin_from_letf(upper_mpo, left_s)
-    re = right_env(MPS(lower_mps[l:end]), upper_mps)[1]
-
-    weight = ones(T, 1,1)
-    if l > 1
-        Mat = [lower_mps[i][:,upper_left[i],:] for i ∈ 1:l-1]
-        weight = prod(Mat)
+    r = j-k+peps.j_max
+    if j <= peps.j_max
+        spins = [1 for _ in j:r]
+    else
+        spins = [ps.spins[i-peps.j_max] for i in j:r]
     end
+    up_p = [projectors(fg, i-peps.j_max, i)[1] for i in j:r]
+
+    mpo = MPO(peps_row)[k+1:end]
+    mpo = MPO(vcat([A], mpo))
+
+    #println(length(spins) == length(up_p) == length(mpo))
+
+    CC = [set_mpo_el_from_above(up_p[i], spins[i], mpo[i]) for i in 1:length(mpo)]
+
+    upper_mps = MPS(CC)
+
+    lower_mps = MPS(boundary_mps[k:end])
+
+    re = right_env(lower_mps, upper_mps)[1]
     probs_unnormed = re*transpose(weight)
 
     probs_unnormed./sum(probs_unnormed)
-    =#
-    0
 end
 
 function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mps::AbstractMPS{T},
@@ -434,7 +462,8 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
-                _ = conditional_probabs1(peps, ps, boundary_mps[row], peps_row)
+                o1 = conditional_probabs1(peps, ps, boundary_mps[row], peps_row)
+
                 objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
 
                 for l ∈ eachindex(objectives)
