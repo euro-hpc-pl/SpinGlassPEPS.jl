@@ -271,11 +271,11 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
 end
 
 
-function conditional_probabs1(peps, ps::Partial_sol{T}, j::Int, boundary_mps,
+function conditional_probabs1(peps, ps::Partial_sol{T}, boundary_mps,
                                             peps_row) where T <: Real
 
 
-    println(j- length(ps.spins))
+    j =  length(ps.spins) + 1
 
     ng = peps.network_graph
     fg = ng.factor_graph
@@ -436,7 +436,7 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
-                _ = conditional_probabs1(peps, ps, j, boundary_mps[row], peps_row)
+                _ = conditional_probabs1(peps, ps, boundary_mps[row], peps_row)
                 objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
 
                 for l ∈ eachindex(objectives)
