@@ -121,7 +121,7 @@ function boundaryMPS(
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
 
-        boundary_MPS[i] = ψ
+        boundary_MPS[peps.i_max - i + 1] = ψ
     end
     boundary_MPS
 end
