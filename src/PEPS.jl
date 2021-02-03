@@ -1,63 +1,6 @@
-export NetworkGraph, PepsNetwork
-export generate_tensor, MPO
-
-mutable struct NetworkGraph
-    factor_graph::MetaDiGraph
-    nbrs::Dict
-    β::Number
-
-    function NetworkGraph(factor_graph::MetaDiGraph, nbrs::Dict, β::Number)
-        ng = new(factor_graph, nbrs, β)
-
-        count = 0
-        for v ∈ vertices(ng.factor_graph), w ∈ ng.nbrs[v]
-            if has_edge(ng.factor_graph, v, w) count += 1 end
-        end
-
-        mc = ne(ng.factor_graph)
-        if count < mc
-            error("Error: $(count) < $(mc)")
-        end
-        ng
-    end
-end
-
-function generate_tensor(ng::NetworkGraph, v::Int)
-    fg = ng.factor_graph
-    loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
-
-    dim = []
-    @cast tensor[_, i] := loc_exp[i]
-
-    for w ∈ ng.nbrs[v]
-        if has_edge(fg, w, v)
-            _, _, pv = get_prop(fg, w, v, :split)
-            pv = pv'
-        elseif has_edge(fg, v, w)
-            pv, _, _ = get_prop(fg, v, w, :split)
-        else
-            pv = ones(length(loc_exp), 1)
-        end
-
-        @cast tensor[(c, γ), σ] |= tensor[c, σ] * pv[σ, γ]
-        push!(dim, size(pv, 2))
-    end
-    reshape(tensor, dim..., :)
-end
-
-function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
-    fg = ng.factor_graph
-    if has_edge(fg, w, v)
-        _, e, _ = get_prop(fg, w, v, :split)
-        tensor = exp.(-ng.β .* e')
-    elseif has_edge(fg, v, w)
-        _, e, _ = get_prop(fg, v, w, :split)
-        tensor = exp.(-ng.β .* e)
-    else
-        tensor = ones(1, 1)
-    end
-    tensor
-end
+export PepsNetwork
+export MPO, MPS
+export make_lower_MPS
 
 mutable struct PepsNetwork
     size::NTuple{2, Int}
@@ -138,3 +81,45 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
     ψ
 end
 MPO(peps::PepsNetwork, i::Int, k::Int) = MPO(Float64, peps, i, k)
+
+function _MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
+    W = MPO(PEPSRow(peps, peps.i_max))
+    ψ = MPS(T, length(W))
+
+    for (i, O) ∈ enumerate(W) 
+        ψ[i] = dropdims(O, dims=4) 
+    end
+    ψ
+end
+
+function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
+    ψ = MPS(T, peps.j_max)
+    for i ∈ 1:length(ψ)
+        ψ[i] = ones(1, 1, 1) 
+    end
+    ψ
+end
+MPS(peps::PepsNetwork) = MPS(Float64, peps)
+
+function MPS(
+    peps::PepsNetwork,
+    Dcut::Int, 
+    tol::Number=1E-8,
+    max_sweeps=4)
+
+    ψ = MPS(peps)
+    for i ∈ peps.i_max:-1:1
+        R = PEPSRow(peps, i)
+        
+        W = MPO(R)
+        M = MPO(peps, i, i+1)
+
+        ψ = W * (M * ψ)
+        
+        #todo: why tol > 0?
+        if tol > 0. && bond_dimension(ψ) > Dcut
+            ψ = compress(ψ, Dcut, tol, max_sweeps)
+        end
+    end
+    ψ
+end

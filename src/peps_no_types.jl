@@ -158,7 +158,7 @@ function make_lower_mps(g::MetaGraph, k::Int, β::T, χ::Int, threshold::Float64
     for i ∈ s:-1:k
         mpo = [compute_single_tensor(g, j, β; sum_over_last = true) for j ∈ grid[i,:]]
         mps = MPO(mpo)*mps
-        if (threshold > 0.) & (χ < size(mps[1], 3))
+        if χ < size(mps[1], 3)
             mps = compress(mps, χ, threshold)
         end
     end
@@ -358,7 +358,7 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
                                                spectrum_cutoff::Int = 1000,
                                                δH::Float64 = 0.) where T <: Real
 
-    
+
     gg = graph4peps(g, node_size, spectrum_cutoff = spectrum_cutoff)
 
     grid = props(gg)[:grid]

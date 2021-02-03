@@ -77,11 +77,8 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     @info "contracting MPOs (down -> up)"
 
-    ψ = MPO(PEPSRow(peps, peps.i_max))
-
-    for A ∈ ψ @test size(A, 4) == 1 end
-
-    for i ∈ peps.i_max-1:-1:1
+    ψ = MPS(peps)
+    for i ∈ peps.i_max:-1:1
         println("row -> ", i)
 
         R = PEPSRow(peps, i)
@@ -89,9 +86,6 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         M = MPO(peps, i, i+1)
 
         ψ = W * (M * ψ)
-
-        for A ∈ ψ @test size(A, 4) == 1 end
-
         @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
     end
 
@@ -177,11 +171,12 @@ fg = factor_graph(
     spectrum=full_spectrum,
 )
 
-for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
 
     peps = PepsNetwork(m, n, fg, β, origin)
 
     ψ = MPO(PEPSRow(peps, 1))
+    
     for i ∈ 2:peps.i_max
         W = MPO(PEPSRow(peps, i))
         M = MPO(peps, i-1, i)
@@ -200,4 +195,42 @@ for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
     @test Z ≈ prod(ZZ)[]
 end
 
+end
+
+@testset "Boundary MPS bulids correctly" begin
+    m = 3
+    n = 4
+    t = 3
+
+    Dcut = 4
+    tol = 1E-4
+    max_sweeps = 4
+    β = 1
+
+    L = m * n * t
+
+    instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
+
+    ig = ising_graph(instance, L)
+    update_cells!(
+        ig,
+        rule = square_lattice((m, n, t)),
+    )
+
+    fg = factor_graph(
+        ig,
+        energy=energy,
+        spectrum=full_spectrum,
+    )
+
+    x, y = m, n
+    for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+        peps = PepsNetwork(x, y, fg, β, origin)
+        @test typeof(peps) == PepsNetwork
+
+        ψ = MPS(peps, Dcut, tol, max_sweeps)
+        @test typeof(ψ) == MPS{Float64}
+        for A ∈ ψ @test size(A, 2) == 1 end
+        @test bond_dimension(ψ) < Dcut
+    end
 end

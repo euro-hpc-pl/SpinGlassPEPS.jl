@@ -493,7 +493,7 @@ end
 
     # the row for lower_mps
     row = 1
-    lower_mps = make_lower_mps(gg, row+1, β, 0, 0.)
+    lower_mps = make_lower_mps(gg, row+1, β, 10, 0.)
 
     l_mps = MPS([e[:,:,:,1] for e in mpo2*mpo3])
 
@@ -528,7 +528,7 @@ end
 
     j = 5
     row = 2
-    lower_mps = make_lower_mps(gg, row+1, β, 0, 0.)
+    lower_mps = make_lower_mps(gg, row+1, β, 10, 0.)
     A =  M[2,:]
 
     # objective value from the previous step is set artificially
