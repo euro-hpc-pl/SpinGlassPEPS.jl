@@ -274,6 +274,9 @@ end
 function conditional_probabs1(peps, ps::Partial_sol{T}, j::Int, boundary_mps,
                                             peps_row) where T <: Real
 
+
+    println(j- length(ps.spins))
+
     ng = peps.network_graph
     fg = ng.factor_graph
 
@@ -422,8 +425,9 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
         peps_row = PEPSRow(peps, row)
 
         a = (row-1)*peps.j_max+1
-        b = row*peps.j_max
-        for j ∈ a:1:b
+
+        for k ∈ 1:peps.j_max
+            j = a + k
 
             dX = dX_inds(peps.j_max, j)
 
