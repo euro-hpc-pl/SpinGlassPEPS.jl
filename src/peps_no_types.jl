@@ -276,10 +276,8 @@ function conditional_probabs1(peps, ps::Partial_sol{T}, boundary_mps,
 
 
     j =  length(ps.spins) + 1
-
     ng = peps.network_graph
     fg = ng.factor_graph
-
 
     left_p, _, _ = projectors(fg, j-1, j)
 
