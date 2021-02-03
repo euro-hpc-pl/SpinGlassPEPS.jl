@@ -123,3 +123,30 @@ function MPS(
     end
     ψ
 end
+
+
+function boundaryMPS(
+    peps::PepsNetwork,
+    Dcut::Int, 
+    tol::Number=1E-8,
+    max_sweeps=4)
+
+    ψ = MPS(peps)
+    boundary_MPS = Vector{MPS}(undef, peps.i_max)
+
+    for i ∈ peps.i_max:-1:1
+        R = PEPSRow(peps, i)
+        
+        W = MPO(R)
+        M = MPO(peps, i, i+1)
+
+        ψ = W * (M * ψ)
+        
+        if bond_dimension(ψ) > Dcut
+            ψ = compress(ψ, Dcut, tol, max_sweeps)
+        end
+
+        boundary_MPS[i] = ψ
+    end
+    boundary_MPS
+end
