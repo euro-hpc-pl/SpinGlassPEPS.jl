@@ -119,6 +119,7 @@ end
                 @test en == [0.73 -0.73; -0.73 0.73]
                 @test p2 == [1.0 0.0; 0.0 1.0]
             end
+
             r1, rn, r2 = projectors(fg, 2, 1)
             @test p1 == r2
             @test p2 == r1

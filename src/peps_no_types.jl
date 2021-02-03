@@ -270,6 +270,52 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
     1
 end
 
+
+function conditional_probabs1(peps, ps::Partial_sol{T}, j::Int, boundary_mps,
+                                            peps_row) where T <: Real
+
+    ng = peps.network_graph
+    fg = ng.factor_graph
+
+
+    left_p, _, _ = projectors(fg, j-1, j)
+
+    k = j % peps.j_max
+    if k == 0
+        k = peps.j_max
+    end
+
+    if k == 1
+        spins = 1
+    else
+        spins = ps.spins[end]
+    end
+
+    @reduce A[a, b, c, d] := sum(x) left_p[$spins, x] * peps_row[$k][x, a, b, c, d]
+
+
+    #=
+    upper_left, upper_right = spin_indices_from_above(gg, ps, j)
+    left_s = spin_index_from_left(gg, ps, j)
+    l = props(gg, j)[:column]
+    grid = props(gg)[:grid]
+
+    upper_mpo = set_spins_from_above(vec_of_T, upper_right)
+    upper_mps = set_spin_from_letf(upper_mpo, left_s)
+    re = right_env(MPS(lower_mps[l:end]), upper_mps)[1]
+
+    weight = ones(T, 1,1)
+    if l > 1
+        Mat = [lower_mps[i][:,upper_left[i],:] for i ∈ 1:l-1]
+        weight = prod(Mat)
+    end
+    probs_unnormed = re*transpose(weight)
+
+    probs_unnormed./sum(probs_unnormed)
+    =#
+    0
+end
+
 function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mps::AbstractMPS{T},
                                             vec_of_T::Vector{Array{T,5}}) where T <: Real
 
@@ -377,7 +423,6 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
 
         a = (row-1)*peps.j_max+1
         b = row*peps.j_max
-        #println([x for x in a:1:b] - grid[row,:])
         for j ∈ a:1:b
 
             dX = dX_inds(peps.j_max, j)
@@ -387,6 +432,7 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
+                _ = conditional_probabs1(peps, ps, j, boundary_mps[row], peps_row)
                 objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
 
                 for l ∈ eachindex(objectives)
