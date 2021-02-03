@@ -424,7 +424,7 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
 
         peps_row = PEPSRow(peps, row)
 
-        a = (row-1)*peps.j_max+1
+        a = (row-1)*peps.j_max
 
         for k ∈ 1:peps.j_max
             j = a + k
