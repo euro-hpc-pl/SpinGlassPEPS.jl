@@ -101,39 +101,15 @@ function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
 end
 MPS(peps::PepsNetwork) = MPS(Float64, peps)
 
-function MPS(
-    peps::PepsNetwork,
-    Dcut::Int, 
-    tol::Number=1E-8,
-    max_sweeps=4)
-
-    ψ = MPS(peps)
-    for i ∈ peps.i_max:-1:1
-        R = PEPSRow(peps, i)
-        
-        W = MPO(R)
-        M = MPO(peps, i, i+1)
-
-        ψ = W * (M * ψ)
-        
-        #todo: why tol > 0?
-        if tol > 0. && bond_dimension(ψ) > Dcut
-            ψ = compress(ψ, Dcut, tol, max_sweeps)
-        end
-    end
-    ψ
-end
-
-
 function boundaryMPS(
     peps::PepsNetwork,
     Dcut::Int, 
     tol::Number=1E-8,
     max_sweeps=4)
 
-    ψ = MPS(peps)
     boundary_MPS = Vector{MPS}(undef, peps.i_max)
 
+    ψ = MPS(peps)
     for i ∈ peps.i_max:-1:1
         R = PEPSRow(peps, i)
         
