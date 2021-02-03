@@ -1,6 +1,5 @@
 export PepsNetwork
-export MPO, MPS
-export make_lower_MPS
+export MPO, MPS, boundaryMPS
 
 mutable struct PepsNetwork
     size::NTuple{2, Int}
