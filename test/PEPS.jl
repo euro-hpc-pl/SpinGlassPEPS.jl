@@ -228,7 +228,7 @@ end
         peps = PepsNetwork(x, y, fg, β, origin)
         @test typeof(peps) == PepsNetwork
 
-        ψ = bondaryMPS(peps, Dcut, tol, max_sweeps)
+        ψ = boundaryMPS(peps, Dcut, tol, max_sweeps)
         @test typeof(ψ) == Vector{MPS}
     end
 end
