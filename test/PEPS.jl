@@ -228,9 +228,7 @@ end
         peps = PepsNetwork(x, y, fg, β, origin)
         @test typeof(peps) == PepsNetwork
 
-        ψ = MPS(peps, Dcut, tol, max_sweeps)
-        @test typeof(ψ) == MPS{Float64}
-        for A ∈ ψ @test size(A, 2) == 1 end
-        @test bond_dimension(ψ) < Dcut
+        ψ = boundaryMPS(peps, Dcut, tol, max_sweeps)
+        @test typeof(ψ) == Vector{MPS}
     end
 end
