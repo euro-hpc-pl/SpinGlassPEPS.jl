@@ -72,7 +72,7 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             _, en, _ = get_prop(fg, w, v, :split)
             en = en'
         else
-            en = ones(1, 1)
+            en = zeros(1, 1)
         end
 
         @cast A[_, u, _, d] |= exp(-ng.β * en[u, d]) 
@@ -127,33 +127,53 @@ function boundaryMPS(
     boundary_MPS
 end
 
+function MPO(
+    ::Type{T}, 
+    peps::PepsNetwork, 
+    i::Int, 
+    config::Dict{Int, Int} = Dict{Int, Int}()
+    ) where {T <: Number}
+
+    W = MPO(T, peps.j_max)
+
+    for (j, A) ∈ enumerate(PEPSRow(peps, i)) 
+        ij = j + peps.j_max * (i - 1)
+        v = get(config, ij, nothing)
+
+        if v !== nothing
+            @cast B[l, u, r, d] |= A[l, u, r, d, $(v)]
+        else
+            @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
+        end
+        W[j] = B
+    end
+    W 
+end
+MPO(
+    peps::PepsNetwork, 
+    i::Int, 
+    config::Dict{Int, Int} = Dict{Int, Int}()
+    ) = MPO(Float64, peps, i, config)
+
 function peps_contract(
     peps::PepsNetwork,
-    config::Dict{Int, Int} = Dict(),
+    config::Dict{Int, Int} = Dict{Int, Int}(),
     Dcut::Int=typemax(Int),
     tol::Number=1E-8,
     max_sweeps=4,
     )
 
     ψ = MPS(peps)
+    T = eltype(ψ)
 
     for i ∈ peps.i_max:-1:1
-        row = PEPSRow(peps, i)      
-        W = MPO(eltype(ψ), peps.j_max)
-
-        for (j, A) ∈ enumerate(row) 
-            v = get(config, j + peps.j_max * (i - 1), nothing)
-            if v !== nothing
-                @cast B[l, u, r, d] |= A[l, u, r, d, $(v)]
-            else
-                @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
-            end
-            W[j] = B
-        end
-
-        M = MPO(peps, i, i+1)
+        println(i)
+        W = MPO(T, peps, i, config)
+        M = MPO(T, peps, i, i+1)
+    
         ψ = W * (M * ψ)
-        
+        #ψ = W * ψ
+
         if bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
