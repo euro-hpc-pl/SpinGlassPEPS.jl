@@ -459,11 +459,104 @@ end
 
 # TODO this will be the ilustative step by step how does the probability computation work
 
+@testset "peps row" begin
+
+    g = M2graph(Mq, -1)
+    β = 3.
+
+    fg = factor_graph(
+        g,
+        energy=energy,
+        spectrum=full_spectrum,
+    )
+
+    origin = :NW
+
+    peps = PepsNetwork(3,3, fg, β, origin)
+
+    println("particular tensors")
+    println("node 1 ....")
+    display(PEPSRow(peps, 1)[1])
+    println()
+    println("node 2 .....")
+    display(PEPSRow(peps, 1)[2])
+    println()
+    println("node 3 .....")
+    display(PEPSRow(peps, 1)[3])
+    println()
+    println("node 4 ......")
+    display(PEPSRow(peps, 2)[1])
+    println()
+    println("node 5 .......")
+    display(PEPSRow(peps, 2)[2])
+    println()
+    println("node 6........")
+    display(PEPSRow(peps, 2)[3])
+
+
+end
+
+#=
 @testset "testing marginal/conditional probabilities" begin
 
     ####   conditional probability implementation
 
     β = 3.
+    g = M2graph(Mq, -1)
+
+    bf = brute_force(g; num_states = 1)
+    println(bf.states)
+
+    rule = Dict{Any,Any}(1 => 1, 2 => 1, 4 => 1, 5 => 1, 3=>2, 6 => 2, 7 => 3, 8 => 3, 9 => 4)
+
+    update_cells!(
+      g,
+      rule = rule,
+    )
+
+    fg = factor_graph(
+        g,
+        energy=energy,
+        spectrum=full_spectrum,
+    )
+
+    origin = :NW
+
+    peps = PepsNetwork(2,2, fg, β, origin)
+
+    Dcut = 4
+    tol = 0.
+    swep = 4
+    boundary_mps = boundaryMPS(peps, Dcut, tol, swep)
+
+    ps1 = Partial_sol{Float64}(Int[], 0.)
+
+    obj1 = conditional_probabs(peps, ps1, boundary_mps[1], PEPSRow(peps, 1))
+    _, i = findmax(obj1)
+    @test (props(fg, 1)[:spectrum]).states[i] == [bf.states[1][a] for a in [1,2,4,5]]
+
+    ps2 = update_partial_solution(ps1, i, obj1[i])
+    obj2 = conditional_probabs(peps, ps2, boundary_mps[1], PEPSRow(peps, 1))
+    obj2 = obj1[i].*obj2
+
+    _, j = findmax(obj2)
+    @test (props(fg, 2)[:spectrum]).states[j] == [bf.states[1][a] for a in [3,6]]
+
+    ps3 = update_partial_solution(ps2, j, obj2[j])
+    println(ps3)
+    obj3 = conditional_probabs(peps, ps3, boundary_mps[2], PEPSRow(peps, 2))
+
+    println(obj3)
+    obj3 = obj3[j].*obj3
+    println(obj3)
+
+    _, k = findmax(obj3)
+
+    println(k)
+
+    println((props(fg, 3)[:spectrum]).states)
+    #@test (props(fg, 3)[:spectrum]).states[k] == [bf.states[1][a] for a in [7,8]]
+
     g = M2graph(Mq, -1)
 
     fg = factor_graph(
@@ -474,37 +567,19 @@ end
 
     origin = :NW
 
-    peps = PepsNetwork(3, 3, fg, β, origin)
+    peps = PepsNetwork(3,3, fg, β, origin)
+
+    println("............")
+    display(PEPSRow(peps, 1)[1])
+    println("........")
+    display(PEPSRow(peps, 1)[2])
+    println("............")
+
+    @test 1 == 2
 
     mpo1 = MPO(PEPSRow(peps, 1))
     mpo2 = MPO(PEPSRow(peps, 2))
     mpo3 = MPO(PEPSRow(peps, 3))
-
-    boundary_mps = boundaryMPS(peps, 10, 0., 4)
-
-    println("....")
-    println(dot(mpo1, boundary_mps[1]))
-    println("....")
-
-    ps = Partial_sol{Float64}(Int[], 0.)
-
-    println("probs")
-    ng = peps.network_graph
-    fg = ng.factor_graph
-
-    obj = conditional_probabs(peps, ps, boundary_mps[1], PEPSRow(peps, 1))
-    println("..............")
-
-    _, i = findmax(obj)
-    @test (props(fg, 1)[:spectrum]).states[i] == [1]
-    println(i)
-    ps1 = update_partial_solution(ps, i, obj[i])
-    println(ps1)
-    obj1 = conditional_probabs(peps, ps1, boundary_mps[1], PEPSRow(peps, 1))
-    println(obj[i].*obj1)
-    _, j = findmax(obj[i].*obj1)
-    println(j)
-    println((props(fg, 2)[:spectrum]).states[j])
 
     gg = graph4peps(g, (1,1))
     M = form_peps(gg, β)
@@ -553,6 +628,8 @@ end
     # approx due to numerical accuracy
     @test objective ≈ [p11/p1, p12/p1]
     println([p11/p1, p12/p1])
+
+    println(props(gg, 2)[:spectrum])
     j = 5
     row = 2
     lower_mps = make_lower_mps(gg, row+1, β, 10, 0.)
@@ -671,4 +748,5 @@ end
         @test spins[i] == spins_l[i]
     end
 end
+=#
 =#
