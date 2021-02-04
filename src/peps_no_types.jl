@@ -271,17 +271,32 @@ function spin_index_from_left(gg::MetaGraph, ps::Partial_sol, j::Int)
 end
 
 
-function set_mps_el_from_above(up_p::Array{T,2}, spins::Int64, mps_el::Array{T,3}) where T <: Real
-    @reduce B[a, b] := sum(x) up_p[$spins, x] * mps_el[a, x, b]
+function project_spin_from_above(projector::Array{T,2}, spin::Int64, mps_el::Array{T,3}) where T <: Real
+    @reduce B[a, b] := sum(x) projector[$spin, x] * mps_el[a, x, b]
     B
 end
 
-function set_mpo_el_from_above(up_p::Array{T,2}, spins::Int64, mpo_el::Array{T,4}) where T <: Real
-    @reduce B[a, d, c] := sum(x) up_p[$spins, x] * mpo_el[a, x, c, d]
+function project_spin_from_above(projector::Array{T,2}, spin::Int64, mpo_el::Array{T,4}) where T <: Real
+    @reduce B[a, d, c] := sum(x) projector[$spin, x] * mpo_el[a, x, c, d]
     B
 end
 
-function conditional_probabs1(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T},
+
+"""
+....
+
+
+b_m - boundary mps
+p_r - peps row
+
+              physical .
+                         .   upper_right
+                           .  |      |
+    upper_left   from_left-- p_r3 --  p_r4 -- 1
+      |    |                 |      |
+1 --b_m1 --b_m2       --     b_m  -- b_m -- 1
+"""
+function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T},
                              peps_row::PEPSRow{T}) where T <: Real
 
 
@@ -295,16 +310,18 @@ function conditional_probabs1(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mp
         k = peps.j_max
     end
 
-    # set from above left
+    # set from above
     # not in last row
     if j > peps.j_max*(peps.i_max-1)
-        spins = [1 for _ in 1:k-1]
+        spin = [1 for _ in 1:k-1]
     else
-        spins = [ps.spins[i] for i in j-k+1:j-1]
+        spin = [ps.spins[i] for i in j-k+1:j-1]
     end
-    up_p = [projectors(fg, i, i+peps.j_max)[1] for i in j-k+1:j-1]
 
-    BB = [set_mps_el_from_above(up_p[i], spins[i], boundary_mps[i]) for i in 1:k-1]
+    proj_u = [projectors(fg, i, i+peps.j_max)[1] for i in j-k+1:j-1]
+
+
+    BB = [project_spin_from_above(proj_u[i], spin[i], boundary_mps[i]) for i in 1:k-1]
 
     weight = ones(T, 1,1)
     if k > 1
@@ -313,36 +330,36 @@ function conditional_probabs1(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mp
 
     # set form left
     if k == 1
-        spins = 1
+        spin = 1
     else
-        spins = ps.spins[end]
+        spin = ps.spins[end]
     end
-    left_p, _, _ = projectors(fg, j-1, j)
-    @reduce A[d, a, b, c] := sum(x) left_p[$spins, x] * peps_row[$k][x, a, b, c, d]
+    proj_l, _, _ = projectors(fg, j-1, j)
+    @reduce A[d, a, b, c] := sum(x) proj_l[$spin, x] * peps_row[$k][x, a, b, c, d]
 
     r = j-k+peps.j_max
     if j <= peps.j_max
-        spins = [1 for _ in j:r]
+        spin = [1 for _ in j:r]
     else
-        spins = [ps.spins[i-peps.j_max] for i in j:r]
+        spin = [ps.spins[i-peps.j_max] for i in j:r]
     end
-    up_p = [projectors(fg, i-peps.j_max, i)[1] for i in j:r]
+    proj_u = [projectors(fg, i-peps.j_max, i)[1] for i in j:r]
 
     mpo = MPO(peps_row)[k+1:end]
     mpo = MPO(vcat([A], mpo))
 
-    #println(length(spins) == length(up_p) == length(mpo))
-
-    CC = [set_mpo_el_from_above(up_p[i], spins[i], mpo[i]) for i in 1:length(mpo)]
+    CC = [project_spin_from_above(proj_u[i], spin[i], mpo[i]) for i in 1:length(mpo)]
 
     upper_mps = MPS(CC)
 
     lower_mps = MPS(boundary_mps[k:end])
 
     re = right_env(lower_mps, upper_mps)[1]
+    #println(re)
     probs_unnormed = re*transpose(weight)
 
-    probs_unnormed./sum(probs_unnormed)
+    objective = probs_unnormed./sum(probs_unnormed)
+    dropdims(objective; dims = 2)
 end
 
 function conditional_probabs(gg::MetaGraph, ps::Partial_sol{T}, j::Int, lower_mps::AbstractMPS{T},
@@ -462,7 +479,7 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
-                o1 = conditional_probabs1(peps, ps, boundary_mps[row], peps_row)
+                o1 = conditional_probabs(peps, ps, boundary_mps[row], peps_row)
 
                 objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
 

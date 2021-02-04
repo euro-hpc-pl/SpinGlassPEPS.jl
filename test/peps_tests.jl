@@ -5,7 +5,6 @@ import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
-import SpinGlassPEPS: reshape_row
 Random.seed!(1234)
 
 
@@ -91,8 +90,7 @@ end
     M = ones(9,9)
     #this is grid of size 3x3
     fullM2grid!(M, (3,3))
-    display(M)
-    println()
+
     # change it to Ising
     g = M2graph(M)
 
@@ -132,29 +130,100 @@ end
     @test peps.size == (2,2)
 end
 
+@testset "partial solution type" begin
+    ps = Partial_sol{Float64}()
+    @test ps.spins == []
+    @test ps.objective == 1.
+
+    ps1 = Partial_sol{Float64}([1,1], 1.)
+    @test ps1.spins == [1,1]
+    @test ps1.objective == 1.
+
+    ps2 = update_partial_solution(ps1, 2, 1.)
+    @test ps2.spins == [1,1,2]
+    @test ps2.objective == 1.
+
+    ps3 = Partial_sol{Float64}([1,1,1], .2)
+
+    b = select_best_solutions([ps3, ps2], 1)
+    @test b[1].spins == [1, 1, 2]
+    @test b[1].objective == 1.
+end
 
 
+@testset "droplet hepers" begin
+
+    grid = [1 2 3 4; 5 6 7 8; 9 10 11 12]
+    i = dX_inds(size(grid, 2), 2)
+    @test i == [1]
+    i = dX_inds(size(grid, 2), 1)
+    @test i == Int[]
+
+    # 1   2     3    4
+    #        ?  |    |
+    # 5   6    <7>   8
+    # |   |
+    # 9   10   11   12
+    #
+
+    i = dX_inds(size(grid, 2), 7)
+    @test i == [3, 4, 5, 6]
+
+    i = dX_inds(size(grid, 2), 7; has_diagonals = true)
+    @test i == [2, 3, 4, 5, 6]
+
+
+    # 5     6     7   8
+    # |     |     |    |
+    # <9>   10   11   12
+    #
+    #both cases the same
+    i = dX_inds(size(grid, 2), 9)
+    @test i == [5,6,7,8]
+
+    i = dX_inds(size(grid, 2), 9; has_diagonals = true)
+    @test i == [5,6,7,8]
+
+    # other grid
+
+    grid1 = [1 2; 3 4; 5 6; 7 8]
+    i = dX_inds(size(grid1, 2), 5)
+    @test i == [3,4]
+
+    a = Partial_sol{Float64}([1,1,1], 0.2)
+    b = Partial_sol{Float64}([2,1,1], 0.18)
+    c = Partial_sol{Float64}([1,1,2], 1.)
+    d = Partial_sol{Float64}([2,1,2], .1)
+
+    vps = [a,b,c,d]
+
+    boundary = [2,3]
+
+    #ratio of objectives
+
+    # 0.18/0.2 = 0.9
+    # 0.1/1. = 0.1
+    thershold = 0.15
+
+    ps1 = merge_dX(vps, boundary, thershold)
+    @test ps1 == [a,b,c]
+
+    thershold = 0.95
+
+    ps1 = merge_dX(vps, boundary, thershold)
+
+    @test ps1 == [a,c]
+
+    thershold = 0.
+
+    ps1 = merge_dX(vps, boundary, thershold)
+    @test ps1 == [a,b,c,d]
+end
+
+#=
 @testset "PEPS - axiliary functions" begin
 
-    @testset "partial solution type" begin
-        ps = Partial_sol{Float64}()
-        @test ps.spins == []
-        @test ps.objective == 1.
 
-        ps1 = Partial_sol{Float64}([1,1], 1.)
-        @test ps1.spins == [1,1]
-        @test ps1.objective == 1.
-
-        ps2 = update_partial_solution(ps1, 2, 1.)
-        @test ps2.spins == [1,1,2]
-        @test ps2.objective == 1.
-
-        ps3 = Partial_sol{Float64}([1,1,1], .2)
-
-        b = select_best_solutions([ps3, ps2], 1)
-        @test b[1].spins == [1, 1, 2]
-        @test b[1].objective == 1.
-    end
 
     @testset "functions of graph" begin
 
@@ -191,75 +260,9 @@ end
 
     end
 
-    @testset "droplet hepers" begin
 
-        grid = [1 2 3 4; 5 6 7 8; 9 10 11 12]
-        i = dX_inds(size(grid, 2), 2)
-        @test i == [1]
-        i = dX_inds(size(grid, 2), 1)
-        @test i == Int[]
-
-        # 1   2     3    4
-        #        ?  |    |
-        # 5   6    <7>   8
-        # |   |
-        # 9   10   11   12
-        #
-
-        i = dX_inds(size(grid, 2), 7)
-        @test i == [3, 4, 5, 6]
-
-        i = dX_inds(size(grid, 2), 7; has_diagonals = true)
-        @test i == [2, 3, 4, 5, 6]
-
-
-        # 5     6     7   8
-        # |     |     |    |
-        # <9>   10   11   12
-        #
-        #both cases the same
-        i = dX_inds(size(grid, 2), 9)
-        @test i == [5,6,7,8]
-
-        i = dX_inds(size(grid, 2), 9; has_diagonals = true)
-        @test i == [5,6,7,8]
-
-        # other grid
-
-        grid1 = [1 2; 3 4; 5 6; 7 8]
-        i = dX_inds(size(grid1, 2), 5)
-        @test i == [3,4]
-
-        a = Partial_sol{Float64}([1,1,1], 0.2)
-        b = Partial_sol{Float64}([2,1,1], 0.18)
-        c = Partial_sol{Float64}([1,1,2], 1.)
-        d = Partial_sol{Float64}([2,1,2], .1)
-
-        vps = [a,b,c,d]
-
-        boundary = [2,3]
-
-        #ratio of objectives
-
-        # 0.18/0.2 = 0.9
-        # 0.1/1. = 0.1
-        thershold = 0.15
-
-        ps1 = merge_dX(vps, boundary, thershold)
-        @test ps1 == [a,b,c]
-
-        thershold = 0.95
-
-        ps1 = merge_dX(vps, boundary, thershold)
-
-        @test ps1 == [a,c]
-
-        thershold = 0.
-
-        ps1 = merge_dX(vps, boundary, thershold)
-        @test ps1 == [a,b,c,d]
-    end
 end
+
 
 ### creation a matrix of interactions step by step as an example
 Mq = ones(4,4)
@@ -352,7 +355,7 @@ fullM2grid!(Mq, (2,2))
     p = [2,3,1,4]
     @test vec(T1) ≈ vec(T2)[p]
 end
-
+=#
 
 Mq = zeros(9,9)
 Mq[1,1] = 1.
@@ -377,7 +380,7 @@ Mq[6,9] = Mq[9,6] = -0.52
 Mq[7,8] = Mq[8,7] = 0.5
 Mq[8,9] = Mq[9,8] = -0.05
 
-
+#=
 @testset "whole peps tensor" begin
 
     g = M2graph(Mq, -1)
@@ -452,6 +455,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     println(size(vec(cc)))
     @test sum(cc) ≈ sum(B)
 end
+=#
 
 # TODO this will be the ilustative step by step how does the probability computation work
 
@@ -459,15 +463,8 @@ end
 
     ####   conditional probability implementation
 
-
-    mpo = MPO([ones(2,2,2,2), ones(2,2,2,2)])
-    mps = set_spin_from_letf(mpo, 1)
-    @test mps[1] == ones(2,2,2)
-    @test mps[2] == 2*ones(2,2,2)
-
     β = 3.
     g = M2graph(Mq, -1)
-    gg = graph4peps(g, (1,1))
 
     fg = factor_graph(
         g,
@@ -478,15 +475,45 @@ end
     origin = :NW
 
     peps = PepsNetwork(3, 3, fg, β, origin)
+
+    mpo1 = MPO(PEPSRow(peps, 1))
     mpo2 = MPO(PEPSRow(peps, 2))
     mpo3 = MPO(PEPSRow(peps, 3))
 
+    boundary_mps = boundaryMPS(peps, 10, 0., 4)
+
+    println("....")
+    println(dot(mpo1, boundary_mps[1]))
+    println("....")
+
+    ps = Partial_sol{Float64}(Int[], 0.)
+
+    println("probs")
+    ng = peps.network_graph
+    fg = ng.factor_graph
+
+    obj = conditional_probabs(peps, ps, boundary_mps[1], PEPSRow(peps, 1))
+    println("..............")
+
+    _, i = findmax(obj)
+    @test (props(fg, 1)[:spectrum]).states[i] == [1]
+    println(i)
+    ps1 = update_partial_solution(ps, i, obj[i])
+    println(ps1)
+    obj1 = conditional_probabs(peps, ps1, boundary_mps[1], PEPSRow(peps, 1))
+    println(obj[i].*obj1)
+    _, j = findmax(obj[i].*obj1)
+    println(j)
+    println((props(fg, 2)[:spectrum]).states[j])
+
+    gg = graph4peps(g, (1,1))
     M = form_peps(gg, β)
 
     #TODO make something with dimensionality
     cc = contract3x3by_ncon(M)
     su = sum(cc)
-
+    p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
+    p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
 
     # first row
     A =  M[1,:]
@@ -499,7 +526,7 @@ end
 
     #AA = MPO(peps, 1, false)
 
-    println(size(A[1]))
+    #println(size(A[1]))
     #println(size(AA[1]))
 
     # marginal prob
@@ -507,7 +534,7 @@ end
     j = 1
     objective = conditional_probabs(gg, sol, j, lower_mps, A)
     println(objective)
-
+    println(props(gg, 1)[:spectrum])
     #objective1 = conditional_probabs(gg, sol, j, l_mps, AA)
     #println(objective1)
 
@@ -525,7 +552,7 @@ end
     p12 = sum(cc[1,2,:,:,:,:,:,:,:])/su
     # approx due to numerical accuracy
     @test objective ≈ [p11/p1, p12/p1]
-
+    println([p11/p1, p12/p1])
     j = 5
     row = 2
     lower_mps = make_lower_mps(gg, row+1, β, 10, 0.)
