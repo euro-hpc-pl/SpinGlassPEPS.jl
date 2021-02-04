@@ -61,7 +61,7 @@ Random.seed!(1234)
 
 
     D = props(fg, 1)[:cluster].vertices
-    println(sort([v for v in values(D)]) == [1,2,3,4])
+    @test sort([v for v in values(D)]) == [1,2,3,4]
     nodes = [e for e in keys(D)]
     @test sort(nodes) == sort(vec(ns[1:2, 1:2]))
 
@@ -459,6 +459,7 @@ end
 
 # TODO this will be the ilustative step by step how does the probability computation work
 
+#=
 @testset "peps row" begin
 
     g = M2graph(Mq, -1)
@@ -476,27 +477,27 @@ end
 
     println("particular tensors")
     println("node 1 ....")
-    display(PEPSRow(peps, 1)[1])
+    display(reshape(PEPSRow(peps, 1)[1], (4, 2)))
     println()
     println("node 2 .....")
-    display(PEPSRow(peps, 1)[2])
+    display(reshape(PEPSRow(peps, 1)[2], (8, 2)))
     println()
     println("node 3 .....")
-    display(PEPSRow(peps, 1)[3])
+    display(reshape(PEPSRow(peps, 1)[3], (4, 2)))
     println()
     println("node 4 ......")
-    display(PEPSRow(peps, 2)[1])
+    display(reshape(PEPSRow(peps, 2)[1], (8,2)))
     println()
     println("node 5 .......")
-    display(PEPSRow(peps, 2)[2])
+    display(reshape(PEPSRow(peps, 2)[2], (16,2)))
     println()
     println("node 6........")
-    display(PEPSRow(peps, 2)[3])
+    display(reshape(PEPSRow(peps, 2)[3], (8,2)))
 
 
 end
+=#
 
-#=
 @testset "testing marginal/conditional probabilities" begin
 
     ####   conditional probability implementation
@@ -517,14 +518,14 @@ end
     fg = factor_graph(
         g,
         energy=energy,
-        spectrum=full_spectrum,
+        spectrum=brute_force,
     )
 
     origin = :NW
 
     peps = PepsNetwork(2,2, fg, β, origin)
 
-    Dcut = 4
+    Dcut = 8
     tol = 0.
     swep = 4
     boundary_mps = boundaryMPS(peps, Dcut, tol, swep)
@@ -554,6 +555,9 @@ end
 
     println(k)
 
+    display(reshape(PEPSRow(peps, 2)[1], (4,2,4)))
+    println()
+
     println((props(fg, 3)[:spectrum]).states)
     #@test (props(fg, 3)[:spectrum]).states[k] == [bf.states[1][a] for a in [7,8]]
 
@@ -568,14 +572,6 @@ end
     origin = :NW
 
     peps = PepsNetwork(3,3, fg, β, origin)
-
-    println("............")
-    display(PEPSRow(peps, 1)[1])
-    println("........")
-    display(PEPSRow(peps, 1)[2])
-    println("............")
-
-    @test 1 == 2
 
     mpo1 = MPO(PEPSRow(peps, 1))
     mpo2 = MPO(PEPSRow(peps, 2))
@@ -707,7 +703,7 @@ end
         @test spins[i] == spins_s[i]
     end
 end
-
+#=
 # TODO chech different types of Float
 #=
 @testset "test an exemple instance on Float32" begin
