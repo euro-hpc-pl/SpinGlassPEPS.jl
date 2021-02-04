@@ -49,7 +49,7 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     for j ∈ 2:n
         ten = generate_tensor(peps, (i, j-1), (i, j))
         A = ψ[j]
-        @tensor B[l, u, r, d, σ] := ten[l, l̃] * A[l̃, u, r, d, σ] 
+        @tensor B[l, u, r, d, σ] := ten[l, l̃] * A[l̃, u, r, d, σ]
         ψ[j] = B
     end
     ψ
@@ -75,7 +75,7 @@ function MPO(::Type{T}, peps::PepsNetwork, i::Int, k::Int) where {T <: Number}
             en = ones(1, 1)
         end
 
-        @cast A[_, u, _, d] |= exp(-ng.β * en[u, d]) 
+        @cast A[_, u, _, d] |= exp(-ng.β * en[u, d])
         ψ[j] = A
     end
     ψ
@@ -86,8 +86,8 @@ function _MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
     W = MPO(PEPSRow(peps, peps.i_max))
     ψ = MPS(T, length(W))
 
-    for (i, O) ∈ enumerate(W) 
-        ψ[i] = dropdims(O, dims=4) 
+    for (i, O) ∈ enumerate(W)
+        ψ[i] = dropdims(O, dims=4)
     end
     ψ
 end
@@ -95,7 +95,7 @@ end
 function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
     ψ = MPS(T, peps.j_max)
     for i ∈ 1:length(ψ)
-        ψ[i] = ones(1, 1, 1) 
+        ψ[i] = ones(1, 1, 1)
     end
     ψ
 end
@@ -103,7 +103,7 @@ MPS(peps::PepsNetwork) = MPS(Float64, peps)
 
 function boundaryMPS(
     peps::PepsNetwork,
-    Dcut::Int, 
+    Dcut::Int,
     tol::Number=1E-8,
     max_sweeps=4)
 
@@ -112,12 +112,12 @@ function boundaryMPS(
     ψ = MPS(peps)
     for i ∈ peps.i_max:-1:1
         R = PEPSRow(peps, i)
-        
+
         W = MPO(R)
         M = MPO(peps, i, i+1)
 
         ψ = W * (M * ψ)
-        
+
         if bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
@@ -131,10 +131,10 @@ function contract(peps::PepsNetwork, config::Dict{Int, Int}, args::Dict=Dict())
     ψ = MPS(peps)
 
     for i ∈ peps.i_max:-1:1
-        R = PEPSRow(peps, i)      
+        R = PEPSRow(peps, i)
         ψ = MPO(typeof(ψ), peps.j_max)
 
-        for (j, A) ∈ enumerate(R) 
+        for (j, A) ∈ enumerate(R)
             v = j + peps.j_max * (i - 1)
 
             if haskey(config, v)
@@ -147,11 +147,10 @@ function contract(peps::PepsNetwork, config::Dict{Int, Int}, args::Dict=Dict())
 
         M = MPO(peps, i, i+1)
         ψ = W * (M * ψ)
-        
+
         if bond_dimension(ψ) > Dcut
             ψ = compress(ψ, args...)
         end
     end
     prod(ψ)[]
 end
-
