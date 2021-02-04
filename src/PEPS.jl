@@ -1,6 +1,6 @@
 export PepsNetwork
 export MPO, MPS
-export boundaryMPS, contract
+export boundaryMPS, peps_contract
 
 mutable struct PepsNetwork
     size::NTuple{2, Int}
@@ -127,12 +127,19 @@ function boundaryMPS(
     boundary_MPS
 end
 
-function contract(peps::PepsNetwork, config::Dict{Int, Int}, args::Dict=Dict())
+function peps_contract(
+    peps::PepsNetwork,
+    config::Dict{Int, Int} = Dict(),
+    Dcut::Int=typemax(Int),
+    tol::Number=1E-8,
+    max_sweeps=4,
+    )
+
     ψ = MPS(peps)
 
     for i ∈ peps.i_max:-1:1
         row = PEPSRow(peps, i)      
-        ψ = MPO(typeof(ψ), peps.j_max)
+        W = MPO(eltype(ψ), peps.j_max)
 
         for (j, A) ∈ enumerate(row) 
             v = get(config, j + peps.j_max * (i - 1), nothing)
@@ -141,16 +148,19 @@ function contract(peps::PepsNetwork, config::Dict{Int, Int}, args::Dict=Dict())
             else
                 @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
             end
-            ψ[j] = B
+            W[j] = B
         end
 
         M = MPO(peps, i, i+1)
         ψ = W * (M * ψ)
         
         if bond_dimension(ψ) > Dcut
-            ψ = compress(ψ, args...)
+            ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
     end
-    prod(ψ)[]
+
+    Z = []
+    for A ∈ ψ push!(Z, dropdims(A, dims=2)) end
+    prod(Z)[]
 end
 
