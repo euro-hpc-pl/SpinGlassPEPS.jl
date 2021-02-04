@@ -28,24 +28,33 @@
         ig,
         Dict(1 => 4, 2 => 2),
         energy = energy,
-        spectrum = brute_force,
+        spectrum = full_spectrum,
     )
 
-    config = Dict{Int, Int}() #Dict(1 => 2, 2 => 1)
+    for i ∈ 1:4, j ∈ 1:2
+        
+        cfg = Dict(1 => i, 2 => j)
 
-    Z = []
-    for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-        peps = PepsNetwork(m, n, fg, β, origin)
-        p = peps_contract(peps, config)
-        push!(Z, p)
-    end
+        Z = []
+        for origin ∈ (:NW, :SW, :WS, :WN) 
+            peps = PepsNetwork(m, n, fg, β, origin)
+            p = peps_contract(peps, cfg)
+            push!(Z, p)
+        end
 
-    @test all(x -> x ≈ first(Z), Z)
+        # they all should be the same
+        @test all(x -> x ≈ first(Z), Z)
 
-    if isempty(config)
+        # the exact Gibbs state
         states = collect.(all_states(rank_vec(ig)))
-        ρ = exp.(-β .* energy.(states, Ref(ig)))
-        ZZ = sum(ρ)
-        @test first(Z) ≈ ZZ
-    end 
+        ρ = exp.(-β .* energy.(states, Ref(ig)))    
+        ϱ = reshape(ρ, (4, 2))
+
+        # probabilities should agree
+        if isempty(cfg)
+            @test first(Z) ≈ sum(ρ)
+        else
+            @test first(Z) ≈ ϱ[cfg[1], cfg[2]]
+        end 
+    end
 end        

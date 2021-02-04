@@ -171,7 +171,6 @@ function peps_contract(
         M = MPO(T, peps, i, i+1)
     
         ψ = W * (M * ψ)
-        #ψ = W * ψ
 
         if bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
