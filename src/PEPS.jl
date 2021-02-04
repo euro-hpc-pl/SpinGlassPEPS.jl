@@ -1,5 +1,6 @@
 export PepsNetwork
-export MPO, MPS, boundaryMPS
+export MPO, MPS
+export boundaryMPS, contract
 
 mutable struct PepsNetwork
     size::NTuple{2, Int}
