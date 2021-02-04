@@ -31,23 +31,23 @@ if CUDA.functional() && CUDA.has_cutensor() && false
 end
 
 push!(my_tests,
-    "base.jl",
-    "utils.jl",
-    "contractions.jl",
-    "compressions.jl",
-    "ising.jl",
-    "indexing.jl",
-    "searchMPS.jl",
-    "spectrum.jl",
-    "graph.jl",
-    "PEPS.jl",
+    #"base.jl",
+    #"utils.jl",
+    #"contractions.jl",
+    #"compressions.jl",
+    #"ising.jl",
+    #"indexing.jl",
+    #"searchMPS.jl",
+    #"spectrum.jl",
+    #"graph.jl",
+    #"PEPS.jl",
     "contract.jl",
-    "indexing.jl",
-    "notation_tests.jl",
-    "peps_tests.jl",
-    "mps_tests.jl",
-    "tests_full_graph.jl",
-    "tests_on_data.jl"
+    #"indexing.jl",
+    #"notation_tests.jl",
+    #"peps_tests.jl",
+    #"mps_tests.jl",
+    #"tests_full_graph.jl",
+    #"tests_on_data.jl"
 )
 
 for my_test in my_tests

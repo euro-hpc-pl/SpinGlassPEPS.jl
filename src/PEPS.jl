@@ -167,7 +167,6 @@ function peps_contract(
     T = eltype(ψ)
 
     for i ∈ peps.i_max:-1:1
-        println(i)
         W = MPO(T, peps, i, config)
         M = MPO(T, peps, i, i+1)
     
