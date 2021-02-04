@@ -135,10 +135,9 @@ function contract(peps::PepsNetwork, config::Dict{Int, Int}, args::Dict=Dict())
         ψ = MPO(typeof(ψ), peps.j_max)
 
         for (j, A) ∈ enumerate(R) 
-            v = j + peps.j_max * (i - 1)
-
-            if haskey(config, v)
-                @cast B[l, u, r, d] |= A[l, u, r, d, config[v]]
+            v = get(config, j + peps.j_max * (i - 1), nothing)
+            if v !== nothing
+                @cast B[l, u, r, d] |= A[l, u, r, d, v]
             else
                 @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
             end
