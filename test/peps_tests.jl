@@ -5,6 +5,7 @@ import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
+import SpinGlassPEPS: contract
 Random.seed!(1234)
 
 
@@ -525,6 +526,8 @@ end
 
     peps = PepsNetwork(2,2, fg, β, origin)
 
+    z = contract(peps, Dict{Int, Int}())
+
     Dcut = 8
     tol = 0.
     swep = 4
@@ -533,6 +536,10 @@ end
     ps1 = Partial_sol{Float64}(Int[], 0.)
 
     obj1 = conditional_probabs(peps, ps1, boundary_mps[1], PEPSRow(peps, 1))
+    println(obj1)
+    println(contract(peps, Dict{Int, Int}(1 => 1)))
+    println(contract(peps, Dict{Int, Int}(2 => 1)))
+
     _, i = findmax(obj1)
     @test (props(fg, 1)[:spectrum]).states[i] == [bf.states[1][a] for a in [1,2,4,5]]
 
