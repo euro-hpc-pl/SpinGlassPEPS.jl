@@ -55,7 +55,7 @@ Mq[3,4] = Mq[4,3] = 0.460
     Dcut = 8
     tol = 0.
     swep = 4
-    z = peps_contract(peps, Dict{Int, Int}())
+    z = contract(peps, Dict{Int, Int}())
     @test z ≈ Z
     println(peps)
 
@@ -71,7 +71,7 @@ Mq[3,4] = Mq[4,3] = 0.460
 
     # test all
     for i_1 in 1:4
-        @test obj1[i_1] ≈ peps_contract(peps, Dict{Int, Int}(1 => i_1))/z atol = 1e-3
+        @test obj1[i_1] ≈ contract(peps, Dict{Int, Int}(1 => i_1))/z atol = 1e-3
     end
 
     obj2 = conditional_probabs(peps, ps1, boundary_mps[2], PEPSRow(peps, 2))
@@ -81,7 +81,7 @@ Mq[3,4] = Mq[4,3] = 0.460
 
 
     for i_2 in 1:4
-        @test obj2[i_2] ≈ peps_contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z atol = 1e-3
+        @test obj2[i_2] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z atol = 1e-3
     end
 
 end
@@ -187,7 +187,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     println("shoud be constructed of one couplung matrix (up) and projector (left)")
     println("only 4 non-zero elements suggests 2 projectors or lacking elements")
     println()
-    
+
     # node 3
     obj3 = conditional_probabs(peps, ps2, boundary_mps[2], PEPSRow(peps, 2))
     obj3 = obj2[j].*obj3
