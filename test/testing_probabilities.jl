@@ -1,5 +1,5 @@
 import SpinGlassPEPS: Partial_sol, update_partial_solution, M2graph
-import SpinGlassPEPS: energy, solve, contract
+import SpinGlassPEPS: energy, solve, contract, conditional_probabs
 
 Mq = zeros(9,9)
 Mq[1,1] = 1.
