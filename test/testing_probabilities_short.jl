@@ -1,5 +1,4 @@
-include("test_helpers.jl")
-import SpinGlassPEPS: Partial_sol, update_partial_solution
+import SpinGlassPEPS: Partial_sol, update_partial_solution, M2graph
 import SpinGlassPEPS: energy, solve, contract
 
 Mq = zeros(4,4)
