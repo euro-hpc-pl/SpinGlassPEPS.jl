@@ -38,7 +38,7 @@
         Z = []
         for origin ∈ (:NW, :SW, :WS, :WN) 
             peps = PepsNetwork(m, n, fg, β, origin)
-            p = peps_contract(peps, cfg)
+            p = contract(peps, cfg)
             push!(Z, p)
         end
 

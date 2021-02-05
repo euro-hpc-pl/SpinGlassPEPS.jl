@@ -5,7 +5,7 @@ import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
-import SpinGlassPEPS: peps_contract
+import SpinGlassPEPS: contract
 Random.seed!(1234)
 
 
@@ -68,7 +68,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     Dcut = 8
     tol = 0.
     swep = 4
-    z = peps_contract(peps, Dict{Int, Int}())
+    z = contract(peps, Dict{Int, Int}())
     @test z ≈ Z
 
     boundary_mps = boundaryMPS(peps, Dcut, tol, swep)
@@ -83,7 +83,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     # test all
     for i_1 in 1:16
-        @test obj1[i_1] ≈ peps_contract(peps, Dict{Int, Int}(1 => i_1))/z atol = 1e-3
+        @test obj1[i_1] ≈ contract(peps, Dict{Int, Int}(1 => i_1))/z atol = 1e-3
     end
     # test chosen
     @test (props(fg, 1)[:spectrum]).states[i] == [bf.states[1][a] for a in [1,2,4,5]]
@@ -98,7 +98,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     @test (props(fg, 2)[:spectrum]).states[j] == [bf.states[1][a] for a in [3,6]]
 
     for i_2 in 1:4
-        @test obj2[i_2] ≈ peps_contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z atol = 1e-3
+        @test obj2[i_2] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z atol = 1e-3
     end
 
     println(" .............  node 3 ......")
@@ -117,7 +117,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     ps3 = update_partial_solution(ps2, k, obj3[k])
 
     for i_3 in 1:4
-        @test obj3[i_3] ≈ peps_contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => i_3))/z atol = 1e-3
+        @test obj3[i_3] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => i_3))/z atol = 1e-3
     end
 
     @test (props(fg, 3)[:spectrum]).states[k] == [bf.states[1][a] for a in [7,8]]
@@ -130,7 +130,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     _, l = findmax(obj4)
 
     for i_4 in 1:2
-        @test obj4[i_4] ≈ peps_contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => k, 4 => i_4))/z atol = 1e-3
+        @test obj4[i_4] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => k, 4 => i_4))/z atol = 1e-3
     end
 
     @test (props(fg, 4)[:spectrum]).states[l] == [bf.states[1][a] for a in [9]]

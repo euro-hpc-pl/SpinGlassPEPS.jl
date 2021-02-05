@@ -1,6 +1,6 @@
 export PepsNetwork
 export MPO, MPS
-export boundaryMPS, peps_contract
+export boundaryMPS, contract
 
 mutable struct PepsNetwork
     size::NTuple{2, Int}
@@ -101,8 +101,7 @@ function MPS(::Type{T}, peps::PepsNetwork) where {T <: Number}
 end
 MPS(peps::PepsNetwork) = MPS(Float64, peps)
 
-function boundaryMPS(
-    peps::PepsNetwork,
+function boundaryMPS(peps::PepsNetwork,
     Dcut::Int,
     tol::Number=1E-8,
     max_sweeps=4)
@@ -127,8 +126,7 @@ function boundaryMPS(
     boundary_MPS
 end
 
-function MPO(
-    ::Type{T}, 
+function MPO(::Type{T}, 
     peps::PepsNetwork, 
     i::Int, 
     config::Dict{Int, Int} = Dict{Int, Int}()
@@ -149,13 +147,12 @@ function MPO(
     end
     W 
 end
-MPO(
-    peps::PepsNetwork, 
+MPO(peps::PepsNetwork, 
     i::Int, 
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) = MPO(Float64, peps, i, config)
 
-function peps_contract(
+function LightGraphs.contract(
     peps::PepsNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}(),
     Dcut::Int=typemax(Int),
@@ -169,15 +166,13 @@ function peps_contract(
     for i ∈ peps.i_max:-1:1
         W = MPO(T, peps, i, config)
         M = MPO(T, peps, i, i+1)
-    
         ψ = W * (M * ψ)
-
         if bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
     end
 
-    Z = []
+    Z = Array{T, 2}[]
     for A ∈ ψ push!(Z, dropdims(A, dims=2)) end
     prod(Z)[]
 end
