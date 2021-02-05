@@ -14,14 +14,14 @@
     )
 
     m, n = 1, 2
-    L = 3
+    L = 4
     β = 1.
 
     ig = ising_graph(D, L)
 
     update_cells!(
         ig,
-        rule = Dict(1 => 1, 2 => 1, 3 => 2),
+        rule = Dict(1 => 1, 2 => 1, 3 => 2, 4 => 2),
     )
 
     fg = factor_graph(

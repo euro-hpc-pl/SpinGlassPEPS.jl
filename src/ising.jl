@@ -95,7 +95,7 @@ end
 
 function update_cells!(ig::MetaGraph; rule::Dict)
     for v ∈ vertices(ig)
-         w = get_prop(ig, v, :cell)
+        w = get_prop(ig, v, :cell)
         set_prop!(ig, v, :cell, rule[w])
     end
 end

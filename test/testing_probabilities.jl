@@ -64,7 +64,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     display([1 2 ; 3 4])
     println()
 
-    peps = PepsNetwork(2,2, fg, β, origin)
+    peps = PepsNetwork(2, 2, fg, β, origin)
     Dcut = 8
     tol = 0.
     swep = 4
