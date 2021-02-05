@@ -297,10 +297,10 @@ p_r - peps row
 1 --b_m1 --b_m2       --     b_m  -- b_m -- 1
 """
 function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T},
-                             peps_row::PEPSRow{T}) where T <: Real
+                             peps_row::PEPSRow{T}) where T <: Number
 
 
-    j =  length(ps.spins) + 1
+    j = length(ps.spins) + 1
     ng = peps.network_graph
     fg = ng.factor_graph
 
