@@ -67,11 +67,11 @@ Mq[8,9] = Mq[9,8] = -0.05
     peps = PepsNetwork(2, 2, fg, β, origin)
     Dcut = 8
     tol = 0.
-    swep = 4
+    sweep = 4
     z = contract(peps, Dict{Int, Int}())
     @test z ≈ Z
 
-    boundary_mps = boundaryMPS(peps, Dcut, tol, swep)
+    boundary_mps = boundaryMPS(peps, Dcut, tol, sweep)
 
     # initialize
     ps = Partial_sol{Float64}(Int[], 0.)
@@ -109,6 +109,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     println("shoud be constructed of one couplung matrix (up) and projector (left)")
     println("only 4 non-zero elements suggests 2 projectors or lacking elements")
     println()
+    
     # node 3
     obj3 = conditional_probabs(peps, ps2, boundary_mps[2], PEPSRow(peps, 2))
     obj3 = obj2[j].*obj3
