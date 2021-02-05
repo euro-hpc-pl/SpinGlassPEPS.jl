@@ -5,7 +5,7 @@ import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
 import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
 import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
-import SpinGlassPEPS: contract
+import SpinGlassPEPS: peps_contract
 Random.seed!(1234)
 
 
@@ -503,11 +503,11 @@ end
 
     ####   conditional probability implementation
 
+
     β = 3.
     g = M2graph(Mq, -1)
 
     bf = brute_force(g; num_states = 1)
-    println(bf.states)
 
     rule = Dict{Any,Any}(1 => 1, 2 => 1, 4 => 1, 5 => 1, 3=>2, 6 => 2, 7 => 3, 8 => 3, 9 => 4)
 
@@ -523,129 +523,90 @@ end
     )
 
     origin = :NW
+    states = collect.(all_states(rank_vec(g)))
+    ρ = exp.(-β .* energy.(states, Ref(g)))
+    Z = sum(ρ)
+
+    println("grid of nodes")
+    display([1 2 ; 3 4])
+    println()
 
     peps = PepsNetwork(2,2, fg, β, origin)
-
-    z = contract(peps, Dict{Int, Int}())
-
     Dcut = 8
     tol = 0.
     swep = 4
+    z = peps_contract(peps, Dict{Int, Int}())
+    @test z ≈ Z
+
     boundary_mps = boundaryMPS(peps, Dcut, tol, swep)
 
-    ps1 = Partial_sol{Float64}(Int[], 0.)
+    # initialize
+    ps = Partial_sol{Float64}(Int[], 0.)
 
-    obj1 = conditional_probabs(peps, ps1, boundary_mps[1], PEPSRow(peps, 1))
-    println(obj1)
-    println(contract(peps, Dict{Int, Int}(1 => 1)))
-    println(contract(peps, Dict{Int, Int}(2 => 1)))
-
+    #node 1
+    obj1 = conditional_probabs(peps, ps, boundary_mps[1], PEPSRow(peps, 1))
     _, i = findmax(obj1)
+    ps1 = update_partial_solution(ps, i, obj1[i])
+
+    # test all
+    for i_1 in 1:16
+        @test obj1[i_1] ≈ peps_contract(peps, Dict{Int, Int}(1 => i_1))/z atol = 1e-3
+    end
+    # test chosen
     @test (props(fg, 1)[:spectrum]).states[i] == [bf.states[1][a] for a in [1,2,4,5]]
 
-    ps2 = update_partial_solution(ps1, i, obj1[i])
-    obj2 = conditional_probabs(peps, ps2, boundary_mps[1], PEPSRow(peps, 1))
+    # node 2
+    obj2 = conditional_probabs(peps, ps1, boundary_mps[1], PEPSRow(peps, 1))
     obj2 = obj1[i].*obj2
-
     _, j = findmax(obj2)
+    ps2 = update_partial_solution(ps1, j, obj2[j])
+
+
     @test (props(fg, 2)[:spectrum]).states[j] == [bf.states[1][a] for a in [3,6]]
 
-    ps3 = update_partial_solution(ps2, j, obj2[j])
-    println(ps3)
-    obj3 = conditional_probabs(peps, ps3, boundary_mps[2], PEPSRow(peps, 2))
+    for i_2 in 1:4
+        @test obj2[i_2] ≈ peps_contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z atol = 1e-3
+    end
 
-    println(obj3)
-    obj3 = obj3[j].*obj3
-    println(obj3)
-
-    _, k = findmax(obj3)
-
-    println(k)
-
+    println(" .............  node 3 ......")
+    println("tensor")
     display(reshape(PEPSRow(peps, 2)[1], (4,2,4)))
     println()
+    println("done from 2 spins, 2 bounds up and 1 left")
+    println("shoud be constructed of one couplung matrix (up) and projector (left)")
+    println("only 4 non-zero elements suggests 2 projectors or lacking elements")
+    println()
+    # node 3
+    obj3 = conditional_probabs(peps, ps2, boundary_mps[2], PEPSRow(peps, 2))
+    obj3 = obj2[j].*obj3
 
-    println((props(fg, 3)[:spectrum]).states)
-    #@test (props(fg, 3)[:spectrum]).states[k] == [bf.states[1][a] for a in [7,8]]
+    _, k = findmax(obj3)
+    ps3 = update_partial_solution(ps2, k, obj3[k])
 
-    g = M2graph(Mq, -1)
+    for i_3 in 1:4
+        @test obj3[i_3] ≈ peps_contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => i_3))/z atol = 1e-3
+    end
 
-    fg = factor_graph(
-        g,
-        energy=energy,
-        spectrum=full_spectrum,
-    )
+    @test (props(fg, 3)[:spectrum]).states[k] == [bf.states[1][a] for a in [7,8]]
 
-    origin = :NW
+    #node 4
 
-    peps = PepsNetwork(3,3, fg, β, origin)
+    obj4 = conditional_probabs(peps, ps3, boundary_mps[2], PEPSRow(peps, 2))
+    obj4 = obj3[k].*obj4
 
-    mpo1 = MPO(PEPSRow(peps, 1))
-    mpo2 = MPO(PEPSRow(peps, 2))
-    mpo3 = MPO(PEPSRow(peps, 3))
+    _, l = findmax(obj4)
 
-    gg = graph4peps(g, (1,1))
-    M = form_peps(gg, β)
+    for i_4 in 1:2
+        @test obj4[i_4] ≈ peps_contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => k, 4 => i_4))/z atol = 1e-3
+    end
 
-    #TODO make something with dimensionality
-    cc = contract3x3by_ncon(M)
-    su = sum(cc)
-    p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
-    p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
+    @test (props(fg, 4)[:spectrum]).states[l] == [bf.states[1][a] for a in [9]]
 
-    # first row
-    A =  M[1,:]
+    println(props(fg, 4)[:spectrum])
 
-    # the row for lower_mps
-    row = 1
-    lower_mps = make_lower_mps(gg, row+1, β, 10, 0.)
-
-    l_mps = MPS([e[:,:,:,1] for e in mpo2*mpo3])
-
-    #AA = MPO(peps, 1, false)
-
-    #println(size(A[1]))
-    #println(size(AA[1]))
-
-    # marginal prob
-    sol = Partial_sol{Float64}(Int[], 0.)
-    j = 1
-    objective = conditional_probabs(gg, sol, j, lower_mps, A)
-    println(objective)
-    println(props(gg, 1)[:spectrum])
-    #objective1 = conditional_probabs(gg, sol, j, l_mps, AA)
-    #println(objective1)
-
-    sol = Partial_sol{Float64}([1], objective[1])
-
-    p1 = sum(cc[1,:,:,:,:,:,:,:,:])/su
-    p2 = sum(cc[2,:,:,:,:,:,:,:,:])/su
-    # approx due to numerical accuracy
-    @test objective ≈ [p1, p2]
-
-    j = 2
-    objective = conditional_probabs(gg, sol, j, lower_mps, A)
-    #conditional prob
-    p11 = sum(cc[1,1,:,:,:,:,:,:,:])/su
-    p12 = sum(cc[1,2,:,:,:,:,:,:,:])/su
-    # approx due to numerical accuracy
-    @test objective ≈ [p11/p1, p12/p1]
-    println([p11/p1, p12/p1])
-
-    println(props(gg, 2)[:spectrum])
-    j = 5
-    row = 2
-    lower_mps = make_lower_mps(gg, row+1, β, 10, 0.)
-    A =  M[2,:]
-
-    # objective value from the previous step is set artificially
-    sol = Partial_sol{Float64}(Int[1,1,1,1], 1.)
-    objective = conditional_probabs(gg, sol, j, lower_mps, A)
-    #conditional prob
-    p1 = sum(cc[1,1,1,1,1,:,:,:,:])/sum(cc[1,1,1,1,:,:,:,:,:])
-    p2 = sum(cc[1,1,1,1,2,:,:,:,:])/sum(cc[1,1,1,1,:,:,:,:,:])
-    # approx due to numerical accuracy
-    @test objective ≈ [p1, p2]
+    println(" .............. node 4 .............")
+    println("tensor should have no non-zero elements, should be composed of two coupling matrices")
+    display(reshape(PEPSRow(peps, 2)[2], (2,2,2)))
 end
 
 
