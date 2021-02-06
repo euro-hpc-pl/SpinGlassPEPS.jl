@@ -36,7 +36,7 @@ Mq[3,4] = Mq[4,3] = 0.460
     display([1; 2])
     println()
 
-    peps = PepsNetwork(2,1, fg, β, :NW)
+    peps = PepsNetwork(2, 1, fg, β, :NW)
     Dcut = 8
     tol = 0.
     swep = 4

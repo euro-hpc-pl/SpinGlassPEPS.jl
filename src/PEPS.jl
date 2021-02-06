@@ -42,9 +42,11 @@ MPO(ψ::PEPSRow) = MPO(Float64, ψ)
 
 function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     n = peps.j_max
-    ψ = PEPSRow(T, n)
 
-    for j ∈ 1:n ψ[j] = generate_tensor(peps, (i, j)) end
+    ψ = PEPSRow(T, n)
+    for j ∈ 1:n 
+        ψ[j] = generate_tensor(peps, (i, j)) 
+    end
 
     for j ∈ 2:n
         ten = generate_tensor(peps, (i, j-1), (i, j))
@@ -102,28 +104,25 @@ end
 MPS(peps::PepsNetwork) = MPS(Float64, peps)
 
 function boundaryMPS(peps::PepsNetwork,
-    Dcut::Int,
+    Dcut::Int=typemax(Int),
     tol::Number=1E-8,
     max_sweeps=4)
 
-    boundary_MPS = Vector{MPS}(undef, peps.i_max)
+    MPS_vec = Vector{MPS}(undef, peps.i_max)
 
     ψ = MPS(peps)
     for i ∈ peps.i_max:-1:1
-        R = PEPSRow(peps, i)
-
-        W = MPO(R)
+        W = MPO(PEPSRow(peps, i))
         M = MPO(peps, i, i+1)
-
         ψ = W * (M * ψ)
 
         if bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
 
-        boundary_MPS[peps.i_max - i + 1] = ψ
+        MPS_vec[peps.i_max - i + 1] = ψ
     end
-    boundary_MPS
+    MPS_vec
 end
 
 function MPO(::Type{T}, 
