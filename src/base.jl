@@ -1,6 +1,6 @@
 export bond_dimension, is_left_normalized, is_right_normalized
 export verify_bonds, verify_physical_dims, tensor, rank
-export State
+export State, idMPS
 
 const State = Union{Vector, NTuple}
 
@@ -48,6 +48,16 @@ end
 @inline MPS(A::AbstractArray, s::Symbol, Dcut::Int, args...) = MPS(A, Val(s), Dcut, args...)
 @inline MPS(A::AbstractArray, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(A, Dcut, args...)
 @inline MPS(A::AbstractArray, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(A, Dcut, args...)
+
+@inline Base.dropdims(ψ::MPS, i::Int) = (dropdims(A, dims=i) for A ∈ ψ)
+@inline Base.dropdims(ψ::MPS) = Base.dropdims(ψ, 2)
+
+function idMPS(::Type{T}, L::Int) where {T <: Number}
+    ψ = MPS(T, L)
+    for i ∈ 1:length(ψ) ψ[i] = ones(1, 1, 1) end
+    ψ
+end
+idMPS(L::Int) = idMPS(Float64, L)
 
 function _right_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) where {T}
     rank = ndims(Θ)
@@ -149,6 +159,7 @@ function MPS(O::MPO)
     end 
     ψ
 end  
+
 
 function Base.randn(::Type{MPS{T}}, D::Int, rank::Union{Vector, NTuple}) where {T}
     L = length(rank)
