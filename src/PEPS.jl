@@ -1,6 +1,5 @@
-export PepsNetwork
-export MPO, MPS
-export boundaryMPS, contract
+export PepsNetwork, contract
+export MPO, MPS, boundaryMPS
 
 mutable struct PepsNetwork
     size::NTuple{2, Int}
@@ -72,7 +71,6 @@ function boundaryMPS(
         end
         push!(vec, ψ)
     end
-
     if reversed reverse(vec) else vec end
 end
 
