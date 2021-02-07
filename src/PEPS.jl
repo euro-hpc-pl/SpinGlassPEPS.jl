@@ -15,6 +15,7 @@ mutable struct PepsNetwork
 
         nbrs = Dict()
         for i ∈ 1:pn.i_max, j ∈ 1:pn.j_max
+            # v => (l, u, r, d)
             push!(nbrs,
             pn.map[i, j] => (pn.map[i, j-1], pn.map[i-1, j],
                              pn.map[i, j+1], pn.map[i+1, j]))
@@ -113,4 +114,15 @@ function LightGraphs.contract(
         end
     end
     prod(dropdims(ψ))[]
+end
+
+
+function conditional_pdo(
+    peps::PepsNetwork, 
+    v::Int, 
+    ∂v::Dict{Int, Int},
+    config::Dict,
+    )
+
+    
 end
