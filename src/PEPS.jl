@@ -26,13 +26,13 @@ mutable struct PepsNetwork
 end
 
 generate_tensor(pn::PepsNetwork, 
-                m::NTuple{2,Int}
+                m::NTuple{2,Int},
                 ) = generate_tensor(pn.network_graph, pn.map[m])
 
 generate_tensor(pn::PepsNetwork,
                 m::NTuple{2,Int}, 
-                n::NTuple{2,Int}
- ) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
+                n::NTuple{2,Int},
+                ) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
 function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     ψ = PEPSRow(T, peps.j_max)
@@ -54,26 +54,15 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
 end
 PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
-function boundaryMPS(
-    peps::PepsNetwork,
-    Dcut::Int=typemax(Int),
-    tol::Number=1E-8,
-    max_sweeps=4;
-    reversed::Bool=true
-    )
-
-    vec = [] 
-    ψ = idMPS(peps.j_max)
-
-    for i ∈ peps.i_max:-1:1
-        ψ = MPO(eltype(ψ), peps, i) * ψ 
-        if bond_dimension(ψ) > Dcut
-            ψ = compress(ψ, Dcut, tol, max_sweeps)
-        end
-        push!(vec, ψ)
+function MPO(::Type{T}, R::PEPSRow) where {T <: Number}
+    W = MPO(T, length(R))
+    for (j, A) ∈ enumerate(R)
+        @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
+        W[j] = B
     end
-    if reversed reverse(vec) else vec end
+    W 
 end
+MPO(R::PEPSRow) = MPO(Float64, R)
 
 function MPO(::Type{T}, 
     peps::PepsNetwork, 
@@ -98,6 +87,27 @@ MPO(peps::PepsNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) = MPO(Float64, peps, i, config)
 
+    function boundaryMPS(
+        peps::PepsNetwork,
+        Dcut::Int=typemax(Int),
+        tol::Number=1E-8,
+        max_sweeps=4;
+        reversed::Bool=true
+        )
+    
+        vec = [] 
+        ψ = idMPS(peps.j_max)
+    
+        for i ∈ peps.i_max:-1:1
+            ψ = MPO(eltype(ψ), peps, i) * ψ 
+            if bond_dimension(ψ) > Dcut
+                ψ = compress(ψ, Dcut, tol, max_sweeps)
+            end
+            push!(vec, ψ)
+        end
+        if reversed reverse(vec) else vec end
+    end
+
 function LightGraphs.contract(
     peps::PepsNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}(),
@@ -121,8 +131,7 @@ function conditional_pdo(
     peps::PepsNetwork, 
     v::Int, 
     ∂v::Dict{Int, Int},
-    config::Dict,
+    args::Dict,
     )
 
-    
 end

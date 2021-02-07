@@ -13,7 +13,7 @@ Mq[2,4] = Mq[4,2] = 0.566
 Mq[3,4] = Mq[4,3] = 0.460
 
 
-@testset "testing marginal/conditional probabilities" begin
+ @testset "testing marginal/conditional probabilities" begin
     β = 3.
     g = M2graph(Mq, -1)
 
