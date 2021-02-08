@@ -1,3 +1,4 @@
+#=
 function form_peps(gg::MetaGraph, β::Float64, s::Tuple{Int, Int} = (3,3))
     M = Array{Union{Nothing, Array{Float64}}}(nothing, s)
     k = 0
@@ -9,8 +10,31 @@ function form_peps(gg::MetaGraph, β::Float64, s::Tuple{Int, Int} = (3,3))
     end
     Matrix{Array{Float64, 5}}(M)
 end
+=#
 
+#removes bonds that do not fit to the grid, testing function
+function fullM2grid!(M::Matrix{Float64}, s::Tuple{Int, Int})
+    s1 = s[1]
+    s2 = s[2]
+    pairs = Vector{Int}[]
+    for i ∈ 1:s1*s2
+        if (i%s2 > 0 && i < s1*s2)
+            push!(pairs, [i, i+1])
+        end
+        if i <= s2*(s1-1)
+            push!(pairs, [i, i+s2])
+        end
+    end
 
+    for k ∈ CartesianIndices(size(M))
+        i1 = [k[1], k[2]]
+        i2 = [k[2], k[1]]
+        if !(i1 ∈ pairs) && !(i2 ∈ pairs) && (k[1] != k[2])
+            M[i1...] = M[i2...] = 0.
+        end
+    end
+end
+#=
 # NCon constraction
 function contract3x3by_ncon(M::Matrix{Array{Float64, 5}})
     u1 = M[1,1][1,1,:,:,:]
@@ -46,7 +70,7 @@ function contract3x3by_ncon(M::Matrix{Array{Float64, 5}})
 
     ncon(tensors, indexes)
 end
-
+=#
 
 function make_interactions_case1()
     L = 9

@@ -82,15 +82,13 @@ n = ceil(Int, s1/node_size[1])
 m = ceil(Int, s1/node_size[2])
 
 ig = ising_graph(fi, si, 1)
-
-ig1 = ising_graph(fi, si, 1)
 update_cells!(
-    ig1,
+    ig,
     rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
   )
 
 fg = factor_graph(
-      ig1,
+      ig,
       spectrum_cutoff,
       energy=energy,
       spectrum=brute_force,
@@ -104,7 +102,9 @@ n_sols = parse_args(s)["n_sols"]
 
 println(node_size)
 
-@time spins, objective = solve(ig, peps, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δH=δH)
+@time sols = solve(peps, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δH=δH)
+objective = [e.objective for e in sols]
+spins = return_solution(ig, fg, sols)
 
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")

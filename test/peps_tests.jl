@@ -1,11 +1,9 @@
 include("test_helpers.jl")
 import SpinGlassPEPS: Partial_sol, update_partial_solution, select_best_solutions, return_solutions
-import SpinGlassPEPS: compute_single_tensor, conditional_probabs, get_parameters_for_T
-import SpinGlassPEPS: make_lower_mps, M2graph, graph4peps, fullM2grid!
-import SpinGlassPEPS: set_spin_from_letf, spin_index_from_left, spin_indices_from_above
+import SpinGlassPEPS: conditional_probabs
 import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
-import SpinGlassPEPS: contract
+
 Random.seed!(1234)
 
 
@@ -221,142 +219,6 @@ end
     @test ps1 == [a,b,c,d]
 end
 
-#=
-@testset "PEPS - axiliary functions" begin
-
-
-
-    @testset "functions of graph" begin
-
-        a = Partial_sol{Float64}([1,1,1,2], 0.2)
-        b = Partial_sol{Float64}([1,1,2,2], 1.)
-
-        M = [1. 1. 1. 0.; 1. 1. 0. 1.; 1. 0. 1. 1.; 0. 1. 1. 1.]
-
-        g = M2graph(M)
-        gg = graph4peps(g, (1,1))
-
-        spins, objectives = return_solutions([a,b], gg)
-        @test spins == [[-1, -1, 1, 1], [-1, -1, -1, 1]]
-        @test objectives == [1.0, 0.2]
-
-        M = ones(16,16)
-        fullM2grid!(M, (4,4))
-        g = M2graph(M)
-        gg = graph4peps(g, (2,2))
-
-        ps = Partial_sol{Float64}([6], .2)
-        ul,ur = spin_indices_from_above(gg, ps, 2)
-        l = spin_index_from_left(gg, ps, 2)
-        @test ul == [2]
-        @test ur == [1]
-        @test l == 2
-
-        ps = Partial_sol{Float64}([4,6], .2)
-        ul,ur = spin_indices_from_above(gg, ps, 3)
-        l = spin_index_from_left(gg, ps, 3)
-        @test ul == Int[]
-        @test ur == [1,2]
-        @test l == 1
-
-    end
-
-
-end
-
-
-### creation a matrix of interactions step by step as an example
-Mq = ones(4,4)
-fullM2grid!(Mq, (2,2))
-
-
-@testset "tensor construction" begin
-
-    g = M2graph(Mq)
-
-    g_ising = M2graph(Mq)
-    m = 2
-    n = 2
-    t = 1
-
-    fg = factor_graph(
-        g_ising,
-        energy=energy,
-        spectrum=full_spectrum,
-    )
-
-    β = 2.
-    peps = PepsNetwork(2, 2,  fg, β, :NW)
-
-
-    #smaller tensors
-    g1 = graph4peps(g, (1,1))
-
-    right, down, M_left, M_up = get_parameters_for_T(g1, 1)
-
-    @test right == [1]
-    @test down == [1]
-    @test M_left == [0.0 0.0]
-    @test M_up == [0.0 0.0]
-
-    t11 = compute_single_tensor(g1, 1, β, sum_over_last = false)
-    t1 = compute_single_tensor(g1, 1, β, sum_over_last = true)
-    t2 = compute_single_tensor(g1, 2, β, sum_over_last = true)
-    t3 = compute_single_tensor(g1, 3, β, sum_over_last = true)
-
-    t12 = compute_single_tensor(g1, 2, β, sum_over_last = false)
-    t13 = compute_single_tensor(g1, 3, β, sum_over_last = false)
-
-    B = generate_tensor(peps, (1,1))
-    @test B == t11
-
-    update_cells!(
-       g_ising,
-       rule = square_lattice((1, 2, 1, 2, 1)),
-    )
-
-    fg = factor_graph(
-        g_ising,
-        energy=energy,
-        spectrum=full_spectrum,
-    )
-
-    β = 2.
-
-    peps = PepsNetwork(1, 1, fg, β, :NW)
-    B = generate_tensor(peps, (1,1))
-
-    gg = graph4peps(g, (2,2))
-    T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
-
-    @test sum(B) == T1[1]
-
-
-    @test size(t1) == (1, 1, 2, 2)
-    @test t1[1,1,:,:] ≈ [exp(1*β) 0.; 0. exp(-1*β)]
-
-    @test size(t2) == (2,1,1,2)
-    @test t2[:,1,1,:] ≈ [exp(-1*β) exp(1*β); exp(3*β) exp(-3*β)]
-
-    @test size(t3) == (1,2,2,1)
-    @test t3[1,:,:,1] ≈ [exp(-1*β) exp(1*β); exp(3*β) exp(-3*β)]
-
-    t = compute_single_tensor(g1, 1, β)
-
-    @test t1 ≈ t[:,:,:,:,1]+t[:,:,:,:,2]
-
-    #used to construct a larger tensor of 2x2 nodes
-    tensors = [t1[:,1,:,:], t2[:,1,:,:]]
-    modes = [[-1, 1,-2], [1, -3, -4]]
-    T2 = ncon(tensors, modes)
-
-    gg = graph4peps(g, (2,1))
-    T1 = compute_single_tensor(gg, 1, β, sum_over_last = true)
-
-    p = [2,3,1,4]
-    @test vec(T1) ≈ vec(T2)[p]
-end
-=#
 
 Mq = zeros(9,9)
 Mq[1,1] = 1.
@@ -381,125 +243,6 @@ Mq[6,9] = Mq[9,6] = -0.52
 Mq[7,8] = Mq[8,7] = 0.5
 Mq[8,9] = Mq[9,8] = -0.05
 
-#=
-@testset "whole peps tensor" begin
-
-    g = M2graph(Mq, -1)
-    gg = graph4peps(g, (1,1))
-
-    ps =[sortperm(props(gg, i)[:spectrum]) for i in 1:9]
-
-    ### forms a peps network
-    β = 2.
-    M = form_peps(gg, β)
-    cc = contract3x3by_ncon(M)
-    # testing peps creation
-
-    v = [-1 for _ in 1:9]
-    ii = [p[1] for p in ps]
-
-    @test exp.(-β*energy(v, g)) ≈ cc[ii...]
-
-    v[1] = 1
-    ii[1] = ps[1][2]
-    @test exp.(-β*energy(v, g)) ≈ cc[ii...]
-
-    v = [1 for _ in 1:9]
-    ii = [p[2] for p in ps]
-    @test exp.(-β*energy(v, g)) ≈ cc[ii...]
-
-    fg = factor_graph(
-        g,
-        energy=energy,
-        spectrum=full_spectrum,
-    )
-
-    peps = PepsNetwork(3, 3, fg, β, :NW)
-    B = generate_tensor(peps, (1,1))
-
-    mpo1 = MPO(PEPSRow(peps, 1))
-
-    println(size(mpo1[1]))
-    println(size(mpo1[2]))
-    println(size(mpo1[3]))
-
-    pp = PEPSRow(peps, 2)
-    #println(pp)
-
-    mpo2 = MPO(PEPSRow(peps, 2))
-
-    mpo12 = mpo1*mpo2
-
-    mpsu = MPS([permutedims(e[:,1,:,:], [1,3,2]) for e in mpo12])
-
-    mpo3 = MPO(PEPSRow(peps, 3))
-
-    mpsl = MPS([e[:,:,:,1] for e in mpo3])
-
-    @test right_env(mpsu, mpsl)[end] ≈ [1.]
-    g1 = copy(g)
-
-    update_cells!(
-       g1,
-       rule = square_lattice((1, 3, 1, 3, 1)),
-    )
-
-    fg = factor_graph(
-        g1,
-        energy=energy,
-        spectrum=full_spectrum,
-    )
-
-    peps = PepsNetwork(1, 1, fg, β, :NW)
-    B = generate_tensor(peps, (1,1))
-    println(size(B))
-    println(size(vec(cc)))
-    @test sum(cc) ≈ sum(B)
-end
-=#
-
-# TODO this will be the ilustative step by step how does the probability computation work
-
-#=
-@testset "peps row" begin
-
-    g = M2graph(Mq, -1)
-    β = 3.
-
-    fg = factor_graph(
-        g,
-        energy=energy,
-        spectrum=full_spectrum,
-    )
-
-    origin = :NW
-
-    peps = PepsNetwork(3,3, fg, β, origin)
-
-    println("particular tensors")
-    println("node 1 ....")
-    display(reshape(PEPSRow(peps, 1)[1], (4, 2)))
-    println()
-    println("node 2 .....")
-    display(reshape(PEPSRow(peps, 1)[2], (8, 2)))
-    println()
-    println("node 3 .....")
-    display(reshape(PEPSRow(peps, 1)[3], (4, 2)))
-    println()
-    println("node 4 ......")
-    display(reshape(PEPSRow(peps, 2)[1], (8,2)))
-    println()
-    println("node 5 .......")
-    display(reshape(PEPSRow(peps, 2)[2], (16,2)))
-    println()
-    println("node 6........")
-    display(reshape(PEPSRow(peps, 2)[3], (8,2)))
-
-
-end
-=#
-
-
 
 @testset "test an exemple instance" begin
     δH = 1e-6
@@ -515,10 +258,13 @@ end
 
     peps = PepsNetwork(4, 4, fg, β, :NW)
 
-    spins, objective = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
+    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
+    objective = [e.objective for e in sols]
+
+    spins = return_solution(g, fg, sols)
+
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
-    g1 = make_interactions_case2()
 
     update_cells!(
       g,
@@ -534,8 +280,11 @@ end
 
     peps = PepsNetwork(2, 2, fg, β, :NW)
 
-    spins_l, objective_l = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    objective_l = [e.objective for e in sols]
+    spins_l = return_solution(g, fg, sols)
     for i in 1:10
+
         @test objective[i] ≈ objective_l[i] atol=1e-8
         @test spins[i] == spins_l[i]
     end
@@ -556,7 +305,10 @@ end
     )
     peps = PepsNetwork(2,2, fg, β, :NW)
 
-    spins_s, objective_s = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
+    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
+    objective_s = [e.objective for e in sols]
+    spins_s = return_solution(g1, fg, sols)
+
     for i in 1:10
         @test objective[i] ≈ objective_s[i] atol=1e-8
         @test spins[i] == spins_s[i]

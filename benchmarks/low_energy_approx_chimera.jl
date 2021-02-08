@@ -72,11 +72,26 @@ problem_size = parse_args(s)["size"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
 
-ig = ising_graph(fi, si, 1)
-
 n_sols = parse_args(s)["n_sols"]
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
+
+ig = ising_graph(fi, si, 1)
+
+update_cells!(
+    ig,
+    rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
+  )
+
+fg = factor_graph(
+      ig,
+      spectrum_cutoff,
+      energy=energy,
+      spectrum=brute_force,
+  )
+
+peps = PepsNetwork(m, n, fg, β, :NW)
+
 
 fil = folder*"groundstates_otn2d.txt"
 data = split.(readlines(open(fil)))
@@ -101,7 +116,9 @@ function proceed()
     i = 1
     for s in ses
 
-      @time spins, _ = solve(ig, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s, δH=δH)
+      @time sols = solve(peps, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s, δH=δH)
+
+      spins = return_solution(ig, fg, sols)
 
       en = minimum([energy(s, ig) for s in spins])
 
