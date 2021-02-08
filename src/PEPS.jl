@@ -54,17 +54,6 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
 end
 PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
-#=
-function MPO(::Type{T}, R::PEPSRow) where {T <: Number}
-    W = MPO(T, length(R))
-    for (j, A) ∈ enumerate(R)
-        @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
-        W[j] = B
-    end
-    W
-end
-MPO(R::PEPSRow) = MPO(Float64, R)
-=#
 function MPO(::Type{T},
     peps::PepsNetwork,
     i::Int,
