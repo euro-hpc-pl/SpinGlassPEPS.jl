@@ -1,5 +1,5 @@
 import SpinGlassPEPS: Partial_sol, update_partial_solution, M2graph
-import SpinGlassPEPS: energy, solve, contract, conditional_probabs
+import SpinGlassPEPS: energy, solve, contract, conditional_probabs, project_spin_from_above
 
 Mq = zeros(4,4)
 Mq[1,1] = 1.
@@ -12,6 +12,15 @@ Mq[1,3] = Mq[3,1] = 0.766
 Mq[2,4] = Mq[4,2] = 0.566
 Mq[3,4] = Mq[4,3] = 0.460
 
+@testset "helpers" begin
+    proj = [1. 0.; 0. 1.]
+    mps_el = reshape([1.0*i for i in 1:8], (2,2,2))
+    @test project_spin_from_above(proj, 2, mps_el) == [3. 7.; 4. 8.]
+
+    mpo_el = reshape([1.0*i for i in 1:16], (2,2,2,2))
+    @test project_spin_from_above(proj, 2, mpo_el)[:,:,1] == [3. 11.; 4. 12.]
+    @test project_spin_from_above(proj, 2, mpo_el)[:,:,2] == [7. 15.; 8. 16.]
+end
 
  @testset "testing marginal/conditional probabilities" begin
     β = 3.
@@ -53,7 +62,10 @@ Mq[3,4] = Mq[4,3] = 0.460
     # initialize
     ps = Partial_sol{Float64}(Int[], 0.)
 
-    obj1 = conditional_probabs(peps, ps, boundary_mps[1])
+    peps_row = PEPSRow(peps, 1)
+    mpo = MPO(peps, 1)
+
+    obj1 = conditional_probabs(peps, ps, boundary_mps[1], mpo, peps_row)
     _, i = findmax(obj1)
     ps1 = update_partial_solution(ps, i, obj1[i])
 
@@ -61,7 +73,10 @@ Mq[3,4] = Mq[4,3] = 0.460
         @test obj1[i_1] ≈ contract(peps, Dict{Int, Int}(1 => i_1))/z
     end
 
-    obj2 = conditional_probabs(peps, ps1, boundary_mps[2])
+    peps_row = PEPSRow(peps, 2)
+    mpo = MPO(peps, 2)
+
+    obj2 = conditional_probabs(peps, ps1, boundary_mps[2], mpo, peps_row)
     obj2 = obj1[i].*obj2
     _, j = findmax(obj2)
     ps2 = update_partial_solution(ps1, j, obj2[j])

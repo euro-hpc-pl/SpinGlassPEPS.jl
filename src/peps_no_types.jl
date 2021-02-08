@@ -1,5 +1,6 @@
 export return_solution
 
+
 """
     mutable struct Partial_sol{T <: Real}
 
@@ -54,7 +55,7 @@ p_r - peps row
       |    |                 |      |
 1 --b_m1 --b_m2       --     b_m  -- b_m -- 1
 """
-function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}) where T <: Number
+function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, mpo::MPO{T}, peps_row::PEPSRow{T}) where T <: Number
 
 
     j = length(ps.spins) + 1
@@ -67,7 +68,10 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
         k = peps.j_max
     end
     row = ceil(Int, j/peps.j_max)
-    peps_row = PEPSRow(peps, row)
+
+    # this would increase computational time
+    #peps_row = PEPSRow(peps, row)
+    #mpo = MPO(peps, row)
 
     # set from above
     # not in last row
@@ -97,20 +101,16 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
     proj_l, _, _ = projectors(fg, j-1, j)
     @reduce A[d, a, b, c] := sum(x) proj_l[$spin, x] * peps_row[$k][x, a, b, c, d]
 
-    D = Dict{Int, Int}()
     r = j-k+peps.j_max
     if j <= peps.j_max
         spin = [1 for _ in j:r]
     else
         spin = [ps.spins[i-peps.j_max] for i in j:r]
-        #for i in j:r
-        #    push!(D, i => ps.spins[i-peps.j_max])
-        #end
     end
 
     proj_u = [projectors(fg, i-peps.j_max, i)[1] for i in j:r]
 
-    mpo = MPO(peps, row, D)
+
     mpo = mpo[k+1:end]
     mpo = MPO(vcat([A], mpo))
 
@@ -205,6 +205,9 @@ function solve(peps::PepsNetwork, no_sols::Int = 2; node_size::Tuple{Int, Int} =
     for row ∈ 1:peps.i_max
         @info "row of peps = " row
 
+        peps_row = PEPSRow(peps, row)
+        mpo = MPO(peps, row)
+
         a = (row-1)*peps.j_max
 
         for k ∈ 1:peps.j_max
@@ -217,7 +220,7 @@ function solve(peps::PepsNetwork, no_sols::Int = 2; node_size::Tuple{Int, Int} =
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
-                objectives = conditional_probabs(peps, ps, boundary_mps[row])
+                objectives = conditional_probabs(peps, ps, boundary_mps[row], mpo, peps_row)
 
                 for l ∈ eachindex(objectives)
                     new_objectives = ps.objective*objectives[l]
@@ -238,7 +241,8 @@ function solve(peps::PepsNetwork, no_sols::Int = 2; node_size::Tuple{Int, Int} =
     end
 end
 
-function return_solution(g, fg, partial_s)
+function return_solution(g::MetaGraph{Int,T}, fg::MetaDiGraph{Int,T},
+                                              partial_s::Vector{Partial_sol{T}}) where T <: Real
 
     sols = [Int[]]
     L = props(g)[:L]

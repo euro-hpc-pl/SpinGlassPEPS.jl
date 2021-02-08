@@ -89,14 +89,6 @@ update_cells!(
     rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
   )
 
-fg = factor_graph(
-      ig,
-      spectrum_cutoff,
-      energy=energy,
-      spectrum=brute_force,
-  )
-
-peps = PepsNetwork(m, n, fg, β, :NW)
 
 
 fil = folder*"groundstates_otn2d.txt"
@@ -120,6 +112,14 @@ function proceed()
   for n_sol in n_s
     i = 1
     for s in ses
+      fg = factor_graph(
+            ig,
+            s,
+            energy=energy,
+            spectrum=brute_force,
+        )
+
+      peps = PepsNetwork(m, n, fg, β, :NW)
 
       @time sols = solve(peps, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s, δH=δH)
 
