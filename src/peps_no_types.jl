@@ -191,7 +191,6 @@ end
 function solve(peps::PepsNetwork, no_sols::Int = 2; node_size::Tuple{Int, Int} = (1,1),
                                                β::T, χ::Int = 2^prod(node_size),
                                                threshold::Float64 = 0.,
-                                               spectrum_cutoff::Int = 1000,
                                                δH::Float64 = 0.) where T <: Real
 
 

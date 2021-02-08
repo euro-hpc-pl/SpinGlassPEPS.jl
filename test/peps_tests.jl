@@ -305,7 +305,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     )
     peps = PepsNetwork(2,2, fg, β, :NW)
 
-    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), spectrum_cutoff = 15, δH = δH)
+    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
     objective_s = [e.objective for e in sols]
     spins_s = return_solution(g1, fg, sols)
 

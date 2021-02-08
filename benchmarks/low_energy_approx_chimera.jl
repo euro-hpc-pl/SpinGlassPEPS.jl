@@ -121,7 +121,7 @@ function proceed()
 
       peps = PepsNetwork(m, n, fg, β, :NW)
 
-      @time sols = solve(peps, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s, δH=δH)
+      @time sols = solve(peps, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, δH=δH)
 
       spins = return_solution(ig, fg, sols)
 
