@@ -111,10 +111,11 @@ function proceed()
   j = 1
   for n_sol in n_s
     i = 1
-    for s in ses
+    for sc in ses
+      println(sc)
       fg = factor_graph(
             ig,
-            s,
+            sc,
             energy=energy,
             spectrum=brute_force,
         )
@@ -127,11 +128,11 @@ function proceed()
 
       en = minimum([energy(s, ig) for s in spins])
 
-      cut[i,j] = s
+      cut[i,j] = sc
       delta_e[i,j] = (en-energy_ref)/abs(energy_ref)
       i = i+1
 
-      println("spectrum cutoff = ", s)
+      println("spectrum cutoff = ", sc)
       println("no sols = ", n_sol)
       println("percentage E = ", (en-energy_ref)/abs(energy_ref))
     end

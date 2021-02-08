@@ -96,8 +96,6 @@ fg = factor_graph(
 
 peps = PepsNetwork(m, n, fg, β, :NW)
 
-println("size od peps = ", peps.size)
-
 n_sols = parse_args(s)["n_sols"]
 
 println(node_size)
