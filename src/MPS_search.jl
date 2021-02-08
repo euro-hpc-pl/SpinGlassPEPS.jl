@@ -177,7 +177,6 @@ function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, L::Int)
         ψ[i] = B
     end
     ψ
-
 end
 
 _holes(l::Int, nbrs::Vector) = setdiff(l+1 : last(nbrs), nbrs)

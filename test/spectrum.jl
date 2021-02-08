@@ -140,41 +140,54 @@ end
             @test ϱ[idx.(σ)...] ≈ p
         end 
 
-        for max_states ∈ [1, N, 2*N, N^2]
+        for max_states ∈ [N, 2*N, N^2]
 
             @info "Verifying low energy spectrum" max_states
             @info "Testing spectrum"
             states, prob, pCut = solve(rψ, max_states)
             sp = brute_force(ig, num_states = max_states)
-
-            @info "The largest discarded probability" pCut
-      
+            
+            eng = zeros(length(prob))
+            
             for (j, (p, e)) ∈ enumerate(zip(prob, sp.energies))
                 σ = states[:, j]
+                eng[j] = energy(σ, ig)
                 @test ϱ[idx.(σ)...] ≈ p
                 @test abs(energy(σ, ig) - e) < ϵ
             end
 
+            perm = partialsortperm(eng, 1:max_states)
+            eng = eng[perm]
+            states = states[:, perm]
+            prob = prob[perm]
+            state = states[:, 1]
+            @info "The largest discarded probability" pCut
+            @test maximum(prob) > pCut
+            @info "State with the lowest energy" state
+            @info "Probability of the state with the lowest energy" prob[1]
+            @info "The lowest energy" eng[1]
+
             @info "Testing spectrum_new"
             states_new, prob_new, pCut_new = solve_new(rψ, max_states)            
-
             eng_new = zeros(length(prob_new))
-            for (j, p) ∈ enumerate(prob_new)
+            for (j, p) ∈ enumerate(prob)
                 σ = states_new[j, :]
                 eng_new[j] = energy(σ, ig)
             end
             
-            perm = partialsortperm(eng_new, 1:max_states)
-            eng_new = eng_new[perm]
-            states_new = states_new[perm, :]
-            prob_new = prob_new[perm]
-            state = states_new[1, :]
+            perm_new = partialsortperm(eng_new, 1:max_states)
+            eng_new = eng_new[perm_new]
+            states_new = states_new[perm_new, :]
+            prob_new = prob_new[perm_new]
+            state_new = states_new[1, :]
             @info "The largest discarded probability" pCut_new
             @test maximum(prob_new) > pCut_new
-            @info "State with the lowest energy" state
+            @info "State with the lowest energy" state_new
             @info "Probability of the state with the lowest energy" prob_new[1]
             @info "The lowest energy" eng_new[1]
            
+            @test eng[1] == eng_new[1]
+            @test state == state_new
         end
 
     end
