@@ -90,7 +90,6 @@ update_cells!(
   )
 
 
-
 fil = folder*"groundstates_otn2d.txt"
 data = split.(readlines(open(fil)))
 
@@ -115,7 +114,7 @@ function proceed()
       println(sc)
       fg = factor_graph(
             ig,
-            sc,
+            spectrum_cutoff = sc,
             energy=energy,
             spectrum=brute_force,
         )
