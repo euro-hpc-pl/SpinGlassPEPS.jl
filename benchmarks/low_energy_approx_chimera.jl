@@ -114,7 +114,7 @@ function proceed()
       println(sc)
       fg = factor_graph(
             ig,
-            spectrum_cutoff = sc,
+            sc,
             energy=energy,
             spectrum=brute_force,
         )
