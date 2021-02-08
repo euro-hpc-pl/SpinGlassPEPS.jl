@@ -55,7 +55,7 @@ p_r - peps row
       |    |                 |      |
 1 --b_m1 --b_m2       --     b_m  -- b_m -- 1
 """
-function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, mpo::MPO{T}, peps_row::PEPSRow{T}) where T <: Number
+function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, peps_row::PEPSRow{T}) where T <: Number
 
 
     j = length(ps.spins) + 1
@@ -69,9 +69,7 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
     end
     row = ceil(Int, j/peps.j_max)
 
-    # this would increase computational time
-    #peps_row = PEPSRow(peps, row)
-    #mpo = MPO(peps, row)
+    mpo = MPO(peps_row)
 
     # set from above
     # not in last row
@@ -206,7 +204,6 @@ function solve(peps::PepsNetwork, no_sols::Int = 2; node_size::Tuple{Int, Int} =
         @info "row of peps = " row
 
         peps_row = PEPSRow(peps, row)
-        mpo = MPO(peps, row)
 
         a = (row-1)*peps.j_max
 
@@ -220,7 +217,7 @@ function solve(peps::PepsNetwork, no_sols::Int = 2; node_size::Tuple{Int, Int} =
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
-                objectives = conditional_probabs(peps, ps, boundary_mps[row], mpo, peps_row)
+                objectives = conditional_probabs(peps, ps, boundary_mps[row], peps_row)
 
                 for l ∈ eachindex(objectives)
                     new_objectives = ps.objective*objectives[l]
