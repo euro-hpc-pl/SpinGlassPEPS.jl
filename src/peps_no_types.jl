@@ -296,8 +296,7 @@ p_r - peps row
       |    |                 |      |
 1 --b_m1 --b_m2       --     b_m  -- b_m -- 1
 """
-function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T},
-                             peps_row::PEPSRow{T}) where T <: Number
+function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}) where T <: Number
 
 
     j = length(ps.spins) + 1
@@ -309,6 +308,8 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
     if k == 0
         k = peps.j_max
     end
+    row = ceil(Int, j/peps.j_max)
+    peps_row = PEPSRow(peps, row)
 
     # set from above
     # not in last row
@@ -338,22 +339,23 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
     proj_l, _, _ = projectors(fg, j-1, j)
     @reduce A[d, a, b, c] := sum(x) proj_l[$spin, x] * peps_row[$k][x, a, b, c, d]
 
+    D = Dict{Int, Int}()
     r = j-k+peps.j_max
     if j <= peps.j_max
         spin = [1 for _ in j:r]
     else
         spin = [ps.spins[i-peps.j_max] for i in j:r]
+        #for i in j:r
+        #    push!(D, i => ps.spins[i-peps.j_max])
+        #end
     end
 
     proj_u = [projectors(fg, i-peps.j_max, i)[1] for i in j:r]
 
-    mpo = MPO(peps_row)[k+1:end]
+    mpo = MPO(peps, row, D)
+    mpo = mpo[k+1:end]
     mpo = MPO(vcat([A], mpo))
 
-    println("mpo")
-    for e in mpo
-        println(size(e))
-    end
 
     CC = [project_spin_from_above(proj_u[i], spin[i], mpo[i]) for i in 1:length(mpo)]
 
@@ -361,20 +363,7 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
 
     lower_mps = MPS(boundary_mps[k:end])
 
-    println("low")
-    for e in lower_mps
-        println(size(e))
-    end
-
-    println("up")
-    for e in upper_mps
-        println(size(e))
-    end
-    println("...........")
-
-
     re = right_env(lower_mps, upper_mps)[1]
-
 
     probs_unnormed = re*transpose(weight)
 
@@ -476,7 +465,7 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
     gg = graph4peps(g, node_size, spectrum_cutoff = spectrum_cutoff)
     max_sweeps=4
 
-    boundary_mps = boundaryMPS(peps, χ, threshold, max_sweeps)
+    boundary_mps = boundaryMPS(peps, 2, χ, threshold, max_sweeps)
 
     grid = props(gg)[:grid]
 
@@ -487,8 +476,6 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
         lower_mps = make_lower_mps(gg, row + 1, β, χ, threshold)
 
         vec_of_T = [compute_single_tensor(gg, j, β) for j ∈ grid[row,:]]
-
-        peps_row = PEPSRow(peps, row)
 
         a = (row-1)*peps.j_max
 
@@ -502,7 +489,7 @@ function solve(g::MetaGraph, peps::PepsNetwork, no_sols::Int = 2; node_size::Tup
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
-                o1 = conditional_probabs(peps, ps, boundary_mps[row], peps_row)
+                o1 = conditional_probabs(peps, ps, boundary_mps[row])
 
                 objectives = conditional_probabs(gg, ps, j, lower_mps, vec_of_T)
 

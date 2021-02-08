@@ -52,9 +52,8 @@ Mq[8,9] = Mq[9,8] = -0.05
     ρ = exp.(-β .* energy.(states, Ref(g)))
     Z = sum(ρ)
 
-    println("grid of nodes")
-    display([1 2 ; 3 4])
-    println()
+    #  grid of nodes
+    #[1 2 ; 3 4]
 
     peps = PepsNetwork(2, 2, fg, β, origin)
     Dcut = 8
@@ -63,25 +62,25 @@ Mq[8,9] = Mq[9,8] = -0.05
     z = contract(peps, Dict{Int, Int}())
     @test z ≈ Z
 
-    boundary_mps = boundaryMPS(peps, Dcut, tol, sweep)
+    boundary_mps = boundaryMPS(peps, 2, Dcut, tol, sweep)
 
     # initialize
     ps = Partial_sol{Float64}(Int[], 0.)
 
     #node 1
-    obj1 = conditional_probabs(peps, ps, boundary_mps[1], PEPSRow(peps, 1))
+    obj1 = conditional_probabs(peps, ps, boundary_mps[1])
     _, i = findmax(obj1)
     ps1 = update_partial_solution(ps, i, obj1[i])
 
     # test all
     for i_1 in 1:16
-        @test obj1[i_1] ≈ contract(peps, Dict{Int, Int}(1 => i_1))/z atol = 1e-3
+        @test obj1[i_1] ≈ contract(peps, Dict{Int, Int}(1 => i_1))/z
     end
     # test chosen
     @test (props(fg, 1)[:spectrum]).states[i] == [bf.states[1][a] for a in [1,2,4,5]]
 
     # node 2
-    obj2 = conditional_probabs(peps, ps1, boundary_mps[1], PEPSRow(peps, 1))
+    obj2 = conditional_probabs(peps, ps1, boundary_mps[1])
     obj2 = obj1[i].*obj2
     _, j = findmax(obj2)
     ps2 = update_partial_solution(ps1, j, obj2[j])
@@ -90,47 +89,34 @@ Mq[8,9] = Mq[9,8] = -0.05
     @test (props(fg, 2)[:spectrum]).states[j] == [bf.states[1][a] for a in [3,6]]
 
     for i_2 in 1:4
-        @test obj2[i_2] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z atol = 1e-3
+        @test obj2[i_2] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z
     end
 
-    println(" .............  node 3 ......")
-    println("tensor")
-    display(reshape(PEPSRow(peps, 2)[1], (4,2,4)))
-    println()
-    println("done from 2 spins, 2 bounds up and 1 left")
-    println("shoud be constructed of one couplung matrix (up) and projector (left)")
-    println("only 4 non-zero elements suggests 2 projectors or lacking elements")
-    println()
 
     # node 3
-    obj3 = conditional_probabs(peps, ps2, boundary_mps[2], PEPSRow(peps, 2))
+    obj3 = conditional_probabs(peps, ps2, boundary_mps[2])
     obj3 = obj2[j].*obj3
 
     _, k = findmax(obj3)
     ps3 = update_partial_solution(ps2, k, obj3[k])
 
     for i_3 in 1:4
-        @test obj3[i_3] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => i_3))/z atol = 1e-3
+        @test obj3[i_3] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => i_3))/z
     end
 
     @test (props(fg, 3)[:spectrum]).states[k] == [bf.states[1][a] for a in [7,8]]
 
     #node 4
 
-    obj4 = conditional_probabs(peps, ps3, boundary_mps[2], PEPSRow(peps, 2))
+    obj4 = conditional_probabs(peps, ps3, boundary_mps[2])
     obj4 = obj3[k].*obj4
 
     _, l = findmax(obj4)
 
     for i_4 in 1:2
-        @test obj4[i_4] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => k, 4 => i_4))/z atol = 1e-3
+        @test obj4[i_4] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>j, 3 => k, 4 => i_4))/z
     end
 
     @test (props(fg, 4)[:spectrum]).states[l] == [bf.states[1][a] for a in [9]]
 
-    println(props(fg, 4)[:spectrum])
-
-    println(" .............. node 4 .............")
-    println("tensor should have no non-zero elements, should be composed of two coupling matrices")
-    display(reshape(PEPSRow(peps, 2)[2], (2,2,2)))
 end

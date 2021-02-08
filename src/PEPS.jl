@@ -25,12 +25,12 @@ mutable struct PepsNetwork
     end
 end
 
-generate_tensor(pn::PepsNetwork, 
+generate_tensor(pn::PepsNetwork,
                 m::NTuple{2,Int},
                 ) = generate_tensor(pn.network_graph, pn.map[m])
 
 generate_tensor(pn::PepsNetwork,
-                m::NTuple{2,Int}, 
+                m::NTuple{2,Int},
                 n::NTuple{2,Int},
                 ) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
@@ -39,39 +39,40 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
 
     # generate tensors from projectors
     for j ∈ 1:length(ψ)
-        ψ[j] = generate_tensor(peps, (i, j)) 
+        ψ[j] = generate_tensor(peps, (i, j))
     end
 
-    # include energy 
+    # include energy
     for j ∈ 1:peps.j_max
         A = ψ[j]
         h = generate_tensor(peps, (i, j-1), (i, j))
         v = generate_tensor(peps, (i-1, j), (i, j))
-        @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ] 
+        @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ]
         ψ[j] = B
     end
     ψ
 end
 PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
+#=
 function MPO(::Type{T}, R::PEPSRow) where {T <: Number}
     W = MPO(T, length(R))
     for (j, A) ∈ enumerate(R)
         @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
         W[j] = B
     end
-    W 
+    W
 end
 MPO(R::PEPSRow) = MPO(Float64, R)
-
-function MPO(::Type{T}, 
-    peps::PepsNetwork, 
-    i::Int, 
+=#
+function MPO(::Type{T},
+    peps::PepsNetwork,
+    i::Int,
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) where {T <: Number}
-    
+
     W = MPO(T, peps.j_max)
-    for (j, A) ∈ enumerate(PEPSRow(peps, i)) 
+    for (j, A) ∈ enumerate(PEPSRow(peps, i))
         v = get(config, j + peps.j_max * (i - 1), nothing)
         if v !== nothing
             @cast B[l, u, r, d] |= A[l, u, r, d, $(v)]
@@ -80,26 +81,28 @@ function MPO(::Type{T},
         end
         W[j] = B
     end
-    W 
+    W
 end
-MPO(peps::PepsNetwork, 
-    i::Int, 
+MPO(peps::PepsNetwork,
+    i::Int,
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) = MPO(Float64, peps, i, config)
 
     function boundaryMPS(
         peps::PepsNetwork,
+        range::Int=1,
         Dcut::Int=typemax(Int),
         tol::Number=1E-8,
         max_sweeps=4;
         reversed::Bool=true
         )
-    
-        vec = [] 
+
+        vec = []
         ψ = idMPS(peps.j_max)
-    
-        for i ∈ peps.i_max:-1:1
-            ψ = MPO(eltype(ψ), peps, i) * ψ 
+        push!(vec, ψ)
+
+        for i ∈ peps.i_max:-1:range
+            ψ = MPO(eltype(ψ), peps, i) * ψ
             if bond_dimension(ψ) > Dcut
                 ψ = compress(ψ, Dcut, tol, max_sweeps)
             end
@@ -128,8 +131,8 @@ end
 
 
 function conditional_pdo(
-    peps::PepsNetwork, 
-    v::Int, 
+    peps::PepsNetwork,
+    v::Int,
     ∂v::Dict{Int, Int},
     args::Dict,
     )

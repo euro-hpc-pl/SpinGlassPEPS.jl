@@ -32,9 +32,8 @@ Mq[3,4] = Mq[4,3] = 0.460
     ρ = exp.(-β .* energy.(states, Ref(g)))
     Z = sum(ρ)
 
-    println("grid of nodes")
-    display([1; 2])
-    println()
+    # grid of nodes
+    # [1; 2]
 
     peps = PepsNetwork(2, 1, fg, β, :NW)
     Dcut = 8
@@ -43,7 +42,7 @@ Mq[3,4] = Mq[4,3] = 0.460
     z = contract(peps, Dict{Int, Int}())
     @test z ≈ Z
 
-    boundary_mps = boundaryMPS(peps, Dcut, tol, swep)
+    boundary_mps = boundaryMPS(peps, 2, Dcut, tol, swep)
 
     mb = boundary_mps[1]
     pr = PEPSRow(peps, 1)
@@ -54,20 +53,20 @@ Mq[3,4] = Mq[4,3] = 0.460
     # initialize
     ps = Partial_sol{Float64}(Int[], 0.)
 
-    obj1 = conditional_probabs(peps, ps, boundary_mps[1], PEPSRow(peps, 1))
+    obj1 = conditional_probabs(peps, ps, boundary_mps[1])
     _, i = findmax(obj1)
     ps1 = update_partial_solution(ps, i, obj1[i])
 
     for i_1 in 1:4
-        @test obj1[i_1] ≈ contract(peps, Dict{Int, Int}(1 => i_1))/z atol = 1e-3
+        @test obj1[i_1] ≈ contract(peps, Dict{Int, Int}(1 => i_1))/z
     end
 
-    obj2 = conditional_probabs(peps, ps1, boundary_mps[2], PEPSRow(peps, 2))
+    obj2 = conditional_probabs(peps, ps1, boundary_mps[2])
     obj2 = obj1[i].*obj2
     _, j = findmax(obj2)
     ps2 = update_partial_solution(ps1, j, obj2[j])
 
     for i_2 in 1:4
-        @test obj2[i_2] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z atol = 1e-3
+        @test obj2[i_2] ≈ contract(peps, Dict{Int, Int}(1 => i, 2 =>i_2))/z
     end
 end
