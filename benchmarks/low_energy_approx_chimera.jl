@@ -71,10 +71,16 @@ problem_size = parse_args(s)["size"]
 β = parse_args(s)["beta"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
+spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
 n_sols = parse_args(s)["n_sols"]
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
+
+
+s1 = Int(sqrt(si/8))
+n = ceil(Int, s1/node_size[1])
+m = ceil(Int, s1/node_size[2])
 
 ig = ising_graph(fi, si, 1)
 
@@ -101,7 +107,6 @@ ground_ref = [parse(Int, el) for el in data[i][4:end]]
 ground_spins = binary2spins(ground_ref)
 energy_ref = energy(ground_spins, ig)
 
-spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
 ses = collect(spectrum_cutoff:-10:40)
 step = 10
