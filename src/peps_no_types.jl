@@ -350,6 +350,10 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
     mpo = MPO(peps_row)[k+1:end]
     mpo = MPO(vcat([A], mpo))
 
+    println("mpo")
+    for e in mpo
+        println(size(e))
+    end
 
     CC = [project_spin_from_above(proj_u[i], spin[i], mpo[i]) for i in 1:length(mpo)]
 
@@ -357,7 +361,20 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
 
     lower_mps = MPS(boundary_mps[k:end])
 
+    println("low")
+    for e in lower_mps
+        println(size(e))
+    end
+
+    println("up")
+    for e in upper_mps
+        println(size(e))
+    end
+    println("...........")
+
+
     re = right_env(lower_mps, upper_mps)[1]
+
 
     probs_unnormed = re*transpose(weight)
 

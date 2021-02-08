@@ -45,6 +45,12 @@ Mq[3,4] = Mq[4,3] = 0.460
 
     boundary_mps = boundaryMPS(peps, Dcut, tol, swep)
 
+    mb = boundary_mps[1]
+    pr = PEPSRow(peps, 1)
+    for i in 1:length(boundary_mps[1])
+        @test size(mb[i], 2) == size(pr[i] ,4)
+    end
+
     # initialize
     ps = Partial_sol{Float64}(Int[], 0.)
 

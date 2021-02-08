@@ -34,13 +34,13 @@ push!(my_tests,
     #"spectrum.jl",
     #"graph.jl",
     #"PEPS.jl",
-    #"testing_probabilities_short.jl", # NO
-    #"testing_probabilities.jl", # NO
+    "testing_probabilities_short.jl", # NO
+    "testing_probabilities.jl", # NO
     "contract.jl",
     #"indexing.jl",
     #"notation_tests.jl",
-    #"peps_tests.jl", # NO
-    #"mps_tests.jl", # NO
+    "peps_tests.jl", # NO
+    "mps_tests.jl", # NO
     #"tests_full_graph.jl",
     #"tests_on_data.jl"
 )
