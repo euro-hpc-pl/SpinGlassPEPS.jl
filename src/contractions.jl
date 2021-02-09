@@ -105,7 +105,7 @@ function LinearAlgebra.dot(ϕ::AbstractMPS, O::Union{Vector, NTuple}, ψ::Abstra
 end
 
 
-function LinearAlgebra.dot(O::AbstractMPO, ψ::T) where {T <: AbstractMPS}
+function LinearAlgebra.dot(O::AbstractMPO, ψ::AbstractMPS)
     L = length(ψ)
     S = promote_type(eltype(ψ), eltype(O))
     ϕ = T.name.wrapper(S, L)
