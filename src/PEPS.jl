@@ -72,7 +72,7 @@ function MPO(::Type{T},
     ) where {T <: Number}
 
     W = MPO(T, peps.j_max)
-    for (j, A) ∈ enumerate(PEPSRow(peps, i))
+    for (j, A) ∈ enumerate(PEPSRow(T, peps, i))
         v = get(config, j + peps.j_max * (i - 1), nothing)
         if v !== nothing
             @cast B[l, u, r, d] |= A[l, u, r, d, $(v)]
