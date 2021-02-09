@@ -43,9 +43,9 @@ states = all_states(get_prop(ig, :rank))
 
     for max_states ∈ [1, N, 2*N, N^2]
         @info "Testing spectrum_new"
-        states_new1, prob_new1, pCut_new1 = solve_new(rψ1, max_states)   
-        states_new2, prob_new2, pCut_new2 = solve_new(rψ2, max_states)
-        states_new3, prob_new3, pCut_new3 = solve_new(rψ3, max_states)         
+        states_new1, prob_new1, pCut_new1 = solve(rψ1, max_states)   
+        states_new2, prob_new2, pCut_new2 = solve(rψ2, max_states)
+        states_new3, prob_new3, pCut_new3 = solve(rψ3, max_states)         
 
         for st ∈ states_new1
             @test st ∈ states_new2
@@ -106,7 +106,6 @@ states = all_states(get_prop(ig, :rank))
         elseif state1 == state3
             @test eng_new1[1] == eng_new3[1]
         end
-
 
     end
 end

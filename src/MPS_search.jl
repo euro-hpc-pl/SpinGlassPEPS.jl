@@ -11,6 +11,7 @@ struct MPSControl
 end
 
 # ρ needs to be ∈ the right canonical form
+#=
 function solve(ψ::MPS, keep::Int)
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
@@ -63,9 +64,10 @@ function solve(ψ::MPS, keep::Int)
     end
     states[:, 1:keep], prob[1:keep], pCut
 end
+=#
 
 # ρ needs to be ∈ the right canonical form
-function solve_new(ψ::MPS, keep::Int) 
+function solve(ψ::MPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
 
@@ -177,7 +179,6 @@ function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, L::Int)
         ψ[i] = B
     end
     ψ
-
 end
 
 _holes(l::Int, nbrs::Vector) = setdiff(l+1 : last(nbrs), nbrs)
