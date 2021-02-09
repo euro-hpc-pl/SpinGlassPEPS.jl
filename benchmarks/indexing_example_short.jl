@@ -76,7 +76,14 @@ end
             spectrum = brute_force
         )
 
-        println(props(fg, 1)[:spectrum])
+        fg1 = factor_graph(
+            g_ising,
+            1,
+            energy=energy,
+            spectrum = brute_force
+        )
+        println("spectrum length")
+        println(length(props(fg1, 1)[:spectrum].energies))
 
         for origin ∈ (:NW, :SW)
 
@@ -85,6 +92,11 @@ end
             x, y = m, n
             peps = PepsNetwork(x, y, fg, β, origin)
             pp = PEPSRow(peps, 1)
+            println(pp)
+
+            peps1 = PepsNetwork(x, y, fg1, β, origin)
+            pp1 = PEPSRow(peps1, 1)
+            println(pp1)
 
 
             # the solution without cutting off

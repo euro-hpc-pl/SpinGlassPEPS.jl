@@ -99,7 +99,7 @@ ground_spins = binary2spins(ground_ref)
 energy_ref = energy(ground_spins, ig)
 
 
-ses = collect(spectrum_cutoff:-10:40)
+ses = collect(spectrum_cutoff:-1:1)
 step = 10
 n_s = collect(n_sols:-step:1)
 
@@ -112,12 +112,20 @@ function proceed()
     i = 1
     for sc in ses
       println(sc)
+      D = Dict{Int, Int}()
+      for v in vertices(ig)
+        push!(D, (v => sc))
+      end
       fg = factor_graph(
             ig,
-            sc,
+            D,
             energy=energy,
             spectrum=brute_force,
         )
+
+      println("..............")
+      println(length(props(fg, 2)[:spectrum].energies))
+      println("..............")
 
       peps = PepsNetwork(m, n, fg, β, :NW)
 

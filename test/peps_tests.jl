@@ -299,10 +299,14 @@ Mq[8,9] = Mq[9,8] = -0.05
       g1,
       rule = square_lattice((2, 2, 2, 2, 1)),
     )
-
+    
+    D = Dict{Int, Int}()
+    for v in vertices(g1)
+        push!(D, (v => 15))
+    end
     fg = factor_graph(
         g1,
-        15,
+        D,
         energy=energy,
         spectrum=brute_force,
     )

@@ -168,9 +168,13 @@ for k in 1:examples
     @test objective ≈ objective_larger_nodes atol = 1.e-7
 
     print("peps larger T, limited spectrum")
+    D = Dict{Int, Int}()
+    for v in vertices(g)
+        push!(D, (v => 15))
+    end
     fg = factor_graph(
         g,
-        15,
+        D,
         energy=energy,
         spectrum=brute_force,
     )
