@@ -61,7 +61,6 @@ function MPO(::Type{T}, R::PEPSRow) where {T <: Number}
         W[j] = B
     end
     W 
-    W
 end
 MPO(R::PEPSRow) = MPO(Float64, R)
 
