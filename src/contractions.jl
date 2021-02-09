@@ -108,6 +108,7 @@ end
 function LinearAlgebra.dot(O::AbstractMPO, ψ::AbstractMPS)
     L = length(ψ)
     S = promote_type(eltype(ψ), eltype(O))
+    T = typeof(ψ)
     ϕ = T.name.wrapper(S, L)
 
     for i ∈ 1:L
