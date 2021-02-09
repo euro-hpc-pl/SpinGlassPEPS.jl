@@ -36,15 +36,15 @@ push!(my_tests,
     "MPS_search.jl",
     "factor.jl",
     "PEPS.jl",
-    # "testing_probabilities_short.jl",
-    # "testing_probabilities.jl",
+     "testing_probabilities_short.jl",
+     "testing_probabilities.jl",
     "contract.jl",
     "indexing.jl",
-    # "notation_tests.jl",
-    # "peps_tests.jl",
-    # "mps_tests.jl",
-    # "tests_full_graph.jl",
-    # "tests_on_data.jl"
+     "notation_tests.jl",
+     "peps_tests.jl",
+     "mps_tests.jl",
+     "tests_full_graph.jl",
+     "tests_on_data.jl"
 )
 
 for my_test in my_tests
