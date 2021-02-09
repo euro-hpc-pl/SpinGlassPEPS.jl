@@ -91,7 +91,7 @@ update_cells!(
 
 D = Dict{Int, Int}()
 for v in vertices(ig)
-  push!(D, (v => sc))
+  push!(D, (v => spectrum_cutoff))
 end
 
 fg = factor_graph(
