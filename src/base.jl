@@ -105,7 +105,7 @@ function _left_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) 
     ψ
 end 
 
-function tensor(ψ::MPS, state::Union{Vector, NTuple})
+function tensor(ψ::AbstractMPS, state::Union{Vector, NTuple})
     C = I
     for (A, σ) ∈ zip(ψ, state)
         C *= A[:, idx(σ), :]
@@ -113,7 +113,7 @@ function tensor(ψ::MPS, state::Union{Vector, NTuple})
     tr(C)
 end
 
-function tensor(ψ::MPS)
+function tensor(ψ::AbstractMPS)
     dims = rank(ψ)
     Θ = Array{eltype(ψ)}(undef, dims)
 
