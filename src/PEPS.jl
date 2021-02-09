@@ -72,7 +72,7 @@ function MPO(::Type{T},
     ) where {T <: Number}
 
     W = MPO(T, peps.j_max)
-    for (j, A) ∈ enumerate(PEPSRow(peps, i))
+    for (j, A) ∈ enumerate(PEPSRow(T, peps, i))
         v = get(config, j + peps.j_max * (i - 1), nothing)
         if v !== nothing
             @cast B[l, u, r, d] |= A[l, u, r, d, $(v)]
@@ -88,20 +88,19 @@ MPO(peps::PepsNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) = MPO(Float64, peps, i, config)
 
-    function boundaryMPS(
-        peps::PepsNetwork,
-        range::Int=1,
-        Dcut::Int=typemax(Int),
-        tol::Number=1E-8,
-        max_sweeps=4;
-        reversed::Bool=true
-        )
+function boundaryMPS(
+    peps::PepsNetwork,
+    upTo::Int=1,
+    Dcut::Int=typemax(Int),
+    tol::Number=1E-8,
+    max_sweeps=4;
+    reversed::Bool=true
+    )
 
-        vec = []
         ψ = idMPS(peps.j_max)
-        push!(vec, ψ)
+        vec = [ψ]
 
-        for i ∈ peps.i_max:-1:range
+        for i ∈ peps.i_max:-1:upTo
             ψ = MPO(eltype(ψ), peps, i) * ψ
             if bond_dimension(ψ) > Dcut
                 ψ = compress(ψ, Dcut, tol, max_sweeps)
