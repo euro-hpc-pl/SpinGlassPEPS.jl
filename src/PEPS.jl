@@ -95,19 +95,19 @@ function boundaryMPS(
     max_sweeps=4;
     reversed::Bool=true
     )
+    #ψ = idMPS(peps.j_max)
+    ψ = MPS(I)
+    vec = Any[ψ]
 
-        ψ = idMPS(peps.j_max)
-        vec = [ψ]
-
-        for i ∈ peps.i_max:-1:upTo
-            ψ = MPO(eltype(ψ), peps, i) * ψ
-            if bond_dimension(ψ) > Dcut
-                ψ = compress(ψ, Dcut, tol, max_sweeps)
-            end
-            push!(vec, ψ)
+    for i ∈ peps.i_max:-1:upTo
+        ψ = MPO(peps, i) * ψ
+        if bond_dimension(ψ) > Dcut
+            ψ = compress(ψ, Dcut, tol, max_sweeps)
         end
-        if reversed reverse(vec) else vec end
+        push!(vec, ψ)
     end
+    if reversed reverse(vec) else vec end
+end
 
 function LightGraphs.contract(
     peps::PepsNetwork,
@@ -116,10 +116,10 @@ function LightGraphs.contract(
     tol::Number=1E-8,
     max_sweeps=4,
     )
-
-    ψ = idMPS(peps.j_max)
+    
+    ψ = MPS(I)
     for i ∈ peps.i_max:-1:1
-        ψ = MPO(eltype(ψ), peps, i, config) * ψ
+        ψ = MPO(peps, i, config) * ψ
         if bond_dimension(ψ) > Dcut
             ψ = compress(ψ, Dcut, tol, max_sweeps)
         end

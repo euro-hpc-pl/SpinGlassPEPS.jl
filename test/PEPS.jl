@@ -28,6 +28,7 @@ t = 3
 β = 1
 
 L = m * n * t
+T = Float64
 
 instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
@@ -50,11 +51,11 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
     peps = PepsNetwork(x, y, fg, β, origin)
     @test typeof(peps) == PepsNetwork
 
-    ψ = idMPS(peps.j_max)
+    ψ = MPS(I)
     ψ_all = boundaryMPS(peps)
 
     for i ∈ peps.i_max:-1:1
-        ψ = MPO(eltype(ψ), peps, i) * ψ
+        ψ = MPO(T, peps, i) * ψ
         @test ψ_all[i] ≈ ψ
     end
 end
