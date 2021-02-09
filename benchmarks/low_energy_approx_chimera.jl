@@ -59,6 +59,10 @@ s = ArgParseSettings("description")
     default = 256
     arg_type = Int
     help = "maximal size of the lower spectrum"
+    "--lower_cutoff", "-v"
+    default = 1
+    arg_type = Int
+    help = "minimal size of the lower spectrum"
   end
 
 fi = parse_args(s)["file"]
@@ -72,15 +76,16 @@ problem_size = parse_args(s)["size"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
+lower_cutoff = parse_args(s)["lower_cutoff"]
 
 n_sols = parse_args(s)["n_sols"]
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
 
 
-s1 = Int(sqrt(si/8))
-n = ceil(Int, s1/node_size[1])
-m = ceil(Int, s1/node_size[2])
+s1 = isqrt(div(si, 8))
+n = div(s1, node_size[1])
+m = div(s1, node_size[2])
 
 ig = ising_graph(fi, si, 1)
 
@@ -98,10 +103,9 @@ ground_ref = [parse(Int, el) for el in data[i][4:end]]
 ground_spins = binary2spins(ground_ref)
 energy_ref = energy(ground_spins, ig)
 
-
-ses = collect(spectrum_cutoff:-1:1)
+ses = spectrum_cutoff:-1:lower_cutoff
 step = 10
-n_s = collect(n_sols:-step:1)
+n_s = n_sols:-step:1
 
 delta_e = ones(length(ses), length(n_s))
 cut = ones(Int, length(ses), length(n_s))

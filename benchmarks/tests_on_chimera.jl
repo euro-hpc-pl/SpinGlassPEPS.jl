@@ -77,10 +77,10 @@ si = parse_args(s)["size"]
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
-s1 = Int(sqrt(si/8))
+s1 = isqrt(div(si,8))
 
-n = ceil(Int, s1/node_size[1])
-m = ceil(Int, s1/node_size[2])
+n = div(s1, node_size[1])
+m = div(s1, node_size[2])
 
 ig = ising_graph(fi, si, 1)
 update_cells!(
