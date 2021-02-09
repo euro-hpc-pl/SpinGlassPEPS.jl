@@ -101,7 +101,7 @@ n_sols = parse_args(s)["n_sols"]
 
 println(node_size)
 
-@time sols = solve(peps, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, δH=δH)
+@time sols = solve(peps, n_sols; β=β, χ = χ, threshold = 1e-8, δH=δH)
 objective = [e.objective for e in sols]
 spins = return_solution(ig, fg, sols)
 

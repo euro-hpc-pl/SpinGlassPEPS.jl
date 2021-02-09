@@ -152,7 +152,7 @@ for k in 1:examples
     println("size of peps = ", peps.size)
 
     number = number_of_states + more_states_for_peps
-    @time sols = solve(peps, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, δH = δH)
+    @time sols = solve(peps, number; β = T(β), χ = χ, threshold = 1e-12, δH = δH)
     objective_larger_nodes = [e.objective for e in sols]
     spins_larger_nodes = return_solution(g, fg, sols)
 
@@ -177,7 +177,7 @@ for k in 1:examples
 
     peps = PepsNetwork(s1, s1, fg, β, :NW)
     number = number_of_states + more_states_for_peps
-    @time sols = solve(peps, number; node_size = (2,2), β = T(β), χ = χ, threshold = 1e-12, δH = δH)
+    @time sols = solve(peps, number; β = T(β), χ = χ, threshold = 1e-12, δH = δH)
 
     objective_spec = [e.objective for e in sols]
     spins_spec = return_solution(g, fg, sols)

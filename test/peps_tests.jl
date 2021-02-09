@@ -280,7 +280,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     peps = PepsNetwork(2, 2, fg, β, :NW)
 
-    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     objective_l = [e.objective for e in sols]
     spins_l = return_solution(g, fg, sols)
     for i in 1:10
@@ -305,7 +305,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     )
     peps = PepsNetwork(2,2, fg, β, :NW)
 
-    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     objective_s = [e.objective for e in sols]
     spins_s = return_solution(g1, fg, sols)
 
@@ -349,7 +349,7 @@ end
 
     peps = PepsNetwork(2, 2, fg, β, :NW)
 
-    spins_l, objective_l = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, node_size = (2,2), δH = δH)
+    spins_l, objective_l = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-5
         @test spins[i] == spins_l[i]
