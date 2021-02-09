@@ -296,7 +296,7 @@ p_r - peps row
       |    |                 |      |
 1 --b_m1 --b_m2       --     b_m  -- b_m -- 1
 """
-function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}) where T <: Number
+function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::AbstractMPS) where T <: Number
 
 
     j = length(ps.spins) + 1
