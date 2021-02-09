@@ -16,6 +16,7 @@ module SpinGlassPEPS
     include("utils.jl")
     include("compressions.jl")
     include("contractions.jl")
+    include("identities.jl")
     include("lattice.jl")
     include("ising.jl")
     include("exact.jl")
