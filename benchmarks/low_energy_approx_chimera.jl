@@ -124,7 +124,9 @@ function proceed()
         )
 
       println("..............")
-      println(length(props(fg, 2)[:spectrum].energies))
+      for v in vertices(fg)
+        println(v, " ", length(props(fg, v)[:spectrum].energies))
+      end
       println("..............")
 
       peps = PepsNetwork(m, n, fg, β, :NW)
