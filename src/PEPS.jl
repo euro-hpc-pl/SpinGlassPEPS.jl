@@ -95,8 +95,8 @@ function boundaryMPS(
     max_sweeps=4;
     reversed::Bool=true
     )
-    #ψ = idMPS(peps.j_max)
-    ψ = MPS(I)
+    ψ = idMPS(peps.j_max)
+    #ψ = MPS(I)
     vec = Any[ψ]
 
     for i ∈ peps.i_max:-1:upTo
