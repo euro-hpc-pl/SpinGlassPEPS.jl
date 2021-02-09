@@ -88,9 +88,15 @@ update_cells!(
     rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
   )
 
+
+D = Dict{Int, Int}()
+for v in vertices(ig)
+  push!(D, (v => sc))
+end
+
 fg = factor_graph(
       ig,
-      spectrum_cutoff,
+      D,
       energy=energy,
       spectrum=brute_force,
   )
