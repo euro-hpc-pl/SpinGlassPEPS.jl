@@ -188,7 +188,7 @@ function merge_dX(partial_s::Vector{Partial_sol{T}}, dX_inds::Vector{Int}, δH::
 end
 
 
-function solve(peps::PepsNetwork, no_sols::Int = 2; β::T, χ::Int = 2^prod(node_size),
+function solve(peps::PepsNetwork, no_sols::Int = 2; β::T, χ::Int = typemax(Int),
                                                threshold::Float64 = 0.,
                                                δH::Float64 = 0., max_sweeps=4) where T <: Real
 

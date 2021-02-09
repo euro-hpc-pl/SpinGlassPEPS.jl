@@ -1,5 +1,5 @@
 include("test_helpers.jl")
-import SpinGlassPEPS: Partial_sol, update_partial_solution, select_best_solutions, return_solutions
+import SpinGlassPEPS: Partial_sol, update_partial_solution, select_best_solutions
 import SpinGlassPEPS: conditional_probabs
 import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
@@ -258,7 +258,10 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     peps = PepsNetwork(4, 4, fg, β, :NW)
 
-    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
+    sols = solve(peps, 10; β = β)
+
+    @test sols[1].spins == [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
     objective = [e.objective for e in sols]
 
     spins = return_solution(g, fg, sols)
@@ -314,14 +317,15 @@ Mq[8,9] = Mq[9,8] = -0.05
         @test spins[i] == spins_s[i]
     end
 end
-#=
+
 # TODO chech different types of Float
 #=
 @testset "test an exemple instance on Float32" begin
     δH = 1e-6
-    g = make_interactions_case2()
-
     T = Float32
+    g = make_interactions_case2(T)
+
+
     β = T(3.)
     fg = factor_graph(
         g,
@@ -332,7 +336,10 @@ end
 
     peps = PepsNetwork(4, 4, fg, β, :NW)
 
-    spins, objective = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
+    sols = solve(g, peps, 10; β = β)
+    objective = [e.objective for e in sols]
+    spins = return_solution(g, fg, sols)
+
     @test spins[1] == [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1]
 
     update_cells!(
@@ -349,11 +356,13 @@ end
 
     peps = PepsNetwork(2, 2, fg, β, :NW)
 
-    spins_l, objective_l = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11, δH = δH)
+    sols = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-11)
+
+    objective_l = [e.objective for e in sols]
+    spins_l = return_solution(g, fg, sols)
     for i in 1:10
         @test objective[i] ≈ objective_l[i] atol=1e-5
         @test spins[i] == spins_l[i]
     end
 end
-=#
 =#

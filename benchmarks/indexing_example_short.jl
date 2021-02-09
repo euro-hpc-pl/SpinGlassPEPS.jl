@@ -76,6 +76,8 @@ end
             spectrum = brute_force
         )
 
+        println(props(fg, 1)[:spectrum])
+
         for origin ∈ (:NW, :SW)
 
             β = 2.
@@ -188,7 +190,7 @@ end
         Z = sum(ρ)
         @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
 
-        
+
         origin = :NW
 
         x, y = m, n

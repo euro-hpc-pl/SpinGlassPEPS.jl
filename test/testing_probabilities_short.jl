@@ -36,6 +36,7 @@ end
         energy=energy,
         spectrum=brute_force,
     )
+    println(props(fg, 1)[:spectrum])
 
     states = collect.(all_states(rank_vec(g)))
     ρ = exp.(-β .* energy.(states, Ref(g)))
