@@ -1,12 +1,13 @@
 using MetaGraphs
 using LightGraphs
 using GraphPlot
+using CSV
 
 @testset "Ising" begin
 
     L = 4
-    N = L^2 
-    instance = "$(@__DIR__)/instances/$(N)_001.txt"  
+    N = L^2
+    instance = "$(@__DIR__)/instances/$(N)_001.txt"
 
     ig = ising_graph(instance, N)
 
@@ -23,7 +24,7 @@ using GraphPlot
 
     for i ∈ 1:N
         @test has_vertex(ig, i)
-    end    
+    end
 
     A = adjacency_matrix(ig)
     display(Matrix{Int}(A))
@@ -34,48 +35,77 @@ using GraphPlot
         nbrs = unique_neighbors(ig, i)
         for j ∈ nbrs
             B[i, j] = 1
-        end    
+        end
     end
 
-    @test B+B' == A
-   
+    @test B + B' == A
+
     gplot(ig, nodelabel=1:N)
 
-    @testset "Naive brute force" begin
+    @testset "Naive brute force for +/-1" begin
         k = 2^N
 
-        states, energies = brute_force(ig, k)
+        sp = brute_force(ig, num_states=k)
 
-        display(states[1:5])
+        s = 5
+        display(sp.states[1:s])
         println("   ")
-        display(energies[1:5])
+        display(sp.energies[1:s])
         println("   ")
 
-        @test energies ≈ energy.(states, Ref(ig))
+        @test sp.energies ≈ energy.(sp.states, Ref(ig))
 
-        states_lazy, energies_lazy = brute_force_lazy(ig, k)
+        # states, energies = brute_force(ig, num_states=k)
 
-        @test energies_lazy ≈ energies
-        @test states_lazy == states
+        # @test energies ≈ sp.energies
+        # @test states == sp.states
 
-        if k == 2^N
+        β = rand(Float64)
+        ρ = gibbs_tensor(ig, β)
 
-            β = rand(Float64)
-            opts = GibbsControl(β, [β]) 
-        
-            ρ = gibbs_tensor(ig, opts)
-            @test size(ρ) == Tuple(fill(2, N))
+        @test size(ρ) == Tuple(fill(2, N))
 
-            r = exp.(-β .* energies)
-            R = r ./ sum(r)
+        r = exp.(-β .* sp.energies)
+        R = r ./ sum(r)
 
-            @test sum(R) ≈ 1
-            @test sum(ρ) ≈ 1        
+        @test sum(R) ≈ 1
+        @test sum(ρ) ≈ 1
 
-            @test maximum(R) ≈ maximum(ρ)
-            @test minimum(R) ≈ minimum(ρ)
+        @test [ ρ[idx.(σ)...] for σ ∈ sp.states ] ≈ R
+    end
 
-            @test [ρ[idx.(σ)...] for σ ∈ states] ≈ R
+    @testset "Naive brute force for general spins" begin
+        L = 4
+        instance = "$(@__DIR__)/instances/$(L)_001.txt"
+
+        ig = ising_graph(instance, L)
+
+        set_prop!(ig, :rank, [3,2,5,4])
+        rank = get_prop(ig, :rank)
+
+        all = prod(rank)
+        sp = brute_force(ig, num_states=all)
+
+        β = rand(Float64)
+        ρ = exp.(-β .* sp.energies)
+
+        ϱ = ρ ./ sum(ρ)
+        ϱ̃ = gibbs_tensor(ig, β)
+
+        @test [ ϱ̃[idx.(σ)...] for σ ∈ sp.states ] ≈ ϱ
+    end
+
+    @testset "Reading from Dict" begin
+        instance_dict = Dict()
+        ising = CSV.File(instance, types=[Int, Int, Float64], header=0, comment = "#")
+
+        for (i, j, v) ∈ ising
+            push!(instance_dict, (i, j) => v)
         end
+
+        ig = ising_graph(instance, N)
+        ig_dict = ising_graph(instance_dict, N)
+
+        @test gibbs_tensor(ig) ≈ gibbs_tensor(ig_dict)
     end
 end

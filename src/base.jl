@@ -1,13 +1,18 @@
 export bond_dimension, is_left_normalized, is_right_normalized
 export verify_bonds, verify_physical_dims, tensor, rank
+export State
 
-for (T, N) in ((:MPO, 4), (:MPS, 3))
+const State = Union{Vector, NTuple}
+
+abstract type AbstractTensorNetwork{T} end
+
+for (T, N) ∈ ((:PEPSRow, 5), (:MPO, 4), (:MPS, 3))
     AT = Symbol(:Abstract, T)
     @eval begin
         export $AT
         export $T
 
-        abstract type $AT{T} end
+        abstract type $AT{T} <: AbstractTensorNetwork{T} end
 
         struct $T{T <: Number} <: $AT{T}
             tensors::Vector{Array{T, $N}}
@@ -17,33 +22,32 @@ for (T, N) in ((:MPO, 4), (:MPS, 3))
         $T(::Type{T}, L::Int) where {T} = $T(Vector{Array{T, $N}}(undef, L))
         $T(L::Int) = $T(Float64, L)
 
-        Base.setindex!(a::$AT, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
-        bond_dimension(a::$AT) = maximum(size.(a.tensors, $N))
+        @inline Base.setindex!(a::$AT, A::AbstractArray{<:Number, $N}, i::Int) = a.tensors[i] = A
+        @inline bond_dimension(a::$AT) = maximum(size.(a.tensors, $N))
         Base.copy(a::$T) = $T(copy(a.tensors))
-        Base.eltype(::$AT{T}) where {T} = T
+
+        @inline Base.eltype(::$AT{T}) where {T} = T
     end
 end
 
-const AbstractMPSorMPO = Union{AbstractMPS, AbstractMPO}
-const MPSorMPO = Union{MPS, MPO}
+@inline Base.:(==)(a::AbstractTensorNetwork, b::AbstractTensorNetwork) = a.tensors == b.tensors
+@inline Base.:(≈)(a::AbstractTensorNetwork, b::AbstractTensorNetwork)  = a.tensors ≈ b.tensors
 
-Base.:(==)(a::AbstractMPSorMPO, b::AbstractMPSorMPO) = a.tensors == b.tensors
-Base.:(≈)(a::AbstractMPSorMPO, b::AbstractMPSorMPO)  = a.tensors ≈ b.tensors
+@inline Base.getindex(a::AbstractTensorNetwork, i) = getindex(a.tensors, i)
+@inline Base.iterate(a::AbstractTensorNetwork) = iterate(a.tensors)
+@inline Base.iterate(a::AbstractTensorNetwork, state) = iterate(a.tensors, state)
+@inline Base.lastindex(a::AbstractTensorNetwork) = lastindex(a.tensors)
+@inline Base.length(a::AbstractTensorNetwork) = length(a.tensors)
+@inline Base.size(a::AbstractTensorNetwork) = (length(a.tensors), )
+@inline Base.eachindex(a::AbstractTensorNetwork) = eachindex(a.tensors)
 
-Base.getindex(a::AbstractMPSorMPO, i::Int) = getindex(a.tensors, i)
-Base.iterate(a::AbstractMPSorMPO) = iterate(a.tensors)
-Base.iterate(a::AbstractMPSorMPO, state) = iterate(a.tensors, state)
-Base.lastindex(a::AbstractMPSorMPO) = lastindex(a.tensors)
-Base.length(a::AbstractMPSorMPO) = length(a.tensors)
-Base.size(a::AbstractMPSorMPO) = (length(a.tensors), )
+@inline LinearAlgebra.rank(ψ::MPS) = Tuple(size(A, 2) for A ∈ ψ)
 
-LinearAlgebra.rank(ψ::MPS) = Tuple(size(A, 2) for A ∈ ψ)
-
-MPS(A::AbstractArray) = MPS(A, :right)
-MPS(A::AbstractArray, s::Symbol, args...) = MPS(A, Val(s), typemax(Int), args...)
-MPS(A::AbstractArray, s::Symbol, Dcut::Int, args...) = MPS(A, Val(s), Dcut, args...)
-MPS(A::AbstractArray, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(A, Dcut, args...)
-MPS(A::AbstractArray, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(A, Dcut, args...)
+@inline MPS(A::AbstractArray) = MPS(A, :right)
+@inline MPS(A::AbstractArray, s::Symbol, args...) = MPS(A, Val(s), typemax(Int), args...)
+@inline MPS(A::AbstractArray, s::Symbol, Dcut::Int, args...) = MPS(A, Val(s), Dcut, args...)
+@inline MPS(A::AbstractArray, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(A, Dcut, args...)
+@inline MPS(A::AbstractArray, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(A, Dcut, args...)
 
 function _right_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) where {T}
     rank = ndims(Θ)
@@ -93,7 +97,7 @@ end
 
 function tensor(ψ::MPS, state::Union{Vector, NTuple})
     C = I
-    for  (A, σ) ∈ zip(ψ, state)
+    for (A, σ) ∈ zip(ψ, state)
         C *= A[:, idx(σ), :]
     end
     tr(C)
@@ -146,6 +150,17 @@ function MPS(O::MPO)
     ψ
 end  
 
+function Base.randn(::Type{MPS{T}}, D::Int, rank::Union{Vector, NTuple}) where {T}
+    L = length(rank)
+    ψ = MPS(T, L)
+    ψ[1] = randn(T, 1, rank[1], D)
+    for i ∈ 2:(L-1)
+        ψ[i] = randn(T, D, rank[i], D)
+    end
+    ψ[end] = randn(T, D, rank[end], 1)
+    ψ
+end
+
 function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
     ψ = MPS(T, L)
     ψ[1] = randn(T, 1, d, D)
@@ -162,7 +177,7 @@ function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
 end  
 
 function is_left_normalized(ψ::MPS)
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         A = ψ[i]
         DD = size(A, 3)
     
@@ -173,7 +188,7 @@ function is_left_normalized(ψ::MPS)
 end
 
 function is_right_normalized(ϕ::MPS)   
-    for i ∈ 1:length(ϕ)
+    for i ∈ eachindex(ϕ)
         B = ϕ[i]
         DD = size(B, 1)
 
@@ -189,7 +204,7 @@ function _verify_square(ψ::AbstractMPS)
 end
 
 function verify_physical_dims(ψ::AbstractMPS, dims::NTuple)
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         @assert size(ψ[i], 2) == dims[i] "Incorrect physical dim at site $(i)." 
     end     
 end  
@@ -205,9 +220,9 @@ function verify_bonds(ψ::AbstractMPS)
     end     
 end  
 
-function Base.show(::IO, ψ::AbstractMPS)
+function Base.show(::IO, ψ::AbstractTensorNetwork)
     L = length(ψ)
-    dims = [size(ψ[i]) for i ∈ 1:L] 
+    dims = [size(A) for A ∈ ψ]
 
     @info "Matrix product state on $L sites:" 
     _show_sizes(dims)

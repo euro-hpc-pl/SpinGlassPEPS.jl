@@ -13,29 +13,28 @@ truncate!(ψ::AbstractMPS, s::Symbol, Dcut::Int) = truncate!(ψ, Val(s), Dcut)
 truncate!(ψ::AbstractMPS, ::Val{:right}, Dcut::Int) = _left_sweep_SVD!(ψ, Dcut)
 truncate!(ψ::AbstractMPS, ::Val{:left}, Dcut::Int) = _right_sweep_SVD!(ψ, Dcut)
 
-function _right_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
+function _right_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
     Σ = V = ones(eltype(ψ), 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         A = ψ[i]
         C = Diagonal(Σ) * V'
 
         # attach
         @tensor M[x, σ, y] := C[x, α] * A[α, σ, y]
         @cast   M̃[(x, σ), y] |= M[x, σ, y]
-        
+
         # decompose
         U, Σ, V = svd(M̃, Dcut)
 
-        # create new    
+        # create new
         d = size(ψ[i], 2)
         @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
         ψ[i] = A
     end
-    #ψ[end] *= sign(V[1])
 end
 
-function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
+function _left_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
     Σ = U = ones(eltype(ψ), 1, 1)
 
     for i ∈ length(ψ):-1:1
@@ -49,31 +48,30 @@ function _left_sweep_SVD!(ψ::MPS, Dcut::Int=typemax(Int))
         # decompose
         U, Σ, V = svd(M̃, Dcut)
 
-        # create new 
+        # create new
         d = size(ψ[i], 2)
         @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
-    #ψ[1] *= sign(U[1])
 end
- 
+
 
 function compress(ψ::AbstractMPS, Dcut::Int, tol::Number=1E-8, max_sweeps::Int=4)
 
-    # Initial guess - truncated ψ 
+    # Initial guess - truncated ψ
     ϕ = copy(ψ)
     truncate!(ϕ, :right, Dcut)
 
-    # Create environment 
+    # Create environment
     env = left_env(ϕ, ψ)
 
     # Variational compression
-    overlap = 0 
+    overlap = 0
     overlap_before = 1
-     
+
     @info "Compressing down to" Dcut
-    
-    for sweep ∈ 1:max_sweeps            
+
+    for sweep ∈ 1:max_sweeps
         _left_sweep_var!!(ϕ, env, ψ, Dcut)
         overlap = _right_sweep_var!!(ϕ, env, ψ, Dcut)
 
@@ -81,18 +79,18 @@ function compress(ψ::AbstractMPS, Dcut::Int, tol::Number=1E-8, max_sweeps::Int=
         @info "Convergence" diff
 
         if diff < tol
-            @info "Finished in $sweep sweeps of $(max_sweeps)."
+            @info "Finished ∈ $sweep sweeps of $(max_sweeps)."
             break
         else
             overlap_before = overlap
-        end    
+        end
     end
-    ϕ  
+    ϕ
 end
 
-function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
+function _left_sweep_var!!(ϕ::AbstractMPS, env::Vector{<:AbstractMatrix}, ψ::AbstractMPS, Dcut::Int)
     S = eltype(ϕ)
-    
+
     # overwrite the overlap
     env[end] = ones(S, 1, 1)
 
@@ -102,8 +100,8 @@ function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut
 
         # optimize site
         M = ψ[i]
-        @tensor M̃[x, σ, y] := L[x, β] * M[β, σ, α] * R[α, y] order = (α, β) 
-        
+        @tensor M̃[x, σ, y] := L[x, β] * M[β, σ, α] * R[α, y] order = (α, β)
+
         # right canonize it
         @cast MM[x, (σ, y)] |= M̃[x, σ, y]
         Q = rq(MM, Dcut)
@@ -111,29 +109,29 @@ function _left_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut
         d = size(M, 2)
         @cast B[x, σ, y] |= Q[x, (σ, y)] (σ:d)
 
-        # update ϕ and right environment 
+        # update ϕ and right environment
         ϕ[i] = B
         A = ψ[i]
 
         @tensor RR[x, y] := A[x, σ, α] * R[α, β] * conj(B[y, σ, β]) order = (β, α, σ)
         env[i] = RR
-    end    
+    end
 end
 
-function _right_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcut::Int)
+function _right_sweep_var!!(ϕ::AbstractMPS, env::Vector{<:AbstractMatrix}, ψ::AbstractMPS, Dcut::Int)
     S = eltype(ϕ)
-    
+
     # overwrite the overlap
     env[1] = ones(S, 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         L = env[i]
         R = env[i+1]
 
         # optimize site
         M = ψ[i]
-        @tensor M̃[x, σ, y] := L[x, β] * M[β, σ, α] * R[α, y] order = (α, β) 
-                   
+        @tensor M̃[x, σ, y] := L[x, β] * M[β, σ, α] * R[α, y] order = (α, β)
+
         # left canonize it
         @cast B[(x, σ), y] |= M̃[x, σ, y]
         Q = qr(B, Dcut)
@@ -141,7 +139,7 @@ function _right_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcu
         d = size(ϕ[i], 2)
         @cast A[x, σ, y] |= Q[(x, σ), y] (σ:d)
 
-        # update ϕ and left environment 
+        # update ϕ and left environment
         ϕ[i] = A
         B = ψ[i]
 
@@ -150,4 +148,3 @@ function _right_sweep_var!!(ϕ::MPS, env::Vector{<:AbstractMatrix}, ψ::MPS, Dcu
     end
     real(env[end][1])
 end
-

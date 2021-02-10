@@ -6,17 +6,26 @@ module SpinGlassPEPS
     using LightGraphs
     using MetaGraphs
     using CSV
+    using Logging
+    using StatsBase
 
+    using DocStringExtensions
     const product = Iterators.product
 
     include("base.jl")
-    include("compressions.jl")
-    include("contractions.jl")   
-    include("ising.jl")
-    include("graph.jl")
-    include("PEPS.jl")
-    include("search.jl")
     include("utils.jl")
+    include("compressions.jl")
+    include("contractions.jl")
+    include("lattice.jl")
+    #include("graphs/chimera.jl")
+    #include("graphs/lattice.jl")
+    include("graph.jl")
+    include("ising.jl")
+    include("PEPS.jl")
+    include("spectrum.jl")
+    include("notation.jl")
+    include("peps_no_types.jl")
+    include("mps_implementation.jl")
 
     function __init__()
         @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" begin
@@ -28,7 +37,7 @@ module SpinGlassPEPS
                 const CuQR = CUDA.CUSOLVER.CuQR
                 # scalar indexing is fine before 0.2
                 # CUDA.allowscalar(false)
-                include("cuda/base.jl") 
+                include("cuda/base.jl")
                 include("cuda/contractions.jl")
                 include("cuda/compressions.jl")
             end

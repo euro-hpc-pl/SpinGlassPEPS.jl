@@ -1,102 +1,152 @@
-export ising_graph, energy
-export gibbs_tensor
-export GibbsControl
-export brute_force
-export brute_force_lazy
+export ising_graph, update_cells!
+export energy, gibbs_tensor
 
-struct GibbsControl 
-    β::Number
-    β_schedule::Vector{<:Number}
-end
+const Instance = Union{String, Dict}
 
-function brute_force_lazy(ig::MetaGraph, k::Int=1)
-    L = nv(ig)
-    states = product(fill([-1, 1], L)...)
-    energies = vec(energy.(states, Ref(ig)))
-    perm = sortperm(energies)
-    collect.(states)[perm][1:k], energies[perm][1:k]
-end    
+"""
+$(TYPEDSIGNATURES)
 
-function brute_force(ig::MetaGraph, k::Int=1)
-    L = nv(ig)
-    states = ising.(digits.(0:2^L-1, base=2, pad=L))
-    energies = energy.(states, Ref(ig))
-    perm = sortperm(energies)
-    states[perm][1:k], energies[perm][1:k]
-end  
+Calculates Gibbs state of a classical Ising Hamiltonian
 
-function gibbs_tensor(ig::MetaGraph, opts::GibbsControl)
-    L = nv(ig)
-    β = opts.β
-    states = product(fill([-1, 1], L)...)
+# Details
+
+Calculates matrix elements (probabilities) of \$\\rho\$
+```math
+\$\\bra{\\σ}\\rho\\ket{\\sigma}\$
+```
+for all possible configurations \$\\σ\$.
+"""
+function gibbs_tensor(ig::MetaGraph, β=Float64=1.0)
+    states = collect.(all_states(rank_vec(ig)))
     ρ = exp.(-β .* energy.(states, Ref(ig)))
     ρ ./ sum(ρ)
 end
 
-
 """
-Calculate the Ising energy as E = -sum_<i,j> s_i * J_ij * s_j - sum_j h_i * s_j.
+$(TYPEDSIGNATURES)
+
+Calculate the Ising energy
+```math
+E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
+```
 """
-function energy(σ::Union{Vector, NTuple}, ig::MetaGraph)
 
-    energy = 0
-    # quadratic
-    for edge ∈ edges(ig)
-        i, j = src(edge), dst(edge)         
-        J = get_prop(ig, i, j, :J) 
-        energy += σ[i] * J * σ[j]   
-    end 
+energy(σ::Vector, J::Matrix, η::Vector=σ) = dot(σ, J, η)
+energy(σ::Vector, h::Vector) = dot(h, σ)
+energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(cl.h, σ)
+energy(σ::Vector, ig::MetaGraph) = energy(σ, get_prop(ig, :J)) + energy(σ, get_prop(ig, :h))
 
-    # linear
-    for i ∈ vertices(ig)
-        h = get_prop(ig, i, :h)  
-        energy += h * σ[i]
-    end    
-    -energy
+function energy(fg::MetaDiGraph, edge::Edge)
+    v, w = edge.tag
+    vSp = get_prop(fg, v, :spectrum).states
+    wSp = get_prop(fg, w, :spectrum).states
+
+    m = prod(size(vSp))
+    n = prod(size(wSp))
+
+    en = zeros(m, n)
+    for (j, η) ∈ enumerate(vec(wSp))
+        en[:, j] = energy.(vec(vSp), Ref(edge.J), Ref(η))
+    end
+    en
 end
-    
+
 """
-Create a graph that represents the Ising Hamiltonian.
+$(TYPEDSIGNATURES)
+
+Create the Ising spin glass model.
+
+# Details
+
+Store extra information
 """
-function ising_graph(instance::String, L::Int, β::Number=1)
+function ising_graph(
+    instance::Instance,
+    L::Int,
+    sgn::Number=1.0,
+    rank_override::Dict{Int, Int}=Dict{Int, Int}()
+)
 
     # load the Ising instance
-    ising = CSV.File(instance, types=[Int, Int, Float64], comment = "#")
+    if typeof(instance) == String
+        ising = CSV.File(instance, types = [Int, Int, Float64], header=0, comment = "#")
+    else
+        ising = [ (i, j, J) for ((i, j), J) ∈ instance ]
+    end
+
     ig = MetaGraph(L, 0.0)
-
     set_prop!(ig, :description, "The Ising model.")
+    set_prop!(ig, :L, L)
 
+    for v ∈ 1:L
+        set_prop!(ig, v, :active, false)
+        set_prop!(ig, v, :cell, v)
+        set_prop!(ig, v, :h, 0.)
+    end
+
+    J = zeros(L, L)
+    h = zeros(L)
+
+    #r
     # setup the model (J_ij, h_i)
-    for row ∈ ising 
-        i, j, v = row
+    for (i, j, v) ∈ ising
+        v *= sgn
+
         if i == j
             set_prop!(ig, i, :h, v) || error("Node $i missing!")
+            h[i] = v
         else
-            add_edge!(ig, i, j) && 
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)") 
-        end    
-    end   
+            if has_edge(ig, j, i)
+                error("Cannot add ($i, $j) as ($j, $i) already exists!")
+            end
+            add_edge!(ig, i, j) &&
+            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+            J[i, j] = v
+        end
 
-    # by default h should be zero
-    for i ∈ 1:nv(ig)
-        if !has_prop(ig, i, :h) 
-            set_prop!(ig, i, :h, 0.) || error("Cannot set bias at node $(i).")
-        end 
+        set_prop!(ig, i, :active, true) || error("Cannot activate node $(i)!")
+        set_prop!(ig, j, :active, true) || error("Cannot activate node $(j)!")
     end
-    
-    # state and corresponding energy
-    state = 2(rand(L) .< 0.5) .- 1
-
-    set_prop!(ig, :state, state)
-    set_prop!(ig, :energy, energy(state, ig)) || error("Unable to calculate the Ising energy!")
 
     # store extra information
-    set_prop!(ig, :β, β)
+    rank = Dict{Int, Int}()
+    for v in vertices(ig)
+        if get_prop(ig, v, :active)
+            rank[v] = get(rank_override, v, 2)
+        end
+    end
     
+    set_prop!(ig, :rank, rank)
+
+    set_prop!(ig, :J, J)
+    set_prop!(ig, :h, h)
+
+    σ = 2.0 * (rand(L) .< 0.5) .- 1.0
+
+    set_prop!(ig, :state, σ)
+    set_prop!(ig, :energy, energy(σ, ig))
     ig
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Calculate unique neighbors of node \$i\$
+
+# Details
+
+This is equivalent of taking the upper
+diagonal of the adjacency matrix
+"""
 function unique_neighbors(ig::MetaGraph, i::Int)
     nbrs = neighbors(ig::MetaGraph, i::Int)
     filter(j -> j > i, nbrs)
+end
+
+
+function update_cells!(ig::MetaGraph; rule::Dict)
+    for v ∈ vertices(ig)
+         w = get_prop(ig, v, :cell)
+        set_prop!(ig, v, :cell, rule[w])
+    end
 end

@@ -1,7 +1,11 @@
 *.cov
+.DS_Store
 .vscode
 .ipynb_checkpoints
 *.npz
 *.npy
 *.pdf
 results
+docs/build
+**/.DS_Store
+Manifest.toml

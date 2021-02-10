@@ -1,5 +1,3 @@
-include("../src/compression.jl")
-
 @testset "Canonisation and Compression" begin
 
 D = 10
@@ -16,17 +14,17 @@ T = Float64
 Φ = randn(MPS{T}, sites, D, d)
 
 @testset "Canonisation (left)" begin
-    canonise!(ψ, :left)  
-    show(ψ)  
-    @test is_left_normalized(ψ) 
-    @test dot(ψ, ψ) ≈ 1  
+    canonise!(ψ, :left)
+    show(ψ)
+    @test is_left_normalized(ψ)
+    @test dot(ψ, ψ) ≈ 1
 end
 
 @testset "Canonisation (right)" begin
-    canonise!(ϕ, :right)  
+    canonise!(ϕ, :right)
     show(ϕ)
-    @test is_right_normalized(ϕ) 
-    @test dot(ϕ, ϕ) ≈ 1      
+    @test is_right_normalized(ϕ)
+    @test dot(ϕ, ϕ) ≈ 1
 end
 
 @testset "Cauchy-Schwarz inequality (after truncation)" begin
@@ -34,21 +32,21 @@ end
 end
 
 @testset "Canonisation (both)" begin
-    canonise!(χ)  
+    canonise!(χ)
     show(χ)
-    @test dot(χ, χ) ≈ 1      
+    @test dot(χ, χ) ≈ 1
 end
 
 @testset "Truncation (SVD, right)" begin
-    truncate!(ψ, :right, Dcut)  
+    truncate!(ψ, :right, Dcut)
     show(ψ)
-    @test dot(ψ, ψ) ≈ 1     
+    @test dot(ψ, ψ) ≈ 1
 end
 
 @testset "Truncation (SVD, left)" begin
-    truncate!(ψ, :left, Dcut)  
+    truncate!(ψ, :left, Dcut)
     show(ψ)
-    @test dot(ψ, ψ) ≈ 1     
+    @test dot(ψ, ψ) ≈ 1
 end
 
 @testset "<left|right>" begin
@@ -57,14 +55,14 @@ end
 
     l = copy(ψ)
     r = copy(l)
-    canonise!(l, :left) 
+    canonise!(l, :left)
     canonise!(r, :right)
 
     @test dot(l, l) ≈ 1
     @test dot(r, r) ≈ 1
 
-    @test abs(1 - abs(dot(l, r))) < ϵ 
-end 
+    @test abs(1 - abs(dot(l, r))) < ϵ
+end
 
 @testset "Variational compression" begin
     Dcut = 5
@@ -72,13 +70,13 @@ end
     max_sweeps = 5
 
     canonise!(Φ, :right)
-    @test dot(Φ, Φ) ≈ 1 
+    @test dot(Φ, Φ) ≈ 1
 
-    Ψ = compress(Φ, Dcut, tol, max_sweeps)  
+    Ψ = compress(Φ, Dcut, tol, max_sweeps)
 
     show(Ψ)
-    @test dot(Ψ, Ψ) ≈ 1    
-    
+    @test dot(Ψ, Ψ) ≈ 1
+
     println("(Ψ, Ψ) = ", dot(Ψ, Ψ))
     println("(Φ, Φ) = ", dot(Φ, Φ))
 

@@ -3,7 +3,7 @@ export left_env
 function LinearAlgebra.dot(ϕ::CuMPS, ψ::CuMPS)
     C = CUDA.ones(eltype(ψ), 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         M = ψ[i]
         M̃ = conj.(ϕ[i])
         @cutensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ)
@@ -51,7 +51,7 @@ function LinearAlgebra.dot(ϕ::CuMPS, O::Vector{<:CuMatrix}, ψ::CuMPS)
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
     C = CUDA.ones(S, 1, 1)
 
-    for i ∈ 1:length(ψ)
+    for i ∈ eachindex(ψ)
         M = ψ[i]
         M̃ = conj.(ϕ[i])
         Mat = O[i]

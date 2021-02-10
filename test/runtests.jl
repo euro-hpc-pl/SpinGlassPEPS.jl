@@ -2,15 +2,17 @@ using CUDA
 using SpinGlassPEPS
 using LinearAlgebra
 using TensorOperations
+using TensorCast
+using LightGraphs
+using MetaGraphs
+using Random
+using Logging
+using Statistics
+using NPZ
+
+disable_logging(LogLevel(1))
 
 using Test
-
-function reshape_row(A::AbstractArray{T}, dims::Tuple) where {T <: Number}
-    ord = reverse(1:length(dims))
-
-    A = reshape(A, reverse(dims))
-    permutedims(A, ord)
-end 
 
 my_tests = []
 if CUDA.functional() && CUDA.has_cutensor() && false
@@ -22,11 +24,22 @@ if CUDA.functional() && CUDA.has_cutensor() && false
 end
 
 push!(my_tests,
-#    "base.jl",
-#    "contractions.jl",
-#    "compressions.jl",
-#    "ising.jl",
-    "search.jl"
+    "base.jl",
+    "utils.jl",
+    "contractions.jl",
+    "compressions.jl",
+    "ising.jl",
+    "indexing.jl",
+    "searchMPS.jl",
+    "spectrum.jl",
+    "graph.jl",
+    "PEPS.jl",
+    "indexing.jl",
+    "notation_tests.jl",
+    "peps_tests.jl",
+    "mps_tests.jl",
+    "tests_full_graph.jl",
+    "tests_on_data.jl"
 )
 
 for my_test in my_tests
