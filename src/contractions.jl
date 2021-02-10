@@ -49,6 +49,19 @@ function left_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     L
 end
 
+@memoize function left_env(ϕ::AbstractMPS, idx::NTuple)
+    l = length(idx)
+    if l == 0
+        L = [1.]
+    else
+        m = idx[l]
+        L_old = left_env(ϕ, idx[1:l-1])
+        M = ϕ[l]
+        @reduce L[x] := sum(α) L_old[α] * M[α, $m, x]
+    end
+    return L
+end
+
 # NOT tested yet
 function right_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
     L = length(ψ)
@@ -66,6 +79,21 @@ function right_env(ϕ::AbstractMPS, ψ::AbstractMPS)
         R[i] = D
     end
     R
+end
+
+@memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, idx::NTuple)
+    l = length(idx)
+    k = length(ϕ)
+    if l == 0
+        R = fill(1., 1, 1)
+    else
+        m = idx[1]
+        R_old = right_env(ϕ, W, idx[2:l])
+        M = ϕ[k-l+1]
+        M̃ = W[k-l+1]
+        @reduce R[x, y] := sum(α, β, γ) M̃[y, $m, β, γ] * M[x, γ, α] * R_old[α, β]
+    end
+    return R
 end
 
 
