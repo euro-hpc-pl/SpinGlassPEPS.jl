@@ -55,11 +55,11 @@ end
         L = [1.]
     else
         m = idx[l]
-        L_old = left_env(ϕ, idx[1:l-1])
+        L̃ = left_env(ϕ, idx[1:l-1])
         M = ϕ[l]
-        @reduce L[x] := sum(α) L_old[α] * M[α, $m, x]
+        @reduce L[x] := sum(α) L̃[α] * M[α, $m, x]
     end
-    return L
+    L
 end
 
 # NOT tested yet
@@ -88,12 +88,12 @@ end
         R = fill(1., 1, 1)
     else
         m = idx[1]
-        R_old = right_env(ϕ, W, idx[2:l])
+        R̃ = right_env(ϕ, W, idx[2:l])
         M = ϕ[k-l+1]
         M̃ = W[k-l+1]
-        @reduce R[x, y] := sum(α, β, γ) M̃[y, $m, β, γ] * M[x, γ, α] * R_old[α, β]
+        @reduce R[x, y] := sum(α, β, γ) M̃[y, $m, β, γ] * M[x, γ, α] * R̃[α, β]
     end
-    return R
+    R
 end
 
 
