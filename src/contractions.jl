@@ -16,7 +16,7 @@ function LinearAlgebra.dot(ψ::AbstractMPS, state::Union{Vector, NTuple})
         i = idx(σ)
         C = M[:, i, :]' * (C * M[:, i, :])
     end
-    tr(C)
+    C[]
 end
 
 function LinearAlgebra.dot(ϕ::AbstractMPS, ψ::AbstractMPS)
@@ -28,7 +28,7 @@ function LinearAlgebra.dot(ϕ::AbstractMPS, ψ::AbstractMPS)
         M̃ = conj(ϕ[i])
         @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ) 
     end
-    tr(C)
+    C[]
 end
 
 function left_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
@@ -81,14 +81,14 @@ function right_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     R
 end
 
-@memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, idx::Union{Vector, NTuple})
-    l = length(idx)
+@memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, σ::Union{Vector, NTuple})
+    l = length(σ)
     k = length(ϕ)
     if l == 0
-        R = fill(1., 1, 1)
+        R = ones(1, 1)
     else
-        m = idx[1]
-        R̃ = right_env(ϕ, W, idx[2:l])
+        m = idx(σ[1])
+        R̃ = right_env(ϕ, W, σ[2:l])
         M = ϕ[k-l+1]
         M̃ = W[k-l+1]
         @reduce R[x, y] := sum(α, β, γ) M̃[y, $m, β, γ] * M[x, γ, α] * R̃[α, β]
