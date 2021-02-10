@@ -1,8 +1,8 @@
 export left_env, right_env, dot!
 
-# --------------------------- Conventions ------------------------ 
+# --------------------------- Conventions -----------------------
 #                                                                 
-#      MPS          MPS*         MPO       left env      left env
+#      MPS          MPS*         MPO       left env     right env
 #       2            2            2           - 1          2 -
 #   1 - A - 3    1 - B - 3    1 - W - 3      L               R
 #                                 4           - 2          1 -
