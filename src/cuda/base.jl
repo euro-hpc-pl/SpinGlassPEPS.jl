@@ -14,6 +14,11 @@ for (T, N) ∈ ((:MPO, 4), (:MPS, 3))
         Base.copy(a::$CuT) = $CuT(copy(a.tensors))
     end
 end
+@inline CuMPS(A::AbstractArray) = CuMPS(cu(A), :right)
+@inline CuMPS(A::AbstractArray, s::Symbol, args...) = CuMPS(cu(A), Val(s), typemax(Int), args...)
+@inline CuMPS(A::AbstractArray, s::Symbol, Dcut::Int, args...) = CuMPS(cu(A), Val(s), Dcut, args...)
+@inline CuMPS(A::AbstractArray, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(cu(A), Dcut, args...)
+@inline CuMPS(A::AbstractArray, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(cu(A), Dcut, args...)
 
 function CUDA.randn(::Type{CuMPS{T}}, L::Int, D::Int, d::Int) where {T}
     ψ = CuMPS(L)
@@ -85,4 +90,68 @@ function is_right_normalized(ϕ::CuMPS)
         I(DD) ≈ Id ? () : return false
     end 
     true
+end
+
+function _right_sweep_SVD(Θ::CuArray{T}, Dcut::Int=typemax(Int), args...) where {T}
+    rank = ndims(Θ)
+    ψ = CuMPS(T, rank)
+
+    V = reshape(copy(conj(Θ)), (length(Θ), 1))
+
+    for i ∈ 1:rank
+        d = size(Θ, i)
+
+        # reshape
+        @cast M[(x, σ), y] |= V'[x, (σ, y)] (σ:d)
+       
+        # decompose
+        U, Σ, V = _truncate_svd(CUDA.svd(M), Dcut)
+        V *= Diagonal(Σ)
+
+        # create MPS  
+        @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
+        ψ[i] = A
+    end
+    ψ
+end
+
+function _left_sweep_SVD(Θ::CuArray{T}, Dcut::Int=typemax(Int), args...) where {T}
+    rank = ndims(Θ)
+    ψ = MPS(T, rank)
+
+    U = reshape(copy(Θ), (length(Θ), 1))
+
+    for i ∈ rank:-1:1
+        d = size(Θ, i)
+
+        # reshape
+        @cast M[x, (σ, y)] |= U[(x, σ), y] (σ:d)
+
+        # decompose
+        U, Σ, V = _truncate_svd(CUDA.svd(M), Dcut)
+        U *= Diagonal(Σ)
+
+        # create MPS  
+        @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
+        ψ[i] = B
+    end
+    ψ
+end 
+
+function _truncate_svd(F::CuSVD, Dcut::Int)
+    U, Σ, V = F
+    c = min(Dcut, size(U, 2))
+    U = U[:, 1:c]
+    Σ = Σ[1:c]
+    V = V[:, 1:c]
+    U, Σ, V
+end
+
+function _truncate_qr(F::CuQR, Dcut::Int)
+    Q, R = F
+    Q = CuMatrix(Q)
+    c = min(Dcut, size(Q, 2))
+    Q = Q[:, 1:c]
+    R = R[1:c, :]
+    _qr_fix!(Q, R)
 end

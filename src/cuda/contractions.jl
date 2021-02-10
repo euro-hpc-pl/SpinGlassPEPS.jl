@@ -8,7 +8,7 @@ function LinearAlgebra.dot(ϕ::CuMPS, ψ::CuMPS)
         M̃ = conj.(ϕ[i])
         @cutensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ)
     end
-    return C[1]
+    return tr(C)
 end
 
 function left_env(ϕ::CuMPS, ψ::CuMPS)
@@ -57,5 +57,5 @@ function LinearAlgebra.dot(ϕ::CuMPS, O::Vector{<:CuMatrix}, ψ::CuMPS)
         Mat = O[i]
         @cutensor C[x, y] := M̃[β, σ, x] * Mat[σ, η] * C[β, α] * M[α, η, y] order = (α, η, β, σ)
     end
-    return C[1]
+    return tr(C)
 end

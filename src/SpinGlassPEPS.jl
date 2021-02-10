@@ -35,8 +35,8 @@ module SpinGlassPEPS
                 const CuMatrix = CUDA.CuMatrix
                 const CuSVD = CUDA.CUSOLVER.CuSVD
                 const CuQR = CUDA.CUSOLVER.CuQR
-                # scalar indexing is fine before 0.2
-                # CUDA.allowscalar(false)
+                const cu = CUDA.cu
+                CUDA.allowscalar(false)
                 include("cuda/base.jl")
                 include("cuda/contractions.jl")
                 include("cuda/compressions.jl")
