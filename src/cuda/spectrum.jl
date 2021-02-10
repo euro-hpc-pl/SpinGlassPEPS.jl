@@ -1,43 +1,69 @@
 # needs testing!!
+function CuMPS(ig::MetaGraph, control::MPSControl)
+    
+    Dcut = control.max_bond
+    tol = control.var_ϵ
+    max_sweeps = control.max_sweeps
+    schedule = control.β
+    @info "Set control parameters for MPS" Dcut tol max_sweeps
 
-function CuMPS(ig::MetaGraph, mps::MPSControl)
-    L = nv(ig)
-
-    # control for MPS
-    Dcut = mps.max_bond
-    tol = mps.var_ϵ
-    max_sweeps = mps.max_sweeps
-
-    # control for Gibbs state
-    β = gibbs.β
-    schedule = gibbs.β_schedule
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
 
     @assert β ≈ sum(schedule) "Incorrect β schedule."
 
-    # prepare ~ Hadamard state as MPS
-    prod_state = fill([1., 1.], nv(ig))
-    ρ = MPS(prod_state)
+    @info "Preparing Hadamard state as MPS"
+    ρ = CuMPS(HadamardMPS(rank))
+    is_right = true
+    @info "Sweeping through β and σ" schedule
+    for dβ ∈ schedule
+        ρ = _apply_layer_of_gates(ig, ρ, control, dβ)
+    end
+    ρ
+end
 
-    for dβ ∈ schedule, i ∈ 1:L
-        _apply_bias!(ρ, ig, dβ, i) 
+function CuMPS(ig::MetaGraph, control::MPSControl, type::Symbol) 
+    L = nv(ig)
+    Dcut = control.max_bond
+    tol = control.var_ϵ
+    max_sweeps = control.max_sweeps
+    @info "Set control parameters for MPS" Dcut tol max_sweeps
+    dβ = get_prop(ig, :dβ)
+    β = get_prop(ig, :β)
+    rank = get_prop(ig, :rank)
 
-        nbrs = unique_neighbors(ig, i)
-        if !isempty(nbrs)
-            for j ∈ nbrs 
-                _apply_exponent!(ρ, ig, dβ, i, j) 
-            end
+    @info "Preparing Hadamard state as MPS"
+    ρ = HadamardMPS(rank)
+    is_right = true
+    @info "Sweeping through β and σ" dβ
 
-            _apply_projector!(ρ, i)
-
-            for l ∈ setdiff(1:L, union(i, nbrs)) 
-                _apply_nothing!(ρ, l) 
+    if type == :log
+        k = ceil(log2(β/dβ))
+        dβmax = β/(2^k)
+        ρ = _apply_layer_of_gates(ig, ρ, control, dβmax)
+        for j ∈ 1:k
+            ρ = multiply_purifications(ρ, ρ, L)
+            if bond_dimension(ρ) > Dcut
+                @info "Compresing MPS" bond_dimension(ρ), Dcut
+                ρ = compress(ρ, Dcut, tol, max_sweeps) 
+                is_right = true
             end
         end
-
-        # reduce bond dimension
-        if bond_dimension(ρ) > Dcut
-            ρ = compress(ρ, Dcut, tol, max_sweeps) 
+        ρ
+    elseif type == :lin
+        k = β/dβ
+        dβmax = β/k
+        ρ = _apply_layer_of_gates(ig, ρ, control, dβmax)
+        ρ0 = copy(ρ)
+        for j ∈ 1:k
+            ρ = multiply_purifications(ρ, ρ0, L)
+            if bond_dimension(ρ) > Dcut
+                @info "Compresing MPS" bond_dimension(ρ), Dcut
+                ρ = compress(ρ, Dcut, tol, max_sweeps) 
+                is_right = true
+            end
         end
     end
     ρ
+
 end

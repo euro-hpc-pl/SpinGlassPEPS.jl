@@ -1,6 +1,5 @@
 using MetaGraphs
 using LightGraphs
-using GraphPlot
 
 L = 2
 N = L^2
@@ -14,7 +13,7 @@ set_prop!(ig, :rank, r)
 set_prop!(ig, :dβ, 0.01)
 
 sgn = -1.
-ϵ = 1E-8
+ϵ = 1E-6
 D = prod(r) + 1
 var_ϵ = 1E-8
 sweeps = 4
@@ -35,7 +34,7 @@ states = all_states(get_prop(ig, :rank))
 
         @info "Generating Gibbs state - |ρ>" L rank β ϵ
 
-        ψ = cu(ones(rank...))
+        ψ = ones(rank...)
 
         for σ ∈ states
             for i ∈ 1:L
@@ -50,7 +49,7 @@ states = all_states(get_prop(ig, :rank))
                 end      
             end     
         end
-
+        ψ = cu(ψ)
         ρ = abs.(ψ) .^ 2 
         @test ρ / sum(ρ) ≈ ϱ
 
@@ -59,7 +58,7 @@ states = all_states(get_prop(ig, :rank))
         @test dot(rψ, rψ) ≈ 1
         @test_nowarn is_right_normalized(rψ)
 
-        lψ = MPS(ψ, :left)
+        lψ = CuMPS(ψ, :left)
         @test dot(lψ, lψ) ≈ 1
  
         vlψ = vec(tensor(lψ))
@@ -67,9 +66,9 @@ states = all_states(get_prop(ig, :rank))
 
         vψ = vec(ψ)
         vψ /= norm(vψ)
-
-        @test abs(1 - abs(dot(vlψ, vrψ))) < ϵ
-        @test abs(1 - abs(dot(vlψ, vψ))) < ϵ
+        
+        @test abs(1 - abs(CUDA.dot(vlψ, vrψ))) < ϵ
+        @test abs(1 - abs(CUDA.dot(vlψ, vψ))) < ϵ
 
         @info "Verifying MPS from gates"
 

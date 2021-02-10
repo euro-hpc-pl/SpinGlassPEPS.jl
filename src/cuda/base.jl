@@ -2,7 +2,7 @@ for (T, N) ∈ ((:MPO, 4), (:MPS, 3))
     CuT = Symbol(:Cu, T)
     AT = Symbol(:Abstract, T)
     @eval begin
-        export $CuT
+        export $CuT, $T
 
         struct $CuT{T <: Number} <: $AT{T}
             tensors::Vector{CuArray{T, $N}}
@@ -12,6 +12,26 @@ for (T, N) ∈ ((:MPO, 4), (:MPS, 3))
         $CuT(L::Int) = $CuT(Float32, L)
 
         Base.copy(a::$CuT) = $CuT(copy(a.tensors))
+
+        function $T(A::$CuT)
+            T = eltype(A)
+            L = length(A)
+            devA = $T(T, L)
+            for i ∈ eachindex(A)
+                devA[i] = Array(A[i])
+            end
+            devA
+        end
+
+        function $CuT(A::$T)
+            T = eltype(A)
+            L = length(A)
+            cuA = $CuT(T, L)
+            for i ∈ eachindex(A)
+                cuA[i] = cu(A[i])
+            end
+            cuA
+        end
     end
 end
 @inline CuMPS(A::AbstractArray) = CuMPS(cu(A), :right)
@@ -76,7 +96,7 @@ function is_left_normalized(ψ::CuMPS)
         DD = size(A, 3)
     
         @cutensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
-        I(DD) ≈ Id ? () : return false
+        if norm(cu(I(DD)) - Id) > 1e-6 return false end
     end  
     true
 end
@@ -87,7 +107,7 @@ function is_right_normalized(ϕ::CuMPS)
         DD = size(B, 1)
 
         @cutensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
-        I(DD) ≈ Id ? () : return false
+        if norm(cu(I(DD)) - Id) > 1e-6 return false end
     end 
     true
 end
@@ -102,7 +122,8 @@ function _right_sweep_SVD(Θ::CuArray{T}, Dcut::Int=typemax(Int), args...) where
         d = size(Θ, i)
 
         # reshape
-        @cast M[(x, σ), y] |= V'[x, (σ, y)] (σ:d)
+        VV = conj.(transpose(V)) # hack @cast does not work with Adjoint
+        @cast M[(x, σ), y] |= VV[x, (σ, y)] (σ:d)
        
         # decompose
         U, Σ, V = _truncate_svd(CUDA.svd(M), Dcut)
@@ -117,7 +138,7 @@ end
 
 function _left_sweep_SVD(Θ::CuArray{T}, Dcut::Int=typemax(Int), args...) where {T}
     rank = ndims(Θ)
-    ψ = MPS(T, rank)
+    ψ = CuMPS(T, rank)
 
     U = reshape(copy(Θ), (length(Θ), 1))
 
@@ -132,7 +153,8 @@ function _left_sweep_SVD(Θ::CuArray{T}, Dcut::Int=typemax(Int), args...) where 
         U *= Diagonal(Σ)
 
         # create MPS  
-        @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
+        VV = conj.(transpose(V)) # hack @cast does not work with Adjoint
+        @cast B[x, σ, y] |= VV[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
     ψ
@@ -154,4 +176,39 @@ function _truncate_qr(F::CuQR, Dcut::Int)
     Q = Q[:, 1:c]
     R = R[1:c, :]
     _qr_fix!(Q, R)
+end
+
+# function tensor(state::State, tensors...)
+#     C = I
+#     for (A, σ) ∈ zip(tensors, state)
+#         C *= A[:, idx(σ), :]
+#     end
+#     tr(C)
+# end
+
+# function tensor(ψ::CuMPS)
+#     dims = rank(ψ)
+#     T = eltype(ψ)
+#     ret = CUDA.zeros(T, dims)
+#     CI = CartesianIndices(ret)
+
+#     @inline function kernel(ret, t1, t2)
+#         state = (blockIdx().x-1) * blockDim().x + threadIdx().x
+#         if state <= length(ret)
+#             @inbounds idx = CI[state].I
+#             σ = _σ.(idx)
+#             @inbounds ret[state] = tensor(σ, t1, t2)
+#         end
+#         return
+#     end
+
+#     threads, blocks = cudiv(length(ret))
+#     CUDA.@cuda threads=threads blocks=blocks kernel(ret, ψ.tensors[1], ψ.tensors[2])
+#     ret
+# end
+
+function tensor(ψ::CuMPS)
+    devψ = MPS(ψ)
+    t = tensor(devψ)
+    cu(t)
 end

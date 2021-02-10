@@ -36,10 +36,21 @@ module SpinGlassPEPS
                 const CuSVD = CUDA.CUSOLVER.CuSVD
                 const CuQR = CUDA.CUSOLVER.CuQR
                 const cu = CUDA.cu
+                using CUDA
+                # const cuda = CUDA.@cuda
+
                 CUDA.allowscalar(false)
+
+                @inline function cudiv(x::Int)
+                    max_threads = 256
+                    threads_x = min(max_threads, x)
+                    threads_x, ceil(Int, x/threads_x)
+                end
+
                 include("cuda/base.jl")
                 include("cuda/contractions.jl")
                 include("cuda/compressions.jl")
+                include("cuda/spectrum.jl")
             end
         end
     end

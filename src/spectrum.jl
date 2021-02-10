@@ -18,7 +18,7 @@ struct MPSControl
 end
 
 # ρ needs to be ∈ the right canonical form
-function solve(ψ::MPS, keep::Int)
+function solve(ψ::AbstractMPS, keep::Int)
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
 
@@ -72,7 +72,7 @@ function solve(ψ::MPS, keep::Int)
 end
 
 # ρ needs to be ∈ the right canonical form
-function solve_new(ψ::MPS, keep::Int) 
+function solve_new(ψ::AbstractMPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
 
