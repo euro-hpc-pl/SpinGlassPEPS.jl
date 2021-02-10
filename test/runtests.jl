@@ -24,9 +24,10 @@ if CUDA.functional() && CUDA.has_cutensor() && false
 end
 
 push!(my_tests,
-    "base.jl",
-    "utils.jl",
+    #"base.jl",
+    #"utils.jl",
     "contractions.jl",
+#=
     "compressions.jl",
     "ising.jl",
     "indexing.jl",
@@ -40,6 +41,7 @@ push!(my_tests,
     "mps_tests.jl",
     "tests_full_graph.jl",
     "tests_on_data.jl"
+=#
 )
 
 for my_test in my_tests

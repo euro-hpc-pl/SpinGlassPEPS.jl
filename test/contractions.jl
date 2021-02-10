@@ -35,4 +35,21 @@ end
     @test abs(dot(ϕ, ψ)) <= norm(ϕ) * norm(ψ)
 end
 
+
+@testset "left_env correctly contracts MPS for a given configuration" begin
+    D = 10
+    d = 2
+    sites = 5
+    T = MPS{ComplexF64}
+    
+    ψ = randn(T, sites, D, d)
+    σ = 2 * (rand(sites) .< 0.5) .- 1
+
+    @test tensor(ψ, σ) ≈ left_env(ψ, σ)[]
+end
+
+
+
+
+
 end
