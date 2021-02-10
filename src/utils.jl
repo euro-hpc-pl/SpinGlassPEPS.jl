@@ -1,7 +1,8 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states, local_basis, enum, state_to_ind, rank_vec
+export all_states, local_basis, enum, state_to_ind
 export @state
+export unique_neighbors
 
 using Base.Cartesian
 import Base.Prehashed
@@ -213,8 +214,17 @@ end
     end
 end
 
-function rank_vec(ig::MetaGraph)
-    rank = get_prop(ig, :rank)
-    L = get_prop(ig, :L)
-    Int[get(rank, i, 1) for i=1:L]
+"""
+$(TYPEDSIGNATURES)
+
+Calculate unique neighbors of node \$i\$
+
+# Details
+
+This is equivalent of taking the upper
+diagonal of the adjacency matrix
+"""
+function unique_neighbors(ig::MetaGraph, i::Int)
+    nbrs = neighbors(ig::MetaGraph, i::Int)
+    filter(j -> j > i, nbrs)
 end

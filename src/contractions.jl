@@ -11,12 +11,12 @@ export left_env, right_env, dot!
 
 function LinearAlgebra.dot(ψ::AbstractMPS, state::Union{Vector, NTuple}) 
     C = I
-
+    
     for (M, σ) ∈ zip(ψ, state)        
         i = idx(σ)
         C = M[:, i, :]' * (C * M[:, i, :])
     end
-    tr(C)
+    C[]
 end
 
 function LinearAlgebra.dot(ϕ::AbstractMPS, ψ::AbstractMPS)
@@ -28,7 +28,7 @@ function LinearAlgebra.dot(ϕ::AbstractMPS, ψ::AbstractMPS)
         M̃ = conj(ϕ[i])
         @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ) 
     end
-    tr(C)
+    C[]
 end
 
 function left_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
