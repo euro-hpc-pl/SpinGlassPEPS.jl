@@ -66,7 +66,7 @@ end
         ϕ[i] = B
     end
 
-    @test dot(ψ, ϕ) ≈ right_env(ψ, W, σ)[]
+    @test dot(ψ, ϕ) ≈ right_env(ψ, W, map(idx, σ))[]
 end
 
 

@@ -88,7 +88,8 @@ end
     if l == 0
         R = ones(1, 1)
     else
-        m = idx(σ[1])
+        #m = idx(σ[1])
+        m = σ[1]
         R̃ = right_env(ϕ, W, σ[2:l])
         M = ϕ[k-l+1]
         M̃ = W[k-l+1]
