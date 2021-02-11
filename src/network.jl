@@ -21,7 +21,7 @@ mutable struct NetworkGraph
     end
 end
 
-function generate_tensor(ng::NetworkGraph, v::Int)
+@memoize function generate_tensor(ng::NetworkGraph, v::Int)
     fg = ng.factor_graph
     loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
 
@@ -44,7 +44,7 @@ function generate_tensor(ng::NetworkGraph, v::Int)
     reshape(tensor, dim..., :)
 end
 
-function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
+@memoize function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     fg = ng.factor_graph
     if has_edge(fg, w, v)
         _, e, _ = get_prop(fg, w, v, :split)

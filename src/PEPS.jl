@@ -54,6 +54,8 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
 end
 PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
+#=
+to be removed
 function MPO(::Type{T}, R::PEPSRow) where {T <: Number}
     W = MPO(T, length(R))
     for (j, A) ∈ enumerate(R)
@@ -63,6 +65,7 @@ function MPO(::Type{T}, R::PEPSRow) where {T <: Number}
     W 
 end
 MPO(R::PEPSRow) = MPO(Float64, R)
+=#
 
 function MPO(::Type{T},
     peps::PepsNetwork,
@@ -87,6 +90,8 @@ MPO(peps::PepsNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) = MPO(Float64, peps, i, config)
 
+#=
+# to be removed
 function boundaryMPS(
     peps::PepsNetwork,
     upTo::Int=1,
@@ -108,7 +113,25 @@ function boundaryMPS(
     end
     if reversed reverse(vec) else vec end
 end
+=#
+function compress(ψ::AbstractMPS, peps::PepsNetwork)
+    if bond_dimension(ψ) < Dcut return ψ end
+    crt = peps.control_parameters
+    compress(ψ, crt["Dcut"], crt["tol"], crt["sweeps"])
+end 
 
+@memoize function MPS(
+    peps::PepsNetwork,
+    i::Int,
+    cfg::Dict{Int, Int} = Dict{Int, Int}(),
+    )
+    if i > peps.i_max return MPS(I) end
+    W, ψ = MPO(peps, i, cfg), MPS(peps, i+1, cfg)
+    compress(peps, W * ψ)
+end
+
+# to be removed
+#=
 function LightGraphs.contract(
     peps::PepsNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}(),
@@ -126,25 +149,36 @@ function LightGraphs.contract(
     end
     prod(dropdims(ψ))[]
 end
+=#
 
+function contract_network(
+    peps::PepsNetwork,
+    config::Dict{Int, Int} = Dict{Int, Int}(),
+    ) 
+    ψ = MPS(peps, 1, config)
+    prod(dropdims(ψ))[]
+end
 
+#=
 function conditional_probability(
     peps::PepsNetwork,
-    v::Union(Vector{Int}, NTuple{Int}),
+    v::Union{Vector{Int}, NTupel{Int}},
     )
 
-    k = length(v) 
-    i = ceil(k/peps.j_max)
-    j = (k-1) % peps.j_max + 1
+    i = ceil(length(v) / peps.j_max)
+    j = (length(v) - 1) % peps.j_max + 1
 
     ∂v = boundary(peps, v)
-    ψ = boundary_MPS(peps, i+1)
+
+    ψ = MPS(peps, i+1)
     W = MPO(peps, i)
 
     L = left_env(ψ, ∂v[1:j-1])
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
     A = generate_tensor(peps, i, j)
+ 
     prob = contract(A, L, R, ∂v[j:j+1])
+ 
     normalize_prob(prob) 
 end
 
@@ -155,3 +189,4 @@ function boundary(
 
     ∂v
 end
+=#
