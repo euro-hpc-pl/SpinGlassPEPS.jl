@@ -95,24 +95,6 @@ function _left_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) 
     ψ
 end 
 
-function tensor(ψ::AbstractMPS, state::State)
-    C = I
-    for (A, σ) ∈ zip(ψ, state)
-        C *= A[:, idx(σ), :]
-    end
-    tr(C)
-end
-
-function tensor(ψ::MPS)
-    dims = rank(ψ)
-    Θ = Array{eltype(ψ)}(undef, dims)
-
-    for σ ∈ all_states(dims)
-        Θ[idx.(σ)...] = tensor(ψ, σ)
-    end 
-    Θ    
-end
-
 function MPS(states::Vector{Vector{T}}) where {T <: Number}
     L = length(states)
     ψ = MPS(T, L)

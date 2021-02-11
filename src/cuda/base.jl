@@ -177,38 +177,3 @@ function _truncate_qr(F::CuQR, Dcut::Int)
     R = R[1:c, :]
     _qr_fix!(Q, R)
 end
-
-# function tensor(state::State, tensors...)
-#     C = I
-#     for (A, σ) ∈ zip(tensors, state)
-#         C *= A[:, idx(σ), :]
-#     end
-#     tr(C)
-# end
-
-# function tensor(ψ::CuMPS)
-#     dims = rank(ψ)
-#     T = eltype(ψ)
-#     ret = CUDA.zeros(T, dims)
-#     CI = CartesianIndices(ret)
-
-#     @inline function kernel(ret, t1, t2)
-#         state = (blockIdx().x-1) * blockDim().x + threadIdx().x
-#         if state <= length(ret)
-#             @inbounds idx = CI[state].I
-#             σ = _σ.(idx)
-#             @inbounds ret[state] = tensor(σ, t1, t2)
-#         end
-#         return
-#     end
-
-#     threads, blocks = cudiv(length(ret))
-#     CUDA.@cuda threads=threads blocks=blocks kernel(ret, ψ.tensors[1], ψ.tensors[2])
-#     ret
-# end
-
-function tensor(ψ::CuMPS)
-    devψ = MPS(ψ)
-    t = tensor(devψ)
-    cu(t)
-end

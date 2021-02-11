@@ -1,3 +1,39 @@
+function proj(state, dims::Union{Vector, NTuple})
+    P = Matrix{Float64}[]
+    for (σ, r) ∈ zip(state, dims)
+        v = zeros(r)
+        v[idx(σ)...] = 1.
+        push!(P, v * v')
+    end
+    P
+end
+
+cuproj(state, dims::Union{Vector, NTuple}) = cu(proj(state, dims))
+
+function tensor(ψ::AbstractMPS, state::State)
+    C = I
+    for (A, σ) ∈ zip(ψ, state)
+        C *= A[:, idx(σ), :]
+    end
+    tr(C)
+end
+
+function tensor(ψ::MPS)
+    dims = rank(ψ)
+    Θ = Array{eltype(ψ)}(undef, dims)
+
+    for σ ∈ all_states(dims)
+        Θ[idx.(σ)...] = tensor(ψ, σ)
+    end 
+    Θ    
+end
+
+function tensor(ψ::CuMPS)
+    devψ = MPS(ψ)
+    t = tensor(devψ)
+    cu(t)
+end
+
 function form_peps(gg::MetaGraph, β::Float64, s::Tuple{Int, Int} = (3,3))
     M = Array{Union{Nothing, Array{Float64}}}(nothing, s)
     k = 0
