@@ -130,7 +130,7 @@ end
 
 function conditional_probability(
     peps::PepsNetwork,
-    v::Union(Vector{Int}, NTuple{Int}),
+    v::Union{Vector{Int}, NTuple{Int}},
     )
 
     k = length(v) 
