@@ -121,7 +121,7 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
 
     ml = findall(l -> l == 1, proj_l[spin_l,:])[1]
     mu = findall(u -> u == 1, proj_u[1][spin_u[1],:])[1]
-    @reduce P[σ] := sum(v, z, x, y) w1[v] * peps_row[$k][$ml, $mu, x, z, σ] * boundary_mps[$k][v, z, y]*re[y,x]
+    @reduce P[σ] := sum(v, z, x, y) w1[v] * peps_row[$k][$ml, $mu, x, z, σ] * boundary_mps[$k][v, z, y]*re1[y,x]
 
     P./sum(P)
 end
