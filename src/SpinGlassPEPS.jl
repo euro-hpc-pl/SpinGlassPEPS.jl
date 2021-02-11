@@ -8,7 +8,8 @@ module SpinGlassPEPS
     using CSV
     using Logging
     using StatsBase
-
+    using Memoize, LRUCache
+    
     using DocStringExtensions
     const product = Iterators.product
 
