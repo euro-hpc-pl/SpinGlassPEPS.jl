@@ -1,7 +1,7 @@
 export left_env, right_env, dot!
 
-# --------------------------- Conventions ------------------------ 
-#                                                                 
+# --------------------------- Conventions ------------------------
+#
 #      MPS          MPS*         MPO       left env      left env
 #       2            2            2           - 1          2 -
 #   1 - A - 3    1 - B - 3    1 - W - 3      L               R
@@ -9,10 +9,10 @@ export left_env, right_env, dot!
 # ---------------------------------------------------------------
 #
 
-function LinearAlgebra.dot(ψ::AbstractMPS, state::Union{Vector, NTuple}) 
+function LinearAlgebra.dot(ψ::AbstractMPS, state::Union{Vector, NTuple})
     C = I
-    
-    for (M, σ) ∈ zip(ψ, state)        
+
+    for (M, σ) ∈ zip(ψ, state)
         i = idx(σ)
         C = M[:, i, :]' * (C * M[:, i, :])
     end
@@ -26,12 +26,12 @@ function LinearAlgebra.dot(ϕ::AbstractMPS, ψ::AbstractMPS)
     for i ∈ eachindex(ψ)
         M = ψ[i]
         M̃ = conj(ϕ[i])
-        @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ) 
+        @tensor C[x, y] := M̃[β, σ, x] * C[β, α] * M[α, σ, y] order = (α, β, σ)
     end
     C[]
 end
 
-function left_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
+function left_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     l = length(ψ)
     T = promote_type(eltype(ψ), eltype(ϕ))
 
@@ -54,7 +54,8 @@ end
     if l == 0
         L = [1.]
     else
-        m = idx(σ[l])
+        #m = idx(σ[l])
+        m = σ[l]
         L̃ = left_env(ϕ, σ[1:l-1])
         M = ϕ[l]
         @reduce L[x] := sum(α) L̃[α] * M[α, $m, x]
@@ -63,7 +64,7 @@ end
 end
 
 # NOT tested yet
-function right_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
+function right_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     L = length(ψ)
     T = promote_type(eltype(ψ), eltype(ϕ))
 
@@ -143,7 +144,7 @@ function LinearAlgebra.dot(O::AbstractMPO, ψ::AbstractMPS)
         W = O[i]
         M = ψ[i]
 
-        @reduce N[(x, a), σ, (y, b)] := sum(η) W[x, σ, y, η] * M[a, η, b]      
+        @reduce N[(x, a), σ, (y, b)] := sum(η) W[x, σ, y, η] * M[a, η, b]
         ϕ[i] = N
     end
     ϕ
@@ -155,7 +156,7 @@ function dot!(ψ::AbstractMPS, O::AbstractMPO)
         W = O[i]
         M = ψ[i]
 
-        @reduce N[(x, a), σ, (y, b)] := sum(η) W[x, σ, y, η] * M[a, η, b]      
+        @reduce N[(x, a), σ, (y, b)] := sum(η) W[x, σ, y, η] * M[a, η, b]
         ψ[i] = N
     end
 end
@@ -169,9 +170,9 @@ function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
 
     for i ∈ 1:L
         W1 = O1[i]
-        W2 = O2[i]    
-        @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]  
-                                        
+        W2 = O2[i]
+        @reduce V[(x, a), σ, (y, b), η] := sum(γ) W1[x, σ, y, γ] * W2[a, γ, b, η]
+
         O[i] = V
     end
     O

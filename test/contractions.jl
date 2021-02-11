@@ -11,11 +11,11 @@ T = ComplexF64
 Id = [I(d) for _ ∈ 1:length(ϕ)]
 
 @testset "dot products" begin
-    @test dot(ψ, ψ) ≈ dot(ψ, ψ)  
-    @test dot(ψ, ϕ) ≈ conj(dot(ϕ, ψ)) 
-   
+    @test dot(ψ, ψ) ≈ dot(ψ, ψ)
+    @test dot(ψ, ϕ) ≈ conj(dot(ϕ, ψ))
+
     @test dot(ψ, Id, ϕ) ≈ conj(dot(ϕ, Id, ψ))
-    @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)  
+    @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)
 
     @test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ)))
 
@@ -28,7 +28,7 @@ end
 
 @testset "left environment" begin
     L = left_env(ϕ, ψ)
-    @test L[end][1] ≈ dot(ϕ, ψ)  
+    @test L[end][1] ≈ dot(ϕ, ψ)
 end
 
 @testset "Cauchy-Schwarz inequality" begin
@@ -45,7 +45,7 @@ end
     ψ = randn(MPS{T}, sites, D, d)
     σ = 2 * (rand(sites) .< 0.5) .- 1
 
-    @test tensor(ψ, σ) ≈ left_env(ψ, σ)[]
+    @test tensor(ψ, σ) ≈ left_env(ψ, map(idx, σ))[]
 end
 
 @testset "right_env correctly contracts MPO with MPS for a given configuration" begin

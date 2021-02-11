@@ -78,54 +78,47 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
     else
         spin = [ps.spins[i] for i in j-k+1:j-1]
     end
-
     proj_u = [projectors(fg, i, i+peps.j_max)[1] for i in j-k+1:j-1]
+    σ = Tuple(findall(l -> l == 1, proj_u[i][spin[i],:])[1] for i in 1:k-1)
 
 
-    BB = [project_spin_from_above(proj_u[i], spin[i], boundary_mps[i]) for i in 1:k-1]
+    w1 = left_env(boundary_mps, σ)
 
-    weight = ones(T, 1,1)
-    if k > 1
-        weight = prod(BB)
-    end
-
-    # set form left
-    if k == 1
-        spin = 1
-    else
-        spin = ps.spins[end]
-    end
-
-    proj_l, _, _ = projectors(fg, j-1, j)
-    @reduce A[d, a, b, c] := sum(x) proj_l[$spin, x] * peps_row[$k][x, a, b, c, d]
 
     r = j-k+peps.j_max
     if j <= peps.j_max
-        spin = [1 for _ in j:r]
+        spin_u = [1 for _ in j:r]
     else
-        spin = [ps.spins[i-peps.j_max] for i in j:r]
+        spin_u = [ps.spins[i-peps.j_max] for i in j:r]
     end
-
     proj_u = [projectors(fg, i-peps.j_max, i)[1] for i in j:r]
 
+    σ = Tuple(findall(l -> l == 1, proj_u[i][spin[i],:])[1] for i in j+1:r)
 
-    mpo = mpo[k+1:end]
-    mpo = MPO(vcat([A], mpo))
+    #right enviromert
+    if length(proj_u) == 1
+        re = ones(1,1)
+    else
+        CC = [project_spin_from_above(proj_u[i+1], spin_u[i+1], mpo[k+i]) for i in 1:length(proj_u)-1]
 
+        upper_mps = MPS(CC)
+        lower_mps = MPS(boundary_mps[k+1:end])
+        re = right_env(lower_mps, upper_mps)[1]
+    end
 
-    CC = [project_spin_from_above(proj_u[i], spin[i], mpo[i]) for i in 1:length(mpo)]
+    # final contraction
+    if k == 1
+        spin_l = 1
+    else
+        spin_l = ps.spins[end]
+    end
+    proj_l, _, _ = projectors(fg, j-1, j)
 
-    upper_mps = MPS(CC)
+    ml = findall(l -> l == 1, proj_l[spin_l,:])[1]
+    mu = findall(u -> u == 1, proj_u[1][spin_u[1],:])[1]
+    @reduce P[σ] := sum(v, z, x, y) w1[v] * peps_row[$k][$ml, $mu, x, z, σ] * boundary_mps[$k][v, z, y]*re[x,y]
 
-    lower_mps = MPS(boundary_mps[k:end])
-
-    re = right_env(lower_mps, upper_mps)[1]
-
-    probs_unnormed = re*transpose(weight)
-
-    objective = probs_unnormed./sum(probs_unnormed)
-
-    dropdims(objective; dims = 2)
+    P./sum(P)
 end
 
 
