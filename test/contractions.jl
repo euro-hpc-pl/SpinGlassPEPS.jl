@@ -35,4 +35,40 @@ end
     @test abs(dot(ϕ, ψ)) <= norm(ϕ) * norm(ψ)
 end
 
+
+@testset "left_env correctly contracts MPS for a given configuration" begin
+    D = 10
+    d = 2
+    sites = 5
+    T = ComplexF64
+
+    ψ = randn(MPS{T}, sites, D, d)
+    σ = 2 * (rand(sites) .< 0.5) .- 1
+
+    @test tensor(ψ, σ) ≈ left_env(ψ, σ)[]
+end
+
+@testset "right_env correctly contracts MPO with MPS for a given configuration" begin
+    D = 10
+    d = 2
+    sites = 5
+    T = Float64
+
+    ψ = randn(MPS{T}, sites, D, d)
+    W = randn(MPO{T}, sites, D, d)
+
+    σ = 2 * (rand(sites) .< 0.5) .- 1
+
+    ϕ = MPS(T, sites)
+    for (i, A) ∈ enumerate(W)
+        m = idx(σ[i])
+        @cast B[x, s, y] := A[x, $m, y, s]
+        ϕ[i] = B
+    end
+
+    @test dot(ψ, ϕ) ≈ right_env(ψ, W, σ)[]
+end
+
+
+
 end
