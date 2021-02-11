@@ -29,31 +29,22 @@ function update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where
     Partial_sol{T}(vcat(ps.spins, [s]), objective)
 end
 
-#=
-function project_spin_from_above(projector::Array{T,2}, spin::Int64, mps_el::Array{T,3}) where T <: Real
-    @reduce B[a, b] := sum(x) projector[$spin, x] * mps_el[a, x, b]
-    B
-end
-
-function project_spin_from_above(projector::Array{T,2}, spin::Int64, mpo_el::Array{T,4}) where T <: Real
-    @reduce B[a, d, c] := sum(x) projector[$spin, x] * mpo_el[a, x, c, d]
-    B
-end
-=#
-
 """
 ....
+    conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, peps_row::PEPSRow{T}) where T <: Number
 
 
-b_m - boundary mps
-p_r - peps row
+The contraction scheme
+
+mps - boundary mps
+T - 5 mode tensor
 
               physical .
-                         .   upper_right
-                           .  |      |
-    upper_left   from_left-- p_r3 --  p_r4 -- 1
-      |    |                 |      |
-1 --b_m1 --b_m2       --     b_m  -- b_m -- 1
+                         .       upper_right
+                           .  |              |
+    upper_left    from_left-- T --   ... -- mpo_peps.j_max -- 1
+      |    |                  |              |
+1 --mps_1-- mps_2 -- ...--   mps_i-- ... -- mps_peps.j_max -- 1
 """
 function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, peps_row::PEPSRow{T}) where T <: Number
 
@@ -62,28 +53,27 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
     ng = peps.network_graph
     fg = ng.factor_graph
 
+    mpo = MPO(peps_row)
 
-    k = j % peps.j_max
-    if k == 0
-        k = peps.j_max
+    column = j % peps.j_max
+    if column == 0
+        column = peps.j_max
     end
     row = ceil(Int, j/peps.j_max)
-
-    mpo = MPO(peps_row)
 
     # set from above
     # not in last row
     if j > peps.j_max*(peps.i_max-1)
-        spin = [1 for _ in 1:k-1]
+        spin = [1 for _ in 1:column-1]
     else
-        spin = [ps.spins[i] for i in j-k+1:j-1]
+        spin = [ps.spins[i] for i in j-column+1:j-1]
     end
-    proj_u = [projectors(fg, i, i+peps.j_max)[1] for i in j-k+1:j-1]
-    σ = Tuple(findall(l -> l == 1, proj_u[i][spin[i],:])[1] for i in 1:k-1)
+    proj_u = [projectors(fg, i, i+peps.j_max)[1] for i in j-column+1:j-1]
+    σ = Tuple(findall(l -> l == 1, proj_u[i][spin[i],:])[1] for i in 1:column-1)
     w1 = left_env(boundary_mps, σ)
 
     # spinf for right env
-    r = j-k+peps.j_max
+    r = j-column+peps.j_max
     if j <= peps.j_max
         spin_u = [1 for _ in j:r]
     else
@@ -95,24 +85,7 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
 
     re1 = right_env(boundary_mps, mpo, σ)
 
-    #right enviromert
-    if length(proj_u) == 1
-        re = ones(1,1)
-    else
-        CC1 = [permutedims(mpo[k+i][:,σ[i],:,:], (1,3,2)) for i in 1:length(proj_u)-1]
-
-        upper_mps = MPS(CC1)
-        lower_mps = MPS(boundary_mps[k+1:end])
-        re = right_env(lower_mps, upper_mps)[1]
-        re = transpose(re)
-
-        println("+++++++++")
-        println(maximum(abs.(re - re1)))
-        println(".....")
-    end
-
-    # final contraction
-    if k == 1
+    if column == 1
         spin_l = 1
     else
         spin_l = ps.spins[end]
@@ -121,7 +94,7 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
 
     ml = findall(l -> l == 1, proj_l[spin_l,:])[1]
     mu = findall(u -> u == 1, proj_u[1][spin_u[1],:])[1]
-    @reduce P[σ] := sum(v, z, x, y) w1[v] * peps_row[$k][$ml, $mu, x, z, σ] * boundary_mps[$k][v, z, y]*re1[y,x]
+    @reduce P[σ] := sum(v, z, x, y) w1[v] * peps_row[$column][$ml, $mu, x, z, σ] * boundary_mps[$column][v, z, y]*re1[y,x]
 
     P./sum(P)
 end

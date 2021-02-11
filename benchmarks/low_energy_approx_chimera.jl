@@ -11,7 +11,7 @@ using ArgParse
 using CSV
 using Test
 
-import SpinGlassPEPS: solve, solve_mps, M2graph, energy, binary2spins, ising_graph
+import SpinGlassPEPS: solve, M2graph, energy, binary2spins, ising_graph
 
 disable_logging(LogLevel(0))
 δH = 0.9

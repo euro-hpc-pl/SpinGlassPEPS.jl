@@ -10,7 +10,7 @@ using ArgParse
 using CSV
 using Test
 
-import SpinGlassPEPS: solve, solve_mps, M2graph
+import SpinGlassPEPS: solve, M2graph
 
 disable_logging(LogLevel(0))
 
@@ -193,7 +193,7 @@ for k in 1:examples
             @test states_given[i,:] == spins_spec[i]
         end
     end
-
+    #=
     ############ MPO - MPS #########
     χ = 15
 
@@ -220,4 +220,5 @@ for k in 1:examples
             @test states_given[i,:] == spins_mps[i]
         end
     end
+    =#
 end
