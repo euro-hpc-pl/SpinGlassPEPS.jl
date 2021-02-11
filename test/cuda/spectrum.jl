@@ -82,13 +82,12 @@ states = all_states(get_prop(ig, :rank))
         @test abs(1 - abs(dot(Gψ, rψ))) < ϵ 
 
         @info "Verifying probabilities" L β
-
         for σ ∈ states
             p = dot(rψ, σ) 
-            r = dot(rψ, proj(σ, rank), rψ)
+            r = dot(rψ, cuproj(σ, rank), rψ)
 
             @test p ≈ r 
-            @test ϱ[idx.(σ)...] ≈ p
+            @test Array(ϱ)[idx.(σ)...] ≈ p
         end 
 
         for max_states ∈ [1, N, 2*N, N^2]
@@ -102,7 +101,7 @@ states = all_states(get_prop(ig, :rank))
       
             for (j, (p, e)) ∈ enumerate(zip(prob, sp.energies))
                 σ = states[:, j]
-                @test ϱ[idx.(σ)...] ≈ p
+                @test Array(ϱ)[idx.(σ)...] ≈ p
                 @test abs(energy(σ, ig) - e) < ϵ
             end
 

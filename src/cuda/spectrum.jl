@@ -1,4 +1,6 @@
-# needs testing!!
+_make_left_env(ψ::CuMPS, k::Int) = CUDA.ones(eltype(ψ), 1, 1, k)
+_make_LL(ψ::CuMPS, b::Int, k::Int, d::Int) = CUDA.zeros(eltype(ψ), b, b, k, d)
+
 function CuMPS(ig::MetaGraph, control::MPSControl)
     
     Dcut = control.max_bond
@@ -13,7 +15,7 @@ function CuMPS(ig::MetaGraph, control::MPSControl)
     @assert β ≈ sum(schedule) "Incorrect β schedule."
 
     @info "Preparing Hadamard state as MPS"
-    ρ = CuMPS(HadamardMPS(rank))
+    ρ = CuMPS(HadamardMPS(Float32, rank))
     is_right = true
     @info "Sweeping through β and σ" schedule
     for dβ ∈ schedule
@@ -33,7 +35,7 @@ function CuMPS(ig::MetaGraph, control::MPSControl, type::Symbol)
     rank = get_prop(ig, :rank)
 
     @info "Preparing Hadamard state as MPS"
-    ρ = HadamardMPS(rank)
+    ρ = CuMPS(HadamardMPS(Float32, rank))
     is_right = true
     @info "Sweeping through β and σ" dβ
 

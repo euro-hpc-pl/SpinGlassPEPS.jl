@@ -14,6 +14,8 @@ disable_logging(LogLevel(1))
 
 using Test
 
+include("test_helpers.jl")
+
 my_tests = []
 if CUDA.functional() && CUDA.has_cutensor()
     CUDA.allowscalar(false)

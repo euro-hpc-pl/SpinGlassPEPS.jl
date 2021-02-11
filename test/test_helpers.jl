@@ -8,7 +8,7 @@ function proj(state, dims::Union{Vector, NTuple})
     P
 end
 
-cuproj(state, dims::Union{Vector, NTuple}) = cu(proj(state, dims))
+cuproj(state, dims::Union{Vector, NTuple}) = cu.(proj(state, dims))
 
 function tensor(ψ::AbstractMPS, state::State)
     C = I
