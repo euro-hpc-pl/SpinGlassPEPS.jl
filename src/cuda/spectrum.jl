@@ -1,5 +1,7 @@
 _make_left_env(ψ::CuMPS, k::Int) = CUDA.ones(eltype(ψ), 1, 1, k)
+_make_left_env_new(ψ::CuMPS, k::Int) = CUDA.ones(eltype(ψ), 1, k)
 _make_LL(ψ::CuMPS, b::Int, k::Int, d::Int) = CUDA.zeros(eltype(ψ), b, b, k, d)
+_make_LL_new(ψ::CuMPS, b::Int, k::Int, d::Int) = CUDA.zeros(eltype(ψ), b, k, d)
 
 function CuMPS(ig::MetaGraph, control::MPSControl)
     

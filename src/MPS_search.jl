@@ -11,7 +11,9 @@ struct MPSControl
 end
 
 _make_left_env(ψ::AbstractMPS, k::Int) = ones(eltype(ψ), 1, 1, k)
+_make_left_env_new(ψ::AbstractMPS, k::Int) = ones(eltype(ψ), 1, k)
 _make_LL(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, b, k, d)
+_make_LL_new(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, k, d)
 
 # ρ needs to be ∈ the right canonical form
 function solve(ψ::AbstractMPS, keep::Int)
@@ -79,14 +81,14 @@ function solve_new(ψ::AbstractMPS, keep::Int)
     end
     lprob = zeros(T, k)
     states = fill([], 1, k)
-    left_env = _make_left_env(ψ, k)
+    left_env = _make_left_env_new(ψ, k)
 
     for (i, M) ∈ enumerate(ψ)
         _, d, b = size(M)
 
         pdo = ones(T, k, d)
         lpdo = zeros(T, k, d)
-        LL = CUDA.zeros(T, b, k, d)
+        LL = _make_LL_new(ψ, b, k, d)
         config = zeros(Int, i, k, d)
 
         for j ∈ 1:k
@@ -168,7 +170,7 @@ end
 
 function multiply_purifications(χ::T, ϕ::T, L::Int) where {T <: AbstractMPS}
     S = promote_type(eltype(χ), eltype(ϕ))
-    ψ = T(S, L)
+    ψ = T.name.wrapper(S, L)
 
     for i ∈ 1:L 
         A1 = χ[i]
