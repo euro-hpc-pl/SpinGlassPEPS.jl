@@ -15,7 +15,7 @@ function search(model, k)
     
     for v ∈ 1:model.size 
         for (i, p) ∈ enumerate(partial_sol)
-            cond_prob, new_sol[i] = conditional(model, p)
+            cond_prob, new_sol[i] = conditional_probability(model, p)
             new_prob[i] = marginal_prob[i] * cond_prob
             new_energy[i] = partial_energy[i] + energy_difference(model, p)
         end

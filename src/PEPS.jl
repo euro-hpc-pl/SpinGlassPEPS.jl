@@ -130,9 +130,28 @@ end
 
 function conditional_probability(
     peps::PepsNetwork,
-    v::Int,
-    ∂v::Dict{Int, Int},
-    args::Dict,
+    v::Union(Vector{Int}, NTuple{Int}),
     )
 
+    k = length(v) 
+    i = ceil(k/peps.j_max)
+    j = (k-1) % peps.j_max + 1
+
+    ∂v = boundary(peps, v)
+    ψ = boundary_MPS(peps, i+1)
+    W = MPO(peps, i)
+
+    L = left_env(ψ, ∂v[1:j-1])
+    R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
+    A = generate_tensor(peps, i, j)
+    prob = contract(A, L, R, ∂v[j:j+1])
+    normalize_prob(prob) 
+end
+
+function boundary(
+    peps::PepsNetwork,
+    v::Union(Vector{Int}, NTuple{Int}),
+    )
+
+    ∂v
 end
