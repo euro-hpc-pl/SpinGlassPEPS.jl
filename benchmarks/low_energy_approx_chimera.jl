@@ -59,6 +59,10 @@ s = ArgParseSettings("description")
     default = 256
     arg_type = Int
     help = "maximal size of the lower spectrum"
+    "--lower_cutoff", "-v"
+    default = 1
+    arg_type = Int
+    help = "minimal size of the lower spectrum"
   end
 
 fi = parse_args(s)["file"]
@@ -71,12 +75,25 @@ problem_size = parse_args(s)["size"]
 β = parse_args(s)["beta"]
 χ = parse_args(s)["chi"]
 si = parse_args(s)["size"]
-
-ig = ising_graph(fi, si, 1)
+spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
+lower_cutoff = parse_args(s)["lower_cutoff"]
 
 n_sols = parse_args(s)["n_sols"]
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
+
+
+s1 = isqrt(div(si, 8))
+n = div(s1, node_size[1])
+m = div(s1, node_size[2])
+
+ig = ising_graph(fi, si, 1)
+
+update_cells!(
+    ig,
+    rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
+  )
+
 
 fil = folder*"groundstates_otn2d.txt"
 data = split.(readlines(open(fil)))
@@ -86,11 +103,9 @@ ground_ref = [parse(Int, el) for el in data[i][4:end]]
 ground_spins = binary2spins(ground_ref)
 energy_ref = energy(ground_spins, ig)
 
-spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
-
-ses = collect(spectrum_cutoff:-10:40)
+ses = spectrum_cutoff:-1:lower_cutoff
 step = 10
-n_s = collect(n_sols:-step:1)
+n_s = n_sols:-step:1
 
 delta_e = ones(length(ses), length(n_s))
 cut = ones(Int, length(ses), length(n_s))
@@ -99,17 +114,38 @@ function proceed()
   j = 1
   for n_sol in n_s
     i = 1
-    for s in ses
+    for sc in ses
+      println(sc)
+      D = Dict{Int, Int}()
+      for v in vertices(ig)
+        push!(D, (v => sc))
+      end
+      fg = factor_graph(
+            ig,
+            D,
+            energy=energy,
+            spectrum=brute_force,
+        )
 
-      @time spins, _ = solve(ig, n_sol; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = s, δH=δH)
+      println("..............")
+      for v in vertices(fg)
+        println(v, " ", length(props(fg, v)[:spectrum].energies))
+      end
+      println("..............")
+
+      peps = PepsNetwork(m, n, fg, β, :NW)
+
+      @time sols = solve(peps, n_sol; β=β, χ = χ, threshold = 1e-8, δH=δH)
+
+      spins = return_solution(ig, fg, sols)
 
       en = minimum([energy(s, ig) for s in spins])
 
-      cut[i,j] = s
+      cut[i,j] = sc
       delta_e[i,j] = (en-energy_ref)/abs(energy_ref)
       i = i+1
 
-      println("spectrum cutoff = ", s)
+      println("spectrum cutoff = ", sc)
       println("no sols = ", n_sol)
       println("percentage E = ", (en-energy_ref)/abs(energy_ref))
     end

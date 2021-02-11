@@ -75,36 +75,41 @@ problem_size = parse_args(s)["size"]
 si = parse_args(s)["size"]
 δH = parse_args(s)["deltaH"]
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
-node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
-s1 = Int(sqrt(si/8))
 
-n = ceil(Int, s1/node_size[1])
-m = ceil(Int, s1/node_size[2])
+node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
+s1 = isqrt(div(si,8))
+
+n = div(s1, node_size[1])
+m = div(s1, node_size[2])
 
 ig = ising_graph(fi, si, 1)
-
-ig1 = ising_graph(fi, si, 1)
 update_cells!(
-    ig1,
+    ig,
     rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
   )
 
+
+D = Dict{Int, Int}()
+for v in vertices(ig)
+  push!(D, (v => spectrum_cutoff))
+end
+
 fg = factor_graph(
-      ig1,
-      spectrum_cutoff,
+      ig,
+      D,
       energy=energy,
       spectrum=brute_force,
   )
 
 peps = PepsNetwork(m, n, fg, β, :NW)
 
-println("size od peps = ", peps.size)
-
 n_sols = parse_args(s)["n_sols"]
 
 println(node_size)
 
-@time spins, objective = solve(ig, peps, n_sols; β=β, χ = χ, threshold = 1e-8, node_size = node_size, spectrum_cutoff = spectrum_cutoff, δH=δH)
+@time sols = solve(peps, n_sols; β=β, χ = χ, threshold = 1e-8, δH=δH)
+objective = [e.objective for e in sols]
+spins = return_solution(ig, fg, sols)
 
 energies = [energy(s, ig) for s in spins]
 println("energies from peps")

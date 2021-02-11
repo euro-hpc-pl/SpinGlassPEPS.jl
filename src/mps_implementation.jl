@@ -58,7 +58,7 @@ VE = Vector{LightGraphs.SimpleGraphs.SimpleEdge{Int}}
 function add_MPO!(mpo::AbstractMPO{T}, vec_edges::VE, g::MetaGraph, β::T) where T<: Real
 
     i = src(vec_edges[1])
-    d = length(props(g, i)[:energy])
+    d = 2
 
     l = dst(vec_edges[end])
     for j ∈ src(vec_edges[1]):dst(vec_edges[end])
@@ -79,7 +79,8 @@ end
 function add_phase!(mps::AbstractMPS{T}, g::MetaGraph, β::T) where T<: Real
 
     for i ∈ eachindex(mps)
-        internal_e = props(g, i)[:energy]
+
+        internal_e = [props(g, i)[:h], -props(g, i)[:h]]
         for j ∈ eachindex(internal_e)
             mps[i][:,j,:] = mps[i][:,j,:]*exp(β/2*internal_e[j])
         end
@@ -196,7 +197,6 @@ end
 
 function solve_mps(g::MetaGraph, no_sols::Int; β::T, β_step::Int, χ::Int = 100, threshold::Float64 = 0.) where T <: Real
 
-    g = graph4mps(g)
     problem_size = nv(g)
 
     mps = construct_mps(g, β, β_step, χ, threshold)
@@ -216,7 +216,9 @@ function solve_mps(g::MetaGraph, no_sols::Int; β::T, β_step::Int, χ::Int = 10
         partial_s = select_best_solutions(partial_s_temp, no_sols)
 
         if j == problem_size
-            return return_solutions(partial_s, g)
+            partial_s = partial_s[end:-1:1]
+
+            return [map(i -> 2*i - 3, ps.spins) for ps in partial_s], [ps.objective for ps in partial_s]
         end
     end
 end

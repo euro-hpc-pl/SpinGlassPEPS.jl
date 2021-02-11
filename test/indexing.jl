@@ -1,5 +1,5 @@
 
-@testset "Factor graph correctly indexing states" begin
+@testset "Custom settings work with factor graph" begin
 
 #     A1    |  A2
 #           |
@@ -14,38 +14,28 @@ push!(instance, (3,3) => 0.592)
 push!(instance, (1, 2) => 0.652)
 push!(instance, (2, 3) => 0.730)
 
-m = 1
-n = 2
-t = 2
+custom_rule = Dict(1 => 1, 2 => 1, 3 => 2)
+custom_spec = Dict(1 => 3, 2 => 1)
 
-β = 1
-
-L = m * n * t
-
-ig = ising_graph(instance, L)
+ig = ising_graph(instance, 3)
 update_cells!(
    ig,
-   rule = square_lattice((m, n, t)),
+   rule = custom_rule,
 )
 
 fg = factor_graph(
     ig,
-    Dict(1=>4, 2=>2),
+    custom_spec,
     energy=energy,
     spectrum=full_spectrum,
 )
 
-fg_bf = factor_graph(
-    ig,
-    Dict(1=>4, 2=>2),
-    energy=energy,
-    spectrum=brute_force,
-)
+for v in vertices(fg)
+    cl = get_prop(fg, v, :cluster)
+    sp = get_prop(fg, v, :spectrum)
 
-sp = get_prop(fg, 1, :spectrum)
-sp_bf = get_prop(fg_bf, 1, :spectrum)
-
-display(sp.states)
-display(sp_bf.states)
+    @test length(sp.energies) == length(sp.states) == custom_spec[v]
+    @test collect(keys(cl.vertices)) == cluster(v, custom_rule)
+end
 
 end

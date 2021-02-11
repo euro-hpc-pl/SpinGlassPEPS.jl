@@ -1,13 +1,6 @@
-export unique_neighbors
-export full_spectrum, brute_force
 export MPSControl
 export solve, solve_new
 export MPS2
-
-struct Spectrum
-    energies::Array{<:Number}
-    states::Array{Vector{<:Number}}
-end
 
 struct MPSControl
     max_bond::Int
@@ -126,8 +119,7 @@ function solve_new(ψ::AbstractMPS, keep::Int)
         @cast B[β, (l, d)] |= config[β, l, d]
         states = B[:, perm]
     end
-    states = states'
-    states, lprob, lpCut
+    states', lprob, lpCut
 end
 
 function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
@@ -293,42 +285,4 @@ function MPS(ig::MetaGraph, control::MPSControl, type::Symbol)
     end
     ρ
 
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Return the low energy spectrum
-
-# Details
-
-Calculates \$k\$ lowest energy states
-together with the coresponding energies
-of a classical Ising Hamiltonian
-"""
-function brute_force(ig::MetaGraph; num_states::Int=1)
-    cl = Cluster(ig, 0)
-    brute_force(cl, num_states=num_states)
-end
-
-function brute_force(cl::Cluster; num_states::Int=1)
-    if isempty(cl.vertices)
-        return Spectrum(zeros(1), [])   
-    end
-
-    if num_states > prod(cl.rank) num_states = prod(cl.rank) end
-
-    σ = collect.(all_states(cl.rank))
-    energies = energy.(σ, Ref(cl))
-    perm = partialsortperm(vec(energies), 1:num_states) 
-    Spectrum(energies[perm], σ[perm])
-end
-
-function full_spectrum(cl::Cluster; num_states::Int=prod(cl.rank))
-    if isempty(cl.vertices)
-        return Spectrum(zeros(1), [])   
-    end
-    σ = collect.(all_states(cl.rank))
-    energies = energy.(σ, Ref(cl))
-    Spectrum(energies[1:num_states], σ[1:num_states])   
 end

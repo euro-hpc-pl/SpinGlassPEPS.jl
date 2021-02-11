@@ -27,17 +27,22 @@ if CUDA.functional() && CUDA.has_cutensor()
     )
 end
 
+include("test_helpers.jl")
 push!(my_tests,
     "base.jl",
     "utils.jl",
     "contractions.jl",
     "compressions.jl",
+    "identities.jl",
     "ising.jl",
     "indexing.jl",
     "searchMPS.jl",
     "spectrum.jl",
     "graph.jl",
     "PEPS.jl",
+    "testing_probabilities_short.jl",
+    "testing_probabilities.jl",
+    "contract.jl",
     "indexing.jl",
     "notation_tests.jl",
     "peps_tests.jl",

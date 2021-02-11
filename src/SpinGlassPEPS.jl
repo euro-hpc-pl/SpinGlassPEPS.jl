@@ -8,7 +8,8 @@ module SpinGlassPEPS
     using CSV
     using Logging
     using StatsBase
-
+    using Memoize, LRUCache
+    
     using DocStringExtensions
     const product = Iterators.product
 
@@ -16,13 +17,14 @@ module SpinGlassPEPS
     include("utils.jl")
     include("compressions.jl")
     include("contractions.jl")
+    include("identities.jl")
     include("lattice.jl")
-    #include("graphs/chimera.jl")
-    #include("graphs/lattice.jl")
-    include("graph.jl")
     include("ising.jl")
+    include("exact.jl")
+    include("factor.jl")
+    include("network.jl")
     include("PEPS.jl")
-    include("spectrum.jl")
+    include("MPS_search.jl")
     include("notation.jl")
     include("peps_no_types.jl")
     include("mps_implementation.jl")
