@@ -71,7 +71,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 
 
     #node 1
-    obj1 = conditional_probabs(peps, ps, boundary_mps[1], peps_row)
+    obj1 = conditional_probabs(peps, ps, boundary_mps[1], MPO(peps_row), peps_row)
     _, i = findmax(obj1)
     ps1 = update_partial_solution(ps, i, obj1[i])
 
@@ -83,7 +83,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     @test (props(fg, 1)[:spectrum]).states[i] == [bf.states[1][a] for a in [1,2,4,5]]
 
     # node 2
-    obj2 = conditional_probabs(peps, ps1, boundary_mps[1], peps_row)
+    obj2 = conditional_probabs(peps, ps1, boundary_mps[1], MPO(peps_row), peps_row)
     obj2 = obj1[i].*obj2
     _, j = findmax(obj2)
     ps2 = update_partial_solution(ps1, j, obj2[j])
@@ -98,7 +98,7 @@ Mq[8,9] = Mq[9,8] = -0.05
     peps_row = PEPSRow(peps, 2)
 
     # node 3
-    obj3 = conditional_probabs(peps, ps2, boundary_mps[2], peps_row)
+    obj3 = conditional_probabs(peps, ps2, boundary_mps[2], MPO(peps_row), peps_row)
     obj3 = obj2[j].*obj3
 
     _, k = findmax(obj3)
@@ -112,7 +112,7 @@ Mq[8,9] = Mq[9,8] = -0.05
 
     #node 4
 
-    obj4 = conditional_probabs(peps, ps3, boundary_mps[2], peps_row)
+    obj4 = conditional_probabs(peps, ps3, boundary_mps[2], MPO(peps_row), peps_row)
     obj4 = obj3[k].*obj4
 
     _, l = findmax(obj4)

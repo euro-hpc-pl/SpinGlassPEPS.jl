@@ -66,7 +66,7 @@ end
 
     peps_row = PEPSRow(peps, 1)
 
-    obj1 = conditional_probabs(peps, ps, boundary_mps[1], peps_row)
+    obj1 = conditional_probabs(peps, ps, boundary_mps[1], MPO(peps_row), peps_row)
     _, i = findmax(obj1)
     ps1 = update_partial_solution(ps, i, obj1[i])
 
@@ -77,7 +77,7 @@ end
     peps_row = PEPSRow(peps, 2)
 
 
-    obj2 = conditional_probabs(peps, ps1, boundary_mps[2], peps_row)
+    obj2 = conditional_probabs(peps, ps1, boundary_mps[2], MPO(peps_row), peps_row)
     obj2 = obj1[i].*obj2
     _, j = findmax(obj2)
     ps2 = update_partial_solution(ps1, j, obj2[j])

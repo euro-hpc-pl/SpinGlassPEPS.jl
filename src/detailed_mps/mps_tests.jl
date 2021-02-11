@@ -1,7 +1,3 @@
-import SpinGlassPEPS: connections_for_mps, construct_mps
-import SpinGlassPEPS: contract4probability, compute_probs
-import SpinGlassPEPS: solve_mps, M2graph
-
 Random.seed!(1234)
 
 @testset "grouping of connections" begin
