@@ -91,16 +91,16 @@ function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps
     end
     proj_u = [projectors(fg, i-peps.j_max, i)[1] for i in j:r]
 
-    σ = Tuple(findall(l -> l == 1, proj_u[i][spin_u[i],:])[1] for i in j+1:r)
+    #σ = Tuple(findall(l -> l == 1, proj_u[i][spin_u[i],:])[1] for i in j+1:r)
 
     #right enviromert
     if length(proj_u) == 1
         re = ones(1,1)
     else
         CC = [project_spin_from_above(proj_u[i+1], spin_u[i+1], mpo[k+i]) for i in 1:length(proj_u)-1]
-        CC1 = [permutedims(mpo[k+i][:,σ[i],:,:], (1,3,2)) for i in 1:length(proj_u)-1]
-        println([size(e) for e in CC])
-        println([size(e) for e in CC1])
+        #CC1 = [permutedims(mpo[k+i][:,σ[i],:,:], (1,3,2)) for i in 1:length(proj_u)-1]
+        #println([size(e) for e in CC])
+        #println([size(e) for e in CC1])
         upper_mps = MPS(CC)
         lower_mps = MPS(boundary_mps[k+1:end])
         re = right_env(lower_mps, upper_mps)[1]
