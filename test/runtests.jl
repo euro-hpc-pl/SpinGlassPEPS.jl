@@ -19,6 +19,7 @@ include("test_helpers.jl")
 my_tests = []
 if CUDA.functional() && CUDA.has_cutensor()
     CUDA.allowscalar(false)
+    include("cu_test_helpers.jl")
     push!(my_tests,
     "cuda/base.jl",
     "cuda/contractions.jl",

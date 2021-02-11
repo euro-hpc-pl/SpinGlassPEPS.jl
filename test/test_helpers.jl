@@ -8,8 +8,6 @@ function proj(state, dims::Union{Vector, NTuple})
     P
 end
 
-cuproj(state, dims::Union{Vector, NTuple}) = cu.(proj(state, dims))
-
 function tensor(ψ::AbstractMPS, state::State)
     C = I
     for (A, σ) ∈ zip(ψ, state)
@@ -26,12 +24,6 @@ function tensor(ψ::MPS)
         Θ[idx.(σ)...] = tensor(ψ, σ)
     end 
     Θ    
-end
-
-function tensor(ψ::CuMPS)
-    devψ = MPS(ψ)
-    t = tensor(devψ)
-    cu(t)
 end
 
 #removes bonds that do not fit to the grid, testing function
