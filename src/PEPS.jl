@@ -128,7 +128,7 @@ function LightGraphs.contract(
 end
 
 
-function conditional_pdo(
+function conditional_probability(
     peps::PepsNetwork,
     v::Int,
     ∂v::Dict{Int, Int},
