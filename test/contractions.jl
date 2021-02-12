@@ -10,6 +10,8 @@ T = ComplexF64
 
 Id = [I(d) for _ ∈ 1:length(ϕ)]
 
+Id_m = MPO([ones(1,1,1,d) for _ ∈ 1:length(ϕ)])
+
 @testset "dot products" begin
     @test dot(ψ, ψ) ≈ dot(ψ, ψ)
     @test dot(ψ, ϕ) ≈ conj(dot(ϕ, ψ))
@@ -29,6 +31,11 @@ end
 @testset "left environment" begin
     L = left_env(ϕ, ψ)
     @test L[end][1] ≈ dot(ϕ, ψ)
+end
+
+@testset "right environment" begin
+    R = right_env(ϕ, ψ)
+    @test R[1][end] ≈ dot(ϕ, ψ)
 end
 
 @testset "Cauchy-Schwarz inequality" begin
