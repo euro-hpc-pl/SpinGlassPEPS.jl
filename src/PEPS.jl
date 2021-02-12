@@ -145,8 +145,8 @@ end
 function _contract(
     A::Array{T, 5},
     L::Vector{T} 
-    R:: Matric{T},
-    ∂v[j:j+1]::NTuple{Int}
+    R::Matric{T},
+    ∂v[j:j+1]::NTuple{Int},
     ) where {T <: Number}
 
 end
