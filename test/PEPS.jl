@@ -52,11 +52,9 @@ for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
     @test typeof(peps) == PepsNetwork
 
     ψ = MPS(I)
-    ψ_all = boundaryMPS(peps)
-
     for i ∈ peps.i_max:-1:1
         ψ = MPO(T, peps, i) * ψ
-        @test ψ_all[i] ≈ ψ
+        @test MPS(peps, i) ≈ ψ
     end
 end
 

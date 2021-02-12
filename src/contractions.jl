@@ -54,7 +54,7 @@ end
     if l == 0
         L = [1.]
     else
-        m = idx(σ[l])
+        m = σ[l]
         L̃ = left_env(ϕ, σ[1:l-1])
         M = ϕ[l]
         @reduce L[x] := sum(α) L̃[α] * M[α, $m, x]
@@ -87,7 +87,7 @@ end
     if l == 0
         R = ones(1, 1)
     else
-        m = idx(σ[1])
+        m = σ[1]
         R̃ = right_env(ϕ, W, σ[2:l])
         M = ϕ[k-l+1]
         M̃ = W[k-l+1]

@@ -78,7 +78,7 @@ function ising_graph(
     rank = Dict{Int, Int}()
     for v in vertices(ig)
         if get_prop(ig, v, :active)
-            rank[v] = get(rank_override, v, 2)
+            rank[v] = get(rank_override, v, 2) # TODO: this can not be 2
         end
     end   
     set_prop!(ig, :rank, rank)

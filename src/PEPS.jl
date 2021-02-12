@@ -1,6 +1,23 @@
 export PepsNetwork, contract
 export MPO, MPS, boundaryMPS
 
+function _set_control_parameters(
+    args_override::Dict{String, Number}=Dict{String, Number}()
+    )
+    # put here more parameters if needs be
+    args = Dict(
+        "bond_dim" => typemax(Int),
+        "var_tol" => 1E-8,
+        "sweeps" => 4.,
+        "β" => 1.
+    )
+    for k in keys(args_override)
+        str = get(args_override, k, nothing)
+        if str !== nothing push!(args, str) end
+    end
+    args
+end
+
 mutable struct PepsNetwork
     size::NTuple{2, Int}
     map::Dict
@@ -8,8 +25,17 @@ mutable struct PepsNetwork
     origin::Symbol
     i_max::Int
     j_max::Int
+    args::Dict{String, Number}
 
-    function PepsNetwork(m::Int, n::Int, fg::MetaDiGraph, β::Number, origin::Symbol=:NW)
+    function PepsNetwork(
+        m::Int, 
+        n::Int, 
+        fg::MetaDiGraph,
+        β::Number, 
+        origin::Symbol=:NW,
+        args_override::Dict{String, Number}=Dict{String, Number}()
+        ) 
+
         pn = new((m, n))
         pn.map, pn.i_max, pn.j_max = LinearIndices(m, n, origin)
 
@@ -21,6 +47,7 @@ mutable struct PepsNetwork
                              pn.map[i, j+1], pn.map[i+1, j]))
         end
         pn.network_graph = NetworkGraph(fg, nbrs, β)
+        pn.args = _set_control_parameters(args_override)
         pn
     end
 end
@@ -54,19 +81,6 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
 end
 PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
-#=
-to be removed
-function MPO(::Type{T}, R::PEPSRow) where {T <: Number}
-    W = MPO(T, length(R))
-    for (j, A) ∈ enumerate(R)
-        @reduce B[l, u, r, d] |= sum(σ) A[l, u, r, d, σ]
-        W[j] = B
-    end
-    W 
-end
-MPO(R::PEPSRow) = MPO(Float64, R)
-=#
-
 function MPO(::Type{T},
     peps::PepsNetwork,
     i::Int,
@@ -74,7 +88,9 @@ function MPO(::Type{T},
     ) where {T <: Number}
 
     W = MPO(T, peps.j_max)
-    for (j, A) ∈ enumerate(PEPSRow(T, peps, i))
+    R = PEPSRow(T, peps, i)
+    
+    for (j, A) ∈ enumerate(R)
         v = get(config, j + peps.j_max * (i - 1), nothing)
         if v !== nothing
             @cast B[l, u, r, d] |= A[l, u, r, d, $(v)]
@@ -90,34 +106,10 @@ MPO(peps::PepsNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) = MPO(Float64, peps, i, config)
 
-#=
-# to be removed
-function boundaryMPS(
-    peps::PepsNetwork,
-    upTo::Int=1,
-    Dcut::Int=typemax(Int),
-    tol::Number=1E-8,
-    max_sweeps=4;
-    reversed::Bool=true
-    )
-    ψ = idMPS(peps.j_max)
-    #ψ = MPS(I)
-    vec = Any[ψ]
-
-    for i ∈ peps.i_max:-1:upTo
-        ψ = MPO(peps, i) * ψ
-        if bond_dimension(ψ) > Dcut
-            ψ = compress(ψ, Dcut, tol, max_sweeps)
-        end
-        push!(vec, ψ)
-    end
-    if reversed reverse(vec) else vec end
-end
-=#
 function compress(ψ::AbstractMPS, peps::PepsNetwork)
+    Dcut = peps.args["bond_dim"]
     if bond_dimension(ψ) < Dcut return ψ end
-    crt = peps.control_parameters
-    compress(ψ, crt["Dcut"], crt["tol"], crt["sweeps"])
+    compress(ψ, Dcut, peps.args["var_tol"], peps.args["sweeps"])
 end 
 
 @memoize function MPS(
@@ -127,29 +119,8 @@ end
     )
     if i > peps.i_max return MPS(I) end
     W, ψ = MPO(peps, i, cfg), MPS(peps, i+1, cfg)
-    compress(peps, W * ψ)
+    compress(W * ψ, peps)
 end
-
-# to be removed
-#=
-function LightGraphs.contract(
-    peps::PepsNetwork,
-    config::Dict{Int, Int} = Dict{Int, Int}(),
-    Dcut::Int=typemax(Int),
-    tol::Number=1E-8,
-    max_sweeps=4,
-    )
-    
-    ψ = MPS(I)
-    for i ∈ peps.i_max:-1:1
-        ψ = MPO(peps, i, config) * ψ
-        if bond_dimension(ψ) > Dcut
-            ψ = compress(ψ, Dcut, tol, max_sweeps)
-        end
-    end
-    prod(dropdims(ψ))[]
-end
-=#
 
 function contract_network(
     peps::PepsNetwork,

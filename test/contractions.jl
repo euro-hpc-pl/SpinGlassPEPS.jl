@@ -43,7 +43,7 @@ end
     T = ComplexF64
 
     ψ = randn(MPS{T}, sites, D, d)
-    σ = 2 * (rand(sites) .< 0.5) .- 1
+    σ = (1, 2, 2, 1, 2)
 
     @test tensor(ψ, σ) ≈ left_env(ψ, σ)[]
 end
@@ -57,11 +57,11 @@ end
     ψ = randn(MPS{T}, sites, D, d)
     W = randn(MPO{T}, sites, D, d)
 
-    σ = 2 * (rand(sites) .< 0.5) .- 1
+    σ = (1, 1, 2, 1, 2)
 
     ϕ = MPS(T, sites)
     for (i, A) ∈ enumerate(W)
-        m = idx(σ[i])
+        m = σ[i]
         @cast B[x, s, y] := A[x, $m, y, s]
         ϕ[i] = B
     end
