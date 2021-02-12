@@ -57,3 +57,27 @@ end
     end
     tensor
 end
+
+function generate_boundary(ng::NetworkGraph, v::Int, nbr::Int, state::Int)
+    fg = ng.factor_graph
+    if v ∉ vertices(fg) return 1 end
+    w = ng.nbrs[v][nbr]
+    loc_dim = length(get_prop(fg, v, :loc_en))
+    if has_edge(fg, w, v)
+        _, _, pv = get_prop(fg, w, v, :split)
+        pv = pv'
+    elseif has_edge(fg, v, w)
+        pv, _, _ = get_prop(fg, v, w, :split)
+    else
+        pv = ones(loc_dim, 1)
+    end
+
+    v = pv[state, :]
+    findfirst(x -> x>0, v)
+    #=
+    position = 1
+    for i ∈ 1:length(v)
+        if v[i] > 0 position = i end
+    end
+    position=#
+end
