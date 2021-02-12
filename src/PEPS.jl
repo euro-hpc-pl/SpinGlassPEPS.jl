@@ -81,7 +81,7 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
 end
 PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
-@memoize function MPO(::Type{T},
+function MPO(::Type{T},
     peps::PepsNetwork,
     i::Int,
     config::Dict{Int, Int} = Dict{Int, Int}()
@@ -130,24 +130,27 @@ function contract_network(
     prod(dropdims(ψ))[]
 end
 
-function _get_coordinates(peps::PepsNetwork, v::Int)
+function _get_coordinates(
+    peps::PepsNetwork,
+    v::Union{Vector{Int}, NTuple{N, Int}},
+    ) where {N}
     k = length(v)
     ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
 end
 
 function get_boundary(
     peps::PepsNetwork,
-    v::Union{Vector{Int}, NTuple{Int}},
-    )
+    v::Union{Vector{Int}, NTuple{N, Int}},
+    ) where {N}
 
 end
 
 function _contract(
     A::Array{T, 5},
-    L::Vector{T} 
-    R::Matric{T},
-    ∂v[j:j+1]::NTuple{Int},
-    ) where {T <: Number}
+    L::Vector{T}, 
+    R::Matrix{T},
+    ∂v::NTuple{N, Int},
+    ) where {N, T <: Number}
 
 end
 
@@ -157,8 +160,8 @@ end
 
 function conditional_probability(
     peps::PepsNetwork,
-    v::Union{Vector{Int}, NTuple{Int}},
-    )
+    v::Union{Vector{Int}, NTuple{N, Int}},
+    ) where {N}
 
     i, j = _get_coordinates(peps, v)
     ∂v = get_boundary(peps, v)
