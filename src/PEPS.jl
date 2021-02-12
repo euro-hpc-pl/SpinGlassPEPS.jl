@@ -81,7 +81,7 @@ function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
 end
 PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
-function MPO(::Type{T},
+@memoize function MPO(::Type{T},
     peps::PepsNetwork,
     i::Int,
     config::Dict{Int, Int} = Dict{Int, Int}()
@@ -130,34 +130,47 @@ function contract_network(
     prod(dropdims(ψ))[]
 end
 
-#=
-function conditional_probability(
+function _get_coordinates(peps::PepsNetwork, v::Int)
+    k = length(v)
+    ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
+end
+
+function get_boundary(
     peps::PepsNetwork,
-    v::Union{Vector{Int}, NTupel{Int}},
+    v::Union{Vector{Int}, NTuple{Int}},
     )
 
-    i = ceil(length(v) / peps.j_max)
-    j = (length(v) - 1) % peps.j_max + 1
+end
 
-    ∂v = boundary(peps, v)
+function _contract(
+    A::Array{T, 5},
+    L::Vector{T} 
+    R:: Matric{T},
+    ∂v[j:j+1]::NTuple{Int}
+    ) where {T <: Number}
 
-    ψ = MPS(peps, i+1)
-    W = MPO(peps, i)
+end
+
+function _normalize_prob(prob::Vector{T}) where {T <: Number}
+    prob
+end 
+
+function conditional_probability(
+    peps::PepsNetwork,
+    v::Union{Vector{Int}, NTuple{Int}},
+    )
+
+    i, j = _get_coordinates(peps, v)
+    ∂v = get_boundary(peps, v)
+
+    W, ψ = MPO(peps, i), MPS(peps, i+1)
 
     L = left_env(ψ, ∂v[1:j-1])
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
     A = generate_tensor(peps, i, j)
  
-    prob = contract(A, L, R, ∂v[j:j+1])
+    prob = _contract(A, L, R, ∂v[j:j+1])
  
-    normalize_prob(prob) 
+    _normalize_prob(prob) 
 end
 
-function boundary(
-    peps::PepsNetwork,
-    v::Union(Vector{Int}, NTuple{Int}),
-    )
-
-    ∂v
-end
-=#

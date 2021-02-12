@@ -62,27 +62,6 @@ end
     L
 end
 
-#=
-# NOT tested yet
-function right_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
-    L = length(ψ)
-    T = promote_type(eltype(ψ), eltype(ϕ))
-
-    R = Vector{Matrix{T}}(undef, L+1)
-    R[end] = ones(eltype(ψ), 1, 1)
-
-    for i ∈ L:-1:1
-        M = ψ[i]
-        M̃ = conj.(ϕ[i])
-
-        D = R[i+1]
-        @tensor D[x, y] := M[x, σ, α] * D[α, β] * M̃[y, σ, β] order = (β, α, σ)
-        R[i] = D
-    end
-    R
-end
-=#
-
 @memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, σ::Union{Vector, NTuple})
     l = length(σ)
     k = length(ϕ)

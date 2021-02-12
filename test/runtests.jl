@@ -25,7 +25,6 @@ end
 
 include("test_helpers.jl")
 push!(my_tests,
-#=
     "base.jl",
     "utils.jl",
     "contractions.jl",
@@ -37,22 +36,12 @@ push!(my_tests,
     "MPS_search.jl",
     "factor.jl",
     "PEPS.jl",
-=#
-#=  
-# to be removed  
-    "testing_probabilities_short.jl", # to be removed
-    "testing_probabilities.jl",    # to be removed
-=#
+    #"testing_probabilities_short.jl", # to be removed
+    #"testing_probabilities.jl", # to be removed
     "contract.jl",
     "indexing.jl",
-#=
-# to be removed
-     "notation_tests.jl", 
-     "peps_tests.jl",
-     "mps_tests.jl",
-     "tests_full_graph.jl",
-     "tests_on_data.jl"
-=#
+    #"notation_tests.jl", # to be removed
+    #"peps_tests.jl" # to be removed
 )
 
 for my_test in my_tests
