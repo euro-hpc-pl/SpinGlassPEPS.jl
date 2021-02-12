@@ -7,6 +7,9 @@ T = ComplexF64
 
 ψ = randn(MPS{T}, sites, D, d)
 ϕ = randn(MPS{T}, sites, D, d)
+mpo = randn(MPO{T}, 2, 2, 2)
+println("......")
+println(mpo)
 
 Id = [I(d) for _ ∈ 1:length(ϕ)]
 
@@ -26,6 +29,15 @@ Id_m = MPO([ones(1,1,1,d) for _ ∈ 1:length(ϕ)])
 
     ϕ[1] *= 1/norm(ϕ)
     @test dot(ϕ, ϕ) ≈ 1
+
+    # dot on mpo
+    mpo1 = dot(mpo, mpo)
+    A = mpo[1]
+
+    @test size(mpo1[1]) == (1, 2, 4, 2)
+    @test size(mpo1[2]) == (4, 2, 1, 2)
+    @reduce B[(a,b), c, (d,e), f] := sum(x) A[a,c,d,x] * A[b,x,e,f]
+    @test mpo1[1] ≈ B
 end
 
 @testset "left environment" begin
