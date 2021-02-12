@@ -43,9 +43,9 @@ end
     T = ComplexF64
 
     ψ = randn(MPS{T}, sites, D, d)
-    σ = (1, 2, 2, 1, 2)
+    σ = 2 * (rand(sites) .< 0.5) .- 1
 
-    @test tensor(ψ, σ) ≈ left_env(ψ, σ)[]
+    @test tensor(ψ, σ) ≈ left_env(ψ, map(idx, σ))[]
 end
 
 @testset "right_env correctly contracts MPO with MPS for a given configuration" begin
@@ -57,16 +57,16 @@ end
     ψ = randn(MPS{T}, sites, D, d)
     W = randn(MPO{T}, sites, D, d)
 
-    σ = (1, 1, 2, 1, 2)
+    σ = 2 * (rand(sites) .< 0.5) .- 1
 
     ϕ = MPS(T, sites)
     for (i, A) ∈ enumerate(W)
-        m = σ[i]
+        m = idx(σ[i])
         @cast B[x, s, y] := A[x, $m, y, s]
         ϕ[i] = B
     end
 
-    @test dot(ψ, ϕ) ≈ right_env(ψ, W, σ)[]
+    @test dot(ψ, ϕ) ≈ right_env(ψ, W, map(idx, σ))[]
 end
 
 

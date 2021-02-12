@@ -1,4 +1,4 @@
-export PepsNetwork, contract
+export PepsNetwork, contract_network
 export MPO, MPS, boundaryMPS
 
 function _set_control_parameters(

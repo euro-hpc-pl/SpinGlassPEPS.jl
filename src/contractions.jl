@@ -62,6 +62,7 @@ end
     L
 end
 
+#=
 # NOT tested yet
 function right_env(ϕ::AbstractMPS, ψ::AbstractMPS) 
     L = length(ψ)
@@ -80,6 +81,7 @@ function right_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     end
     R
 end
+=#
 
 @memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, σ::Union{Vector, NTuple})
     l = length(σ)
