@@ -164,13 +164,13 @@ function _get_boundary(
     )where {N}
     ∂v = zeros(Int, peps.j_max + 1)
     for k ∈ 1:j-1
-        ∂v[k] = generate_boundary(peps.network_graph, (i, k), 4, _get_local_state(peps, v, i, k))
+        ∂v[k] = generate_boundary(peps.network_graph, (i, k), (i+1, k), _get_local_state(peps, v, i, k))
     end
 
-    ∂v[j] = generate_boundary(peps.network_graph, (i, j-1), 3, _get_local_state(peps, v, i, j-1))
+    ∂v[j] = generate_boundary(peps.network_graph, (i, j-1), (i, j), _get_local_state(peps, v, i, j-1))
 
     for k ∈ j:peps.j_max
-        ∂v[k+1] = generate_boundary(peps.network_graph, (i-1, k), 4, _get_local_state(peps, v, i-1, k))
+        ∂v[k+1] = generate_boundary(peps.network_graph, (i-1, k), (i, k), _get_local_state(peps, v, i-1, k))
     end
     ∂v
 end

@@ -58,10 +58,14 @@ end
     tensor
 end
 
-function generate_boundary(ng::NetworkGraph, v::Int, nbr::Int, state::Int)
+function generate_boundary(
+    ng::NetworkGraph, 
+    v::Int, 
+    w::Int, 
+    state::Int
+    )
     fg = ng.factor_graph
     if v ∉ vertices(fg) return 1 end
-    w = ng.nbrs[v][nbr]
     loc_dim = length(get_prop(fg, v, :loc_en))
     if has_edge(fg, w, v)
         _, _, pv = get_prop(fg, w, v, :split)
