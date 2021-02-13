@@ -138,13 +138,6 @@ function _get_coordinates(
     ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
 end
 
-function get_boundary(
-    peps::PepsNetwork,
-    v::Union{Vector{Int}, NTuple{N, Int}},
-    ) where {N}
-
-end
-
 function _contract(
     A::Array{T, 5},
     L::Vector{T}, 
