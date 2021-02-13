@@ -61,6 +61,12 @@ generate_tensor(pn::PepsNetwork,
                 n::NTuple{2,Int},
                 ) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
 
+generate_boundary(pn::PepsNetwork,
+                m::NTuple{2,Int},
+                nbr::Int,
+                state::Int,
+                ) = generate_boundary(pn.network_graph, pn.map[m], nbr, state)
+
 function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
     ψ = PEPSRow(T, peps.j_max)
 
@@ -132,10 +138,41 @@ end
 
 function _get_coordinates(
     peps::PepsNetwork,
-    v::Union{Vector{Int}, NTuple{N, Int}},
-    ) where {N}
-    k = length(v)
+    k::Int,
+    )
     ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
+end
+
+function _get_local_state(
+    peps::PepsNetwork,
+    v::Union{Vector{Int}, NTuple{N, Int}}, 
+    i::Int, 
+    j::Int
+    )where {N}
+    k = peps.j_max * (i - 1) + j
+    if k > length(v) || k <= 0
+        return 1
+    end
+    v[k]
+end
+
+function _get_boundary(
+    peps::PepsNetwork, 
+    v::Union{Vector{Int}, NTuple{N, Int}}, 
+    i::Int, 
+    j::Int
+    )where {N}
+    ∂v = zeros(Int, peps.j_max + 1)
+    for k ∈ 1:j-1
+        ∂v[k] = generate_boundary(peps.network_graph, (i, k), (i+1, k), _get_local_state(peps, v, i, k))
+    end
+
+    ∂v[j] = generate_boundary(peps.network_graph, (i, j-1), (i, j), _get_local_state(peps, v, i, j-1))
+
+    for k ∈ j:peps.j_max
+        ∂v[k+1] = generate_boundary(peps.network_graph, (i-1, k), (i, k), _get_local_state(peps, v, i-1, k))
+    end
+    ∂v
 end
 
 function _contract(
@@ -156,9 +193,8 @@ function conditional_probability(
     v::Union{Vector{Int}, NTuple{N, Int}},
     ) where {N}
 
-    i, j = _get_coordinates(peps, v)
-    ∂v = get_boundary(peps, v)
-
+    i, j = _get_coordinates(peps, length(v)+1)
+    ∂v =  _get_boundary(peps, v, i, j)
     W, ψ = MPO(peps, i), MPS(peps, i+1)
 
     L = left_env(ψ, ∂v[1:j-1])
