@@ -6,9 +6,29 @@ struct MPSControl
     max_bond::Int
     var_ϵ::Number
     max_sweeps::Int
-    β::Vector 
-    dβ::Vector
+    β::Number 
+    dβ::Number 
 end
+
+#= it will be used instead of MPSControl
+function _set_control_parameters(
+    args_override::Dict{String, Number}=Dict{String, Number}()
+    )
+    args = Dict(
+        "max_bond" => typemax(Int),
+        "var_ϵ" => 1E-8,
+        "max_sweeps" => 4.,
+        "β" => 1.,
+        "dβ" => 0.01
+    )
+    for k in keys(args_override)
+        str = get(args_override, k, nothing)
+        if str !== nothing push!(args, str) end
+    end
+    args
+end
+=#
+
 
 # ρ needs to be ∈ the right canonical form
 #=
@@ -223,13 +243,9 @@ function MPS(ig::MetaGraph, control::MPSControl)
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
-    schedule = control.β
+    schedule = control.β 
     @info "Set control parameters for MPS" Dcut tol max_sweeps
-
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
-
-    @assert β ≈ sum(schedule) "Incorrect β schedule."
 
     @info "Preparing Hadamard state as MPS"
     ρ = HadamardMPS(rank)
@@ -246,9 +262,9 @@ function MPS(ig::MetaGraph, control::MPSControl, type::Symbol)
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
+    dβ = control.dβ
+    β = control.β
     @info "Set control parameters for MPS" Dcut tol max_sweeps
-    dβ = get_prop(ig, :dβ)
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
 
     @info "Preparing Hadamard state as MPS"

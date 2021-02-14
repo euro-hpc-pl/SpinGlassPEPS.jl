@@ -8,19 +8,16 @@ N = L^2
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
-set_prop!(ig, :β, 1.) #rand(Float64))
 r = fill(2, N)
 set_prop!(ig, :rank, r)
-set_prop!(ig, :dβ, 0.001)
-
-ϵ = 1E-5
+dβ = 0.01
+β = 1
+ϵ = 1E-4
 D = 16
 var_ϵ = 1E-8
 sweeps = 40
 type1 = :log
 type2 = :lin
-β = [get_prop(ig, :β)]
-dβ = [get_prop(ig, :dβ)] 
 control = MPSControl(D, var_ϵ, sweeps, β, dβ) 
 
 states = all_states(get_prop(ig, :rank))
