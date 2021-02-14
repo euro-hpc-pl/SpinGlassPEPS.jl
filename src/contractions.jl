@@ -49,7 +49,7 @@ function left_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     L
 end
 
-@memoize function left_env(ϕ::AbstractMPS, σ::Union{Vector, NTuple})
+@memoize function left_env(ϕ::AbstractMPS, σ::Vector{Int})
     l = length(σ)
     if l == 0
         L = [1.]
@@ -62,7 +62,7 @@ end
     L
 end
 
-@memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, σ::Union{Vector, NTuple})
+@memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, σ::Vector{Int})
     l = length(σ)
     k = length(ϕ)
     if l == 0

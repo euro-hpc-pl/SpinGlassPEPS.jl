@@ -124,7 +124,8 @@ end
     cfg::Dict{Int, Int} = Dict{Int, Int}(),
     )
     if i > peps.i_max return MPS(I) end
-    W, ψ = MPO(peps, i, cfg), MPS(peps, i+1, cfg)
+    W = MPO(peps, i, cfg)
+    ψ = MPS(peps, i+1, cfg)
     compress(W * ψ, peps)
 end
 
@@ -136,19 +137,19 @@ function contract_network(
     prod(dropdims(ψ))[]
 end
 
-function _get_coordinates(
+@inline function _get_coordinates(
     peps::PepsNetwork,
     k::Int
     )
     ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
 end
 
-function _get_local_state(
+@inline function _get_local_state(
     peps::PepsNetwork,
-    v::Union{Vector{Int}, NTuple{N, Int}}, 
+    v::Vector{Int}, 
     i::Int, 
     j::Int,
-    ) where {N}
+    ) 
     k = peps.j_max * (i - 1) + j
     if k > length(v) || k <= 0 return 1 end
     v[k]
@@ -156,11 +157,10 @@ end
 
 function _get_boundary(
     peps::PepsNetwork, 
-    v::Union{Vector{Int}, NTuple{N, Int}}, 
+    v::Vector{Int}, 
     i::Int, 
     j::Int,
-    ) where {N}
-
+    ) 
     ∂v = zeros(Int, peps.j_max + 1)
 
     # on the left below
@@ -190,7 +190,7 @@ function _get_boundary(
     ∂v
 end
 
-function _contract(
+@inline function _contract(
     A::Array{T, 5},
     M::Array{T, 3},
     L::Vector{T}, 
@@ -205,7 +205,7 @@ function _contract(
     prob
 end
 
-function _normalize_prob(prob::Vector{T}) where {T <: Number}
+function _normalize_probability(prob::Vector{T}) where {T <: Number}
     # exceptions (negative pdo, etc) 
     # will be added here later
     prob / sum(prob)
@@ -213,9 +213,8 @@ end
 
 function conditional_probability(
     peps::PepsNetwork,
-    v::Union{Vector{Int}, NTuple{N, Int}},
-    ) where {N}
-
+    v::Vector{Int},
+    ) 
     i, j = _get_coordinates(peps, length(v)+1)
     ∂v = _get_boundary(peps, v, i, j)
 
@@ -227,6 +226,6 @@ function conditional_probability(
     A = generate_tensor(peps, i, j)
  
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
-    _normalize_prob(prob) 
+    _normalize_probability(prob) 
 end
 
