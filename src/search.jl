@@ -1,3 +1,6 @@
+#=
+# This is the most general (still semi-sudo-code) of the search function.
+# 
 export search
 
 function merge(model, partial_sol, partial_eng)
@@ -40,3 +43,4 @@ function search(model, k)
     
     eng, sol, prob, lpCut
 end
+=#
