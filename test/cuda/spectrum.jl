@@ -7,19 +7,17 @@ N = L^2
 instance = "$(@__DIR__)/../instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
-set_prop!(ig, :β, 1.)
 r = fill(2, N)
 set_prop!(ig, :rank, r)
-set_prop!(ig, :dβ, 0.01)
+dβ = 0.01
+β = 1
 
 sgn = -1.
 ϵ = 1E-6
 D = prod(r) + 1
 var_ϵ = 1E-8
 sweeps = 4
-schedule = [get_prop(ig, :β)]
-dβ = [get_prop(ig, :dβ)]
-control = MPSControl(D, var_ϵ, sweeps, schedule, dβ) 
+control = MPSControl(D, var_ϵ, sweeps, β, dβ) 
 
 states = all_states(get_prop(ig, :rank))
 ϱ = cu(gibbs_tensor(ig))
@@ -29,7 +27,6 @@ states = all_states(get_prop(ig, :rank))
 
     @testset "Exact Gibbs pure state (MPS)" begin
         L = nv(ig)
-        β = get_prop(ig, :β)
         rank = get_prop(ig, :rank)
 
         @info "Generating Gibbs state - |ρ>" L rank β ϵ
@@ -98,32 +95,25 @@ states = all_states(get_prop(ig, :rank))
             sp = brute_force(ig, num_states = max_states)
 
             @info "The largest discarded probability" pCut
+
+            eng = zeros(length(prob))
       
             for (j, (p, e)) ∈ enumerate(zip(prob, sp.energies))
-                σ = states[:, j]
-                @test Array(ϱ)[idx.(σ)...] ≈ p
-                @test abs(energy(σ, ig) - e) < ϵ
+                σ = states[j, :]
+                eng[j] = energy(σ, ig)
+                @test log(Array(ϱ)[idx.(σ)...]) ≈ p
             end
 
-            @info "Testing spectrum_new"
-            states_new, prob_new, pCut_new = solve_new(rψ, max_states)            
-
-            eng_new = zeros(length(prob_new))
-            for (j, p) ∈ enumerate(prob_new)
-                σ = states_new[j, :]
-                eng_new[j] = energy(σ, ig)
-            end
-            
-            perm = partialsortperm(eng_new, 1:max_states)
-            eng_new = eng_new[perm]
-            states_new = states_new[perm, :]
-            prob_new = prob_new[perm]
-            state = states_new[1, :]
-            @info "The largest discarded probability" pCut_new
-            @test maximum(prob_new) > pCut_new
+            perm = partialsortperm(eng, 1:max_states)
+            eng = eng[perm]
+            states = states[perm, :]
+            prob = prob[perm]
+            state = states[1, :]
+            @info "The largest discarded probability" pCut
+            @test maximum(prob) > pCut
             @info "State with the lowest energy" state
-            @info "Probability of the state with the lowest energy" prob_new[1]
-            @info "The lowest energy" eng_new[1]
+            @info "Probability of the state with the lowest energy" prob[1]
+            @info "The lowest energy" eng[1]
            
         end
 

@@ -6,9 +6,29 @@ struct MPSControl
     max_bond::Int
     var_ϵ::Number
     max_sweeps::Int
-    β::Vector 
-    dβ::Vector
+    β::Number 
+    dβ::Number 
 end
+
+#= it will be used instead of MPSControl
+function _set_control_parameters(
+    args_override::Dict{String, Number}=Dict{String, Number}()
+    )
+    args = Dict(
+        "max_bond" => typemax(Int),
+        "var_ϵ" => 1E-8,
+        "max_sweeps" => 4.,
+        "β" => 1.,
+        "dβ" => 0.01
+    )
+    for k in keys(args_override)
+        str = get(args_override, k, nothing)
+        if str !== nothing push!(args, str) end
+    end
+    args
+end
+=#
+
 
 _make_left_env(ψ::AbstractMPS, k::Int) = ones(eltype(ψ), 1, 1, k)
 _make_left_env_new(ψ::AbstractMPS, k::Int) = ones(eltype(ψ), 1, k)
@@ -16,59 +36,60 @@ _make_LL(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, b, k, d
 _make_LL_new(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, k, d)
 
 # ρ needs to be ∈ the right canonical form
-function solve(ψ::AbstractMPS, keep::Int)
-    @assert keep > 0 "Number of states has to be > 0"
-    T = eltype(ψ)
+# function solve(ψ::AbstractMPS, keep::Int)
+#     @assert keep > 0 "Number of states has to be > 0"
+#     T = eltype(ψ)
 
-    keep_extra = keep
-    pCut = prob = 0.
-    k = 1
+#     keep_extra = keep
+#     pCut = prob = 0.
+#     k = 1
 
-    if keep < prod(rank(ψ))
-        keep_extra += 1
-    end
+#     if keep < prod(rank(ψ))
+#         keep_extra += 1
+#     end
 
-    states = fill([], 1, k)
-    left_env = _make_left_env(ψ, k)
+#     states = fill([], 1, k)
+#     left_env = _make_left_env(ψ, k)
 
-    for (i, M) ∈ enumerate(ψ)
-        _, d, b = size(M)
+#     for (i, M) ∈ enumerate(ψ)
+#         _, d, b = size(M)
 
-        pdo = zeros(T, k, d)
-        LL = _make_LL(ψ, b, k, d)
-        config = zeros(Int, i, k, d)
+#         pdo = zeros(T, k, d)
+#         LL = _make_LL(ψ, b, k, d)
+#         config = zeros(Int, i, k, d)
 
-        for j ∈ 1:k
-            L = left_env[:, :, j]
+#         for j ∈ 1:k
+#             L = left_env[:, :, j]
 
-            for σ ∈ local_basis(d)
-                m = idx(σ)
-                LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
-                pdo[j, m] = tr(LL[:, :, j, m])
-                config[:, j, m] = vcat(states[:, j]..., σ)
-            end
-        end
+#             for σ ∈ local_basis(d)
+#                 m = idx(σ)
+#                 LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
+#                 pdo[j, m] = tr(LL[:, :, j, m])
+#                 config[:, j, m] = vcat(states[:, j]..., σ)
+#             end
+#         end
 
-        perm = collect(1: k * d)
-        k = min(k * d, keep_extra)
+#         perm = collect(1: k * d)
+#         k = min(k * d, keep_extra)
 
-        if k >= keep_extra
-            partialsortperm!(perm, vec(pdo), 1:k, rev=true)
-            prob = vec(pdo)[perm]
-            pCut < last(prob) ? pCut = last(prob) : ()
-        end
+#         if k >= keep_extra
+#             partialsortperm!(perm, vec(pdo), 1:k, rev=true)
+#             prob = vec(pdo)[perm]
+#             pCut < last(prob) ? pCut = last(prob) : ()
+#         end
 
-        @cast A[α, β, (l, d)] |= LL[α, β, l, d]
-        left_env = A[:, :, perm]
+#         @cast A[α, β, (l, d)] |= LL[α, β, l, d]
+#         left_env = A[:, :, perm]
 
-        @cast B[α, (l, d)] |= config[α, l, d]
-        states = B[:, perm]
-    end
-    states[:, 1:keep], prob[1:keep], pCut
-end
+#         @cast B[α, (l, d)] |= config[α, l, d]
+#         states = B[:, perm]
+#     end
+#     states[:, 1:keep], prob[1:keep], pCut
+# end
+
 
 # ρ needs to be ∈ the right canonical form
-function solve_new(ψ::AbstractMPS, keep::Int) 
+function solve(ψ::AbstractMPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
 
@@ -180,7 +201,6 @@ function multiply_purifications(χ::T, ϕ::T, L::Int) where {T <: AbstractMPS}
         ψ[i] = B
     end
     ψ
-
 end
 
 _holes(l::Int, nbrs::Vector) = setdiff(l+1 : last(nbrs), nbrs)
@@ -225,13 +245,9 @@ function MPS(ig::MetaGraph, control::MPSControl)
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
-    schedule = control.β
+    schedule = control.β 
     @info "Set control parameters for MPS" Dcut tol max_sweeps
-
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
-
-    @assert β ≈ sum(schedule) "Incorrect β schedule."
 
     @info "Preparing Hadamard state as MPS"
     ρ = HadamardMPS(rank)
@@ -248,9 +264,9 @@ function MPS(ig::MetaGraph, control::MPSControl, type::Symbol)
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
+    dβ = control.dβ
+    β = control.β
     @info "Set control parameters for MPS" Dcut tol max_sweeps
-    dβ = get_prop(ig, :dβ)
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
 
     @info "Preparing Hadamard state as MPS"

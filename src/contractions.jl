@@ -1,8 +1,8 @@
 export left_env, right_env, dot!
 
-# --------------------------- Conventions ------------------------
-#
-#      MPS          MPS*         MPO       left env      left env
+# --------------------------- Conventions -----------------------
+#                                                                 
+#      MPS          MPS*         MPO       left env     right env
 #       2            2            2           - 1          2 -
 #   1 - A - 3    1 - B - 3    1 - W - 3      L               R
 #                                 4           - 2          1 -
@@ -49,12 +49,11 @@ function left_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     L
 end
 
-@memoize function left_env(ϕ::AbstractMPS, σ::Union{Vector, NTuple})
+@memoize function left_env(ϕ::AbstractMPS, σ::Vector{Int})
     l = length(σ)
     if l == 0
         L = [1.]
     else
-        #m = idx(σ[l])
         m = σ[l]
         L̃ = left_env(ϕ, σ[1:l-1])
         M = ϕ[l]
@@ -88,7 +87,6 @@ end
     if l == 0
         R = ones(1, 1)
     else
-        #m = idx(σ[1])
         m = σ[1]
         R̃ = right_env(ϕ, W, σ[2:l])
         M = ϕ[k-l+1]

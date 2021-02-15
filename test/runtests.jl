@@ -38,15 +38,15 @@ push!(my_tests,
     "ising.jl",
     "indexing.jl",
     "searchMPS.jl",
-    "spectrum.jl",
-    "graph.jl",
+    "MPS_search.jl",
+    "factor.jl",
     "PEPS.jl",
-    "testing_probabilities_short.jl",
-    "testing_probabilities.jl",
+    #"testing_probabilities_short.jl", # to be removed
+    #"testing_probabilities.jl", # to be removed
     "contract.jl",
     "indexing.jl",
-    "notation_tests.jl",
-    "peps_tests.jl"
+    #"notation_tests.jl", # to be removed
+    #"peps_tests.jl" # to be removed
 )
 
 for my_test in my_tests

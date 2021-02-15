@@ -8,19 +8,16 @@ N = L^2
 instance = "$(@__DIR__)/instances/$(N)_001.txt"  
 
 ig = ising_graph(instance, N)
-set_prop!(ig, :β, 1.) #rand(Float64))
 r = fill(2, N)
 set_prop!(ig, :rank, r)
-set_prop!(ig, :dβ, 0.001)
-
-ϵ = 1E-5
+dβ = 0.01
+β = 1
+ϵ = 1E-4
 D = 16
 var_ϵ = 1E-8
 sweeps = 40
 type1 = :log
 type2 = :lin
-β = [get_prop(ig, :β)]
-dβ = [get_prop(ig, :dβ)] 
 control = MPSControl(D, var_ϵ, sweeps, β, dβ) 
 
 states = all_states(get_prop(ig, :rank))
@@ -43,9 +40,9 @@ states = all_states(get_prop(ig, :rank))
 
     for max_states ∈ [1, N, 2*N, N^2]
         @info "Testing spectrum_new"
-        states_new1, prob_new1, pCut_new1 = solve_new(rψ1, max_states)   
-        states_new2, prob_new2, pCut_new2 = solve_new(rψ2, max_states)
-        states_new3, prob_new3, pCut_new3 = solve_new(rψ3, max_states)         
+        states_new1, prob_new1, pCut_new1 = solve(rψ1, max_states)   
+        states_new2, prob_new2, pCut_new2 = solve(rψ2, max_states)
+        states_new3, prob_new3, pCut_new3 = solve(rψ3, max_states)         
 
         for st ∈ states_new1
             @test st ∈ states_new2
@@ -106,7 +103,6 @@ states = all_states(get_prop(ig, :rank))
         elseif state1 == state3
             @test eng_new1[1] == eng_new3[1]
         end
-
 
     end
 end

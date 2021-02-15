@@ -12,17 +12,6 @@ Mq[1,3] = Mq[3,1] = 0.766
 Mq[2,4] = Mq[4,2] = 0.566
 Mq[3,4] = Mq[4,3] = 0.460
 
-#=
-@testset "helpers" begin
-    proj = [1. 0.; 0. 1.]
-    mps_el = reshape([1.0*i for i in 1:8], (2,2,2))
-    @test project_spin_from_above(proj, 2, mps_el) == [3. 7.; 4. 8.]
-
-    mpo_el = reshape([1.0*i for i in 1:16], (2,2,2,2))
-    @test project_spin_from_above(proj, 2, mpo_el)[:,:,1] == [3. 11.; 4. 12.]
-    @test project_spin_from_above(proj, 2, mpo_el)[:,:,2] == [7. 15.; 8. 16.]
-end
-=#
  @testset "testing marginal/conditional probabilities" begin
     β = 3.
     g = M2graph(Mq, -1)
@@ -37,7 +26,6 @@ end
         energy=energy,
         spectrum=brute_force,
     )
-
 
     states = collect.(all_states(rank_vec(g)))
     ρ = exp.(-β .* energy.(states, Ref(g)))

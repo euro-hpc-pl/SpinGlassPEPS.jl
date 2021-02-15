@@ -3,7 +3,6 @@ import SpinGlassPEPS: Partial_sol, update_partial_solution, select_best_solution
 import SpinGlassPEPS: conditional_probabs
 import SpinGlassPEPS: energy, solve
 import SpinGlassPEPS: dX_inds, merge_dX
-
 Random.seed!(1234)
 
 
@@ -219,7 +218,6 @@ end
     @test ps1 == [a,b,c,d]
 end
 
-
 Mq = zeros(9,9)
 Mq[1,1] = 1.
 Mq[2,2] = 1.4
@@ -321,7 +319,6 @@ Mq[8,9] = Mq[9,8] = -0.05
         @test spins[i] == spins_s[i]
     end
 end
-
 # TODO chech different types of Float
 #=
 @testset "test an exemple instance on Float32" begin

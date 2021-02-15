@@ -5,45 +5,74 @@ d = 4
 sites = 5
 T = ComplexF64
 
-@testset "Random MPS" begin
+@testset "Random MPS with the same physical dimension" begin
+
     ψ = randn(MPS{T}, sites, D, d)
-    @test verify_bonds(ψ) == nothing
 
-    @test ψ == ψ
-    @test ψ ≈ ψ
+    @testset "has correct number of sites" begin
+        @test length(ψ) == sites 
+        @test size(ψ) == (sites, )      
+    end
+ 
+    @testset "has correct type" begin
+        @test eltype(ψ) == T       
+    end
 
-    @test length(ψ) == sites
-    @test size(ψ) == (sites, )
-    @test eltype(ψ) == ComplexF64
-    @test rank(ψ) == Tuple(fill(d, 1:sites))
-    @test bond_dimension(ψ) ≈ D
+    @testset "has correct rank" begin
+        @test rank(ψ) == Tuple(fill(d, 1:sites))      
+    end
 
-    ϕ = copy(ψ)
-    @test ϕ == ψ
-    @test ϕ ≈ ψ
+    @testset "has correct bonds" begin
+        @test bond_dimension(ψ) ≈ D     
+        @test verify_bonds(ψ) === nothing
+    end
 
-    show(ψ)
+    @testset "is equal to itself" begin
+        @test ψ == ψ
+        @test ψ ≈ ψ
+    end
+
+    @testset "is equal to its copy" begin
+        ϕ = copy(ψ)
+        @test ϕ == ψ
+        @test ϕ ≈ ψ
+    end
+end 
+
+@testset "Random MPS with varying physical dimension" begin
 
     dims = (3, 2, 5, 4)
-    @info "Veryfing ψ of arbitrary rank" dims
-
     ψ = randn(MPS{T}, D, dims)
-    @test verify_bonds(ψ) == nothing
+    
+    @testset "has correct number of sites" begin
+        n = length(dims)
+        @test length(ψ) == n
+        @test size(ψ) == (n, )      
+    end
+ 
+    @testset "has correct type" begin
+        @test eltype(ψ) == T       
+    end
 
-    @test ψ == ψ
-    @test ψ ≈ ψ
+    @testset "has correct rank" begin
+        @test rank(ψ) == dims      
+    end
 
-    @test length(ψ) == length(dims)
-    @test size(ψ) == (length(dims), )
-    @test eltype(ψ) == ComplexF64
-    @test rank(ψ) == dims
-    @test bond_dimension(ψ) ≈ D
+    @testset "has correct bonds" begin
+        @test bond_dimension(ψ) ≈ D     
+        @test verify_bonds(ψ) === nothing
+    end
 
-    ϕ = copy(ψ)
-    @test ϕ == ψ
-    @test ϕ ≈ ψ
+    @testset "is equal to itself" begin
+        @test ψ == ψ
+        @test ψ ≈ ψ
+    end
 
-    show(ψ)
+    @testset "is equal to its copy" begin
+        ϕ = copy(ψ)
+        @test ϕ == ψ
+        @test ϕ ≈ ψ
+    end
 end
 
 @testset "Random MPO" begin
@@ -85,7 +114,6 @@ end
     @test_nowarn verify_bonds(ψ)
     @test_nowarn verify_physical_dims(ψ, dims)
     @test is_right_normalized(ψ)
-    show(ψ)
 
     AA = tensor(ψ)
 
@@ -105,7 +133,6 @@ end
     @test_nowarn verify_bonds(ϕ)
     @test_nowarn verify_physical_dims(ϕ, dims)
     @test is_left_normalized(ϕ)
-    show(ϕ)
 
     BB = tensor(ϕ)
 
