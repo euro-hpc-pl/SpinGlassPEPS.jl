@@ -11,10 +11,7 @@ function CuMPS(ig::MetaGraph, control::MPSControl)
     schedule = control.β
     @info "Set control parameters for MPS" Dcut tol max_sweeps
 
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
-
-    @assert β ≈ sum(schedule) "Incorrect β schedule."
 
     @info "Preparing Hadamard state as MPS"
     ρ = CuMPS(HadamardMPS(Float32, rank))
@@ -31,9 +28,9 @@ function CuMPS(ig::MetaGraph, control::MPSControl, type::Symbol)
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
+    dβ = control.dβ
+    β = control.β
     @info "Set control parameters for MPS" Dcut tol max_sweeps
-    dβ = get_prop(ig, :dβ)
-    β = get_prop(ig, :β)
     rank = get_prop(ig, :rank)
 
     @info "Preparing Hadamard state as MPS"
