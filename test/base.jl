@@ -75,25 +75,56 @@ end
     end
 end
 
-@testset "Random MPO" begin
-    O = randn(MPO{T}, sites, D, d)
+@testset "Random MPO with the same physical dimension" begin
 
-    @test O == O
-    @test O ≈ O
+    W = randn(MPO{T}, sites, D, d)
 
-    @test length(O) == sites
-    @test size(O) == (sites, )
-    @test eltype(O) == ComplexF64
+    @testset "has correct number of sites" begin
+        @test length(W) == sites 
+        @test size(W) == (sites, )      
+    end
+ 
+    @testset "has correct type" begin
+        @test eltype(W) == T       
+    end
 
-    P = copy(O)
-    @test P == O
-    @test P ≈ O
+    @testset "is equal to itself" begin
+        @test W == W
+        @test W ≈ W
+    end
 
-    ψ1 = MPS(O)
+    @testset "is equal to its copy" begin
+        U = copy(W)
+        @test U == W
+        @test U ≈ W
+    end
+end 
 
-    @cast A[a, (i,j), y] := O[1][a,i,y,j]
-    @test ψ1[1] ≈ A
+@testset "Random MPO with varying physical dimension" begin
 
+    dims = (3, 2, 5, 4)
+    W = randn(MPO{T}, D, dims)
+    
+    @testset "has correct number of sites" begin
+        n = length(dims)
+        @test length(W) == n
+        @test size(W) == (n, )      
+    end
+ 
+    @testset "has correct type" begin
+        @test eltype(W) == T       
+    end
+
+    @testset "is equal to itself" begin
+        @test W == W
+        @test W ≈ W
+    end
+
+    @testset "is equal to its copy" begin
+        U = copy(W)
+        @test U == W
+        @test U ≈ W
+    end
 end
 
 @testset "MPS from tensor" begin
@@ -103,11 +134,6 @@ end
     sites = length(dims)
     A = randn(T, dims)
 
-    @test sqrt(sum(abs.(A) .^ 2)) ≈ norm(A)
-
-    @test ndims(A) == sites
-    @test size(A) == dims
-
     ψ = MPS(A, :right)
 
     @test norm(ψ) ≈ 1
@@ -115,6 +141,7 @@ end
     @test_nowarn verify_physical_dims(ψ, dims)
     @test is_right_normalized(ψ)
 
+    # from here - move to the attic
     AA = tensor(ψ)
 
     @test rank(ψ) == size(AA)
