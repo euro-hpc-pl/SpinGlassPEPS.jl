@@ -29,103 +29,72 @@ function update_partial_solution(ps::Partial_sol{T}, s::Int, objective::T) where
     Partial_sol{T}(vcat(ps.spins, [s]), objective)
 end
 
-
-function project_spin_from_above(projector::Array{T,2}, spin::Int64, mps_el::Array{T,3}) where T <: Real
-    @reduce B[a, b] := sum(x) projector[$spin, x] * mps_el[a, x, b]
-    B
-end
-
-function project_spin_from_above(projector::Array{T,2}, spin::Int64, mpo_el::Array{T,4}) where T <: Real
-    @reduce B[a, d, c] := sum(x) projector[$spin, x] * mpo_el[a, x, c, d]
-    B
-end
-
-
 """
 ....
+    conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, mpo::MPO{T}, peps_row::PEPSRow{T}) where T <: Number
 
 
-b_m - boundary mps
-p_r - peps row
+The contraction scheme
+
+mps - boundary mps
+T - 5 mode tensor
 
               physical .
-                         .   upper_right
-                           .  |      |
-    upper_left   from_left-- p_r3 --  p_r4 -- 1
-      |    |                 |      |
-1 --b_m1 --b_m2       --     b_m  -- b_m -- 1
+                         .       upper_right
+                           .  |              |
+    upper_left    from_left-- T --   ... -- mpo_peps.j_max -- 1
+      |    |                  |              |
+1 --mps_1-- mps_2 -- ...--   mps_i-- ... -- mps_peps.j_max -- 1
 """
-function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, peps_row::PEPSRow{T}) where T <: Number
-
+function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, mpo::MPO{T}, peps_row::PEPSRow{T}) where T <: Number
 
     j = length(ps.spins) + 1
     ng = peps.network_graph
     fg = ng.factor_graph
+    mpo1 = copy(mpo)
 
-
-    k = j % peps.j_max
-    if k == 0
-        k = peps.j_max
+    column = j % peps.j_max
+    if column == 0
+        column = peps.j_max
     end
     row = ceil(Int, j/peps.j_max)
-
-    mpo = MPO(peps_row)
 
     # set from above
     # not in last row
     if j > peps.j_max*(peps.i_max-1)
-        spin = [1 for _ in 1:k-1]
+        spin = [1 for _ in 1:column-1]
     else
-        spin = [ps.spins[i] for i in j-k+1:j-1]
+        spin = [ps.spins[i] for i in j-column+1:j-1]
     end
+    proj_u = [projectors(fg, i, i+peps.j_max)[1] for i in j-column+1:j-1]
+    σ = Tuple(findall(l -> l == 1, proj_u[i][spin[i],:])[1] for i in 1:column-1)
+    w1 = left_env(boundary_mps, σ)
 
-    proj_u = [projectors(fg, i, i+peps.j_max)[1] for i in j-k+1:j-1]
-
-
-    BB = [project_spin_from_above(proj_u[i], spin[i], boundary_mps[i]) for i in 1:k-1]
-
-    weight = ones(T, 1,1)
-    if k > 1
-        weight = prod(BB)
-    end
-
-    # set form left
-    if k == 1
-        spin = 1
-    else
-        spin = ps.spins[end]
-    end
-
-    proj_l, _, _ = projectors(fg, j-1, j)
-    @reduce A[d, a, b, c] := sum(x) proj_l[$spin, x] * peps_row[$k][x, a, b, c, d]
-
-    r = j-k+peps.j_max
+    # spinf for right env
+    r = j-column+peps.j_max
     if j <= peps.j_max
-        spin = [1 for _ in j:r]
+        spin_u = [1 for _ in j:r]
     else
-        spin = [ps.spins[i-peps.j_max] for i in j:r]
+        spin_u = [ps.spins[i-peps.j_max] for i in j:r]
     end
-
     proj_u = [projectors(fg, i-peps.j_max, i)[1] for i in j:r]
 
+    σ = Tuple(findall(l -> l == 1, proj_u[i][spin_u[i],:])[1] for i in 2:length(proj_u))
 
-    mpo = mpo[k+1:end]
-    mpo = MPO(vcat([A], mpo))
+    re1 = right_env(boundary_mps, mpo1, σ)
 
+    if column == 1
+        spin_l = 1
+    else
+        spin_l = ps.spins[end]
+    end
+    proj_l, _, _ = projectors(fg, j-1, j)
 
-    CC = [project_spin_from_above(proj_u[i], spin[i], mpo[i]) for i in 1:length(mpo)]
+    ml = findall(l -> l == 1, proj_l[spin_l,:])[1]
+    mu = findall(u -> u == 1, proj_u[1][spin_u[1],:])[1]
+    @reduce P[σ] := sum(v, z, x, y) w1[v] * peps_row[$column][$ml, $mu, x, z, σ] * boundary_mps[$column][v, z, y]*re1[y,x]
 
-    upper_mps = MPS(CC)
-
-    lower_mps = MPS(boundary_mps[k:end])
-
-    re = right_env(lower_mps, upper_mps)[1]
-
-    probs_unnormed = re*transpose(weight)
-
-    objective = probs_unnormed./sum(probs_unnormed)
-
-    dropdims(objective; dims = 2)
+    P./sum(P)
 end
 
 
@@ -201,6 +170,7 @@ function solve(peps::PepsNetwork, no_sols::Int = 2; β::T, χ::Int = typemax(Int
         @info "row of peps = " row
 
         peps_row = PEPSRow(peps, row)
+        mpo = MPO(peps_row)
 
         a = (row-1)*peps.j_max
 
@@ -214,7 +184,7 @@ function solve(peps::PepsNetwork, no_sols::Int = 2; β::T, χ::Int = typemax(Int
             partial_s = merge_dX(partial_s, dX, δH)
             for ps ∈ partial_s
 
-                objectives = conditional_probabs(peps, ps, boundary_mps[row], peps_row)
+                objectives = conditional_probabs(peps, ps, boundary_mps[row], mpo, peps_row)
 
                 for l ∈ eachindex(objectives)
                     new_objectives = ps.objective*objectives[l]

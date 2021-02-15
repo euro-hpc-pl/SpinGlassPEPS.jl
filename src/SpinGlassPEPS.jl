@@ -9,7 +9,7 @@ module SpinGlassPEPS
     using Logging
     using StatsBase
     using Memoize, LRUCache
-    
+
     using DocStringExtensions
     const product = Iterators.product
 
@@ -27,7 +27,6 @@ module SpinGlassPEPS
     include("MPS_search.jl")
     include("notation.jl")
     include("peps_no_types.jl")
-    include("mps_implementation.jl")
 
     function __init__()
         @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" begin
