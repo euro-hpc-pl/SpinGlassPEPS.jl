@@ -35,18 +35,10 @@ function _left_sweep_SVD!(ψ::CuMPS, Dcut::Int=typemax(Int))
 
         # create new 
         d = size(ψ[i], 2)
-        @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
+        VV = conj.(transpose(V)) #hack - @cast does fail with allowscalar and Adjoint type
+        @cast B[x, σ, y] |= VV[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
-end
-
-function _truncate_svd(F::CuSVD, Dcut::Int)
-    U, Σ, V = F
-    c = min(Dcut, size(U, 2))
-    U = U[:, 1:c]
-    Σ = Σ[1:c]
-    V = V[:, 1:c]
-    U, Σ, V
 end
 
 function _left_sweep_var!!(ϕ::CuMPS, env::Vector{<:CuMatrix}, ψ::CuMPS, Dcut::Int)
@@ -67,6 +59,7 @@ function _left_sweep_var!!(ϕ::CuMPS, env::Vector{<:CuMatrix}, ψ::CuMPS, Dcut::
         @cast MM[x, (σ, y)] |= M̃[x, σ, y]
         Q = _truncate_qr(CUDA.qr(MM'), Dcut)'
 
+        Q = CuMatrix(Q) #hack @cast does not work with Adjoint
         d = size(M, 2)
         @cast B[x, σ, y] |= Q[x, (σ, y)] (σ:d)
 
@@ -107,23 +100,11 @@ function _right_sweep_var!!(ϕ::CuMPS, env::Vector{<:CuMatrix}, ψ::CuMPS, Dcut:
         @cutensor LL[x, y] := conj(A[β, σ, x]) * L[β, α] * B[α, σ, y] order = (α, β, σ)
         env[i+1] = LL
     end
-    return real(env[end][1])
-end
-
-function _truncate_qr(F::CuQR, Dcut::Int)
-    Q, R = F
-    Q = CuMatrix(Q)
-    c = min(Dcut, size(Q, 2))
-    Q = Q[:, 1:c]
-    R = R[1:c, :]
-    _qr_fix!(Q, R)
+    return real(tr(env[end]))
 end
 
 function _qr_fix!(Q::CuMatrix, R::CuMatrix)
     d = diag(R)
     ph = d./abs.(d)
-    for i = eachindex(ph)
-        Q[:, i] .*= ph[i]
-    end
-    Q
+    transpose(ph) .* Q
 end

@@ -22,7 +22,7 @@ end
 
 @testset "left environment" begin
     L = left_env(ϕ, ψ)
-    @test L[end][1] ≈ dot(ϕ, ψ)  
+    @test tr(L[end]) ≈ dot(ϕ, ψ)  
 end
 
 @testset "Cauchy-Schwarz inequality" begin
