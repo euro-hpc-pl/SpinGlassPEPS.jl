@@ -7,15 +7,20 @@ T = ComplexF64
 
 ψ = randn(MPS{T}, sites, D, d)
 ϕ = randn(MPS{T}, sites, D, d)
+mpo_ψ = randn(MPO{T}, sites, D, d)
+mpo = randn(MPO{T}, 2, 2, 2)
+
 
 Id = [I(d) for _ ∈ 1:length(ϕ)]
 
+Id_m = MPO([ones(1,1,1,d) for _ ∈ 1:length(ϕ)])
+
 @testset "dot products" begin
-    @test dot(ψ, ψ) ≈ dot(ψ, ψ)  
-    @test dot(ψ, ϕ) ≈ conj(dot(ϕ, ψ)) 
-   
+    @test dot(ψ, ψ) ≈ dot(ψ, ψ)
+    @test dot(ψ, ϕ) ≈ conj(dot(ϕ, ψ))
+
     @test dot(ψ, Id, ϕ) ≈ conj(dot(ϕ, Id, ψ))
-    @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)  
+    @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)
 
     @test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ)))
 
@@ -24,11 +29,37 @@ Id = [I(d) for _ ∈ 1:length(ϕ)]
 
     ϕ[1] *= 1/norm(ϕ)
     @test dot(ϕ, ϕ) ≈ 1
+
+    # dot on mpo
+    mpo1 = dot(mpo, mpo)
+
+    @test size(mpo1[1]) == (1, 2, 4, 2)
+    @test size(mpo1[2]) == (4, 2, 1, 2)
+    for i in 1:2
+        A = mpo[i]
+        @reduce B[(a,b), c, (d,e), f] := sum(x) A[a,c,d,x] * A[b,x,e,f]
+        @test mpo1[i] ≈ B
+    end
+
+    ψ1 = copy(ψ)
+    dot!(ψ, mpo_ψ)
+    for i in 1:length(ψ)
+        A = ψ1[i]
+        B = mpo_ψ[i]
+        @reduce C[(b,a), c, (e,d)] := sum(x) A[a,x,d] * B[b,c,e,x]
+        @test ψ[i] ≈ C
+    end
+
 end
 
 @testset "left environment" begin
     L = left_env(ϕ, ψ)
-    @test L[end][1] ≈ dot(ϕ, ψ)  
+    @test L[end][1] ≈ dot(ϕ, ψ)
+end
+
+@testset "right environment" begin
+    R = right_env(ϕ, ψ)
+    @test R[1][end] ≈ dot(ϕ, ψ)
 end
 
 @testset "Cauchy-Schwarz inequality" begin

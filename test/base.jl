@@ -88,6 +88,12 @@ end
     P = copy(O)
     @test P == O
     @test P ≈ O
+
+    ψ1 = MPS(O)
+
+    @cast A[a, (i,j), y] := O[1][a,i,y,j]
+    @test ψ1[1] ≈ A
+
 end
 
 @testset "MPS from tensor" begin

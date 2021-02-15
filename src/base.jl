@@ -41,7 +41,7 @@ end
 @inline Base.size(a::AbstractTensorNetwork) = (length(a.tensors), )
 @inline Base.eachindex(a::AbstractTensorNetwork) = eachindex(a.tensors)
 
-@inline LinearAlgebra.rank(ψ::MPS) = Tuple(size(A, 2) for A ∈ ψ)
+@inline LinearAlgebra.rank(ψ::AbstractMPS) = Tuple(size(A, 2) for A ∈ ψ)
 
 @inline MPS(A::AbstractArray) = MPS(A, :right)
 @inline MPS(A::AbstractArray, s::Symbol, args...) = MPS(A, Val(s), typemax(Int), args...)
@@ -104,24 +104,6 @@ function _left_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) 
     end
     ψ
 end 
-
-function tensor(ψ::AbstractMPS, state::Union{Vector, NTuple})
-    C = I
-    for (A, σ) ∈ zip(ψ, state)
-        C *= A[:, idx(σ), :]
-    end
-    C[]
-end
-
-function tensor(ψ::AbstractMPS)
-    dims = rank(ψ)
-    Θ = Array{eltype(ψ)}(undef, dims)
-
-    for σ ∈ all_states(dims)
-        Θ[idx.(σ)...] = tensor(ψ, σ)
-    end 
-    Θ    
-end
 
 function MPS(states::Vector{Vector{T}}) where {T <: Number}
     L = length(states)

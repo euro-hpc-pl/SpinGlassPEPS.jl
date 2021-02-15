@@ -23,7 +23,7 @@ T = Float32
         DD = size(A, 3)
 
         @cutensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
-        is_left_normalized *= I(DD) ≈ Id
+        is_left_normalized *= norm(Id - cu(I(DD))) < 1e-5
     end 
 
     @test is_left_normalized 
@@ -40,7 +40,7 @@ end
         DD = size(B, 1)
 
         @cutensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
-        is_right_normalized *= I(DD) ≈ Id
+        is_right_normalized *= norm(Id - cu(I(DD))) < 1e-5
     end 
 
     @test is_right_normalized 

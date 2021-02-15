@@ -12,7 +12,6 @@ Mq[1,3] = Mq[3,1] = 0.766
 Mq[2,4] = Mq[4,2] = 0.566
 Mq[3,4] = Mq[4,3] = 0.460
 
-
  @testset "testing marginal/conditional probabilities" begin
     β = 3.
     g = M2graph(Mq, -1)
@@ -53,7 +52,9 @@ Mq[3,4] = Mq[4,3] = 0.460
     # initialize
     ps = Partial_sol{Float64}(Int[], 0.)
 
-    obj1 = conditional_probabs(peps, ps, boundary_mps[1])
+    peps_row = PEPSRow(peps, 1)
+
+    obj1 = conditional_probabs(peps, ps, boundary_mps[1], MPO(peps_row), peps_row)
     _, i = findmax(obj1)
     ps1 = update_partial_solution(ps, i, obj1[i])
 
@@ -61,7 +62,10 @@ Mq[3,4] = Mq[4,3] = 0.460
         @test obj1[i_1] ≈ contract(peps, Dict{Int, Int}(1 => i_1))/z
     end
 
-    obj2 = conditional_probabs(peps, ps1, boundary_mps[2])
+    peps_row = PEPSRow(peps, 2)
+
+
+    obj2 = conditional_probabs(peps, ps1, boundary_mps[2], MPO(peps_row), peps_row)
     obj2 = obj1[i].*obj2
     _, j = findmax(obj2)
     ps2 = update_partial_solution(ps1, j, obj2[j])

@@ -9,7 +9,7 @@ module SpinGlassPEPS
     using Logging
     using StatsBase
     using Memoize, LRUCache
-    
+
     using DocStringExtensions
     const product = Iterators.product
 
@@ -27,7 +27,6 @@ module SpinGlassPEPS
     include("MPS_search.jl")
     include("notation.jl")
     include("peps_no_types.jl")
-    include("mps_implementation.jl")
 
     function __init__()
         @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" begin
@@ -37,11 +36,22 @@ module SpinGlassPEPS
                 const CuMatrix = CUDA.CuMatrix
                 const CuSVD = CUDA.CUSOLVER.CuSVD
                 const CuQR = CUDA.CUSOLVER.CuQR
-                # scalar indexing is fine before 0.2
-                # CUDA.allowscalar(false)
+                const cu = CUDA.cu
+                using CUDA
+                # const cuda = CUDA.@cuda
+
+                CUDA.allowscalar(false)
+
+                @inline function cudiv(x::Int)
+                    max_threads = 256
+                    threads_x = min(max_threads, x)
+                    threads_x, ceil(Int, x/threads_x)
+                end
                 include("cuda/base.jl")
+                include("cuda/utils.jl")
                 include("cuda/contractions.jl")
                 include("cuda/compressions.jl")
+                include("cuda/spectrum.jl")
             end
         end
     end

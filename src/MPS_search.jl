@@ -30,64 +30,66 @@ end
 =#
 
 
-# ρ needs to be ∈ the right canonical form
-#=
-function solve(ψ::MPS, keep::Int)
-    @assert keep > 0 "Number of states has to be > 0"
-    T = eltype(ψ)
-
-    keep_extra = keep
-    pCut = prob = 0.
-    k = 1
-
-    if keep < prod(rank(ψ))
-        keep_extra += 1
-    end
-
-    states = fill([], 1, k)
-    left_env = ones(T, 1, 1, k)
-
-    for (i, M) ∈ enumerate(ψ)
-        _, d, b = size(M)
-
-        pdo = zeros(T, k, d)
-        LL = zeros(T, b, b, k, d)
-        config = zeros(Int, i, k, d)
-
-        for j ∈ 1:k
-            L = left_env[:, :, j]
-
-            for σ ∈ local_basis(d)
-                m = idx(σ)
-
-                LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
-                # (@state LL[:, :, j, (σ, )]) = (@state M[:, (σ, ), :]') * (L * (@state M[:, (σ, ), :]))
-                pdo[j, m] = tr(LL[:, :, j, m])
-                config[:, j, m] = vcat(states[:, j]..., σ)
-            end
-        end
-
-        perm = collect(1: k * d)
-        k = min(k * d, keep_extra)
-
-        if k >= keep_extra
-            partialsortperm!(perm, vec(pdo), 1:k, rev=true)
-            prob = vec(pdo)[perm]
-            pCut < last(prob) ? pCut = last(prob) : ()
-        end
-
-        @cast A[α, β, (l, d)] |= LL[α, β, l, d]
-        left_env = A[:, :, perm]
-
-        @cast B[α, (l, d)] |= config[α, l, d]
-        states = B[:, perm]
-    end
-    states[:, 1:keep], prob[1:keep], pCut
-end
-=#
+_make_left_env(ψ::AbstractMPS, k::Int) = ones(eltype(ψ), 1, 1, k)
+_make_left_env_new(ψ::AbstractMPS, k::Int) = ones(eltype(ψ), 1, k)
+_make_LL(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, b, k, d)
+_make_LL_new(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, k, d)
 
 # ρ needs to be ∈ the right canonical form
-function solve(ψ::MPS, keep::Int) 
+# function solve(ψ::AbstractMPS, keep::Int)
+#     @assert keep > 0 "Number of states has to be > 0"
+#     T = eltype(ψ)
+
+#     keep_extra = keep
+#     pCut = prob = 0.
+#     k = 1
+
+#     if keep < prod(rank(ψ))
+#         keep_extra += 1
+#     end
+
+#     states = fill([], 1, k)
+#     left_env = _make_left_env(ψ, k)
+
+#     for (i, M) ∈ enumerate(ψ)
+#         _, d, b = size(M)
+
+#         pdo = zeros(T, k, d)
+#         LL = _make_LL(ψ, b, k, d)
+#         config = zeros(Int, i, k, d)
+
+#         for j ∈ 1:k
+#             L = left_env[:, :, j]
+
+#             for σ ∈ local_basis(d)
+#                 m = idx(σ)
+#                 LL[:, :, j, m] = M[:, m, :]' * (L * M[:, m, :])
+#                 pdo[j, m] = tr(LL[:, :, j, m])
+#                 config[:, j, m] = vcat(states[:, j]..., σ)
+#             end
+#         end
+
+#         perm = collect(1: k * d)
+#         k = min(k * d, keep_extra)
+
+#         if k >= keep_extra
+#             partialsortperm!(perm, vec(pdo), 1:k, rev=true)
+#             prob = vec(pdo)[perm]
+#             pCut < last(prob) ? pCut = last(prob) : ()
+#         end
+
+#         @cast A[α, β, (l, d)] |= LL[α, β, l, d]
+#         left_env = A[:, :, perm]
+
+#         @cast B[α, (l, d)] |= config[α, l, d]
+#         states = B[:, perm]
+#     end
+#     states[:, 1:keep], prob[1:keep], pCut
+# end
+
+
+# ρ needs to be ∈ the right canonical form
+function solve(ψ::AbstractMPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
 
@@ -100,14 +102,14 @@ function solve(ψ::MPS, keep::Int)
     end
     lprob = zeros(T, k)
     states = fill([], 1, k)
-    left_env = ones(T, 1, k)
+    left_env = _make_left_env_new(ψ, k)
 
     for (i, M) ∈ enumerate(ψ)
         _, d, b = size(M)
 
         pdo = ones(T, k, d)
         lpdo = zeros(T, k, d)
-        LL = zeros(T, b, k, d)
+        LL = _make_LL_new(ψ, b, k, d)
         config = zeros(Int, i, k, d)
 
         for j ∈ 1:k
@@ -148,8 +150,8 @@ function _apply_bias!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int)
     d = size(M, 2)
 
     h = get_prop(ig, i, :h)
-    v = [exp(-0.5 * dβ * h * σ) for σ ∈ local_basis(d)]
-
+    
+    v = exp.(-0.5 * dβ * h * local_basis(ψ, i))
     @cast M[x, σ, y] = M[x, σ, y] * v[σ]
     ψ[i] = M
 end
@@ -159,7 +161,7 @@ function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j
     D = I(ψ, i)
 
     J = get_prop(ig, i, j, :J)
-    C = [ exp(-0.5 * dβ * k * J * l) for k ∈ local_basis(ψ, i), l ∈ local_basis(ψ, j) ]
+    C = exp.(-0.5 * dβ * J * local_basis(ψ, i) * local_basis(ψ, j)')
 
     if j == last
         @cast M̃[(x, a), σ, b] := C[x, σ] * M[a, σ, b]
@@ -187,9 +189,9 @@ function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int)
 end
 
 
-function multiply_purifications(χ::AbstractMPS, ϕ::AbstractMPS, L::Int)
-    T = eltype(χ)
-    ψ = MPS(T, L)
+function multiply_purifications(χ::T, ϕ::T, L::Int) where {T <: AbstractMPS}
+    S = promote_type(eltype(χ), eltype(ϕ))
+    ψ = T.name.wrapper(S, L)
 
     for i ∈ 1:L 
         A1 = χ[i]

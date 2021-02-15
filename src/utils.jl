@@ -52,27 +52,19 @@ LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
 local_basis(d::Int) = union(-1, 1:d-1)
 local_basis(ψ::AbstractMPS, i::Int) = local_basis(size(ψ[i], 2))
 
-function proj(state, dims::Union{Vector, NTuple})
-    P = Matrix{Float64}[]
-    for (σ, r) ∈ zip(state, dims)
-        v = zeros(r)
-        v[idx(σ)...] = 1.
-        push!(P, v * v')
-    end
-    P
-end
-
 function all_states(rank::Union{Vector, NTuple})
     basis = [local_basis(r) for r ∈ rank]
     product(basis...)
 end
 
-function HadamardMPS(rank::Union{Vector, NTuple})
-    vec = [ fill(1, r) ./ sqrt(r) for r ∈ rank ]
+function HadamardMPS(::Type{T}, rank::Union{Vector, NTuple}) where {T <: Number}
+    vec = [ fill(one(T), r) ./ sqrt(T(r)) for r ∈ rank ]
     MPS(vec)
 end
+HadamardMPS(rank::Union{Vector, NTuple}) = HadamardMPS(Float64, rank)
 
-HadamardMPS(L::Int) = MPS(fill(2, L))
+HadamardMPS(::Type{T}, L::Int) where {T <: Number} = MPS(fill(T(2), L))
+HadamardMPS(L::Int) = HadamardMPS(Float64, L)
 
 function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int, args...)
     fact = pqrfact(M, rank=Dcut, args...)

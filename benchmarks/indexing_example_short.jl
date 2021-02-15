@@ -76,6 +76,15 @@ end
             spectrum = brute_force
         )
 
+        fg1 = factor_graph(
+            g_ising,
+            1,
+            energy=energy,
+            spectrum = brute_force
+        )
+        println("spectrum length")
+        println(length(props(fg1, 1)[:spectrum].energies))
+
         for origin ∈ (:NW, :SW)
 
             β = 2.
@@ -83,6 +92,11 @@ end
             x, y = m, n
             peps = PepsNetwork(x, y, fg, β, origin)
             pp = PEPSRow(peps, 1)
+            println(pp)
+
+            peps1 = PepsNetwork(x, y, fg1, β, origin)
+            pp1 = PEPSRow(peps1, 1)
+            println(pp1)
 
 
             # the solution without cutting off
@@ -101,7 +115,7 @@ end
 
             # peps solution, first tensor
             Aa1 = pp[1]
-            Aa2 = MPO(pp)[2]
+            Aa2 = MPO(peps, 1)[2]
 
             @reduce A12[l, u, d, uu, rr, dd, σ] |= sum(x) Aa1[l, u, x, d, σ] * Aa2[x, uu, rr, dd]
             A12 = dropdims(A12, dims=(1,2,3,4,5,6))
@@ -188,34 +202,6 @@ end
         Z = sum(ρ)
         @test gibbs_tensor(g_ising, β)  ≈ ρ ./ Z
 
-        for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-
-            peps = PepsNetwork(m, n, fg, β, origin)
-
-            ψ = MPO(PEPSRow(peps, 1))
-
-            for i ∈ 2:peps.i_max
-                W = MPO(PEPSRow(peps, i))
-                M = MPO(peps, i-1, i)
-
-                ψ = (ψ * M) * W
-
-                @test length(W) == peps.j_max
-                for A ∈ ψ @test size(A, 2) == 1 end
-                @test size(ψ[1], 1) == 1 == size(ψ[peps.j_max], 3)
-            end
-            for A ∈ ψ @test size(A, 4) == 1 end
-            #println("ψ ", ψ)
-
-            ZZ = []
-            for A ∈ ψ
-                #println("A ", A)
-                push!(ZZ, dropdims(A, dims=(2, 4)))
-                #println("ZZ ", ZZ)
-            end
-            @test Z ≈ prod(ZZ)[]
-        end
-
 
         origin = :NW
 
@@ -241,7 +227,7 @@ end
         # A2 traced
         # index 1 (left is not trivial)
 
-        Aa2 = MPO(pp)[2]
+        Aa2 = MPO(peps, 1)[2]
 
         # contraction of A1 with A2
         #

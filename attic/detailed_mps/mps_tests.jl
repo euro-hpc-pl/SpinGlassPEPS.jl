@@ -1,7 +1,3 @@
-import SpinGlassPEPS: connections_for_mps, construct_mps
-import SpinGlassPEPS: contract4probability, compute_probs
-import SpinGlassPEPS: solve_mps, M2graph, graph4mps
-
 Random.seed!(1234)
 
 @testset "grouping of connections" begin
@@ -25,7 +21,7 @@ end
     #interactions matrix
     M = [1. 1. 1.; 1. 1. 0.; 1. 0. 1.]
     g = M2graph(M)
-    g = graph4mps(g)
+
     # construct MPS form tha graph of interacion
     mps1 = construct_mps(g, 1., 1, 2, 1e-8)
     #mps modes 1 - left, 3 - right, 2 - physical
@@ -46,8 +42,8 @@ end
 
     # construct form mpo-mps
     g =  make_interactions_case2()
-    g2 = graph4mps(g)
-    mps = construct_mps(g2, β, 2, 4, 0.)
+
+    mps = construct_mps(g, β, 2, 4, 0.)
 
 
     v = ones(1)*mps[1][:,1,:]*mps[2][:,1,:]
@@ -100,8 +96,9 @@ end
 
     peps = PepsNetwork(4, 4, fg, β, :NW)
 
-    spins_peps, _ = solve(g, peps, 10; β = β, χ = 2, threshold = 1e-12, δH = 0.1)
+    sols = solve(peps, 10; β = β, χ = 2, threshold = 1e-12, δH = 0.1)
 
+    spins_peps = return_solution(g, fg, sols)
     for k in 1:10
         #testing exact
         @test spins_exact[k] == spins_peps[k]
