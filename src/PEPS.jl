@@ -18,7 +18,7 @@ function _set_control_parameters(
     args
 end
 
-mutable struct PepsNetwork
+mutable struct PepsNetwork <: AbstractGibbsNetwork
     size::NTuple{2, Int}
     map::Dict
     network_graph::NetworkGraph

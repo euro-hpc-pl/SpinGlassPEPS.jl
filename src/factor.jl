@@ -42,6 +42,8 @@ function factor_graph(
         sp = spectrum(cl, num_states=num_states)
         set_prop!(fg, v, :spectrum, sp)
         set_prop!(fg, v, :loc_en, vec(sp.energies))
+        set_prop!(fg, v, :loc_dim, length(vec(sp.energies)))
+
     end
 
     for i ∈ 1:L, j ∈ i+1:L

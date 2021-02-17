@@ -3,6 +3,8 @@
 # 
 export low_energy_spectrum
 
+abstract type AbstractGibbsNetwork end
+
 mutable struct Solution
     energies::Vector{Float64}
     states::Vector{Vector{Int}}
@@ -17,12 +19,12 @@ function _partition_into_unique(
 end
 
 function _merge(
-     model::Model,
+     network::AbstractGibbsNetwork,
      sol::Solution,
     )
     boundary = zeros(Int, length(sol.states))
     for (i, σ) ∈ enumerate(sol.states)
-        boundary[i] = generate_boundary(model, σ)
+        boundary[i] = generate_boundary(network, σ)
     end
 
     idx = _partition_into_unique(boundary, sol.energies)
@@ -37,24 +39,38 @@ function _sort(
     Solution(sol.energies[perm], sol.states[perm], sol.probabilities[perm])
 end
 
+function _δE(
+    network::AbstractGibbsNetwork
+    σ::Solution.states
+)
+end
+#=
+function _branch_state(network::AbstractGibbsNetwork, state::Vec, i::Int)
+    k = get_prop(network.factor_graph, i, :loc_dim)
+    vcat(repeat(state, 1, length(k)), reshape(k, 1, :))
+end
+=#
+
 function _branch_and_bound!(
     solution::Solution,
-    model::Model, 
+    network::AbstractGibbsNetwork, 
     k::Int,
     )
     # branch
     new = Solution([], [[]], [])
     for (i, σ) ∈ enumerate(solution.states) 
-        pdo = conditional_probability(model, σ)
+        pdo = conditional_probability(network, σ)
 
         push!(new.probabilities, solution.probabilities[i] .* p)
-        push!(new.energies, solution.energies[i] .+ δenergy(model, σ))
-        #broadcast(s -> push!(solution.states[i], s), new.states)
+        push!(new.energies, solution.energies[i] .+ _δE(network, σ))
+        #_branch_state(network, σ, i)
+        k = get_prop(network.factor_graph, i, :loc_dim)
+        broadcast(s -> push!(solution.states[i], s), collect(1:k))
     end
 
     # bound
-    sol = Solution(vec(eng), sol, vec(prob)) 
-    _sort(_merge(model, sol), k)
+    sol = Solution(vec(solution.energies), vec(solution.states), vec(solution.probabilities))
+    _sort(_merge(network, sol), k)
 end
 
 @inline function _largest_discarded_probability!(
@@ -66,14 +82,14 @@ end
 end
 
 function low_energy_spectrum(
-    model::Model, 
+    network::AbstractGibbsNetwork, 
     k::Int
     )
     sol = Solution(zeros(k), fill([], k), zeros(k))
     lpCut = -typemax(Int)
 
-    for v ∈ 1:model.size 
-        _branch_and_bound!(sol, model, k)
+    for v ∈ 1:network.size 
+        _branch_and_bound!(sol, network, k)
         _largest_discarded_probability!(lpCut, sol)
     end
 
