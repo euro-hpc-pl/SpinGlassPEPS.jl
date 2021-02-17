@@ -30,7 +30,6 @@ states = all_states(get_prop(ig, :rank))
     χ = HadamardMPS(rank)
     T = ones(rank...) ./ prod(rank)
 
-    show(χ)
     @test sum(T) ≈ 1
 
     for i ∈ 1:N
@@ -60,9 +59,7 @@ states = all_states(get_prop(ig, :rank))
             end
         end
         
-        show(χ)
         verify_bonds(χ)
-
         @test abs(dot(χ, χ) - sum(T)) < ϵ
     end
 
@@ -156,11 +153,7 @@ end
             states = states[perm, :]
             prob = prob[perm]
             state = states[1, :]
-            @info "The largest discarded probability" pCut
             @test maximum(prob) > pCut
-            @info "State with the lowest energy" state
-            @info "Probability of the state with the lowest energy" prob[1]
-            @info "The lowest energy" eng[1]
 #=
             @info "Testing spectrum_new"
             states_new, prob_new, pCut_new = solve_new(rψ, max_states)            
