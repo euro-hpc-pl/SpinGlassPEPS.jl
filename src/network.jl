@@ -75,14 +75,12 @@ function generate_boundary(
     w::Int, 
     state::Int
     )
-    
     fg = ng.factor_graph
     if v ∉ vertices(fg) return 1 end
 
-    loc_dim = length(get_prop(fg, v, :loc_en))
     pv = _get_projector(fg, v, w)
     if pv === nothing 
-        pv = ones(loc_dim, 1) 
+        pv = ones(get_prop(fg, v, :loc_dim), 1) 
     end
 
     findfirst(x -> x > 0, pv[state, :])
