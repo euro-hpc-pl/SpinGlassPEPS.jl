@@ -1,6 +1,12 @@
-@testset "state indexing" begin
-    σ = (1, -1, -1, 1, 1)
-    d = 2^length(σ)
-    x = rand(2, 2, d)
-    @test (@state x[1, 1, σ]) == x[1, 1, 20]
+@testset "HadamardMPS" begin
+    L = 10
+    ψ = HadamardMPS(L)
+    
+    @testset "Has correct length" begin
+        @test length(ψ) == L
+    end
+
+    @testset "Is normalized" begin
+        @test norm(ψ) ≈ 1.
+    end
 end
