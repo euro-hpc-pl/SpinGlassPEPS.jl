@@ -1,4 +1,4 @@
-#=
+
 # This is the most general (still semi-sudo-code) of the search function.
 # 
 export low_energy_spectrum
@@ -37,19 +37,22 @@ function _sort(
     Solution(sol.energies[perm], sol.states[perm], sol.probabilities[perm])
 end
 
-function _update_solution!(
-    sol::Solution,
+function _branch_and_bound!(
+    solution::Solution,
     model::Model, 
+    k::Int,
     )
-    prob = eng = psol = [] 
+    # branch
+    new = Solution([], [[]], [])
+    for (i, σ) ∈ enumerate(solution.states) 
+        pdo = conditional_probability(model, σ)
 
-    for (i, σ) ∈ enumerate(sol.states)
-        p = conditional_probability(model, σ)
-        push!(prob, sol.probabilities[i] .* p)
-        push!(eng, sol.energies[i] .+ δE(model, σ))
-        # add sol
+        push!(new.probabilities, solution.probabilities[i] .* p)
+        push!(new.energies, solution.energies[i] .+ δenergy(model, σ))
+        #broadcast(s -> push!(solution.states[i], s), new.states)
     end
 
+    # bound
     sol = Solution(vec(eng), sol, vec(prob)) 
     _sort(_merge(model, sol), k)
 end
@@ -70,7 +73,7 @@ function low_energy_spectrum(
     lpCut = -typemax(Int)
 
     for v ∈ 1:model.size 
-        _update_solution!(sol, model)
+        _branch_and_bound!(sol, model, k)
         _largest_discarded_probability!(lpCut, sol)
     end
 
@@ -78,4 +81,3 @@ function low_energy_spectrum(
     sol = Solution(sol.energies[perm], sol.states[perm], sol.probabilities[perm])
     sol, lpCut
 end
-=#
