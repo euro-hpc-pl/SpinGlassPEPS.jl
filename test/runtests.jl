@@ -30,6 +30,8 @@ end
 
 include("test_helpers.jl")
 push!(my_tests,
+"MPS_search.jl"
+#=
     "base.jl",
     "utils.jl",
     "contractions.jl",
@@ -41,10 +43,11 @@ push!(my_tests,
     "MPS_search.jl",
     "factor.jl",
     "PEPS.jl",
+=#
     #"testing_probabilities_short.jl", # to be removed
     #"testing_probabilities.jl", # to be removed
-    "contract.jl",
-    "indexing.jl",
+ #   "contract.jl",
+ #   "indexing.jl",
     #"notation_tests.jl", # to be removed
     #"peps_tests.jl" # to be removed
 )

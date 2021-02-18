@@ -1,6 +1,7 @@
 
 # This is the most general (still semi-sudo-code) of the search function.
 # 
+export AbstractGibbsNetwork
 export low_energy_spectrum
 
 abstract type AbstractGibbsNetwork end
@@ -13,28 +14,32 @@ mutable struct Solution
     new([0.], [[]], [1.], -Inf)
 end
 
-#=
+
 function _partition_into_unique(
     boundary::Vector{Int}, 
     partial_eng::Vector{T}
     ) where {T <: Number}
-
+    
 end
 
+#=
 function _merge(
      network::AbstractGibbsNetwork,
      sol::Solution,
     )
-    boundary = zeros(Int, length(sol.states))
+    boundary = []
     for (i, σ) ∈ enumerate(sol.states)
-        boundary[i] = generate_boundary(network, σ)
+        push!(boundary, generate_boundary(network, σ))
     end
 
     idx = _partition_into_unique(boundary, sol.energies)
-    Solution(sol.energies[idx], sol.states[idx], sol.probabilities[idx])
+    Solution(
+        sol.energies[idx],
+        sol.states[idx], 
+        sol.probabilities[idx],
+        sol.largest_discarded_probability)
 end
 =#
-
 function _δE(
     network::AbstractGibbsNetwork
     σ::Vector{Int}
@@ -66,14 +71,13 @@ function _branch_and_bound(
     Solution(eng[idx], cfg[idx], pdo[idx], lpCut)
 end
 
-
 function low_energy_spectrum(
     network::AbstractGibbsNetwork, 
-    k::Int
+    cut::Int
     )
     sol = Solution()
     for v ∈ 1:nv(network.factor_graph)
-        sol = _branch_and_bound(sol, network, v, k)
+        sol = _branch_and_bound(sol, network, v, cut)
     end
 
     idx = partialsortperm(sol.energies, 1:length(sol.energies), rev=true)
