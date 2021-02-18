@@ -11,11 +11,7 @@ function _set_control_parameters(
         "sweeps" => 4.,
         "β" => 1.
     )
-    for k in keys(args_override)
-        str = get(args_override, k, nothing)
-        if str !== nothing push!(args, str) end
-    end
-    args
+    merge(args, args_override)
 end
 
 mutable struct PepsNetwork

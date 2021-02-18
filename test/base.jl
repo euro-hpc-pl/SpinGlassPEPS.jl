@@ -100,32 +100,32 @@ end
     end
 end 
 
-@testset "Random MPO with varying physical dimension" begin
+# @testset "Random MPO with varying physical dimension" begin
 
-    dims = (3, 2, 5, 4)
-    W = randn(MPO{T}, D, dims)
+#     dims = (3, 2, 5, 4)
+#     W = randn(MPO{T}, D, dims)
     
-    @testset "has correct number of sites" begin
-        n = length(dims)
-        @test length(W) == n
-        @test size(W) == (n, )      
-    end
+#     @testset "has correct number of sites" begin
+#         n = length(dims)
+#         @test length(W) == n
+#         @test size(W) == (n, )      
+#     end
  
-    @testset "has correct type" begin
-        @test eltype(W) == T       
-    end
+#     @testset "has correct type" begin
+#         @test eltype(W) == T       
+#     end
 
-    @testset "is equal to itself" begin
-        @test W == W
-        @test W ≈ W
-    end
+#     @testset "is equal to itself" begin
+#         @test W == W
+#         @test W ≈ W
+#     end
 
-    @testset "is equal to its copy" begin
-        U = copy(W)
-        @test U == W
-        @test U ≈ W
-    end
-end
+#     @testset "is equal to its copy" begin
+#         U = copy(W)
+#         @test U == W
+#         @test U ≈ W
+#     end
+# end
 
 @testset "MPS from tensor" begin
     ϵ = 1E-14
