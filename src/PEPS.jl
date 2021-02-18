@@ -1,5 +1,5 @@
 export PepsNetwork, contract_network
-export MPO, MPS, generate_boundary
+export MPO, MPS, generate_boundary, get_coordinates
 
 function _set_control_parameters(
     args_override::Dict{String, Number}=Dict{String, Number}()
@@ -137,7 +137,7 @@ function contract_network(
     prod(dropdims(ψ))[]
 end
 
-@inline function _get_coordinates(
+@inline function get_coordinates(
     peps::PepsNetwork,
     k::Int
     )
@@ -194,7 +194,7 @@ function generate_boundary(
     peps::PepsNetwork, 
     v::Vector{Int}, 
     ) 
-    i, j = _get_coordinates(peps, length(v)+1)
+    i, j = get_coordinates(peps, length(v)+1)
     generate_boundary(peps, v, i, j)
 end
 
@@ -223,7 +223,7 @@ function conditional_probability(
     peps::PepsNetwork,
     v::Vector{Int},
     ) 
-    i, j = _get_coordinates(peps, length(v)+1)
+    i, j = get_coordinates(peps, length(v)+1)
     ∂v = generate_boundary(peps, v, i, j)
 
     W = MPO(peps, i)

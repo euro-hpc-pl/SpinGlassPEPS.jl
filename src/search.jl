@@ -42,9 +42,20 @@ end
 
 function _δE(
     network::AbstractGibbsNetwork
-    σ::Vector{Vector{Int}}
+    σ::Vector{Int}
+    i::Int, 
+    j::Int,
 )
 end
+
+function _δE(
+    network::AbstractGibbsNetwork
+    σ::Vector{Int}
+    ) 
+    i, j = get_coordinates(network, length(σ)+1)
+    _δE(network, σ, i, j)
+end
+
 #=
 function _branch_state(network::AbstractGibbsNetwork, state::Vec, i::Int)
     k = get_prop(network.factor_graph, i, :loc_dim)
