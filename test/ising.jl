@@ -32,6 +32,31 @@ function _energy(ig::MetaGraph, config::Array)
     eng
 end
 
+@testset "Ising graph cannot be created" begin
+    @testset "if input instance contains vertices of index larger than provided graph size" begin
+        @test_throws ErrorException ising_graph(
+            Dict(
+                (1, 1) => 2.0,
+                (1, 2) => 0.5,
+                (1, 4) => -1.0
+            ),
+            3
+        )
+    end
+
+    @testset "if input instance contains duplicate edges" begin
+        @test_throws ErrorException ising_graph(
+        Dict(
+                (1, 1) => 2.0,
+                (1, 2) => 0.5,
+                (2, 1) => -1.0
+            ),
+            3
+        )
+    end
+end
+
+
 for (instance, source) ∈ (
     ("$(@__DIR__)/instances/example.txt", "file"),
     (
