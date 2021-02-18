@@ -30,22 +30,16 @@ end
 
 include("test_helpers.jl")
 push!(my_tests,
-"MPS_search.jl",
-#=
     "base.jl",
     "utils.jl",
     "contractions.jl",
     "compressions.jl",
     "identities.jl",
     "ising.jl",
-    "indexing.jl",
-    "searchMPS.jl",
     "MPS_search.jl",
     "factor.jl",
     "PEPS.jl",
     "contract.jl",
-    "indexing.jl",
-    =#
 )
 
 for my_test in my_tests
