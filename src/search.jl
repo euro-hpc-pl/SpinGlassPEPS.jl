@@ -11,10 +11,9 @@ mutable struct Solution
     states::Vector{Vector{Int}}
     probabilities::Vector{Float64}
     largest_discarded_probability::Float64
-    new([0.], [[]], [1.], -Inf)
 end
 
-
+#=
 function _partition_into_unique(
     boundary::Vector{Int}, 
     partial_eng::Vector{T}
@@ -22,7 +21,6 @@ function _partition_into_unique(
     
 end
 
-#=
 function _merge(
      network::AbstractGibbsNetwork,
      sol::Solution,
@@ -42,11 +40,11 @@ end
 =#
 
 function _δE(
-    network::AbstractGibbsNetwork
+    network::AbstractGibbsNetwork,
     σ::Vector{Int}
-    ) 
+    )
     i, j = get_coordinates(network, length(σ)+1)
-    _δE(network, σ, i, j)
+    #_δE(network, σ, i, j)
 end
 
 function _branch_and_bound(
@@ -77,7 +75,7 @@ function low_energy_spectrum(
     network::AbstractGibbsNetwork, 
     cut::Int
     )
-    sol = Solution()
+    sol = Solution([0.], [[]], [1.], -Inf)
     for v ∈ 1:nv(network.factor_graph)
         sol = _branch_and_bound(sol, network, v, cut)
     end

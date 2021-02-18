@@ -18,7 +18,7 @@ function _set_control_parameters(
     args
 end
 
-mutable struct PepsNetwork #<: AbstractGibbsNetwork
+mutable struct PepsNetwork <: AbstractGibbsNetwork
     size::NTuple{2, Int}
     map::Dict
     network_graph::NetworkGraph
@@ -188,14 +188,6 @@ function generate_boundary(
             _get_local_state(peps, v, i-1, k))
     end
     ∂v
-end
-
-function generate_boundary(
-    peps::PepsNetwork, 
-    v::Vector{Int}, 
-    ) 
-    i, j = get_coordinates(peps, length(v)+1)
-    generate_boundary(peps, v, i, j)
 end
 
 @inline function _contract(

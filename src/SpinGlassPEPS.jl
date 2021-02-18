@@ -23,6 +23,7 @@ module SpinGlassPEPS
     include("exact.jl")
     include("factor.jl")
     include("network.jl")
+    include("search.jl")
     include("PEPS.jl")
     include("MPS_search.jl")
     include("notation.jl")
