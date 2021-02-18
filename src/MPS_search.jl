@@ -88,18 +88,20 @@ _make_LL_new(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, k, 
 # end
 
 
-# ρ needs to be ∈ the right canonical form
+# ψ needs to be ∈ the right canonical form
 function solve(ψ::AbstractMPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
 
     keep_extra = keep
-    lpCut = -1000
+    lpCut = -1000 # do not like this!
     k = 1
 
+    # this is not elegant
     if keep < prod(rank(ψ))
         keep_extra += 1
     end
+
     lprob = zeros(T, k)
     states = fill([], 1, k)
     left_env = _make_left_env_new(ψ, k)
@@ -120,9 +122,9 @@ function solve(ψ::AbstractMPS, keep::Int)
                 LL[:, j, m] = L' * M[:, m, :]
                 pdo[j, m] = dot(LL[:, j, m], LL[:, j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
-                LL[:, j, m] = LL[:, j, m]/sqrt(pdo[j, m])
+                LL[:, j, m] = LL[:, j, m] / sqrt(pdo[j, m])
             end
-            pdo[j, :] = pdo[j, :]/sum(pdo[j, :])
+            pdo[j, :] = pdo[j, :] / sum(pdo[j, :])
             lpdo[j, :] = log.(pdo[j, :]) .+ lprob[j]
         end
 
