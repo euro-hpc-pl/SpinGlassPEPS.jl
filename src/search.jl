@@ -40,11 +40,13 @@ function _merge(
         sol.largest_discarded_probability)
 end
 =#
+
 function _δE(
     network::AbstractGibbsNetwork
     σ::Vector{Int}
-    )
-
+    ) 
+    i, j = get_coordinates(network, length(σ)+1)
+    _δE(network, σ, i, j)
 end
 
 function _branch_and_bound(
