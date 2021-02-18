@@ -189,13 +189,6 @@ end
 
     E = get_prop(ig, :energy)
 
-    println(ig)
-    println("energy: $E")
-
-    for spin ∈ vertices(ig)
-        println("neighbors of spin $spin are: ", neighbors(ig, spin) )
-    end
-
     @test nv(ig) == N
 
     for i ∈ 1:N
@@ -203,8 +196,6 @@ end
     end
 
     A = adjacency_matrix(ig)
-    display(Matrix{Int}(A))
-    println("   ")
 
     B = zeros(Int, N, N)
     for i ∈ 1:N
@@ -224,10 +215,6 @@ end
         sp = brute_force(ig, num_states=k)
 
         s = 5
-        display(sp.states[1:s])
-        println("   ")
-        display(sp.energies[1:s])
-        println("   ")
 
         @test sp.energies ≈ energy.(sp.states, Ref(ig))
 
