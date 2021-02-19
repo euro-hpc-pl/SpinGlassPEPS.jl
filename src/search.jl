@@ -43,24 +43,28 @@ function _δE(
     ng::NetworkGraph, 
     v::Int, 
     w::Int, 
+    σ::Vector{Int}
     )
     fg = ng.factor_graph
+    loc_en = get_prop(fg, w, v, :loc_en)
 
     if has_edge(fg, w, v) 
-        en = get_prop(fg, w, :cluster).J[w,v] + get_prop(fg, w, :cluster).h[w]
-        return en
+        J = get_prop(fg, w, v, :edg).J
+        return J
     elseif has_edge(fg, v, w)
-        en = get_prop(fg, v, :cluster).J[v,w] + get_prop(fg, v, :cluster).h[v]
-        return en
+        J = get_prop(fg, v, w, :edg).J
+        return J
     else
         return nothing
     end
+    energy(σ, J) + loc_en
 end
 
 _δE(pn::AbstractGibbsNetwork,
     m::NTuple{2, Int},
     n::NTuple{2, Int},
-    ) = _δE(pn.network_graph, pn.map[m], pn.map[n])
+    σ::Vector{Int}
+    ) = _δE(pn.network_graph, pn.map[m], pn.map[n], σ)
 
 function _δE(
     network::AbstractGibbsNetwork,
@@ -68,28 +72,31 @@ function _δE(
     )
     i, j = get_coordinates(network, length(σ)+1)
 
-    δE = zeros(Int, network.j_max + 1)
+    δE = 0
 
     # on the left below
     for k ∈ 1:j-1
-        δE[k] = δE(
+        δE += δE(
             network.network_graph, 
             (i, k), 
-            (i+1, k))
+            (i+1, k)
+            σ)
     end
 
     # on the left at the current row
-    δE[j] = δE(
+    δE = δE + δE(
         network.network_graph, 
         (i, j-1), 
-        (i, j))
+        (i, j),
+        σ)
 
     # on the right above
     for k ∈ j:peps.j_max
-        δE[k+1] = δE(
+        δE += δE(
             network.network_graph,
             (i-1, k), 
-            (i, k))
+            (i, k),
+            σ)
     end
     δE
 end
