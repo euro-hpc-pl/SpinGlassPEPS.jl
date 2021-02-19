@@ -79,7 +79,7 @@ function _δE(
         δE += δE(
             network.network_graph, 
             (i, k), 
-            (i+1, k)
+            (i+1, k),
             σ)
     end
 
