@@ -39,61 +39,6 @@ function _merge(
 end
 =#
 
-function _δE(
-    ng::NetworkGraph, 
-    v::Int, 
-    w::Int, 
-    )
-    fg = ng.factor_graph
-
-    if has_edge(fg, w, v) 
-        en = get_prop(fg, w, :cluster).J[w,v] + get_prop(fg, w, :cluster).h[w]
-        return en
-    elseif has_edge(fg, v, w)
-        en = get_prop(fg, v, :cluster).J[v,w] + get_prop(fg, v, :cluster).h[v]
-        return en
-    else
-        return nothing
-    end
-end
-
-_δE(pn::AbstractGibbsNetwork,
-    m::NTuple{2, Int},
-    n::NTuple{2, Int},
-    ) = _δE(pn.network_graph, pn.map[m], pn.map[n])
-
-function _δE(
-    network::AbstractGibbsNetwork,
-    σ::Vector{Int}
-    )
-    i, j = get_coordinates(network, length(σ)+1)
-
-    δE = zeros(Int, network.j_max + 1)
-
-    # on the left below
-    for k ∈ 1:j-1
-        δE[k] = δE(
-            network.network_graph, 
-            (i, k), 
-            (i+1, k))
-    end
-
-    # on the left at the current row
-    δE[j] = δE(
-        network.network_graph, 
-        (i, j-1), 
-        (i, j))
-
-    # on the right above
-    for k ∈ j:peps.j_max
-        δE[k+1] = δE(
-            network.network_graph,
-            (i-1, k), 
-            (i, k))
-    end
-    δE
-end
-
 function _branch_and_bound(
     sol::Solution,
     network::AbstractGibbsNetwork, 
