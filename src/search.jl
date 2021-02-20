@@ -1,8 +1,6 @@
-
-# This is the most general (still semi-sudo-code) of the search function.
-# 
 export AbstractGibbsNetwork
 export low_energy_spectrum
+export Solution
 
 abstract type AbstractGibbsNetwork end
 
