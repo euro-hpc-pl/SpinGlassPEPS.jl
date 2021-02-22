@@ -137,3 +137,5 @@ function make_interactions_case2(T::Type = Float64)
 
     ising_graph(D, L)
 end
+
+enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))

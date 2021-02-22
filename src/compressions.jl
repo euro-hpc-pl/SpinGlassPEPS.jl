@@ -28,7 +28,7 @@ function _right_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
         U, Σ, V = svd(M̃, Dcut)
 
         # create new
-        d = size(ψ[i], 2)
+        d = physical_dim(ψ, i)
         @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
         ψ[i] = A
     end
@@ -49,7 +49,7 @@ function _left_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
         U, Σ, V = svd(M̃, Dcut)
 
         # create new
-        d = size(ψ[i], 2)
+        d = physical_dim(ψ, i)
         @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
