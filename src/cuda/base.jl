@@ -14,7 +14,7 @@ for (T, N) ∈ ((:MPO, 4), (:MPS, 3))
         Base.copy(a::$CuT) = $CuT(copy(a.tensors))
 
         $T(A::$CuT) = $T([Array(arr) for arr in A.tensors])
-        $CuT(A::$T) = $CuT([Array(arr) for arr in A.tensors])
+        $CuT(A::$T) = $CuT([cu(arr) for arr in A.tensors])
     end
 end
 @inline CuMPS(A::AbstractArray) = CuMPS(cu(A), :right)
@@ -87,3 +87,5 @@ function _truncate_qr(F::CuQR, Dcut::Int)
     R = R[1:c, :]
     _qr_fix!(Q, R)
 end
+
+LinearAlgebra.svd(M::CuMatrix, Dcut::Int, args...) = _truncate_svd(CUDA.svd(M), Dcut)
