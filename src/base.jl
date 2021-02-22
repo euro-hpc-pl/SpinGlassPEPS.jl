@@ -171,7 +171,8 @@ function _right_sweep_SVD(::Type{T}, A::AbstractArray, Dcut::Int=typemax(Int), a
         d = size(A, i)
 
         # reshape
-        @cast M[(x, σ), y] |= V'[x, (σ, y)] (σ:d)
+        VV = conj.(transpose(V))
+        @cast M[(x, σ), y] |= VV[x, (σ, y)] (σ:d)
 
         # decompose
         U, Σ, V = svd(M, Dcut, args...)
@@ -202,7 +203,8 @@ function _left_sweep_SVD(::Type{T}, A::AbstractArray, Dcut::Int=typemax(Int), ar
         U *= Diagonal(Σ)
 
         # create MPS
-        @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
+        VV = conj.(transpose(V))
+        @cast B[x, σ, y] |= VV[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
     ψ
