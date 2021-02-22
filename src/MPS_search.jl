@@ -178,7 +178,7 @@ function _apply_projector!(ψ::AbstractMPS, i::Int)
     M = ψ[i]
     D = I(physical_dim(ψ, i))
 
-    @cast M̃[a, σ, (σ, b)] := D[σ, y] * M[a, σ, b]
+    @cast M̃[a, σ, (y, b)] := D[σ, y] * M[a, σ, b]
     ψ[i] = M̃
 end
 
