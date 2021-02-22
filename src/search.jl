@@ -68,6 +68,7 @@ function low_energy_spectrum(
     sol = Solution([0.], [[]], [1.], -Inf)
     for v ∈ 1:nv(network.factor_graph)
         sol = _branch_and_bound(sol, network, v, cut)
+        #TODO: incorportae "going back" move to improve alghoritm 
     end
 
     idx = partialsortperm(sol.energies, 1:length(sol.energies), rev=true)
