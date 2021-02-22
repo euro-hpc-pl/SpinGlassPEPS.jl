@@ -9,3 +9,4 @@ results
 docs/build
 **/.DS_Store
 Manifest.toml
+sysimage.so
