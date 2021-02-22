@@ -54,7 +54,7 @@ end
 @inline Base.dropdims(ψ::MPS) = Base.dropdims(ψ, 2)
 
 
-function MPS(states::Vector{Vector{<:Number}})
+function MPS(states::Vector{Vector{T}}) where {T <: Number}
     state_arrays = [reshape(copy(v), (1, length(v), 1)) for v ∈ states]
     MPS(state_arrays)
 end
