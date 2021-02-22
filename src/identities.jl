@@ -1,14 +1,13 @@
 export IdentityMPO, IdentityMPS
 struct IdentityMPS{T <: Number} <: AbstractMPS{T} end
 struct IdentityMPO{T <: Number} <: AbstractMPO{T} end
+IdentityMPS() = IdentityMPS{Float64}()
+IdentityMPO() = IdentityMPO{Float64}()
 
 const IdentityMPSorMPO = Union{IdentityMPO, IdentityMPS}
 
 @inline Base.getindex(::IdentityMPS{T}, ::Int) where {T} = ones(T, 1, 1, 1)
 @inline Base.getindex(::IdentityMPO{T}, ::Int) where {T} = ones(T, 1, 1, 1, 1)
-
-MPS(::UniformScaling{T}) where {T} = IdentityMPS{T}()
-MPO(::UniformScaling{T}) where {T} = IdentityMPO{T}()
 
 LinearAlgebra.dot(O::AbstractMPO, ::IdentityMPO) = O
 LinearAlgebra.dot(::IdentityMPO, O::AbstractMPO) = O
@@ -29,7 +28,7 @@ end
 LinearAlgebra.dot(::IdentityMPO, ψ::AbstractMPS) = ψ
 LinearAlgebra.dot(ψ::AbstractMPS, ::IdentityMPO) = ψ
 
-function Base.show(::IO, ψ::IdentityMPSorMPO)
-    @info "Trivial matrix product state" 
-    println("   ")
+function Base.show(io::IO, ψ::IdentityMPSorMPO)
+    println(io, "Trivial matrix product state")
+    println(io, "   ")
 end
