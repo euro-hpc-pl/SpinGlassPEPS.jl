@@ -54,15 +54,15 @@ end
 @inline Base.dropdims(ψ::MPS) = Base.dropdims(ψ, 2)
 
 
-function MPS(states::Vector{Vector{T}}) where {T <: Number}
+function MPS(states::Vector{Vector{<:Number}})
     state_arrays = [reshape(copy(v), (1, length(v), 1)) for v ∈ states]
     MPS(state_arrays)
 end
 
-function MPO(ψ::MPS)
+function (::Type{T})(ψ::AbstractMPS) where {T <:AbstractMPO}
     _verify_square(ψ)
     L = length(ψ)
-    O = MPO(eltype(ψ), L)
+    O = T(eltype(ψ), L)
 
     for i ∈ 1:L
         A = ψ[i]
@@ -74,9 +74,9 @@ function MPO(ψ::MPS)
     O
 end
 
-function MPS(O::MPO)
+function (::Type{T})(O::AbstractMPO) where {T <:AbstractMPS}
     L = length(O)
-    ψ = MPS(eltype(O), L)
+    ψ = T(eltype(O), L)
 
     for i ∈ 1:L
         W = O[i]

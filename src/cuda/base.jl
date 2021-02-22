@@ -42,40 +42,11 @@ end
 
 CUDA.randn(::Type{CuMPO}, args...) = CUDA.randn(CuMPO{Float32}, args...)
 
-function CuMPS(vec::CuVector{<:Number})
-    L = length(vec)
-    ψ = CuMPS(L)
-    for i ∈ 1:L
-        ψ[i] = reshape(copy(vec[i]), 1, :, 1)
-    end
+function CuMPS(states::Vector{CuVector{<:Number}})
+    state_arrays = [reshape(copy(v), (1, length(v), 1)) for v ∈ states]
+    CuMPS(state_arrays)
 end
 
-function CuMPO(ψ::CuMPS)
-    _verify_square(ψ)
-    L = length(ψ)
-    O = CuMPO(eltype(ψ), L)
-
-    for i ∈ 1:L
-        A = ψ[i]
-        d = isqrt(size(A, 2))
-
-        @cast W[x, σ, y, η] |= A[x, (σ, η), y] (σ:d)
-        O[i] = W
-    end
-    O
-end
-
-function CuMPS(O::CuMPO)
-    L = length(O)
-    ψ = CuMPS(eltype(O), L)
-
-    for i ∈ 1:L
-        W = O[i]
-        @cast A[x, (σ, η), y] := W[x, σ, y, η]
-        ψ[i] = A
-    end
-    return ψ
-end
 
 function is_left_normalized(ψ::CuMPS)
     for i ∈ eachindex(ψ)
