@@ -1,5 +1,5 @@
 
-@testset "LinearIndices correctly assigns indices" begin
+@testset "peps_indices correctly assigns indices" begin
 m = 3
 n = 4
 
@@ -7,8 +7,8 @@ origin_l = [:NW, :NE, :SE, :SW]
 origin_r = [:WN, :EN, :ES, :WS]
 
 for (ol, or) ∈ zip(origin_l, origin_r)
-    ind_l, i_max_l, j_max_l = LinearIndices(m, n, ol)
-    ind_r, i_max_r, j_max_r = LinearIndices(m, n, or)
+    ind_l, i_max_l, j_max_l = peps_indices(m, n, ol)
+    ind_r, i_max_r, j_max_r = peps_indices(m, n, or)
 
     @test i_max_l == m == j_max_r
     @test j_max_l == n == i_max_r
