@@ -108,10 +108,14 @@ function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
     ψ
 end
 
+Base.randn(::Type{MPS}, args...) = randn(MPS{Float64}, args...)
+
 function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
     ψ = randn(MPS{T}, L, D, d^2)
     MPO(ψ)
 end
+
+Base.randn(::Type{MPO}, args...) = randn(MPO{Float64}, args...)
 
 function is_left_normalized(ψ::MPS)
     for i ∈ eachindex(ψ)

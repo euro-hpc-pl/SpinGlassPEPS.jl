@@ -33,10 +33,14 @@ function CUDA.randn(::Type{CuMPS{T}}, L::Int, D::Int, d::Int) where {T}
     ψ
 end
 
+CUDA.randn(::Type{CuMPS}, args...) = CUDA.randn(CuMPS{Float32}, args...)
+
 function CUDA.randn(::Type{CuMPO{T}}, L::Int, D::Int, d::Int) where {T}
     ψ = CUDA.randn(CuMPS{T}, L, D, d^2)
     CuMPO(ψ)
 end
+
+CUDA.randn(::Type{CuMPO}, args...) = CUDA.randn(CuMPO{Float32}, args...)
 
 function CuMPS(vec::CuVector{<:Number})
     L = length(vec)
