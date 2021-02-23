@@ -1,6 +1,7 @@
 export PepsNetwork, contract_network
 export MPO, MPS, generate_boundary, get_coordinates, update_energy
 
+#TODO: use β from this setup  (currently β is passed directely to PepsNetwork)
 function _set_control_parameters(
     args_override::Dict{String, Number}=Dict{String, Number}()
     )
