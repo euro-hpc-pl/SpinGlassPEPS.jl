@@ -239,19 +239,19 @@ _local_energy(pn::AbstractGibbsNetwork,
 
 function update_energy(
     network::AbstractGibbsNetwork,
-    σ::Vector{Int}
+    σ::Vector{Int},
     )
     i, j = get_coordinates(network, length(σ)+1)
-    σ_ij = _get_local_state(network, σ, i, j)
-    σ_i1j = _get_local_state(network, σ, i-1, j)
-    σ_ij1 = _get_local_state(network, σ, i, j-1)
-
-    # on the right above    
-    _bond_energy(network.network_graph, (i, j), (i, j-1), σ_ij, σ_ij1) +
-    _bond_energy(network.network_graph, (i, j), (i-1, j), σ_ij, σ_i1j) + 
-    _local_energy(network.network_graph, (i, j), σ_ij)
     
+    σ_ij = _get_local_state(network, σ, i, j)
+    σ_kj = _get_local_state(network, σ, i-1, j)
+    σ_il = _get_local_state(network, σ, i, j-1)
+   
+    _bond_energy(network.network_graph, (i, j), (i, j-1), σ_ij, σ_il) +
+    _bond_energy(network.network_graph, (i, j), (i-1, j), σ_ij, σ_lj) + 
+    _local_energy(network.network_graph, (i, j), σ_ij)   
 end
+
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)
     @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 

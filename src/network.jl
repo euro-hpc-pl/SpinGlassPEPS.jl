@@ -90,25 +90,24 @@ function bond_energy(
     ng::NetworkGraph, 
     v::Int, 
     w::Int, 
-    σv::Int,
-    σw::Int,
+    σᵥ::Int,
+    σᵤ::Int,
     )
     fg = ng.factor_graph
 
     if has_edge(fg, w, v) 
-        return get_prop(fg, w, v, :edg).J[σw, σv]
+        return get_prop(fg, w, v, :edg).J[σᵤ, σᵥ]
     elseif has_edge(fg, v, w)
-        return get_prop(fg, w, v, :edg).J[σv, σw]
+        return get_prop(fg, w, v, :edg).J[σᵥ, σᵤ]
     else
         return 0.
     end
-  
 end
 
 function loc_energy(
     ng::NetworkGraph, 
     v::Int, 
-    σv::Int
+    σᵥ::Int,
     )
-    get_prop(ng.factor_graph, v, :loc_en)[σv]
+    get_prop(ng.factor_graph, v, :loc_en)[σᵥ]
 end
