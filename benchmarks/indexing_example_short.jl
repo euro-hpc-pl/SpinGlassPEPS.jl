@@ -23,19 +23,7 @@ function make_particular_tensors(D)
     A1ex, A2ex, C
 end
 
-function show_dificult_example(C, fg)
 
-    println("states of T1  ", get_prop(fg, 1, :spectrum).states)
-    println("x")
-    println("states of T2  ", get_prop(fg, 2, :spectrum).states)
-    println("D2, tensor with beta = 1")
-    display(C)
-    println()
-
-    println("D2, tensor with beta = $β")
-    display(C.^β)
-    println()
-end
 
 @testset "Test if the solution of the tensor agreeds with the BF" begin
 

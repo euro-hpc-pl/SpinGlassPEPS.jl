@@ -88,18 +88,20 @@ _make_LL_new(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, k, 
 # end
 
 
-# ρ needs to be ∈ the right canonical form
+# ψ needs to be ∈ the right canonical form
 function solve(ψ::AbstractMPS, keep::Int) 
     @assert keep > 0 "Number of states has to be > 0"
     T = eltype(ψ)
 
     keep_extra = keep
-    lpCut = -1000
+    lpCut = -1000 # do not like this!
     k = 1
 
+    # this is not elegant
     if keep < prod(rank(ψ))
         keep_extra += 1
     end
+
     lprob = zeros(T, k)
     states = fill([], 1, k)
     left_env = _make_left_env_new(ψ, k)
@@ -120,9 +122,9 @@ function solve(ψ::AbstractMPS, keep::Int)
                 LL[:, j, m] = L' * M[:, m, :]
                 pdo[j, m] = dot(LL[:, j, m], LL[:, j, m])
                 config[:, j, m] = vcat(states[:, j]..., σ)
-                LL[:, j, m] = LL[:, j, m]/sqrt(pdo[j, m])
+                LL[:, j, m] = LL[:, j, m] / sqrt(pdo[j, m])
             end
-            pdo[j, :] = pdo[j, :]/sum(pdo[j, :])
+            pdo[j, :] = pdo[j, :] / sum(pdo[j, :])
             lpdo[j, :] = log.(pdo[j, :]) .+ lprob[j]
         end
 
@@ -158,7 +160,7 @@ end
 
 function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j::Int, last::Int)
     M = ψ[j]
-    D = I(ψ, i)
+    D = I(physical_dim(ψ, i))
 
     J = get_prop(ig, i, j, :J)
     C = exp.(-0.5 * dβ * J * local_basis(ψ, i) * local_basis(ψ, j)')
@@ -174,7 +176,7 @@ end
 
 function _apply_projector!(ψ::AbstractMPS, i::Int)
     M = ψ[i]
-    D = I(ψ, i)
+    D = I(physical_dim(ψ, i))
 
     @cast M̃[a, σ, (y, b)] := D[σ, y] * M[a, σ, b]
     ψ[i] = M̃
@@ -182,7 +184,7 @@ end
 
 function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int)
     M = ψ[l]
-    D = I(ψ, i)
+    D = I(physical_dim(ψ, i))
 
     @cast M̃[(x, a), σ, (y, b)] := D[x, y] * M[a, σ, b]
     ψ[l] = M̃

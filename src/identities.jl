@@ -27,6 +27,7 @@ function LinearAlgebra.dot(O::AbstractMPO, ::IdentityMPS)
 end
 
 LinearAlgebra.dot(::IdentityMPO, ψ::AbstractMPS) = ψ
+LinearAlgebra.dot(ψ::AbstractMPS, ::IdentityMPO) = ψ
 
 function Base.show(::IO, ψ::IdentityMPSorMPO)
     @info "Trivial matrix product state" 

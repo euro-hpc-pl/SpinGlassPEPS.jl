@@ -1,5 +1,5 @@
 export bond_dimension, is_left_normalized, is_right_normalized
-export verify_bonds, verify_physical_dims, tensor, rank
+export verify_bonds, verify_physical_dims, tensor, rank, physical_dim
 export State, idMPS
 
 const State = Union{Vector, NTuple}
@@ -42,6 +42,7 @@ end
 @inline Base.eachindex(a::AbstractTensorNetwork) = eachindex(a.tensors)
 
 @inline LinearAlgebra.rank(ψ::AbstractMPS) = Tuple(size(A, 2) for A ∈ ψ)
+@inline physical_dim(ψ::AbstractMPS, i::Int) = size(ψ[i], 2)
 
 @inline MPS(A::AbstractArray) = MPS(A, :right)
 @inline MPS(A::AbstractArray, s::Symbol, args...) = MPS(A, Val(s), typemax(Int), args...)
@@ -194,7 +195,7 @@ end
 
 function verify_physical_dims(ψ::AbstractMPS, dims::NTuple)
     for i ∈ eachindex(ψ)
-        @assert size(ψ[i], 2) == dims[i] "Incorrect physical dim at site $(i)." 
+        @assert physical_dim(ψ, i) == dims[i] "Incorrect physical dim at site $(i)." 
     end     
 end  
 

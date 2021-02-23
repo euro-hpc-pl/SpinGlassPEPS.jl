@@ -1,7 +1,7 @@
 export local_basis
 
 function local_basis(ψ::CuMPS, i::Int)
-    d = size(ψ[i], 2)
+    d = physical_dim(ψ, i)
     ret = CUDA.zeros(Int, d)
     @inline function kernel(ret)
         state = (blockIdx().x-1) * blockDim().x + threadIdx().x
@@ -19,4 +19,4 @@ function local_basis(ψ::CuMPS, i::Int)
     ret
 end
 
-LinearAlgebra.I(ψ::CuMPS, i::Int) = CuMatrix(I(size(ψ[i], 2)))
+LinearAlgebra.I(ψ::CuMPS, i::Int) = CuMatrix(I(physical_dim(ψ, i)))

@@ -109,7 +109,7 @@ states = all_states(get_prop(ig, :rank))
         @testset "Results from solve agree with brute-force" begin
             # The energy is wrong when max_states > N
 
-            for max_states ∈ [1, N] #, 2*N, N^2]  
+            for max_states ∈ [1, N]#, 2*N, N^2]  
                 states, prob, pCut = solve(rψ, max_states)
                 sp = brute_force(ig, num_states = max_states)
                 
