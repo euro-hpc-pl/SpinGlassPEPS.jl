@@ -1,5 +1,5 @@
 export PepsNetwork, contract_network
-export MPO, MPS, generate_boundary, get_coordinates
+export MPO, MPS, generate_boundary, get_coordinates, update_energy
 
 function _set_control_parameters(
     args_override::Dict{String, Number}=Dict{String, Number}()
@@ -229,3 +229,30 @@ function conditional_probability(
     _normalize_probability(prob) 
 end
 
+_bond_energy(pn::AbstractGibbsNetwork,
+    m::NTuple{2, Int},
+    n::NTuple{2, Int},
+    σ::Int,
+    η::Int
+    ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ, η)
+
+_local_energy(pn::AbstractGibbsNetwork,
+    m::NTuple{2, Int},
+    σ::Vector{Int}
+    ) = local_energy(pn.network_graph, pn.map[m], σ)
+
+function update_energy(
+    network::AbstractGibbsNetwork,
+    σ::Vector{Int}
+    )
+    i, j = get_coordinates(network, length(σ)+1)
+    σ_ij = _get_local_state(network, σ, i, j)
+    σ_i1j = _get_local_state(network, σ, i-1, j)
+    σ_ij1 = _get_local_state(network, σ, i, j-1)
+
+    # on the right above    
+    _bond_energy(network.network_graph, (i, j), (i, j-1), σ_ij, σ_ij1) +
+    _bond_energy(network.network_graph, (i, j), (i-1, j), σ_ij, σ_i1j) + 
+    _local_energy(network.network_graph, (i, j), σ_ij)
+    
+end
