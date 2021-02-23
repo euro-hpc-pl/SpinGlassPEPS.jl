@@ -137,7 +137,7 @@ end
     peps::PepsNetwork,
     k::Int,
     )
-    ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
+    Int(ceil(k / peps.j_max)), Int((k - 1) % peps.j_max + 1)
 end
 
 @inline function _get_local_state(
@@ -162,7 +162,7 @@ function generate_boundary(
     # on the left below
     for k ∈ 1:j-1
         ∂v[k] = generate_boundary(
-            peps.network_graph, 
+            peps, 
             (i, k), 
             (i+1, k),
             _get_local_state(peps, v, i, k))
@@ -170,7 +170,7 @@ function generate_boundary(
 
     # on the left at the current row
     ∂v[j] = generate_boundary(
-        peps.network_graph, 
+        peps,
         (i, j-1), 
         (i, j), 
         _get_local_state(peps, v, i, j-1))
@@ -178,7 +178,7 @@ function generate_boundary(
     # on the right above
     for k ∈ j:peps.j_max
         ∂v[k+1] = generate_boundary(
-            peps.network_graph,
+            peps,
             (i-1, k), 
             (i, k), 
             _get_local_state(peps, v, i-1, k))
@@ -219,7 +219,7 @@ function conditional_probability(
 
     L = left_env(ψ, ∂v[1:j-1])
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
-    A = generate_tensor(peps, i, j)
+    A = generate_tensor(peps, (i, j))
  
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
     _normalize_probability(prob) 
@@ -234,8 +234,8 @@ _bond_energy(pn::AbstractGibbsNetwork,
 
 _local_energy(pn::AbstractGibbsNetwork,
     m::NTuple{2, Int},
-    σ::Vector{Int}
-    ) = local_energy(pn.network_graph, pn.map[m], σ)
+    σ::Int
+    ) = loc_energy(pn.network_graph, pn.map[m], σ)
 
 function update_energy(
     network::AbstractGibbsNetwork,
@@ -247,9 +247,9 @@ function update_energy(
     σkj = _get_local_state(network, σ, i-1, j)
     σil = _get_local_state(network, σ, i, j-1)
    
-    _bond_energy(network.network_graph, (i, j), (i, j-1), σij, σil) +
-    _bond_energy(network.network_graph, (i, j), (i-1, j), σij, σlj) + 
-    _local_energy(network.network_graph, (i, j), σij)   
+    _bond_energy(network, (i, j), (i, j-1), σij, σil) +
+    _bond_energy(network, (i, j), (i-1, j), σij, σkj) + 
+    _local_energy(network, (i, j), σij)   
 end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)
