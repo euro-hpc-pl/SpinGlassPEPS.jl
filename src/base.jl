@@ -52,12 +52,6 @@ end
 @inline Base.dropdims(ψ::MPS, i::Int) = (dropdims(A, dims=i) for A ∈ ψ)
 @inline Base.dropdims(ψ::MPS) = Base.dropdims(ψ, 2)
 
-function idMPS(::Type{T}, L::Int) where {T <: Number}
-    ψ = MPS(T, L)
-    for i ∈ 1:length(ψ) ψ[i] = ones(1, 1, 1) end
-    ψ
-end
-idMPS(L::Int) = idMPS(Float64, L)
 
 function _right_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) where {T}
     rank = ndims(Θ)
@@ -73,12 +67,13 @@ function _right_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...)
        
         # decompose
         U, Σ, V = svd(M, Dcut, args...)
-        V *= Diagonal(Σ)
+        V *= (Diagonal(Σ) ./ Σ[1])
 
         # create MPS  
         @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
         ψ[i] = A
     end
+    ψ[end] *= V[]
     ψ
 end
 
@@ -96,12 +91,13 @@ function _left_sweep_SVD(Θ::AbstractArray{T}, Dcut::Int=typemax(Int), args...) 
 
         # decompose
         U, Σ, V = svd(M, Dcut, args...)
-        U *= Diagonal(Σ)
+        U *= (Diagonal(Σ) ./ Σ[1])
 
         # create MPS  
         @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
+    ψ[1] *= U[]
     ψ
 end 
 

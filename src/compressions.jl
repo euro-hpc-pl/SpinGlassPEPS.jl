@@ -18,7 +18,7 @@ function _right_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
 
     for i ∈ eachindex(ψ)
         A = ψ[i]
-        C = Diagonal(Σ) * V'
+        C = (Diagonal(Σ) ./ Σ[1]) * V'
 
         # attach
         @tensor M[x, σ, y] := C[x, α] * A[α, σ, y]
@@ -32,6 +32,7 @@ function _right_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
         @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
         ψ[i] = A
     end
+    ψ[end] *= V[]
 end
 
 function _left_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
@@ -39,7 +40,7 @@ function _left_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
 
     for i ∈ length(ψ):-1:1
         B = ψ[i]
-        C = U * Diagonal(Σ)
+        C = U * (Diagonal(Σ) ./ Σ[1])
 
         # attach
         @tensor M[x, σ, y]   := B[x, σ, α] * C[α, y]
@@ -53,6 +54,7 @@ function _left_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
         @cast B[x, σ, y] |= V'[x, (σ, y)] (σ:d)
         ψ[i] = B
     end
+    ψ[1] *= U[]
 end
 
 

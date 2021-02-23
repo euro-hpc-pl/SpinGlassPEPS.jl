@@ -53,7 +53,6 @@ function ising_graph(
     J = zeros(L, L)
     h = zeros(L)
 
-    #r
     # setup the model (J_ij, h_i)
     for (i, j, v) ∈ ising
         v *= sgn

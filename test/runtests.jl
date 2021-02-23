@@ -28,6 +28,7 @@ if CUDA.functional() && CUDA.has_cutensor()
     )
 end
 
+my_tests = []
 include("test_helpers.jl")
 push!(my_tests,
 
