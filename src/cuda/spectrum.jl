@@ -68,12 +68,3 @@ function CuMPS(ig::MetaGraph, control::MPSControl, type::Symbol)
     ρ
 
 end
-
-function _apply_projector!(ψ::CuMPS, i::Int)
-     # Hack!!!
-     M = ψ[i]
-     D = cu(I(physical_dim(ψ, i)))
-
-     @cast M̃[a, σ, (y, b)] := D[σ, y] * M[a, σ, b]
-     ψ[i] = M̃
-end

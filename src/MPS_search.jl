@@ -160,7 +160,7 @@ end
 
 function _apply_exponent!(ψ::AbstractMPS, ig::MetaGraph, dβ::Number, i::Int, j::Int, last::Int)
     M = ψ[j]
-    D = I(physical_dim(ψ, i))
+    D = typeof(M).name.wrapper(I(physical_dim(ψ, i)))
 
     J = get_prop(ig, i, j, :J)
     C = exp.(-0.5 * dβ * J * local_basis(ψ, i) * local_basis(ψ, j)')
@@ -176,7 +176,7 @@ end
 
 function _apply_projector!(ψ::AbstractMPS, i::Int)
     M = ψ[i]
-    D = I(physical_dim(ψ, i))
+    D = typeof(M).name.wrapper(I(physical_dim(ψ, i)))
 
     @cast M̃[a, σ, (y, b)] := D[σ, y] * M[a, σ, b]
     ψ[i] = M̃
@@ -184,7 +184,7 @@ end
 
 function _apply_nothing!(ψ::AbstractMPS, l::Int, i::Int)
     M = ψ[l]
-    D = I(physical_dim(ψ, i))
+    D = typeof(M).name.wrapper(I(physical_dim(ψ, i)))
 
     @cast M̃[(x, a), σ, (y, b)] := D[x, y] * M[a, σ, b]
     ψ[l] = M̃
