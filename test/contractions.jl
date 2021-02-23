@@ -11,43 +11,43 @@ mpo_ψ = randn(MPO{T}, sites, D, d)
 mpo = randn(MPO{T}, 2, 2, 2)
 
 
-Id = [I(d) for _ ∈ 1:length(ϕ)]
+Id = fill(I(d), length(ψ))
 
-Id_m = MPO([ones(1,1,1,d) for _ ∈ 1:length(ϕ)])
+Id_m = MPO(fill(ones(1,1,1,d), length(ϕ)))
 
 @testset "dot products" begin
-    @test dot(ψ, ψ) ≈ dot(ψ, ψ)
-    @test dot(ψ, ϕ) ≈ conj(dot(ϕ, ψ))
-
-    @test dot(ψ, Id, ϕ) ≈ conj(dot(ϕ, Id, ψ))
-    @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)
-
-    @test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ)))
-
-    ψ[end] *= 1/norm(ψ)
-    @test dot(ψ, ψ) ≈ 1
-
-    ϕ[1] *= 1/norm(ϕ)
-    @test dot(ϕ, ϕ) ≈ 1
-
-    # dot on mpo
-    mpo1 = dot(mpo, mpo)
-
-    @test size(mpo1[1]) == (1, 2, 4, 2)
-    @test size(mpo1[2]) == (4, 2, 1, 2)
-    for i in 1:2
-        A = mpo[i]
-        @reduce B[(a,b), c, (d,e), f] := sum(x) A[a,c,d,x] * A[b,x,e,f]
-        @test mpo1[i] ≈ B
+    @testset "is equal to itself" begin
+        @test dot(ψ, ψ) ≈ dot(ψ, ψ)
     end
 
-    ψ1 = copy(ψ)
-    dot!(ψ, mpo_ψ)
-    for i in 1:length(ψ)
-        A = ψ1[i]
-        B = mpo_ψ[i]
-        @reduce C[(b,a), c, (e,d)] := sum(x) A[a,x,d] * B[b,c,e,x]
-        @test ψ[i] ≈ C
+    @testset "change of arguments results in conjugation" begin
+        @test dot(ψ, ϕ) ≈ conj(dot(ϕ, ψ))
+        @test dot(ψ, Id, ϕ) ≈ conj(dot(ϕ, Id, ψ))
+    end
+
+    @testset "dot with identity equal to dot of two MPS" begin
+        @test dot(ψ, Id, ϕ) ≈ dot(ψ, ϕ)
+    end
+
+    @testset "norm is 2-norm" begin
+        @test norm(ψ) ≈ sqrt(abs(dot(ψ, ψ)))
+    end
+
+    @testset "renormalizations" begin
+        ψ[end] *= 1/norm(ψ)
+        @test dot(ψ, ψ) ≈ 1
+
+        ϕ[1] *= 1/norm(ϕ)
+        @test dot(ϕ, ϕ) ≈ 1
+    end
+
+    @testset "dot products of MPO" begin
+        mpo1 = dot(mpo, mpo)
+
+        @testset "has correct sisze" begin
+            @test size(mpo1[1]) == (1, 2, 4, 2)
+            @test size(mpo1[2]) == (4, 2, 1, 2)
+        end
     end
 
 end
@@ -62,7 +62,7 @@ end
     @test R[1][end] ≈ dot(ϕ, ψ)
 end
 
-@testset "Cauchy-Schwarz inequality" begin
+@testset "Cauchy-Schwarz inequality of MPS" begin
     @test abs(dot(ϕ, ψ)) <= norm(ϕ) * norm(ψ)
 end
 

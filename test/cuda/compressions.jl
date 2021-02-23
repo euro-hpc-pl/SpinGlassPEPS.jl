@@ -14,9 +14,8 @@ T = Float32
 Φ = CUDA.randn(CuMPS{T}, sites, D, d)
 
 @testset "Canonisation (left)" begin
-    canonise!(ψ, :left)  
-    show(ψ)  
- 
+    canonise!(ψ, :left)
+
     is_left_normalized = true
     for i ∈ 1:length(ψ)
         A = ψ[i]
@@ -24,15 +23,14 @@ T = Float32
 
         @cutensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
         is_left_normalized *= norm(Id - cu(I(DD))) < 1e-5
-    end 
+    end
 
-    @test is_left_normalized 
-    @test dot(ψ, ψ) ≈ 1  
+    @test is_left_normalized
+    @test dot(ψ, ψ) ≈ 1
 end
 
 @testset "Canonisation (right)" begin
-    canonise!(ϕ, :right)  
-    show(ϕ)
+    canonise!(ϕ, :right)
 
     is_right_normalized = true
     for i ∈ 1:length(ϕ)
@@ -41,10 +39,10 @@ end
 
         @cutensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
         is_right_normalized *= norm(Id - cu(I(DD))) < 1e-5
-    end 
+    end
 
-    @test is_right_normalized 
-    @test dot(ϕ, ϕ) ≈ 1      
+    @test is_right_normalized
+    @test dot(ϕ, ϕ) ≈ 1
 end
 
 @testset "Cauchy-Schwarz inequality (after truncation)" begin
@@ -52,21 +50,18 @@ end
 end
 
 @testset "Canonisation (both)" begin
-    canonise!(χ)  
-    show(χ)
-    @test dot(χ, χ) ≈ 1      
+    canonise!(χ)
+    @test dot(χ, χ) ≈ 1
 end
 
 @testset "Truncation (SVD, right)" begin
-    truncate!(ψ, :right, Dcut)  
-    show(ψ)
-    @test dot(ψ, ψ) ≈ 1     
+    truncate!(ψ, :right, Dcut)
+    @test dot(ψ, ψ) ≈ 1
 end
 
 @testset "Truncation (SVD, left)" begin
-    truncate!(ψ, :left, Dcut)  
-    show(ψ)
-    @test dot(ψ, ψ) ≈ 1     
+    truncate!(ψ, :left, Dcut)
+    @test dot(ψ, ψ) ≈ 1
 end
 
 @testset "Variational compression" begin
@@ -75,24 +70,17 @@ end
     max_sweeps = 5
 
     canonise!(Φ, :right)
-    @test dot(Φ, Φ) ≈ 1 
+    @test dot(Φ, Φ) ≈ 1
 
-    Ψ = compress(Φ, Dcut, tol, max_sweeps)  
+    Ψ = compress(Φ, Dcut, tol, max_sweeps)
 
-    show(Ψ)
-    @test dot(Ψ, Ψ) ≈ 1    
-    
-    println("(Ψ, Ψ) = ", dot(Ψ, Ψ))
-    println("(Φ, Φ) = ", dot(Φ, Φ))
+    @test dot(Ψ, Ψ) ≈ 1
 
     overlap = dot(Ψ, Φ)
     dist1 = 2 - 2 * real(overlap)
     dist2 = norm(Ψ)^2 + norm(Φ)^2 - 2 * real(overlap)
 
     @test abs(dist1 - dist2) < 1e-5
-
-    println("(Φ, Ψ) = ", overlap)
-    println("dist(Φ, Ψ)^2 = ", dist2)
 end
 
 end

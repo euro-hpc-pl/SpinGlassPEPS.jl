@@ -1,56 +1,15 @@
 export idx, ising, proj
 export HadamardMPS, rq
-export all_states, local_basis, enum, state_to_ind
-export @state
-export unique_neighbors
+export all_states, local_basis
+export unique_neighbors, peps_indices
 
 using Base.Cartesian
 import Base.Prehashed
 
-enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))
-
 idx(σ::Int) = (σ == -1) ? 1 : σ + 1
-_σ(idx::Int) = (idx == 1) ? -1 : idx - 1
-
-@inline state_to_ind(::AbstractArray, ::Int, i) = i
-@inline function state_to_ind(a::AbstractArray, k::Int, σ::State)
-    n = length(σ)
-    if n == 1 return idx(σ[1]) end
-    d = size(a, k)
-    base = Int(d ^ (1/n))
-    ind = idx.(σ) .- 1
-    i = sum(l*base^(j-1) for (j, l) ∈ enumerate(reverse(ind)))
-    i + 1
-end
-
-function process_ref(ex)
-    n = length(ex.args)
-    args = Vector(undef, n)
-    args[1] = ex.args[1]
-    for i=2:length(ex.args)
-        args[i] = :(state_to_ind($(ex.args[1]), $(i-1), $(ex.args[i])))
-    end
-    rex = Expr(:ref)
-    rex.args = args
-    rex
-end
-
-macro state(ex)
-    if ex.head == :ref
-        rex = process_ref(ex)
-    elseif ex.head == :(=) || ex.head == Symbol("'")
-        rex = copy(ex)
-        rex.args[1] = process_ref(ex.args[1])
-    else
-        error("Not supported operation: $(ex.head)")
-    end
-    esc(rex)
-end
-
-LinearAlgebra.I(ψ::AbstractMPS, i::Int) = I(size(ψ[i], 2))
 
 local_basis(d::Int) = union(-1, 1:d-1)
-local_basis(ψ::AbstractMPS, i::Int) = local_basis(size(ψ[i], 2))
+local_basis(ψ::AbstractMPS, i::Int) = local_basis(physical_dim(ψ, i))
 
 function all_states(rank::Union{Vector, NTuple})
     basis = [local_basis(r) for r ∈ rank]
@@ -80,11 +39,11 @@ function rq(M::AbstractMatrix, Dcut::Int, args...)
     return _qr_fix(Q, R)'
 end
 
-function _qr_fix(Q::AbstractMatrix, R::AbstractMatrix)
+function _qr_fix(Q::T, R::AbstractMatrix) where {T <: AbstractMatrix}
     d = diag(R)
     ph = d./abs.(d)
     idim = size(R, 1)
-    q = Matrix(Q)[:, 1:idim]
+    q = T.name.wrapper(Q)[:, 1:idim]
     return transpose(ph) .* q
 end
 
@@ -93,47 +52,6 @@ function LinearAlgebra.svd(A::AbstractMatrix, Dcut::Int, args...)
     d = diag(U)
     ph = d ./ abs.(d)
     return  U * Diagonal(ph), Σ, V * Diagonal(ph)
-end
-
-function Base.LinearIndices(m::Int, n::Int, origin::Symbol=:NW)
-    @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
-
-    ind = Dict()
-    if origin == :NW
-        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (i - 1) * n + j) end
-    elseif origin == :WN
-        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (j - 1) * n + i) end
-    elseif origin == :NE
-        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (i - 1) * n + (n + 1 - j)) end
-    elseif origin == :EN
-        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (j - 1) * n + (n + 1 - i)) end
-    elseif origin == :SE
-        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (m - i) * n + (n + 1 - j)) end
-    elseif origin == :ES
-        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (m - j) * n + (n + 1 - i)) end
-    elseif origin == :SW
-        for i ∈ 1:m, j ∈ 1:n push!(ind, (i, j) => (m - i) * n + j) end
-    elseif origin == :WS
-        for i ∈ 1:n, j ∈ 1:m push!(ind, (i, j) => (m - j) * n + i) end
-    end
-
-    if origin ∈ (:NW, :NE, :SE, :SW)
-        i_max, j_max = m, n
-    else
-        i_max, j_max = n, m
-    end
-
-    for i ∈ 0:i_max+1
-        push!(ind, (i, 0) => 0)
-        push!(ind, (i, j_max + 1) => 0)
-    end
-
-    for j ∈ 0:j_max+1
-        push!(ind, (0, j) => 0)
-        push!(ind, (i_max + 1, j) => 0)
-    end
-
-    ind, i_max, j_max
 end
 
 @generated function unique_dims(A::AbstractArray{T,N}, dim::Integer) where {T,N}

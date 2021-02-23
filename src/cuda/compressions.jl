@@ -13,7 +13,7 @@ function _right_sweep_SVD!(ψ::CuMPS, Dcut::Int=typemax(Int))
         U, Σ, V = _truncate_svd(CUDA.svd(M̃), Dcut)
 
         # create new    
-        d = size(ψ[i], 2)
+        d = physical_dim(ψ, i)
         @cast A[x, σ, y] |= U[(x, σ), y] (σ:d)
         ψ[i] = A
     end
@@ -34,7 +34,7 @@ function _left_sweep_SVD!(ψ::CuMPS, Dcut::Int=typemax(Int))
         U, Σ, V = _truncate_svd(CUDA.svd(M̃), Dcut)
 
         # create new 
-        d = size(ψ[i], 2)
+        d = physical_dim(ψ, i)
         VV = conj.(transpose(V)) #hack - @cast does fail with allowscalar and Adjoint type
         @cast B[x, σ, y] |= VV[x, (σ, y)] (σ:d)
         ψ[i] = B

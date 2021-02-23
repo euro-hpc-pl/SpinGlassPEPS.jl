@@ -160,8 +160,6 @@ function dot!(ψ::AbstractMPS, O::AbstractMPO)
     end
 end
 
-Base.:(*)(O::AbstractMPO, ψ::AbstractMPS) = return dot(O, ψ)
-
 function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
     L = length(O1)
     T = promote_type(eltype(O1), eltype(O2))
@@ -177,4 +175,4 @@ function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
     O
 end
 
-Base.:(*)(O1::AbstractMPO, O2::AbstractMPO) = dot(O1, O2)
+Base.:(*)(A::AbstractTensorNetwork, B::AbstractTensorNetwork) = dot(A, B)

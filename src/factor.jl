@@ -12,7 +12,7 @@ end
 function factor_graph(
     ig::MetaGraph,
     num_states_cl::Int;
-    energy::Function=energy, 
+    energy::Function=energy,
     spectrum::Function=full_spectrum
     )
     d = _max_cell_num(ig)
@@ -28,9 +28,9 @@ end
 function factor_graph(
     ig::MetaGraph,
     num_states_cl::Dict{Int, Int}=Dict{Int, Int}();
-    energy::Function=energy, 
+    energy::Function=energy,
     spectrum::Function=full_spectrum
-) 
+)
     L = _max_cell_num(ig)
     fg = MetaDiGraph(L, 0.0)
 
@@ -78,11 +78,11 @@ end
 function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
     dim = order == :PE ? 1 : 2
-    
+
     E, idx = unique_dims(energy, dim)
 
-    if order == :PE 
-        P = zeros(size(energy, 1), size(E, 1)) 
+    if order == :PE
+        P = zeros(size(energy, 1), size(E, 1))
     else
         P = zeros(size(E, 2), size(energy, 2))
     end

@@ -2,6 +2,7 @@ using MetaGraphs
 using LightGraphs
 using GraphPlot
 using CSV
+using Test
 
 function _energy(config::Dict, couplings::Dict, cedges::Dict, n::Int)
     eng = zeros(1,n)
@@ -31,8 +32,155 @@ function _energy(ig::MetaGraph, config::Array)
     eng
 end
 
-@testset "Ising" begin
+@testset "Ising graph cannot be created" begin
+    @testset "if input instance contains vertices of index larger than provided graph size" begin
+        @test_throws ErrorException ising_graph(
+            Dict(
+                (1, 1) => 2.0,
+                (1, 2) => 0.5,
+                (1, 4) => -1.0
+            ),
+            3
+        )
+    end
 
+    @testset "if input instance contains duplicate edges" begin
+        @test_throws ErrorException ising_graph(
+        Dict(
+                (1, 1) => 2.0,
+                (1, 2) => 0.5,
+                (2, 1) => -1.0
+            ),
+            3
+        )
+    end
+end
+
+
+for (instance, source) ∈ (
+    ("$(@__DIR__)/instances/example.txt", "file"),
+    (
+        Dict(
+            (1, 1) => 0.1,
+            (2, 2) => 0.5,
+            (1, 4) => -2.0,
+            (4, 2) => 1.0,
+            (1, 2) => -0.3
+        ),
+         "array"
+    )
+)
+@testset "Ising graph created from $(source)" begin
+    L = 5
+    expected_num_vertices = 5
+    expected_biases = [0.1, 0.5, 0.0, 0.0, 0.0]
+    expected_couplings = Dict(
+        Edge(1, 2) => -0.3,
+        Edge(1, 4) => -2.0,
+        Edge(2, 4) => 1.0
+    )
+    expected_J_matrix = [
+        [0 -0.3 0 -2.0 0];
+        [0 0 0 0 0];
+        [0 0 0 0 0];
+        [0 1.0 0 0 0];
+        [0 0 0 0 0]
+    ]
+
+    ig = ising_graph(instance, L)
+
+    @testset "has number of vertices equal to passed instance size" begin
+        @test nv(ig) == expected_num_vertices
+    end
+
+    @testset "has collection of edges comprising all interactions from instance" begin
+        # This test uses the fact that edges iterates in the lex ordering.
+        @test collect(edges(ig)) == [Edge(e...) for e in [(1, 2), (1, 4), (2, 4)]]
+    end
+
+    @testset "has collection of active vertices comprising all vertices present in instance" begin
+        @test collect(filter_vertices(ig, :active, true)) == [1, 2, 4]
+    end
+
+    @testset "has all vertices not appearing in instace set to inactive" begin
+        @test collect(filter_vertices(ig, :active, false)) == [3, 5]
+    end
+
+    @testset "has instance size stored it its L property" begin
+        @test get_prop(ig, :L) == L
+    end
+
+    @testset "stores biases both as property of vertices and its own property" begin
+        @test get_prop(ig, :h) == expected_biases
+        @test collect(map(v -> get_prop(ig, v, :h), vertices(ig))) == expected_biases
+    end
+
+    @testset "stores couplings both as property of edges and its own property" begin
+        @test get_prop(ig, :J) == expected_J_matrix
+        @test all(
+            map(e -> expected_couplings[e] == get_prop(ig, e, :J), edges(ig))
+        )
+    end
+
+    @testset "has cell of each vertex equal to its index" begin
+        @test collect(map(v -> get_prop(ig, v, :cell), vertices(ig))) == collect(1:L)
+    end
+
+    @testset "has a random initial state property of correct size" begin
+        @test length(get_prop(ig, :state)) == L
+    end
+
+    @testset "has energy of its initial state stored in energy property" begin
+        @test energy(get_prop(ig, :state), ig) == get_prop(ig, :energy)
+    end
+
+    @testset "has default rank stored for each active vertex" begin
+        @test get_prop(ig, :rank) == Dict(1 => 2, 2 => 2, 4 => 2)
+    end
+end
+end
+
+
+@testset "Ising graph created with additional parameters" begin
+    expected_biases = [-0.1, -0.5, 0.0, 0.0, 0.0]
+    expected_couplings = Dict(
+        Edge(1, 2) => 0.3,
+        Edge(1, 4) => 2.0,
+        Edge(2, 4) => -1.0
+    )
+    expected_J_matrix = [
+        [0 0.3 0 2.0 0];
+        [0 0 0 0 0];
+        [0 0 0 0 0];
+        [0 -1.0 0 0 0];
+        [0 0 0 0 0]
+    ]
+
+    ig = ising_graph(
+        "$(@__DIR__)/instances/example.txt",
+        5,
+        -1,
+        Dict(1 => 3, 4 => 4)
+    )
+
+    @testset "has rank overriden by rank_override dict" begin
+        # TODO: update default value of 2 once original implementation
+        # is also updated.
+        @test get_prop(ig, :rank) == Dict(1 => 3, 2 => 2, 4 => 4)
+    end
+
+    @testset "has coefficients multiplied by given sign" begin
+        @test get_prop(ig, :h) == expected_biases
+        @test collect(map(v -> get_prop(ig, v, :h), vertices(ig))) == expected_biases
+        @test get_prop(ig, :J) == expected_J_matrix
+        @test all(
+            map(e -> expected_couplings[e] == get_prop(ig, e, :J), edges(ig))
+        )
+    end
+end
+
+
+@testset "Ising" begin
     L = 4
     N = L^2
     instance = "$(@__DIR__)/instances/$(N)_001.txt"
@@ -41,13 +189,6 @@ end
 
     E = get_prop(ig, :energy)
 
-    println(ig)
-    println("energy: $E")
-
-    for spin ∈ vertices(ig)
-        println("neighbors of spin $spin are: ", neighbors(ig, spin) )
-    end
-
     @test nv(ig) == N
 
     for i ∈ 1:N
@@ -55,8 +196,6 @@ end
     end
 
     A = adjacency_matrix(ig)
-    display(Matrix{Int}(A))
-    println("   ")
 
     B = zeros(Int, N, N)
     for i ∈ 1:N
@@ -76,10 +215,6 @@ end
         sp = brute_force(ig, num_states=k)
 
         s = 5
-        display(sp.states[1:s])
-        println("   ")
-        display(sp.energies[1:s])
-        println("   ")
 
         @test sp.energies ≈ energy.(sp.states, Ref(ig))
 
