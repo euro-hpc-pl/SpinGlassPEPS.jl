@@ -135,7 +135,7 @@ end
 
 @inline function get_coordinates(
     peps::PepsNetwork,
-    k::Int
+    k::Int,
     )
     ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
 end
@@ -229,7 +229,7 @@ _bond_energy(pn::AbstractGibbsNetwork,
     m::NTuple{2, Int},
     n::NTuple{2, Int},
     σ::Int,
-    η::Int
+    η::Int,
     ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ, η)
 
 _local_energy(pn::AbstractGibbsNetwork,
@@ -242,14 +242,14 @@ function update_energy(
     σ::Vector{Int},
     )
     i, j = get_coordinates(network, length(σ)+1)
-    
-    σ_ij = _get_local_state(network, σ, i, j)
-    σ_kj = _get_local_state(network, σ, i-1, j)
-    σ_il = _get_local_state(network, σ, i, j-1)
+
+    σij = _get_local_state(network, σ, i, j)
+    σkj = _get_local_state(network, σ, i-1, j)
+    σil = _get_local_state(network, σ, i, j-1)
    
-    _bond_energy(network.network_graph, (i, j), (i, j-1), σ_ij, σ_il) +
-    _bond_energy(network.network_graph, (i, j), (i-1, j), σ_ij, σ_lj) + 
-    _local_energy(network.network_graph, (i, j), σ_ij)   
+    _bond_energy(network.network_graph, (i, j), (i, j-1), σij, σil) +
+    _bond_energy(network.network_graph, (i, j), (i-1, j), σij, σlj) + 
+    _local_energy(network.network_graph, (i, j), σij)   
 end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)

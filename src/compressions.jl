@@ -57,7 +57,6 @@ function _left_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
     ψ[1] *= U[]
 end
 
-
 function compress(ψ::AbstractMPS, Dcut::Int, tol::Number=1E-8, max_sweeps::Int=4)
 
     # Initial guess - truncated ψ
