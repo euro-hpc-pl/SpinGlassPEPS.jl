@@ -3,7 +3,7 @@ export MPO, MPS, generate_boundary, get_coordinates, update_energy
 
 #TODO: use β from this setup  (currently β is passed directely to PepsNetwork)
 function _set_control_parameters(
-    args_override::Dict{String, Number}=Dict{String, Number}()
+    args_override::Dict=Dict()
     )
     # put here more parameters if needs be
     args = Dict(
@@ -22,7 +22,7 @@ mutable struct PepsNetwork <: AbstractGibbsNetwork
     origin::Symbol
     i_max::Int
     j_max::Int
-    args::Dict{String, Number}
+    args::Dict
 
     function PepsNetwork(
         m::Int, 
@@ -30,7 +30,7 @@ mutable struct PepsNetwork <: AbstractGibbsNetwork
         fg::MetaDiGraph,
         β::Number, 
         origin::Symbol=:NW,
-        args_override::Dict{String, Number}=Dict{String, Number}()
+        args_override::Dict=Dict()
         ) 
 
         pn = new((m, n))
@@ -138,7 +138,7 @@ end
     peps::PepsNetwork,
     k::Int,
     )
-    ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
+    ceil(Int, k / peps.j_max), (k - 1) % peps.j_max + 1
 end
 
 @inline function _get_local_state(
@@ -162,26 +162,20 @@ function generate_boundary(
 
     # on the left below
     for k ∈ 1:j-1
-        ∂v[k] = generate_boundary(
-            peps.network_graph, 
-            (i, k), 
-            (i+1, k),
+        ∂v[k] = generate_boundary(peps, 
+            (i, k), (i+1, k),
             _get_local_state(peps, v, i, k))
     end
 
     # on the left at the current row
-    ∂v[j] = generate_boundary(
-        peps.network_graph, 
-        (i, j-1), 
-        (i, j), 
+    ∂v[j] = generate_boundary(peps, 
+        (i, j-1), (i, j), 
         _get_local_state(peps, v, i, j-1))
 
     # on the right above
     for k ∈ j:peps.j_max
-        ∂v[k+1] = generate_boundary(
-            peps.network_graph,
-            (i-1, k), 
-            (i, k), 
+        ∂v[k+1] = generate_boundary(peps,
+            (i-1, k), (i, k), 
             _get_local_state(peps, v, i-1, k))
     end
     ∂v
@@ -220,7 +214,7 @@ function conditional_probability(
 
     L = left_env(ψ, ∂v[1:j-1])
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
-    A = generate_tensor(peps, i, j)
+    A = generate_tensor(peps, (i, j))
  
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
     _normalize_probability(prob) 
@@ -235,7 +229,7 @@ _bond_energy(pn::AbstractGibbsNetwork,
 
 _local_energy(pn::AbstractGibbsNetwork,
     m::NTuple{2, Int},
-    σ::Vector{Int}
+    σ::Int,
     ) = local_energy(pn.network_graph, pn.map[m], σ)
 
 function update_energy(
@@ -248,9 +242,9 @@ function update_energy(
     σkj = _get_local_state(network, σ, i-1, j)
     σil = _get_local_state(network, σ, i, j-1)
    
-    _bond_energy(network.network_graph, (i, j), (i, j-1), σij, σil) +
-    _bond_energy(network.network_graph, (i, j), (i-1, j), σij, σlj) + 
-    _local_energy(network.network_graph, (i, j), σij)   
+    _bond_energy(network, (i, j), (i, j-1), σij, σil) +
+    _bond_energy(network, (i, j), (i-1, j), σij, σkj) + 
+    _local_energy(network, (i, j), σij)   
 end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)

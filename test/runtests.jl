@@ -42,8 +42,8 @@ push!(my_tests,
     "factor.jl",
     "PEPS.jl",
     "contract.jl",
-    "search.jl"
 =#
+    "search.jl"
 )
 
 for my_test in my_tests

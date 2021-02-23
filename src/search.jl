@@ -43,13 +43,16 @@ function _branch_and_bound(
     node::Int,
     cut::Int,
     )
+    ng = network.network_graph
+    fg = ng.factor_graph
+
     # branch
     pdo = eng = cfg = []
-    k = get_prop(network.factor_graph, node, :loc_dim)
+    k = get_prop(fg, node, :loc_dim)
 
     for (i, σ) ∈ enumerate(sol.states) 
         pdo = conditional_probability(network, σ)
-        push!(pdo, (sol.probabilities[i] .* p)...)
+        push!(pdo, (sol.probabilities[i] .* pdo)...)
         push!(eng, (sol.energies[i] .+ update_energy(network, σ))...)
         push!(cfg, broadcast(s -> push!(sol.states[i], s), collect(1:k))...)
     end
@@ -65,8 +68,10 @@ function low_energy_spectrum(
     network::AbstractGibbsNetwork, 
     cut::Int
     )
+    ng = network.network_graph
+
     sol = Solution([0.], [[]], [1.], -Inf)
-    for v ∈ 1:nv(network.factor_graph)
+    for v ∈ 1:nv(ng.factor_graph)
         sol = _branch_and_bound(sol, network, v, cut)
         #TODO: incorportae "going back" move to improve alghoritm 
     end

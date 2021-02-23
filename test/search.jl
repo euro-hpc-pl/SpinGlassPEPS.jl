@@ -1,3 +1,7 @@
+using MetaGraphs
+using LightGraphs
+using GraphPlot
+using CSV
 
 @testset "Low energy spectrum fo pathological instance" begin
     m = 3
@@ -9,14 +13,15 @@
     L = n * m * t
     num_states = L^2
 
+    ground_energy = 16.4 
+    
     control_params = Dict(
         "bond_dim" => typemax(Int),
         "var_tol" => 1E-8,
         "sweeps" => 4.
     )
 
-    file = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
-    instance = CSV.File(file, types=[Int, Int, Float64], header=0, comment = "#")
+    instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
     
     ig = ising_graph(instance, L)
     update_cells!(
@@ -32,8 +37,9 @@
 
     for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
-        sol = low_energy_spectru(peps, num_states)
+        sol = low_energy_spectrum(peps, num_states)
         
-        
+        @test sol.energies[1] ≈ ground_energy
     end
+end
     

@@ -1,5 +1,6 @@
 export NetworkGraph
-export generate_boundary, generate_tensor, loc_energy, bond_energy
+export generate_boundary, generate_tensor
+export local_energy, bond_energy
 
 mutable struct NetworkGraph
     factor_graph::MetaDiGraph
@@ -82,7 +83,6 @@ function generate_boundary(
     if pv === nothing 
         pv = ones(get_prop(fg, v, :loc_dim), 1) 
     end
-
     findfirst(x -> x > 0, pv[state, :])
 end
 
@@ -104,7 +104,7 @@ function bond_energy(
     end
 end
 
-function loc_energy(
+function local_energy(
     ng::NetworkGraph, 
     v::Int, 
     σᵥ::Int,
