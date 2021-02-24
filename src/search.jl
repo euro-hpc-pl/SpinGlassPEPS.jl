@@ -49,18 +49,29 @@ function _branch_and_bound(
     # branch
     pdo = eng = cfg = []
     k = get_prop(fg, node, :loc_dim)
+    println(k)
+    println(sol.states)
 
     for (i, σ) ∈ enumerate(sol.states) 
         pdo = conditional_probability(network, σ)
+        println(pdo)
+
         push!(pdo, (sol.probabilities[i] .* pdo)...)
+        
         push!(eng, (sol.energies[i] .+ update_energy(network, σ))...)
-        push!(cfg, broadcast(s -> push!(sol.states[i], s), collect(1:k))...)
+        push!(cfg, map(s -> push!(sol.states[i], s), collect(1:k))...)
     end
 
     # bound
-    idx = partialsortperm(pdo, 1:cut, rev=true)
+    idx = partialsortperm(pdo, 1:min(length(pdo), cut), rev=true)
     lpCut = sol.largest_discarded_probability 
     lpCut < last(pdo) ? lpCut = last(pdo) : ()
+
+    println(idx)
+    println(eng)
+    println(cfg)
+    println(pdo)
+
     Solution(eng[idx], cfg[idx], pdo[idx], lpCut)
 end
 
