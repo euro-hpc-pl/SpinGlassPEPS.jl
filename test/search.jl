@@ -11,7 +11,7 @@ using CSV
     β = 1.
 
     L = n * m * t
-    num_states = L^2
+    num_states = 5
 
     ground_energy = 16.4 
     
