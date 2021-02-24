@@ -61,24 +61,14 @@ end
 
 function (::Type{T})(ψ::AbstractMPS) where {T <:AbstractMPO}
     _verify_square(ψ)
-    L = length(ψ)
-    O = T(eltype(ψ), L)
-
-    for i ∈ 1:L
-        A = ψ[i]
-        d = isqrt(size(A, 2))
-
-        @cast W[x, σ, y, η] |= A[x, (σ, η), y] (σ:d)
-        O[i] = W
-    end
-    O
+    T([
+        @cast W[x, σ, y, η] |= A[x, (σ, η), y] (σ:isqrt(size(A, 2)))
+        for A in ψ
+    ])
 end
 
 function (::Type{T})(O::AbstractMPO) where {T <:AbstractMPS}
-    T([
-        @cast A[x, (σ, η), y] := W[x, σ, y, η]
-        for W in O
-    ])
+    T([@cast A[x, (σ, η), y] := W[x, σ, y, η] for W in O])
 end
 
 function Base.randn(::Type{MPS{T}}, D::Int, rank::Union{Vector, NTuple}) where {T}
