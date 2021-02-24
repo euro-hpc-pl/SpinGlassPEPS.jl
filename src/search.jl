@@ -64,7 +64,6 @@ function _branch_and_bound(
     k = get_prop(fg, node, :loc_dim)
 
     for (p, σ) ∈ zip(sol.probabilities, sol.states) 
-        println(conditional_probability(network, σ))
         pdo = [pdo; p .* conditional_probability(network, σ)]
         cfg = _branch_state(cfg, σ, collect(1:k))
     end
