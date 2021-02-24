@@ -3,7 +3,7 @@ using LightGraphs
 using GraphPlot
 using CSV
 
-@testset "Low energy spectrum fo pathological instance" begin
+@testset "Low energy spectrum for pathological instance is correct" begin
     m = 3
     n = 4
     t = 3

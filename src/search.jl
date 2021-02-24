@@ -55,7 +55,7 @@ function _branch_and_bound(
     for (i, σ) ∈ enumerate(sol.states) 
         pdo = conditional_probability(network, σ)
         println(pdo)
-
+        println(sol.probabilities[i])
         push!(pdo, (sol.probabilities[i] .* pdo)...)
         
         push!(eng, (sol.energies[i] .+ update_energy(network, σ))...)
