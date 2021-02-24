@@ -25,13 +25,13 @@ mutable struct PepsNetwork <: AbstractGibbsNetwork
     args::Dict
 
     function PepsNetwork(
-        m::Int, 
-        n::Int, 
+        m::Int,
+        n::Int,
         fg::MetaDiGraph,
-        β::Number, 
+        β::Number,
         origin::Symbol=:NW,
         args_override::Dict=Dict()
-        ) 
+        )
 
         pn = new((m, n))
         pn.map, pn.i_max, pn.j_max = peps_indices(m, n, origin)
@@ -92,7 +92,7 @@ function MPO(::Type{T},
 
     W = MPO(T, peps.j_max)
     R = PEPSRow(T, peps, i)
-    
+
     for (j, A) ∈ enumerate(R)
         v = get(config, j + peps.j_max * (i - 1), nothing)
         if v !== nothing
@@ -113,14 +113,14 @@ function compress(ψ::AbstractMPS, peps::PepsNetwork)
     Dcut = peps.args["bond_dim"]
     if bond_dimension(ψ) < Dcut return ψ end
     compress(ψ, Dcut, peps.args["var_tol"], peps.args["sweeps"])
-end 
+end
 
 @memoize function MPS(
     peps::PepsNetwork,
     i::Int,
     cfg::Dict{Int, Int} = Dict{Int, Int}(),
     )
-    if i > peps.i_max return MPS(I) end
+    if i > peps.i_max return MPS(I * 1.0) end
     W = MPO(peps, i, cfg)
     ψ = MPS(peps, i+1, cfg)
     compress(W * ψ, peps)
@@ -129,7 +129,7 @@ end
 function contract_network(
     peps::PepsNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}(),
-    ) 
+    )
     ψ = MPS(peps, 1, config)
     prod(dropdims(ψ))[]
 end
@@ -143,39 +143,39 @@ end
 
 @inline function _get_local_state(
     peps::PepsNetwork,
-    v::Vector{Int}, 
-    i::Int, 
+    v::Vector{Int},
+    i::Int,
     j::Int,
-    ) 
-    k = j + peps.j_max * (i - 1) 
+    )
+    k = j + peps.j_max * (i - 1)
     if k > length(v) || k <= 0 return 1 end
     v[k]
 end
 
 function generate_boundary(
-    peps::PepsNetwork, 
-    v::Vector{Int}, 
-    i::Int, 
+    peps::PepsNetwork,
+    v::Vector{Int},
+    i::Int,
     j::Int,
-    ) 
+    )
     ∂v = zeros(Int, peps.j_max + 1)
 
     # on the left below
     for k ∈ 1:j-1
-        ∂v[k] = generate_boundary(peps, 
+        ∂v[k] = generate_boundary(peps,
             (i, k), (i+1, k),
             _get_local_state(peps, v, i, k))
     end
 
     # on the left at the current row
-    ∂v[j] = generate_boundary(peps, 
-        (i, j-1), (i, j), 
+    ∂v[j] = generate_boundary(peps,
+        (i, j-1), (i, j),
         _get_local_state(peps, v, i, j-1))
 
     # on the right above
     for k ∈ j:peps.j_max
         ∂v[k+1] = generate_boundary(peps,
-            (i-1, k), (i, k), 
+            (i-1, k), (i, k),
             _get_local_state(peps, v, i-1, k))
     end
     ∂v
@@ -184,28 +184,28 @@ end
 @inline function _contract(
     A::Array{T, 5},
     M::Array{T, 3},
-    L::Vector{T}, 
+    L::Vector{T},
     R::Matrix{T},
     ∂v::Vector{Int},
     ) where {T <: Number}
 
     l, u = ∂v
     @cast Ã[r, d, σ] := A[$l, $u, r, d, σ]
-    @tensor prob[σ] := L[x] * M[x, d, y] * 
+    @tensor prob[σ] := L[x] * M[x, d, y] *
                        Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
     prob
 end
 
 function _normalize_probability(prob::Vector{T}) where {T <: Number}
-    # exceptions (negative pdo, etc) 
+    # exceptions (negative pdo, etc)
     # will be added here later
     prob / sum(prob)
-end 
+end
 
 function conditional_probability(
     peps::PepsNetwork,
     v::Vector{Int},
-    ) 
+    )
     i, j = get_coordinates(peps, length(v)+1)
     ∂v = generate_boundary(peps, v, i, j)
 
@@ -215,9 +215,12 @@ function conditional_probability(
     L = left_env(ψ, ∂v[1:j-1])
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
     A = generate_tensor(peps, (i, j))
- 
+
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
-    _normalize_probability(prob) 
+    println("pre CP ", prob)
+    ret = _normalize_probability(prob)
+    println("CP ", ret)
+    ret
 end
 
 _bond_energy(pn::AbstractGibbsNetwork,
@@ -238,10 +241,14 @@ function update_energy(
 
     σkj = _get_local_state(network, σ, i-1, j)
     σil = _get_local_state(network, σ, i, j-1)
-   
-    _bond_energy(network, (i, j), (i, j-1), σil) +
-    _bond_energy(network, (i, j), (i-1, j), σkj) + 
-    _local_energy(network, (i, j))   
+
+    a = _bond_energy(network, (i, j), (i, j-1), σil)
+    b = _bond_energy(network, (i, j), (i-1, j), σkj)
+    c =_local_energy(network, (i, j))
+    println(size(a))
+    println(size(b))
+    println(size(c))
+    return a + b + c
 end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)

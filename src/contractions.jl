@@ -1,7 +1,7 @@
 export left_env, right_env, dot!
 
 # --------------------------- Conventions -----------------------
-#                                                                 
+#
 #      MPS          MPS*         MPO       left env     right env
 #       2            2            2           - 1          2 -
 #   1 - A - 3    1 - B - 3    1 - W - 3      L               R
@@ -83,7 +83,8 @@ end
 
 @memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, σ::Union{Vector, NTuple})
     l = length(σ)
-    k = length(ϕ)
+    #k = length(ϕ)
+    k = length(W)
     if l == 0
         R = ones(1, 1)
     else

@@ -13,8 +13,8 @@ using CSV
     L = n * m * t
     num_states = 5
 
-    ground_energy = 16.4 
-    
+    ground_energy = 16.4
+
     control_params = Dict(
         "bond_dim" => typemax(Int),
         "var_tol" => 1E-8,
@@ -22,13 +22,13 @@ using CSV
     )
 
     instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
-    
+
     ig = ising_graph(instance, L)
     update_cells!(
        ig,
        rule = square_lattice((m, n, t)),
     )
-    
+
     fg = factor_graph(
         ig,
         energy=energy,
@@ -38,8 +38,9 @@ using CSV
     for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
         sol = low_energy_spectrum(peps, num_states)
-        
+        println(sol.probabilities)
+        println(sol.states)
+        println(sol.largest_discarded_probability)
         #@test sol.energies[1] ≈ ground_energy
     end
 end
-    
