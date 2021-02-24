@@ -86,33 +86,24 @@ function (::Type{T})(O::AbstractMPO) where {T <:AbstractMPS}
     ψ
 end
 
-
 function Base.randn(::Type{MPS{T}}, D::Int, rank::Union{Vector, NTuple}) where {T}
-    L = length(rank)
-    ψ = MPS(T, L)
-    ψ[1] = randn(T, 1, rank[1], D)
-    for i ∈ 2:(L-1)
-        ψ[i] = randn(T, D, rank[i], D)
-    end
-    ψ[end] = randn(T, D, rank[end], 1)
-    ψ
+    MPS([
+        randn(T, 1, first(rank), D),
+        randn.(T, D, rank[begin+1:end-1], D)...,
+        rand(T, D, last(rank), 1)
+    ])
 end
 
 function Base.randn(::Type{MPS{T}}, L::Int, D::Int, d::Int) where {T}
-    ψ = MPS(T, L)
-    ψ[1] = randn(T, 1, d, D)
-    for i ∈ 2:(L-1)
-        ψ[i] = randn(T, D, d, D)
-    end
-    ψ[end] = randn(T, D, d, 1)
-    ψ
+    MPS([
+        randn(T, 1, d, D), (randn(T, D, d, D) for _ in 2:L-1)..., randn(T, D, d, 1)
+    ])
 end
 
 Base.randn(::Type{MPS}, args...) = randn(MPS{Float64}, args...)
 
 function Base.randn(::Type{MPO{T}}, L::Int, D::Int, d::Int) where {T}
-    ψ = randn(MPS{T}, L, D, d^2)
-    MPO(ψ)
+    MPO(randn(MPS{T}, L, D, d^2))
 end
 
 Base.randn(::Type{MPO}, args...) = randn(MPO{Float64}, args...)
