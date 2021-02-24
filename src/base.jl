@@ -108,27 +108,13 @@ end
 
 Base.randn(::Type{MPO}, args...) = randn(MPO{Float64}, args...)
 
-function is_left_normalized(ψ::MPS)
-    for i ∈ eachindex(ψ)
-        A = ψ[i]
-        DD = size(A, 3)
+is_left_normalized(ψ::MPS) = all(
+    I(size(A, 3)) ≈ @tensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ) for A ∈ ψ
+)
 
-        @tensor Id[x, y] := conj(A[α, σ, x]) * A[α, σ, y] order = (α, σ)
-        I(DD) ≈ Id ? () : return false
-    end
-    true
-end
-
-function is_right_normalized(ϕ::MPS)
-    for i ∈ eachindex(ϕ)
-        B = ϕ[i]
-        DD = size(B, 1)
-
-        @tensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ)
-        I(DD) ≈ Id ? () : return false
-    end
-    true
-end
+is_right_normalized(ϕ::MPS) = all(
+    I(size(B, 1)) ≈ @tensor Id[x, y] := B[x, σ, α] * conj(B[y, σ, α]) order = (α, σ) for B in ϕ
+)
 
 function _verify_square(ψ::AbstractMPS)
     dims = physical_dim.(Ref(ψ), eachindex(ψ))
