@@ -224,13 +224,11 @@ _bond_energy(pn::AbstractGibbsNetwork,
     m::NTuple{2, Int},
     n::NTuple{2, Int},
     σ::Int,
-    η::Int,
-    ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ, η)
+    ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ)
 
 _local_energy(pn::AbstractGibbsNetwork,
     m::NTuple{2, Int},
-    σ::Int,
-    ) = local_energy(pn.network_graph, pn.map[m], σ)
+    ) = local_energy(pn.network_graph, pn.map[m])
 
 function update_energy(
     network::AbstractGibbsNetwork,
@@ -238,13 +236,12 @@ function update_energy(
     )
     i, j = get_coordinates(network, length(σ)+1)
 
-    σij = _get_local_state(network, σ, i, j)
     σkj = _get_local_state(network, σ, i-1, j)
     σil = _get_local_state(network, σ, i, j-1)
    
-    _bond_energy(network, (i, j), (i, j-1), σij, σil) +
-    _bond_energy(network, (i, j), (i-1, j), σij, σkj) + 
-    _local_energy(network, (i, j), σij)   
+    _bond_energy(network, (i, j), (i, j-1), σil) +
+    _bond_energy(network, (i, j), (i-1, j), σkj) + 
+    _local_energy(network, (i, j))   
 end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)

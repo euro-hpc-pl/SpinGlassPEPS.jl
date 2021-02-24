@@ -89,25 +89,23 @@ end
 function bond_energy(
     ng::NetworkGraph, 
     v::Int, 
-    w::Int, 
-    σᵥ::Int,
-    σᵤ::Int,
+    u::Int, 
+    σ::Int,
     )
     fg = ng.factor_graph
 
-    if has_edge(fg, w, v) 
-        return get_prop(fg, w, v, :edg).J[σᵤ, σᵥ]
-    elseif has_edge(fg, v, w)
-        return get_prop(fg, w, v, :edg).J[σᵥ, σᵤ]
+    if has_edge(fg, u, v) 
+        get_prop(fg, u, v, :edge).J[:, σ]
+    elseif has_edge(fg, v, u)
+        get_prop(fg, v, u, :edge).J[σ, :]
     else
-        return 0.
+        zeros(get_prop(fg, v, :loc_dim))
     end
 end
 
 function local_energy(
     ng::NetworkGraph, 
     v::Int, 
-    σᵥ::Int,
     )
-    get_prop(ng.factor_graph, v, :loc_en)[σᵥ]
+    get_prop(ng.factor_graph, v, :loc_en)
 end
