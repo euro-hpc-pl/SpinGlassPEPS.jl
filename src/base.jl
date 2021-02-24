@@ -75,15 +75,10 @@ function (::Type{T})(ψ::AbstractMPS) where {T <:AbstractMPO}
 end
 
 function (::Type{T})(O::AbstractMPO) where {T <:AbstractMPS}
-    L = length(O)
-    ψ = T(eltype(O), L)
-
-    for i ∈ 1:L
-        W = O[i]
+    T([
         @cast A[x, (σ, η), y] := W[x, σ, y, η]
-        ψ[i] = A
-    end
-    ψ
+        for W in O
+    ])
 end
 
 function Base.randn(::Type{MPS{T}}, D::Int, rank::Union{Vector, NTuple}) where {T}
