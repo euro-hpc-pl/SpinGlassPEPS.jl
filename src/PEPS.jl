@@ -217,9 +217,11 @@ function conditional_probability(
     A = generate_tensor(peps, (i, j))
 
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
-    println("pre CP ", prob)
+
+    println("prob ", prob)
     ret = _normalize_probability(prob)
-    println("CP ", ret)
+    
+    #println("CP ", ret)
     ret
 end
 
@@ -244,10 +246,12 @@ function update_energy(
 
     a = _bond_energy(network, (i, j), (i, j-1), σil)
     b = _bond_energy(network, (i, j), (i-1, j), σkj)
-    c =_local_energy(network, (i, j))
+    c = _local_energy(network, (i, j))
+
     println(size(a))
     println(size(b))
     println(size(c))
+
     return a + b + c
 end
 

@@ -11,31 +11,29 @@ mutable struct Solution
     largest_discarded_probability::Float64
 end
 
-#=
-function _partition_into_unique(
-    boundary::Vector{Int},
-    partial_eng::Vector{T}
-    ) where {T <: Number}
+# function _partition_into_unique(
+#     boundary::Vector{Int},
+#     partial_eng::Vector{T}
+#     ) where {T <: Number}
 
-end
+# end
 
-function _merge(
-     network::AbstractGibbsNetwork,
-     sol::Solution,
-    )
-    boundary = []
-    for (i, σ) ∈ enumerate(sol.states)
-        push!(boundary, generate_boundary(network, σ))
-    end
+# function _merge(
+#      network::AbstractGibbsNetwork,
+#      sol::Solution,
+#     )
+#     boundary = []
+#     for (i, σ) ∈ enumerate(sol.states)
+#         push!(boundary, generate_boundary(network, σ))
+#     end
 
-    idx = _partition_into_unique(boundary, sol.energies)
-    Solution(
-        sol.energies[idx],
-        sol.states[idx],
-        sol.probabilities[idx],
-        sol.largest_discarded_probability)
-end
-=#
+#     idx = _partition_into_unique(boundary, sol.energies)
+#     Solution(
+#         sol.energies[idx],
+#         sol.states[idx],
+#         sol.probabilities[idx],
+#         sol.largest_discarded_probability)
+# end
 
 #TODO: this can probably be done better
 function _branch_state(
@@ -68,13 +66,12 @@ function _branch_and_bound(
     #     eng = [eng; e .+ update_energy(network, σ)]
     #     cfg = _branch_state(cfg, σ, collect(1:k))
     # end
-    println("Start sol.prob ", sol.probabilities)
+
     for (p, σ) ∈ zip(sol.probabilities, sol.states)
-        println(p, " ", pdo)
         pdo = [pdo; p .* conditional_probability(network, σ)]
         cfg = _branch_state(cfg, σ, collect(1:k))
     end
-    println("PDO", pdo)
+
     # bound
     idx = partialsortperm(pdo, 1:min(length(pdo), cut), rev=true)
     lpCut = sol.largest_discarded_probability
