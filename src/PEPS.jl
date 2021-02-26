@@ -244,11 +244,15 @@ function update_energy(
 
     a = _bond_energy(network, (i, j), (i, j-1), σil)
     b = _bond_energy(network, (i, j), (i-1, j), σkj)
-    c =_local_energy(network, (i, j))
-    println(size(a))
-    println(size(b))
-    println(size(c))
-    return a + b + c
+    c = _local_energy(network, (i, j))
+    println("size a", size(a))
+    println("a ", a)
+    println("size b", size(b))
+    println("b ", b)
+    println("size c", size(c))
+    println("c ", c)
+
+    return a + c
 end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)
