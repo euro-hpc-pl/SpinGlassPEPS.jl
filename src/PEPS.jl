@@ -217,9 +217,11 @@ function conditional_probability(
     A = generate_tensor(peps, (i, j))
 
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
-    println("pre CP ", prob)
+
+    println("prob ", prob)
     ret = _normalize_probability(prob)
-    println("CP ", ret)
+    
+    #println("CP ", ret)
     ret
 end
 

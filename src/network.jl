@@ -80,10 +80,11 @@ function generate_boundary(
     if v ∉ vertices(fg) return 1 end
 
     pv = _get_projector(fg, v, w)
-    if pv === nothing
-        pv = ones(get_prop(fg, v, :loc_dim), 1)
+    if pv !== nothing
+        return findfirst(x -> x > 0, pv[state, :])
+    else
+        return 1
     end
-    findfirst(x -> x > 0, pv[state, :])
 end
 
 function bond_energy(
@@ -91,7 +92,7 @@ function bond_energy(
     u::Int,
     v::Int,
     σ::Int,
-)
+    )
     fg = ng.factor_graph
 
     if has_edge(fg, u, v)
