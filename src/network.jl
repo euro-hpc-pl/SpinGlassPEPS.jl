@@ -89,24 +89,41 @@ end
 
 function bond_energy(
     ng::NetworkGraph,
+    ig::MetaGraph,
     u::Int,
     v::Int,
     σ::Int,
     )
     fg = ng.factor_graph
-
+    println("u ", u)
+    println("v ", v)
+    println("σ ", σ)
     if has_edge(fg, u, v)
-        get_prop(fg, u, v, :edge).J[:, σ]
+        a = get_prop(fg, u, v, :edge)#.J[:, σ]
+        #println(Cluster(ig, u))
+        #b = Cluster(ig, u)
+        J = a.J[σ, :]
+        println("edge ", a)
+        println("bond_en ", J)
     elseif has_edge(fg, v, u)
-        get_prop(fg, v, u, :edge).J[σ, :]
+        a = get_prop(fg, v, u, :edge)#.J[:, σ]
+        println("edge ", a)
+        #println(Cluster(ig, u))
+        #b = Cluster(ig, u)
+        J = a.J[σ, :]
+        println("bond_en ", J)
     else
-        zeros(get_prop(fg, u, :loc_dim))
+        J = zeros(get_prop(fg, u, :loc_dim))
+        println("bond_en ", J)
     end
+    J
 end
 
 function local_energy(
     ng::NetworkGraph,
     v::Int,
     )
+    println("v ", v)
+    println("loc_en ", get_prop(ng.factor_graph, v, :loc_en))
     get_prop(ng.factor_graph, v, :loc_en)
 end

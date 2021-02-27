@@ -68,6 +68,7 @@ function _branch_and_bound(
     # end
 
     for (p, σ) ∈ zip(sol.probabilities, sol.states)
+        println("sigma ", σ)
         pdo = [pdo; p .* conditional_probability(network, σ)]
         cfg = _branch_state(cfg, σ, collect(1:k))
     end
