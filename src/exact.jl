@@ -35,7 +35,7 @@ brute_force(ig::MetaGraph; num_states::Int=1) = brute_force(Cluster(ig, 0), num_
 
 function brute_force(cl::Cluster; num_states::Int=1)
     if isempty(cl.vertices) return Spectrum(zeros(1), []) end
-    if num_states > prod(cl.rank) num_states = prod(cl.rank) end
+    num_states = min(num_states, prod(cl.rank))
 
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
