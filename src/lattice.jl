@@ -6,11 +6,10 @@ export cluster
     new = LinearIndices((1:n, 1:m))
     old = LinearIndices((1:t, 1:un, 1:n, 1:um, 1:m))
 
-    rule = Dict()
-    for i=1:m, ui=1:um, j=1:n, uj=1:un, k=1:t
-        push!(rule, old[k, uj, j, ui, i] => new[j, i])
-    end
-    rule
+    Dict(
+            old[k, uj, j, ui, i] => new[j, i]
+            for i=1:m, ui=1:um, j=1:n, uj=1:un, k=1:t
+    )
 end
 
 function square_lattice(size::NTuple{3, Int})
