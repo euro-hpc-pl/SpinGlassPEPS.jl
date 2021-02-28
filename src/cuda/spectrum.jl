@@ -4,7 +4,7 @@ _make_LL(ψ::CuMPS, b::Int, k::Int, d::Int) = CUDA.zeros(eltype(ψ), b, b, k, d)
 _make_LL_new(ψ::CuMPS, b::Int, k::Int, d::Int) = CUDA.zeros(eltype(ψ), b, k, d)
 
 function CuMPS(ig::MetaGraph, control::MPSControl)
-    
+
     Dcut = control.max_bond
     tol = control.var_ϵ
     max_sweeps = control.max_sweeps
@@ -23,7 +23,7 @@ function CuMPS(ig::MetaGraph, control::MPSControl)
     ρ
 end
 
-function CuMPS(ig::MetaGraph, control::MPSControl, type::Symbol) 
+function CuMPS(ig::MetaGraph, control::MPSControl, type::Symbol)
     L = nv(ig)
     Dcut = control.max_bond
     tol = control.var_ϵ
@@ -46,7 +46,7 @@ function CuMPS(ig::MetaGraph, control::MPSControl, type::Symbol)
             ρ = multiply_purifications(ρ, ρ, L)
             if bond_dimension(ρ) > Dcut
                 @info "Compresing MPS" bond_dimension(ρ), Dcut
-                ρ = compress(ρ, Dcut, tol, max_sweeps) 
+                ρ = compress(ρ, Dcut, tol, max_sweeps)
                 is_right = true
             end
         end
@@ -60,7 +60,7 @@ function CuMPS(ig::MetaGraph, control::MPSControl, type::Symbol)
             ρ = multiply_purifications(ρ, ρ0, L)
             if bond_dimension(ρ) > Dcut
                 @info "Compresing MPS" bond_dimension(ρ), Dcut
-                ρ = compress(ρ, Dcut, tol, max_sweeps) 
+                ρ = compress(ρ, Dcut, tol, max_sweeps)
                 is_right = true
             end
         end
