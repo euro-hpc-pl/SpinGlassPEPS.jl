@@ -87,7 +87,7 @@ end
     l = length(σ)
     k = length(ϕ)
     if l == 0
-        R = similar(ψ[1], T, (1, 1))
+        R = similar(ϕ[1], T, (1, 1))
         R[1, 1] = one(T)
     else
         m = σ[1]
