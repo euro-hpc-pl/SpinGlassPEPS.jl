@@ -42,10 +42,9 @@ end
 
 CUDA.randn(::Type{CuMPO}, args...) = CUDA.randn(CuMPO{Float32}, args...)
 
-function CuMPS(states::Vector{CuVector{<:Number}})
-    state_arrays = [reshape(copy(v), (1, length(v), 1)) for v ∈ states]
-    CuMPS(state_arrays)
-end
+CuMPS(states::Vector{CuVector{T}}) where {T <: Number} = CuMPS(
+    [reshape(copy(v), (1, length(v), 1)) for v ∈ states]
+)
 
 
 function is_left_normalized(ψ::CuMPS)
