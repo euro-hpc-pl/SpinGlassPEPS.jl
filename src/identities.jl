@@ -16,7 +16,7 @@ Base.length(::IdentityMPSorMPO) = Inf
 function LinearAlgebra.dot(O::AbstractMPO, ::IdentityMPS)
     L = length(O)
     T = eltype(O)
-    ψ = MPS(T, L)
+    ψ = MPS(T, L) #FIXME: this will fail with specialized MPS types
     for i ∈ eachindex(ψ)
         B = O[i]
         @reduce A[x, σ, y] |= sum(η) B[x, σ, y, η]
