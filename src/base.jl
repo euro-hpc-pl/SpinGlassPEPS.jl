@@ -123,56 +123,6 @@ function verify_bonds(ψ::AbstractMPS)
     end
 end
 
-function _right_sweep_SVD(::Type{T}, A::AbstractArray, Dcut::Int=typemax(Int), args...) where {T <: AbstractMPS}
-    rank = ndims(A)
-    ψ = T(eltype(A), rank)
-
-    V = reshape(copy(conj(A)), (length(A), 1))
-
-    for i ∈ 1:rank
-        d = size(A, i)
-
-        # reshape
-        VV = conj.(transpose(V))
-        @cast M[(x, σ), y] |= VV[x, (σ, y)] (σ:d)
-
-        # decompose
-        U, Σ, V = svd(M, Dcut, args...)
-        V *= Diagonal(Σ)
-
-        # create MPS
-        @cast B[x, σ, y] |= U[(x, σ), y] (σ:d)
-        ψ[i] = B
-    end
-    ψ
-end
-
-
-function _left_sweep_SVD(::Type{T}, A::AbstractArray, Dcut::Int=typemax(Int), args...) where {T <: AbstractMPS}
-    rank = ndims(A)
-    ψ = T(eltype(A), rank)
-
-    U = reshape(copy(A), (length(A), 1))
-
-    for i ∈ rank:-1:1
-        d = size(A, i)
-
-        # reshape
-        @cast M[x, (σ, y)] |= U[(x, σ), y] (σ:d)
-
-        # decompose
-        U, Σ, V = svd(M, Dcut, args...)
-        U *= Diagonal(Σ)
-
-        # create MPS
-        VV = conj.(transpose(V))
-        @cast B[x, σ, y] |= VV[x, (σ, y)] (σ:d)
-        ψ[i] = B
-    end
-    ψ
-end
-
-
 function Base.show(io::IO, ψ::AbstractTensorNetwork)
     L = length(ψ)
     dims = [size(A) for A ∈ ψ]
