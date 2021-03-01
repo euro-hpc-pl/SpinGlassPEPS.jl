@@ -31,15 +31,15 @@ Calculates \$k\$ lowest energy states
 together with the coresponding energies
 of a classical Ising Hamiltonian
 """
-brute_force(ig::MetaGraph; num_states::Int=1) = brute_force(Cluster(ig, 0), num_states=num_states)
 
-function brute_force(cl::Cluster; num_states::Int=1)
-    if isempty(cl.vertices) return Spectrum(zeros(1), []) end
-    num_states = min(num_states, prod(cl.rank))
+function brute_force(ig::MetaGraph; num_states::Int=1)
+    if nv(ig) == 0 return Spectrum(zeros(1), []) end
+    ig_rank = rank_vec(ig)
+    num_states = min(num_states, prod(ig_rank))
 
-    σ = collect.(all_states(cl.rank))
-    energies = energy.(σ, Ref(cl))
-    perm = partialsortperm(vec(energies), 1:num_states) 
+    σ = collect.(all_states(ig_rank))
+    energies = energy.(σ, Ref(ig))
+    perm = partialsortperm(vec(energies), 1:num_states)
     Spectrum(energies[perm], σ[perm])
 end
 
@@ -47,5 +47,5 @@ function full_spectrum(cl::Cluster; num_states::Int=prod(cl.rank))
     if isempty(cl.vertices) return Spectrum(zeros(1), []) end
     σ = collect.(all_states(cl.rank))
     energies = energy.(σ, Ref(cl))
-    Spectrum(energies[1:num_states], σ[1:num_states])   
+    Spectrum(energies[1:num_states], σ[1:num_states])
 end

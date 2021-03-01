@@ -1,6 +1,6 @@
 export ising_graph
 export energy, rank_vec
-export Cluster, Spectrum
+export Cluster, Spectrum, cluster, rank
 
 const Instance = Union{String, Dict}
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
@@ -9,12 +9,6 @@ const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.F
 struct Spectrum
     energies::Array{<:Number}
     states::Array{Vector{<:Number}}
-end
-
-function rank_vec(ig::MetaGraph)
-    rank = get_prop(ig, :rank)
-    L = get_prop(ig, :L)
-    Int[get(rank, i, 1) for i=1:L]
 end
 
 unique_vertices(ising_tuples) = sort(collect(Set(Iterators.flatten((i, j) for (i, j, _) ∈ ising_tuples))))
@@ -82,6 +76,8 @@ function ising_graph(
     ig
 end
 
+rank_vec(ig::MetaGraph) = collect(values(get_prop(ig, :rank)))
+
 mutable struct Cluster
     vertices::Dict{Int, Int}
     edges::EdgeIter
@@ -90,24 +86,19 @@ mutable struct Cluster
     h::Vector{<:Number}
 end
 
-
-function Cluster(ig::MetaGraph, verts::Set{Int})
+function cluster(ig::MetaGraph, verts::Set{Int})
     sub_ig, vmap = induced_subgraph(ig, collect(verts))
 
-    L = nv(sub_ig)
     h = get_prop.(Ref(sub_ig), vertices(sub_ig), :h)
-    J = zeros(L, L)
-
-    cl_edges = collect(edges(sub_ig))
-    cl_vertices = Dict(w => i for (i, w) ∈ enumerate(vmap))
-
     rank = get_prop.(Ref(sub_ig), vertices(sub_ig), :rank)
+    J = get_prop(ig, :J)[vmap, vmap]
 
-    foreach(e -> @inbounds J[src(e), dst(e)] = get_prop(sub_ig, e, :J), edges(sub_ig))
+    set_prop!(sub_ig, :rank, rank)
+    set_prop!(sub_ig, :J, J)
+    set_prop!(sub_ig, :h, h)
 
-    Cluster(cl_vertices, cl_edges, rank, J, h)
+    sub_ig
 end
-
 
 function MetaGraphs.filter_edges(ig::MetaGraph, v::Cluster, w::Cluster)
     edges = SimpleEdge[]
