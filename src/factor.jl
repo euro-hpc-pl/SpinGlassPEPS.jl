@@ -1,13 +1,8 @@
 export factor_graph
 export rank_reveal, projectors
 
-function _max_cell_num(ig::MetaGraph)
-    L = 0
-    for v ∈ vertices(ig)
-        L = max(L, get_prop(ig, v, :cell))
-    end
-    L
-end
+_max_cell_num(ig::MetaGraph) = maximum(get_prop.(Ref(ig), vertices(ig), :cell))
+
 
 function factor_graph(
     ig::MetaGraph,
