@@ -30,7 +30,9 @@ end
 
    ig = ising_graph(instance, L)
 
-   @time fg = factor_graph(ig, 2, chimera_to_square_lattice((m, n, 2*t)))
+   fg = factor_graph(
+      ig, 2, cluster_assignment_rule=chimera_to_square_lattice((m, n, 2*t))
+   )
 
    @test collect(vertices(fg)) == collect(1:m * n)
 
@@ -38,16 +40,17 @@ end
 
    clv = []
    cle = []
-   rank = get_prop(ig, :rank)
+   rank = rank_vec(ig)
 
    for v ∈ vertices(fg)
       cl = get_prop(fg, v, :cluster)
 
-      push!(clv, keys(cl.vertices))
-      push!(cle, collect(cl.edges))
+      vmap = get_prop(cl, :vmap)
+      push!(clv, vmap)
+      push!(cle, collect(edges(cl)))
 
-      for (g, l) ∈ cl.vertices
-         @test cl.rank[l] == rank[g]
+      for (i, v) in enumerate(vmap)
+         @test rank_vec(cl)[i] == rank[v]
       end
    end
 
@@ -116,7 +119,7 @@ fg = factor_graph(
 
 for v ∈ vertices(fg)
    cl = get_prop(fg, v, :cluster)
-   @test sort(collect(keys(cl.vertices))) == cells[v]
+   @test sort(collect(get_prop(cl, :vmap))) == cells[v]
 end
 
 
@@ -157,7 +160,7 @@ end
 for v ∈ vertices(fg)
    cl = get_prop(fg, v, :cluster)
 
-   @test issetequal(keys(cl.vertices), cells[v])
+   @test issetequal(get_prop(cl, :vmap), cells[v])
 end
 end
 

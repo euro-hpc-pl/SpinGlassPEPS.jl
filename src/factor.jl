@@ -1,6 +1,5 @@
 export factor_graph, rank_reveal, projectors, split_into_clusters
 
-_max_cell_num(ig::MetaGraph) = maximum(get_prop.(Ref(ig), vertices(ig), :cell))
 
 function split_into_clusters(vertices, assignment_rule)
     # TODO: check how to do this in functional-style
@@ -17,15 +16,16 @@ function factor_graph(
     ig::MetaGraph,
     num_states_cl::Int;
     energy::Function=energy,
-    spectrum::Function=full_spectrum
+    spectrum::Function=full_spectrum,
+    cluster_assignment_rule::Dict{Int, Int} # e.g. square lattice
     )
-    d = _max_cell_num(ig)
-    ns = Dict(enumerate(fill(num_states_cl)))
+    ns = Dict(i => num_states_cl for i ∈ Set(values(cluster_assignment_rule)))
     factor_graph(
         ig,
         ns,
         energy=energy,
-        spectrum=spectrum
+        spectrum=spectrum,
+        cluster_assignment_rule=cluster_assignment_rule
     )
 end
 
@@ -43,9 +43,9 @@ function factor_graph(
     cluster_to_verts = split_into_clusters(vertices(ig), cluster_assignment_rule)
 
     for (v, verts) ∈ cluster_to_verts
-        cl = Cluster(ig, verts)
+        cl = cluster(ig, verts)
         set_prop!(fg, v, :cluster, cl)
-        r = prod(cl.rank)
+        r = prod(rank_vec(cl))
         num_states = get(num_states_cl, v, r)
         sp = spectrum(cl, num_states=num_states)
         set_prop!(fg, v, :spectrum, sp)
@@ -56,14 +56,24 @@ function factor_graph(
         v = get_prop(fg, i, :cluster)
         w = get_prop(fg, j, :cluster)
 
-        edg = Edge(ig, v, w)
-        if !isempty(edg.edges)
+        outer_edges, J = inter_cluster_edges(ig, v, w)
+
+        if !isempty(outer_edges)
             e = SimpleEdge(i, j)
 
             add_edge!(fg, e)
-            set_prop!(fg, e, :edge, edg)
+            set_prop!(fg, e, :outer_edges, outer_edges)
 
-            pl, en = rank_reveal(energy(fg, edg), :PE)
+            st_v = get_prop(fg, i, :spectrum).states
+            st_w = get_prop(fg, j, :spectrum).states
+
+            en = zeros(length(st_v), length(st_w))
+
+            for (k, η) ∈ enumerate(vec(st_w))
+                en[:, k] = energy.(vec(st_v), Ref(J), Ref(η))
+            end
+
+            pl, en = rank_reveal(en, :PE)
             en, pr = rank_reveal(en, :EP)
 
             set_prop!(fg, e, :split, (pl, en, pr))

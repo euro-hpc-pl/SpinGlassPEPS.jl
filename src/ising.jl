@@ -1,6 +1,6 @@
 export ising_graph
 export energy, rank_vec
-export Cluster, Spectrum, cluster, rank
+export Spectrum, cluster, rank
 
 const Instance = Union{String, Dict}
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
@@ -78,56 +78,34 @@ end
 
 rank_vec(ig::MetaGraph) = collect(values(get_prop(ig, :rank)))
 
-mutable struct Cluster
-    vertices::Dict{Int, Int}
-    edges::EdgeIter
-    rank::Vector
-    J::Matrix{<:Number}
-    h::Vector{<:Number}
-end
-
 function cluster(ig::MetaGraph, verts::Set{Int})
     sub_ig, vmap = induced_subgraph(ig, collect(verts))
 
     h = get_prop.(Ref(sub_ig), vertices(sub_ig), :h)
-    rank = get_prop.(Ref(sub_ig), vertices(sub_ig), :rank)
+    rank = getindex.(Ref(get_prop(ig, :rank)), vmap)
     J = get_prop(ig, :J)[vmap, vmap]
 
     set_prop!(sub_ig, :rank, rank)
     set_prop!(sub_ig, :J, J)
     set_prop!(sub_ig, :h, h)
+    set_prop!(sub_ig, :vmap, vmap)
 
     sub_ig
 end
 
-function MetaGraphs.filter_edges(ig::MetaGraph, v::Cluster, w::Cluster)
-    edges = SimpleEdge[]
-    for i ∈ keys(v.vertices), j ∈ neighbors(ig, i)
-        if j ∈ keys(w.vertices) push!(edges, SimpleEdge(i, j)) end
+function inter_cluster_edges(ig::MetaGraph, cl1::MetaGraph, cl2::MetaGraph)
+    verts1, verts2 = get_prop(cl1, :vmap), get_prop(cl2, :vmap)
+    outer_edges = filter_edges(
+        ig,
+        (_, e) -> (src(e) ∈ verts1 && dst(e) ∈ verts2) ||
+            (src(e) ∈ verts1 && dst(e) ∈ verts2)
+    )
+    J = zeros(nv(cl1), nv(cl2))
+    # FIXME: don't use indexin
+    for e ∈ outer_edges
+        @inbounds J[indexin(src(e), verts1)[1], indexin(dst(e), verts2)[1]] = get_prop(ig, e, :J)
     end
-    edges
-end
-
-mutable struct Edge
-    tag::NTuple{2, Int}
-    edges::EdgeIter
-    J::Matrix{<:Number}
-
-    function Edge(ig::MetaGraph, v::Cluster, w::Cluster)
-        ed = new((v.tag, w.tag))
-        ed.edges = filter_edges(ig, v, w)
-
-        m = length(v.vertices)
-        n = length(w.vertices)
-
-        ed.J = zeros(m, n)
-        for e ∈ ed.edges
-            i = v.vertices[src(e)]
-            j = w.vertices[dst(e)]
-            @inbounds ed.J[i, j] = get_prop(ig, e, :J)
-        end
-        ed
-    end
+    outer_edges, J
 end
 
 """
@@ -141,20 +119,4 @@ E = -\\sum_<i,j> s_i J_{ij} * s_j - \\sum_j h_i s_j.
 
 energy(σ::Vector, J::Matrix, η::Vector=σ) = dot(σ, J, η)
 energy(σ::Vector, h::Vector) = dot(h, σ)
-energy(σ::Vector, cl::Cluster, η::Vector=σ) = energy(σ, cl.J, η) + energy(cl.h, σ)
 energy(σ::Vector, ig::MetaGraph) = energy(σ, get_prop(ig, :J)) + energy(σ, get_prop(ig, :h))
-
-function energy(fg::MetaDiGraph, edge::Edge)
-    v, w = edge.tag
-    vSp = get_prop(fg, v, :spectrum).states
-    wSp = get_prop(fg, w, :spectrum).states
-
-    m = prod(size(vSp))
-    n = prod(size(wSp))
-
-    en = zeros(m, n)
-    for (j, η) ∈ enumerate(vec(wSp))
-        en[:, j] = energy.(vec(vSp), Ref(edge.J), Ref(η))
-    end
-    en
-end
