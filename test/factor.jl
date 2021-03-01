@@ -3,6 +3,23 @@ using LightGraphs
 using GraphPlot
 using CSV
 
+@testset "split_into_clusters correctly assings vertices to clusters" begin
+   rule = Dict(
+      1 => 1,
+      2 => 1,
+      3 => 3,
+      4 => 2,
+      5 => 3,
+      6 => 4
+   )
+   vertices = [1, 3, 4, 5]
+   expected_result = Dict(
+      1 => Set(1), 2 => Set(4), 3 => Set([5, 3]), 4 => Set()
+   )
+
+   @test split_into_clusters(vertices, rule) == expected_result
+end
+
 @testset "Lattice graph" begin
    m = 4
    n = 4
@@ -12,12 +29,8 @@ using CSV
    instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt"
 
    ig = ising_graph(instance, L)
-   update_cells!(
-      ig,
-      rule = square_lattice((m, n, 2*t)),
-   )
 
-   @time fg = factor_graph(ig, 2)
+   @time fg = factor_graph(ig, 2, chimera_to_square_lattice((m, n, 2*t)))
 
    @test collect(vertices(fg)) == collect(1:m * n)
 
@@ -92,15 +105,13 @@ rank = Dict(
 bond_dimensions = [2, 2, 8, 4, 2, 2, 8]
 
 ig = ising_graph(instance, L)
-update_cells!(
-   ig,
-   rule = square_lattice((m, n, t)),
-)
+
 
 fg = factor_graph(
     ig,
     energy=energy,
     spectrum=full_spectrum,
+    cluster_assignment_rule=chimera_to_square_lattice((m, n, t)),
 )
 
 for v ∈ vertices(fg)

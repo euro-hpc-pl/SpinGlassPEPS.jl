@@ -1,8 +1,17 @@
-export factor_graph
-export rank_reveal, projectors
+export factor_graph, rank_reveal, projectors, split_into_clusters
 
 _max_cell_num(ig::MetaGraph) = maximum(get_prop.(Ref(ig), vertices(ig), :cell))
 
+function split_into_clusters(vertices, assignment_rule)
+    # TODO: check how to do this in functional-style
+    clusters = Dict(
+        i => Set{Int}() for i in values(assignment_rule)
+    )
+    for v in vertices
+        push!(clusters[assignment_rule[v]], v)
+    end
+    clusters
+end
 
 function factor_graph(
     ig::MetaGraph,
@@ -24,13 +33,17 @@ function factor_graph(
     ig::MetaGraph,
     num_states_cl::Dict{Int, Int}=Dict{Int, Int}();
     energy::Function=energy,
-    spectrum::Function=full_spectrum
+    spectrum::Function=full_spectrum,
+    cluster_assignment_rule::Dict{Int, Int} # e.g. square lattice
 )
-    L = _max_cell_num(ig)
+    L = maximum(values(cluster_assignment_rule))
+
     fg = MetaDiGraph(L, 0.0)
 
-    for v ∈ vertices(fg)
-        cl = Cluster(ig, v)
+    cluster_to_verts = split_into_clusters(vertices(ig), cluster_assignment_rule)
+
+    for (v, verts) ∈ cluster_to_verts
+        cl = Cluster(ig, verts)
         set_prop!(fg, v, :cluster, cl)
         r = prod(cl.rank)
         num_states = get(num_states_cl, v, r)

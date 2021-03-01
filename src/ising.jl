@@ -1,4 +1,4 @@
-export ising_graph, update_cells!
+export ising_graph
 export energy, rank_vec
 export Cluster, Spectrum
 
@@ -17,6 +17,8 @@ function rank_vec(ig::MetaGraph)
     Int[get(rank, i, 1) for i=1:L]
 end
 
+unique_vertices(ising_tuples) = sort(collect(Set(Iterators.flatten((i, j) for (i, j, _) ∈ ising_tuples))))
+
 """
 $(TYPEDSIGNATURES)
 
@@ -28,122 +30,84 @@ Store extra information
 """
 function ising_graph(
     instance::Instance,
-    L::Int,
     sgn::Number=1.0,
     rank_override::Dict{Int, Int}=Dict{Int, Int}()
 )
-
     # load the Ising instance
-    if typeof(instance) == String
+    if instance isa String
         ising = CSV.File(instance, types = [Int, Int, Float64], header=0, comment = "#")
     else
         ising = [ (i, j, J) for ((i, j), J) ∈ instance ]
     end
 
-    ig = MetaGraph(L, 0.0)
-    set_prop!(ig, :description, "The Ising model.")
-    set_prop!(ig, :L, L)
+    original_verts = unique_vertices(ising)
+    verts_map = Dict(w => i for (i, w) ∈ enumerate(original_verts))
 
-    for v ∈ 1:L
-        set_prop!(ig, v, :active, false)
-        set_prop!(ig, v, :cell, v)
-        set_prop!(ig, v, :h, 0.)
-    end
+    L = length(original_verts)
+
+    ig = MetaGraph(L)
+
+    foreach(args -> set_prop!(ig, args[1], :orig_vert, args[2]), enumerate(original_verts))
 
     J = zeros(L, L)
     h = zeros(L)
 
     # setup the model (J_ij, h_i)
-    for (i, j, v) ∈ ising
+    for (_i, _j, v) ∈ ising
+        i, j = verts_map[_i], verts_map[_j]
         v *= sgn
 
         if i == j
-            set_prop!(ig, i, :h, v) || error("Node $i missing!")
             h[i] = v
         else
-            if has_edge(ig, j, i)
-                error("Cannot add ($i, $j) as ($j, $i) already exists!")
-            end
             add_edge!(ig, i, j) &&
-            set_prop!(ig, i, j, :J, v) || error("Cannot add Egde ($i, $j)")
+            set_prop!(ig, i, j, :J, v) || throw(ArgumentError("Duplicate Egde ($i, $j)"))
             J[i, j] = v
         end
-
-        set_prop!(ig, i, :active, true) || error("Cannot activate node $(i)!")
-        set_prop!(ig, j, :active, true) || error("Cannot activate node $(j)!")
     end
 
-    # store extra information
-    rank = Dict{Int, Int}()
-    for v in vertices(ig)
-        if get_prop(ig, v, :active)
-            rank[v] = get(rank_override, v, 2) # TODO: this can not be 2
-        end
-    end   
-    set_prop!(ig, :rank, rank)
+    foreach(i -> set_prop!(ig, i, :h, h[i]), vertices(ig))
+
+    set_prop!(
+        ig,
+        :rank,
+        Dict{Int, Int}(
+            verts_map[v] => get(rank_override, v, 2) for v in original_verts
+        )
+    )
 
     set_prop!(ig, :J, J)
     set_prop!(ig, :h, h)
 
-    σ = 2.0 * (rand(L) .< 0.5) .- 1.0
-
-    set_prop!(ig, :state, σ)
-    set_prop!(ig, :energy, energy(σ, ig))
     ig
 end
 
-function update_cells!(ig::MetaGraph; rule::Dict)
-    for v ∈ vertices(ig)
-        w = get_prop(ig, v, :cell)
-        set_prop!(ig, v, :cell, rule[w])
-    end
-end
-
 mutable struct Cluster
-    tag::Int
     vertices::Dict{Int, Int}
     edges::EdgeIter
     rank::Vector
     J::Matrix{<:Number}
     h::Vector{<:Number}
-
-    function Cluster(ig::MetaGraph, v::Int)
-        cl = new(v)
-        active = filter_vertices(ig, :active, true)
-
-        if cl.tag == 0
-            vlist = vertices(ig)
-        else
-            vlist = filter_vertices(ig, :cell, v)
-        end
-        vlist = intersect(active, vlist)
-
-        L = length(vlist)
-        cl.h = zeros(L)
-        cl.J = zeros(L, L)
-
-        cl.vertices = Dict()
-        cl.edges = SimpleEdge[]
-
-        rank = get_prop(ig, :rank)
-        cl.rank = zeros(Int, L)
-
-        for (i, w) ∈ enumerate(vlist)
-            push!(cl.vertices, w => i)
-            @inbounds cl.h[i] = get_prop(ig, w, :h)
-            @inbounds cl.rank[i] = rank[w]
-        end
-
-        for e ∈ edges(ig)
-            if src(e) ∈ vlist && dst(e) ∈ vlist
-                i, j = cl.vertices[src(e)], cl.vertices[dst(e)]
-                @inbounds cl.J[i, j] = get_prop(ig, e, :J)
-                push!(cl.edges, e)
-            end
-        end
-        cl
-    end
 end
+
+
+function Cluster(ig::MetaGraph, verts::Set{Int})
+    sub_ig, vmap = induced_subgraph(ig, collect(verts))
+
+    L = nv(sub_ig)
+    h = get_prop.(Ref(sub_ig), vertices(sub_ig), :h)
+    J = zeros(L, L)
+
+    cl_edges = collect(edges(sub_ig))
+    cl_vertices = Dict(w => i for (i, w) ∈ enumerate(vmap))
+
+    rank = get_prop.(Ref(sub_ig), vertices(sub_ig), :rank)
+
+    foreach(e -> @inbounds J[src(e), dst(e)] = get_prop(sub_ig, e, :J), edges(sub_ig))
+
+    Cluster(cl_vertices, cl_edges, rank, J, h)
+end
+
 
 function MetaGraphs.filter_edges(ig::MetaGraph, v::Cluster, w::Cluster)
     edges = SimpleEdge[]
