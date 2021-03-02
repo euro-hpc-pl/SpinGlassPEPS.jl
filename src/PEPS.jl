@@ -226,11 +226,10 @@ function conditional_probability(
 end
 
 _bond_energy(pn::AbstractGibbsNetwork,
-    ig::MetaGraph,
     m::NTuple{2, Int},
     n::NTuple{2, Int},
     σ::Int,
-    ) = bond_energy(pn.network_graph, ig, pn.map[m], pn.map[n], σ)
+    ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ)
 
 _local_energy(pn::AbstractGibbsNetwork,
     m::NTuple{2, Int},
@@ -238,7 +237,6 @@ _local_energy(pn::AbstractGibbsNetwork,
 
 function update_energy(
     network::AbstractGibbsNetwork,
-    ig::MetaGraph,
     σ::Vector{Int},
     )
     i, j = get_coordinates(network, length(σ)+1)
@@ -249,8 +247,8 @@ function update_energy(
     println("σil ", σil)
     println("σkj ", σkj)
 
-    a = _bond_energy(network, ig, (i, j), (i, j-1), σil)
-    b = _bond_energy(network, ig, (i, j), (i-1, j), σkj)
+    a = _bond_energy(network, (i, j), (i, j-1), σil)
+    b = _bond_energy(network, (i, j), (i-1, j), σkj)
     c = _local_energy(network, (i, j))
     println("size a", size(a))
     println("a ", a)
@@ -259,7 +257,7 @@ function update_energy(
     println("size c", size(c))
     println("c ", c)
 
-    return c
+    return a + b + c
 end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)

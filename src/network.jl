@@ -89,7 +89,6 @@ end
 
 function bond_energy(
     ng::NetworkGraph,
-    ig::MetaGraph,
     u::Int,
     v::Int,
     σ::Int,
@@ -98,25 +97,37 @@ function bond_energy(
     println("u ", u)
     println("v ", v)
     println("σ ", σ)
+
     if has_edge(fg, u, v)
-        a = get_prop(fg, u, v, :edge)#.J[:, σ]
-        #println(Cluster(ig, u))
-        #b = Cluster(ig, u)
-        J = a.J[σ, :]
-        println("edge ", a)
-        println("bond_en ", J)
+        cl = get_prop(fg, u, :cluster)
+        println("rank ",cl.rank)
+        s = collect.(all_states(cl.rank))
+        println("s ", s)
+        J = get_prop(fg, u, v, :edge).J[:, σ]
+        println("J ", J)
+        energies = zeros(get_prop(fg, u, :loc_dim))
+        for (i, w) in enumerate(s)
+            energies[i] = energy(w, J)
+        end
+       println("bond_en ", energies)
     elseif has_edge(fg, v, u)
-        a = get_prop(fg, v, u, :edge)#.J[:, σ]
-        println("edge ", a)
-        #println(Cluster(ig, u))
-        #b = Cluster(ig, u)
-        J = a.J[σ, :]
-        println("bond_en ", J)
+        cl = get_prop(fg, v, :cluster)
+        println("rank ",cl.rank)
+        s = collect.(all_states(cl.rank))
+        println("s ", s)
+        J = get_prop(fg, v, u, :edge).J[σ, :]
+        println("J ", J)
+        energies = zeros(get_prop(fg, v, :loc_dim))
+        for (i, w) in enumerate(s)
+            energies[i] = energy(w, J)
+        end
+        println("bond_en ", energies)
     else
-        J = zeros(get_prop(fg, u, :loc_dim))
-        println("bond_en ", J)
+        energies = zeros(get_prop(fg, u, :loc_dim))
+        println("bond_en ", energies)
+        zeros(get_prop(fg, u, :loc_dim))
     end
-    J
+    energies
 end
 
 function local_energy(

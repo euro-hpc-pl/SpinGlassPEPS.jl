@@ -25,17 +25,12 @@ using CSV
        rule = square_lattice((m, n, t)),
     )
     println("vertices ", vertices(ig))
-    #println(get_prop(ig, 2, 2, :edge))
-    println(Cluster(ig, 1))
-    println(Cluster(ig, 2))
 
     fg = factor_graph(
         ig,
         energy=energy,
         spectrum=full_spectrum,
     )
-
-    println(get_prop(fg, 1, 2, :edge))
 
     control_params = Dict(
         "bond_dim" => typemax(Int),
@@ -45,8 +40,7 @@ using CSV
 
     for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
-        eng = update_energy(peps, ig,  [2, 1])
-
+        eng = update_energy(peps,  [1, 1])
         println("eng ", eng)
         println("size eng ", size(eng))
     end
@@ -67,7 +61,7 @@ end
     L = 4 #n * m * t
     num_states = 5
 
-    ground_energy = 16.4
+    # ground_energy = 16.4
 
     control_params = Dict(
         "bond_dim" => typemax(Int),
@@ -75,7 +69,7 @@ end
         "sweeps" => 4.
     )
 
-    #instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
+    # instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
     instance = "$(@__DIR__)/instances/4_001.txt"
 
     ig = ising_graph(instance, L)
@@ -97,10 +91,11 @@ end
         #∂σ = generate_boundary(peps, σ, i, j)
     
         sol = low_energy_spectrum(peps, num_states)
-
-         println(sol.probabilities)
-         println(sol.states)
-         println(sol.largest_discarded_probability)
+        
+        println(sol.energies)
+        println(sol.probabilities)
+        println(sol.states)
+        println(sol.largest_discarded_probability)
         # @test sol.energies[1] ≈ ground_energy
     end
 end
