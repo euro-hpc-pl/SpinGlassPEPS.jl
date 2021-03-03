@@ -229,35 +229,40 @@ function conditional_probability(
     prob #_normalize_probability(prob)
 end
 
-# _bond_energy(pn::AbstractGibbsNetwork,
-#     m::NTuple{2, Int},
-#     n::NTuple{2, Int},
-#     σ::Int,
-#     ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ)
+_bond_energy(pn::AbstractGibbsNetwork,
+    m::NTuple{2, Int},
+    n::NTuple{2, Int},
+    σ::Int,
+    ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ)
 
-# _local_energy(pn::AbstractGibbsNetwork,
-#     m::NTuple{2, Int},
-#     ) = local_energy(pn.network_graph, pn.map[m])
+_local_energy(pn::AbstractGibbsNetwork,
+    m::NTuple{2, Int},
+    ) = local_energy(pn.network_graph, pn.map[m])
 
-# function update_energy(
-#     network::AbstractGibbsNetwork,
-#     σ::Vector{Int},
-#     )
-#     i, j = get_coordinates(network, length(σ)+1)
+function update_energy(
+    network::AbstractGibbsNetwork,
+    σ::Vector{Int},
+    )
+    i, j = get_coordinates(network, length(σ)+1)
+    println("i, j ", i, j)
 
-#     σkj = _get_local_state(network, σ, i-1, j)
-#     σil = _get_local_state(network, σ, i, j-1)
+    σkj = _get_local_state(network, σ, (i-1, j))
+    σil = _get_local_state(network, σ, (i, j-1))
+    println("σil ", σil)
+    println("σkj ", σkj)
 
-#     a = _bond_energy(network, (i, j), (i, j-1), σil)
-#     b = _bond_energy(network, (i, j), (i-1, j), σkj)
-#     c = _local_energy(network, (i, j))
+    a = _bond_energy(network, (i, j), (i, j-1), σil)
+    b = _bond_energy(network, (i, j), (i-1, j), σkj)
+    c = _local_energy(network, (i, j))
+    println("size a", size(a))
+    println("a ", a)
+    println("size b", size(b))
+    println("b ", b)
+    println("size c", size(c))
+    println("c ", c)
 
-#     println(size(a))
-#     println(size(b))
-#     println(size(c))
-
-#     return a + b + c
-# end
+    return a + b + c
+end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)
     @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
