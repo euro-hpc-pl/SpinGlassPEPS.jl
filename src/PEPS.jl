@@ -64,21 +64,42 @@ generate_boundary(pn::PepsNetwork,
                   σ::Int,
                  ) = generate_boundary(pn.network_graph, pn.map[m], pn.map[n], σ)
 
-function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
-    ψ = PEPSRow(T, peps.j_max)
+# function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
+#     ψ = PEPSRow(T, peps.j_max)
 
+#     # generate tensors from projectors
+#     for j ∈ 1:length(ψ)
+#         ψ[j] = generate_tensor(peps, (i, j))
+#     end
+
+#     # include energy
+#     for j ∈ 1:peps.j_max
+#         A = ψ[j]
+#         h = generate_tensor(peps, (i, j-1), (i, j))
+#         v = generate_tensor(peps, (i-1, j), (i, j))
+#         @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ]
+#         ψ[j] = B
+#     end
+#     ψ
+# end
+# PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
+
+function peps_tensor(::Type{T}, peps::PepsNetwork, i::Int, j::Int) where {T <: Number}
     # generate tensors from projectors
-    for j ∈ 1:length(ψ)
-        ψ[j] = generate_tensor(peps, (i, j))
-    end
+    A = generate_tensor(peps, (i, j))
 
     # include energy
+    h = generate_tensor(peps, (i, j-1), (i, j))
+    v = generate_tensor(peps, (i-1, j), (i, j))
+    @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ]
+    B
+end
+peps_tensor(peps::PepsNetwork, i::Int, j::Int) = peps_tensor(Float64, peps, i, j)
+
+function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
+    ψ = PEPSRow(T, peps.j_max)
     for j ∈ 1:peps.j_max
-        A = ψ[j]
-        h = generate_tensor(peps, (i, j-1), (i, j))
-        v = generate_tensor(peps, (i-1, j), (i, j))
-        @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ]
-        ψ[j] = B
+        ψ[j] = peps_tensor(T, peps, i, j)
     end
     ψ
 end
@@ -181,7 +202,6 @@ function generate_boundary(
 end
 
 @inline function _contract(
-    C::Array{T, 2},
     A::Array{T, 5},
     M::Array{T, 3},
     L::Vector{T},
@@ -190,17 +210,15 @@ end
     ) where {T <: Number}
 
     l, u = ∂v
-    println("l, u ", l, u)
-    C̃ = C[l, :]
-    Ã = A[:, u, :, :, :]
-    println("Ã -> ")
-    display(Ã)
-    display(C̃)
-    println()
-    println("R ", R)
-    @tensor prob[σ] := L[x] * M[x, d, y] * C̃[k] * Ã[k, r, d, σ] * R[y, r] order = (k, x, d, r, y)
-    prob = prob / sum(prob)
-    println("prob ", prob)
+    # println("M", M)
+    # println("A", A)
+    # println("L", L)
+    # println("R", R)
+    # println("l", l)
+    # println("u", u)
+    Ã = A[l, u, :, :, :]
+    @tensor prob[σ] := L[x] * M[x, d, y] *
+                       Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
     prob
 end
 
@@ -220,19 +238,15 @@ function conditional_probability(
     println("∂v ->", ∂v)
 
     println("i, j -> ", i, " ", j)
+
     W = MPO(peps, i)
     ψ = MPS(peps, i+1)
 
     L = left_env(ψ, ∂v[1:j-1])
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
-    A = generate_tensor(peps, (i, j))
-    C = generate_tensor(peps, (i, j-1), (i, j))
-    println("display in conditional probability A")
-    display(A)
-    println("display in conditional probability C")
-    display(C)
+    A = peps_tensor(peps, i, j)
 
-    prob = _contract(C, A, ψ[j], L, R, ∂v[j:j+1])
+    prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
 
     #println("prob ", prob)
     prob #_normalize_probability(prob)
@@ -257,18 +271,18 @@ function update_energy(
 
     σkj = _get_local_state(network, σ, (i-1, j))
     σil = _get_local_state(network, σ, (i, j-1))
-    println("σil ", σil)
-    println("σkj ", σkj)
+    # println("σil ", σil)
+    # println("σkj ", σkj)
 
     a = _bond_energy(network, (i, j), (i, j-1), σil)
     b = _bond_energy(network, (i, j), (i-1, j), σkj)
     c = _local_energy(network, (i, j))
-    println("size a", size(a))
-    println("a ", a)
-    println("size b", size(b))
-    println("b ", b)
-    println("size c", size(c))
-    println("c ", c)
+    # println("size a", size(a))
+    # println("a ", a)
+    # println("size b", size(b))
+    # println("b ", b)
+    # println("size c", size(c))
+    # println("c ", c)
 
     return a + b + c
 end

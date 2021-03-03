@@ -91,36 +91,21 @@ using CSV
             @test R[1] ≈ A1
             @test R[2] ≈ A2
 
-<<<<<<< HEAD
-            @cast C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
-            println("C:")
-            display(C)
-            println()
-            println(C)
-            println(size(C))
-            println(typeof(C))
-            println("size of A1 and A2")
-            println(size(A1), size(A2))
-            display(A1) 
-            display(A2)
-            display(R[1])
-            display(R[2])
-            
-
-=======
             @testset "which produce correct Gibbs state" begin  
                 @reduce C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
                 @test C / sum(C) ≈ reshape(gibbs_tensor(ig, β), 2, 2)
             end
->>>>>>> e82b9e61fb89bdb0c92637a4cf41ab0dc6c44070
         end
 
         sol = low_energy_spectrum(peps, num_states)
 
+        println("--------------------------------")
         println(sol.probabilities)
         println(sol.states)
+        println(sol.energies)
         println(sol.largest_discarded_probability)
-
+        println("--------------------------------")
+        
         # @test sol.energies[1] ≈ ground_energy
     end
 
