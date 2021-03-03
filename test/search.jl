@@ -6,7 +6,7 @@ using CSV
 @testset "update_energy correctly updates the energy" begin
     #m = 3
     #n = 3
-    #t = 1 
+    #t = 1
     m = 3
     n = 4
     t = 3
@@ -47,7 +47,6 @@ using CSV
 
 end
 
-#=
 @testset "Low energy spectrum for pathological instance is correct" begin
     # m = 3
     # n = 4
@@ -89,9 +88,9 @@ end
 
 
         #∂σ = generate_boundary(peps, σ, i, j)
-    
+
         sol = low_energy_spectrum(peps, num_states)
-        
+
         println(sol.energies)
         println(sol.probabilities)
         println(sol.states)
@@ -99,4 +98,3 @@ end
         # @test sol.energies[1] ≈ ground_energy
     end
 end
-=#

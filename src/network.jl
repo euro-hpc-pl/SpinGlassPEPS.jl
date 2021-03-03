@@ -99,33 +99,16 @@ function bond_energy(
     println("σ ", σ)
 
     if has_edge(fg, u, v)
-        cl = get_prop(fg, u, :cluster)
-        println("rank ",cl.rank)
-        s = collect.(all_states(cl.rank))
-        println("s ", s)
-        J = get_prop(fg, u, v, :edge).J[:, σ]
-        println("J ", J)
-        energies = zeros(get_prop(fg, u, :loc_dim))
-        for (i, w) in enumerate(s)
-            energies[i] = energy(w, J)
-        end
-       println("bond_en ", energies)
+        pr, en, pl = get_prop(fg, u, v, :split)
+        energies = pr[σ, :] * en * pl
+        println("bond_en ", energies)
     elseif has_edge(fg, v, u)
-        cl = get_prop(fg, v, :cluster)
-        println("rank ",cl.rank)
-        s = collect.(all_states(cl.rank))
-        println("s ", s)
-        J = get_prop(fg, v, u, :edge).J[σ, :]
-        println("J ", J)
-        energies = zeros(get_prop(fg, v, :loc_dim))
-        for (i, w) in enumerate(s)
-            energies[i] = energy(w, J)
-        end
+        pr, en, pl = get_prop(fg, v, u, :split)
+        energies = pr * en * pl[:, σ]
         println("bond_en ", energies)
     else
         energies = zeros(get_prop(fg, u, :loc_dim))
         println("bond_en ", energies)
-        zeros(get_prop(fg, u, :loc_dim))
     end
     energies
 end

@@ -190,7 +190,13 @@ end
     ) where {T <: Number}
 
     l, u = ∂v
-    @cast Ã[r, d, σ] := A[$l, $u, r, d, σ]
+    println("M", M)
+    println("A", A)
+    println("L", L)
+    println("R", R)
+    println("l", l)
+    println("u", u)
+    Ã = A[l, u, :, :, :]
     @tensor prob[σ] := L[x] * M[x, d, y] *
                        Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
     prob
@@ -220,7 +226,7 @@ function conditional_probability(
 
     println("prob ", prob)
     ret = _normalize_probability(prob)
-    
+
     #println("CP ", ret)
     ret
 end
