@@ -210,12 +210,6 @@ end
     ) where {T <: Number}
 
     l, u = ∂v
-    # println("M", M)
-    # println("A", A)
-    # println("L", L)
-    # println("R", R)
-    # println("l", l)
-    # println("u", u)
     Ã = A[l, u, :, :, :]
     @tensor prob[σ] := L[x] * M[x, d, y] *
                        Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
@@ -235,10 +229,6 @@ function conditional_probability(
     i, j = get_coordinates(peps, length(v)+1)
     ∂v = generate_boundary(peps, v, (i, j))
 
-    println("∂v ->", ∂v)
-
-    println("i, j -> ", i, " ", j)
-
     W = MPO(peps, i)
     ψ = MPS(peps, i+1)
 
@@ -247,9 +237,7 @@ function conditional_probability(
     A = peps_tensor(peps, i, j)
 
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
-
-    #println("prob ", prob)
-    prob #_normalize_probability(prob)
+    _normalize_probability(prob)
 end
 
 _bond_energy(pn::AbstractGibbsNetwork,
@@ -267,24 +255,13 @@ function update_energy(
     σ::Vector{Int},
     )
     i, j = get_coordinates(network, length(σ)+1)
-    println("i, j ", i, j)
 
     σkj = _get_local_state(network, σ, (i-1, j))
     σil = _get_local_state(network, σ, (i, j-1))
-    # println("σil ", σil)
-    # println("σkj ", σkj)
 
-    a = _bond_energy(network, (i, j), (i, j-1), σil)
-    b = _bond_energy(network, (i, j), (i-1, j), σkj)
-    c = _local_energy(network, (i, j))
-    # println("size a", size(a))
-    # println("a ", a)
-    # println("size b", size(b))
-    # println("b ", b)
-    # println("size c", size(c))
-    # println("c ", c)
-
-    return a + b + c
+    _bond_energy(network, (i, j), (i, j-1), σil) +
+    _bond_energy(network, (i, j), (i-1, j), σkj) +
+    _local_energy(network, (i, j))
 end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)

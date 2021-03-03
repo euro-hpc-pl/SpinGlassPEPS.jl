@@ -62,7 +62,6 @@ function _branch_and_bound(
     k = get_prop(fg, node, :loc_dim)
 
     for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
-        println("sigma ", σ)
         pdo = [pdo; p .* conditional_probability(network, σ)]
         eng = [eng; e .+ update_energy(network, σ)]
         cfg = _branch_state(cfg, σ, collect(1:k))
@@ -70,7 +69,6 @@ function _branch_and_bound(
 
     # bound
     idx = partialsortperm(pdo, 1:min(length(pdo), cut), rev=true)
- 
     lpCut = sol.largest_discarded_probability
     pdo = pdo[idx]
 
@@ -93,7 +91,7 @@ function low_energy_spectrum(
         sol = _branch_and_bound(sol, network, v, cut)
     end
 
-    idx = partialsortperm(sol.energies, 1:length(sol.energies), rev=true)
+    idx = partialsortperm(sol.energies, 1:length(sol.energies), rev=false)
     Solution(
         sol.energies[idx],
         sol.states[idx],
