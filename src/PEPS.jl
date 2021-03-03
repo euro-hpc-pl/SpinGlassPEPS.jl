@@ -143,40 +143,39 @@ end
 
 @inline function _get_local_state(
     peps::PepsNetwork,
-    v::Vector{Int},
-    i::Int,
-    j::Int,
+    σ::Vector{Int},
+    w::NTuple{2, Int},
     )
-    k = j + peps.j_max * (i - 1)
-    if k > length(v) || k <= 0 return 1 end
-    v[k]
+    k = last(w) + peps.j_max * (first(w) - 1)
+    if k > length(σ) || k <= 0 return 1 end
+    σ[k]
 end
 
 function generate_boundary(
     peps::PepsNetwork,
-    v::Vector{Int},
-    i::Int,
-    j::Int,
+    cfg::Vector{Int},
+    pivot::NTuple{2, Int}
     )
+    i, j = pivot
     ∂v = zeros(Int, peps.j_max + 1)
+
+    # on the left at the current row
+    v = (i, j-1)
+    σ = _get_local_state(peps, cfg, v)
+    ∂v[j] = generate_boundary(peps, v, pivot, σ)
 
     # on the left below
     for k ∈ 1:j-1
-        ∂v[k] = generate_boundary(peps,
-            (i, k), (i+1, k),
-            _get_local_state(peps, v, i, k))
+        v, pivot = (i, k), (i+1, k)
+        σ = _get_local_state(peps, cfg, v)
+        ∂v[k] = generate_boundary(peps, v, pivot, σ)
     end
-
-    # on the left at the current row
-    ∂v[j] = generate_boundary(peps,
-        (i, j-1), (i, j),
-        _get_local_state(peps, v, i, j-1))
 
     # on the right above
     for k ∈ j:peps.j_max
-        ∂v[k+1] = generate_boundary(peps,
-            (i-1, k), (i, k),
-            _get_local_state(peps, v, i-1, k))
+        v, pivot = (i-1, k), (i, k)
+        σ = _get_local_state(peps, cfg, v)
+        ∂v[k+1] = generate_boundary(peps, v, pivot, σ)
     end
     ∂v
 end
@@ -191,8 +190,13 @@ end
 
     l, u = ∂v
     @cast Ã[r, d, σ] := A[$l, $u, r, d, σ]
-    @tensor prob[σ] := L[x] * M[x, d, y] *
-                       Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
+    #println(L)
+    #println(M)
+    #println("A -> ", A)
+    #println(R)
+    @tensor prob[σ] := L[x] * M[x, d, y] * Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
+
+    println("prob ", prob)
     prob
 end
 
@@ -207,8 +211,11 @@ function conditional_probability(
     v::Vector{Int},
     )
     i, j = get_coordinates(peps, length(v)+1)
-    ∂v = generate_boundary(peps, v, i, j)
+    ∂v = generate_boundary(peps, v, (i, j))
 
+    println("∂v ->", ∂v)
+    
+    println("i, j -> ", i, " ", j)
     W = MPO(peps, i)
     ψ = MPS(peps, i+1)
 
@@ -218,42 +225,39 @@ function conditional_probability(
 
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
 
-    println("prob ", prob)
-    ret = _normalize_probability(prob)
-    
-    #println("CP ", ret)
-    ret
+    #println("prob ", prob)
+    prob #_normalize_probability(prob)
 end
 
-_bond_energy(pn::AbstractGibbsNetwork,
-    m::NTuple{2, Int},
-    n::NTuple{2, Int},
-    σ::Int,
-    ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ)
+# _bond_energy(pn::AbstractGibbsNetwork,
+#     m::NTuple{2, Int},
+#     n::NTuple{2, Int},
+#     σ::Int,
+#     ) = bond_energy(pn.network_graph, pn.map[m], pn.map[n], σ)
 
-_local_energy(pn::AbstractGibbsNetwork,
-    m::NTuple{2, Int},
-    ) = local_energy(pn.network_graph, pn.map[m])
+# _local_energy(pn::AbstractGibbsNetwork,
+#     m::NTuple{2, Int},
+#     ) = local_energy(pn.network_graph, pn.map[m])
 
-function update_energy(
-    network::AbstractGibbsNetwork,
-    σ::Vector{Int},
-    )
-    i, j = get_coordinates(network, length(σ)+1)
+# function update_energy(
+#     network::AbstractGibbsNetwork,
+#     σ::Vector{Int},
+#     )
+#     i, j = get_coordinates(network, length(σ)+1)
 
-    σkj = _get_local_state(network, σ, i-1, j)
-    σil = _get_local_state(network, σ, i, j-1)
+#     σkj = _get_local_state(network, σ, i-1, j)
+#     σil = _get_local_state(network, σ, i, j-1)
 
-    a = _bond_energy(network, (i, j), (i, j-1), σil)
-    b = _bond_energy(network, (i, j), (i-1, j), σkj)
-    c = _local_energy(network, (i, j))
+#     a = _bond_energy(network, (i, j), (i, j-1), σil)
+#     b = _bond_energy(network, (i, j), (i-1, j), σkj)
+#     c = _local_energy(network, (i, j))
 
-    println(size(a))
-    println(size(b))
-    println(size(c))
+#     println(size(a))
+#     println(size(b))
+#     println(size(c))
 
-    return a + b + c
-end
+#     return a + b + c
+# end
 
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)
     @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)

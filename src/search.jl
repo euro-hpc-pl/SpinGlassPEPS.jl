@@ -70,15 +70,21 @@ function _branch_and_bound(
     for (p, σ) ∈ zip(sol.probabilities, sol.states)
         pdo = [pdo; p .* conditional_probability(network, σ)]
         cfg = _branch_state(cfg, σ, collect(1:k))
+        #println("pdo: ", pdo)
     end
 
     # bound
     idx = partialsortperm(pdo, 1:min(length(pdo), cut), rev=true)
+ 
     lpCut = sol.largest_discarded_probability
-    lpCut < last(pdo) ? lpCut = last(pdo) : ()
+    pdo = pdo[idx]
+
+    if cut < length(pdo)
+        lpCut < pdo[cut+1] ? lpCut = pdo[cut+1] : ()
+    end
 
     # Solution(eng[idx], cfg[idx], pdo[idx], lpCut)
-    Solution(cfg[idx], pdo[idx], lpCut)
+    Solution(cfg[idx], pdo, lpCut)
 end
 
 #TODO: incorporate "going back" move to improve alghoritm

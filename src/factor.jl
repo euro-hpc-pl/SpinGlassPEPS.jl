@@ -66,16 +66,16 @@ function factor_graph(
     fg
 end
 
-function projectors(fg::MetaDiGraph, i::Int, j::Int)
-    if has_edge(fg, i, j)
-        p1, en, p2 = get_prop(fg, i, j, :split)
-    elseif has_edge(fg, j, i)
-        p2, en, p1 = get_prop(fg, j, i, :split)
-    else
-        p1 = en = p2 = ones(1, 1)
-    end
-    p1, en, p2
-end
+# function projectors(fg::MetaDiGraph, i::Int, j::Int)
+#     if has_edge(fg, i, j)
+#         p1, en, p2 = get_prop(fg, i, j, :split)
+#     elseif has_edge(fg, j, i)
+#         p2, en, p1 = get_prop(fg, j, i, :split)
+#     else
+#         p1 = en = p2 = ones(1, 1)
+#     end
+#     p1, en, p2
+# end
 
 function rank_reveal(energy, order=:PE)
     @assert order ∈ (:PE, :EP)
