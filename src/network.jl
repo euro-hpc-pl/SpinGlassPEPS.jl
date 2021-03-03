@@ -1,89 +1,55 @@
-export NetworkGraph
 export generate_boundary, generate_tensor
 
-mutable struct NetworkGraph
-    factor_graph::MetaDiGraph
-    nbrs::Dict
-    β::Number
-
-    function NetworkGraph(fg::MetaDiGraph, nbrs::Dict, β::Number)
-        ng = new(fg, nbrs, β)
-
-        count = 0
-        for v ∈ vertices(fg), w ∈ ng.nbrs[v]
-            if has_edge(fg, v, w) count += 1 end
-        end
-
-        mc = ne(fg)
-        if count < mc  
-            error("Factor and Ising graphs are incompatible. Edges: $(count) vs $(mc).") 
-        end
-        ng
-    end
-end
 
 function _get_projector(
-    fg::MetaDiGraph, 
-    v::Int, 
-    w::Int,
+    fg::MetaDiGraph,
+    v::Int,
+    w::Int
     )
     if has_edge(fg, w, v)
-        _, _, pv = get_prop(fg, w, v, :split)
-        return pv'
+        get_prop(fg, w, v, :pr)'
     elseif has_edge(fg, v, w)
-        pv, _, _ = get_prop(fg, v, w, :split)
-        return pv
+        get_prop(fg, v, w, :pl)
     else
-        return nothing
+        loc_dim = length(get_prop(fg, v, :loc_en))
+        ones(loc_dim, 1)
     end
 end
 
-@memoize function generate_tensor(ng::NetworkGraph, v::Int)
-    fg = ng.factor_graph
-    loc_exp = exp.(-ng.β .* get_prop(fg, v, :loc_en))
+@memoize function generate_tensor(network::PEPSNetwork, v::Int)
+    loc_exp = exp.(-network.β .* get_prop(network.fg, v, :loc_en))
 
-    dim = []
-    @cast tensor[_, i] := loc_exp[i]
+    dim = zeros(Int, length(network.nbrs[v]))
+    @cast A[_, i] := loc_exp[i]
 
-    for w ∈ ng.nbrs[v]
-        pv = _get_projector(fg, v, w)
-        if pv === nothing 
-            pv = ones(length(loc_exp), 1) 
-        end
-        @cast tensor[(c, γ), σ] |= tensor[c, σ] * pv[σ, γ]
-        push!(dim, size(pv, 2))
+    for (j, w) ∈ enumerate(network.nbrs[v])
+        pv = _get_projector(network.fg, v, w)
+        @cast A[(c, γ), σ] |= A[c, σ] * pv[σ, γ]
+        dim[j] = size(pv, 2)
     end
-    reshape(tensor, dim..., :)
+    reshape(A, dim..., :)
 end
 
-@memoize function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
-    fg = ng.factor_graph
+@memoize function generate_tensor(network::PEPSNetwork, v::Int, w::Int)
+    fg = network.fg
     if has_edge(fg, w, v)
-        _, e, _ = get_prop(fg, w, v, :split)
-        return exp.(-ng.β .* e')
+        en = get_prop(fg, w, v, :en)'
     elseif has_edge(fg, v, w)
-        _, e, _ = get_prop(fg, v, w, :split)
-        return exp.(-ng.β .* e)
+        en = get_prop(fg, v, w, :en)
     else
-        return ones(1, 1)
+        en = zeros(1, 1)
     end
+    exp.(-network.β .* en)
 end
 
 function generate_boundary(
-    ng::NetworkGraph, 
-    v::Int, 
-    w::Int, 
+    fg::MetaDiGraph,
+    v::Int,
+    w::Int,
     state::Int
     )
-    
-    fg = ng.factor_graph
     if v ∉ vertices(fg) return 1 end
-
     loc_dim = length(get_prop(fg, v, :loc_en))
     pv = _get_projector(fg, v, w)
-    if pv === nothing 
-        pv = ones(loc_dim, 1) 
-    end
-
     findfirst(x -> x > 0, pv[state, :])
 end

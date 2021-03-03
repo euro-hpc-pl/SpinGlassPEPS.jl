@@ -24,7 +24,7 @@
         Dict(1 => 4, 2 => 2),
         energy = energy,
         spectrum = full_spectrum,
-        assignment_rule = Dict(1 => 1, 2 => 1, 3 => 2, 4 => 2)
+        cluster_assignment_rule = Dict(1 => 1, 2 => 1, 3 => 2, 4 => 2)
     )
 
     for i ∈ 1:4, j ∈ 1:2
@@ -33,7 +33,7 @@
 
         Z = []
         for origin ∈ (:NW, :SW, :WS, :WN)
-            peps = PepsNetwork(m, n, fg, β, origin)
+            peps = PEPSNetwork(m, n, fg, β, origin)
             p = contract_network(peps, cfg)
             push!(Z, p)
         end

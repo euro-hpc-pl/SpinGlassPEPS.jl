@@ -45,7 +45,7 @@ fg = factor_graph(
 x, y = m, n
 
 for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-    peps = PepsNetwork(x, y, fg, β, origin)
+    peps = PEPSNetwork(x, y, fg, β, origin)
 
     ψ = IdentityMPS()
     for i ∈ peps.i_max:-1:1

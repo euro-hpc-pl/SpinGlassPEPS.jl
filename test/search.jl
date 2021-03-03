@@ -34,7 +34,7 @@ using CSV
     )
 
     for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-        peps = PepsNetwork(m, n, fg, β, origin, control_params)
+        peps = PEPSNetwork(m, n, fg, β, origin, control_params)
         sol = low_energy_spectrum(peps, num_states)
         println(sol.probabilities)
         println(sol.states)

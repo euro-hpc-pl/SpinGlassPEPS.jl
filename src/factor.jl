@@ -4,12 +4,26 @@ export factor_graph, rank_reveal, projectors, split_into_clusters
 function split_into_clusters(vertices, assignment_rule)
     # TODO: check how to do this in functional-style
     clusters = Dict(
-        i => Set{Int}() for i in values(assignment_rule)
+        i => [] for i in values(assignment_rule)
     )
     for v in vertices
         push!(clusters[assignment_rule[v]], v)
     end
     clusters
+end
+
+function split_into_clusters(ig::MetaGraph, assignment_rule)
+    cluster_id_to_verts = Dict(
+        i => Int[] for i in values(assignment_rule)
+    )
+
+    for (i, v) in enumerate(nodes(ig))
+        push!(cluster_id_to_verts[assignment_rule[v]], i)
+    end
+
+    return Dict(
+        i => cluster(ig, verts) for (i, verts) ∈ cluster_id_to_verts
+    )
 end
 
 function factor_graph(
@@ -37,51 +51,39 @@ function factor_graph(
     cluster_assignment_rule::Dict{Int, Int} # e.g. square lattice
 )
     L = maximum(values(cluster_assignment_rule))
+    fg = MetaDiGraph(L)
 
-    fg = MetaDiGraph(L, 0.0)
-
-    cluster_to_verts = split_into_clusters(vertices(ig), cluster_assignment_rule)
-
-    for (v, verts) ∈ cluster_to_verts
-        cl = cluster(ig, verts)
+    for (v, cl) ∈ split_into_clusters(ig, cluster_assignment_rule)
         set_prop!(fg, v, :cluster, cl)
-        r = prod(rank_vec(cl))
-        num_states = get(num_states_cl, v, r)
-        sp = spectrum(cl, num_states=num_states)
+        sp = spectrum(cl, num_states=get(num_states_cl, v, basis_size(cl)))
         set_prop!(fg, v, :spectrum, sp)
         set_prop!(fg, v, :loc_en, vec(sp.energies))
     end
 
     for i ∈ 1:L, j ∈ i+1:L
-        v = get_prop(fg, i, :cluster)
-        w = get_prop(fg, j, :cluster)
+        v, w = get_prop(fg, i, :cluster), get_prop(fg, j, :cluster)
 
         outer_edges, J = inter_cluster_edges(ig, v, w)
 
         if !isempty(outer_edges)
-            e = SimpleEdge(i, j)
-
-            add_edge!(fg, e)
-            set_prop!(fg, e, :outer_edges, outer_edges)
-
-            st_v = get_prop(fg, i, :spectrum).states
-            st_w = get_prop(fg, j, :spectrum).states
-
-            en = zeros(length(st_v), length(st_w))
-
-            for (k, η) ∈ enumerate(vec(st_w))
-                en[:, k] = energy.(vec(st_v), Ref(J), Ref(η))
-            end
+            en = inter_cluster_energy(
+                get_prop(fg, i, :spectrum).states, J, get_prop(fg, j, :spectrum).states
+            )
 
             pl, en = rank_reveal(en, :PE)
             en, pr = rank_reveal(en, :EP)
 
-            set_prop!(fg, e, :split, (pl, en, pr))
+            add_edge!(
+                fg, i, j,
+                Dict(:outer_edges => outer_edges, :pl => pl, :en => en, :pr => pr)
+            )
         end
     end
     fg
 end
 
+
+# TODO: eradicate it
 function projectors(fg::MetaDiGraph, i::Int, j::Int)
     if has_edge(fg, i, j)
         p1, en, p2 = get_prop(fg, i, j, :split)
