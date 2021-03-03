@@ -3,7 +3,6 @@ using LightGraphs
 using GraphPlot
 using CSV
 
-
 @testset "Simplest possible system of two spins" begin
     #
     # ----------------- Ising model ----------------------
@@ -41,7 +40,7 @@ using CSV
     β = 1.
     num_states = 4
 
-    # read in pure ising
+    # read in pure Ising
     ig = ising_graph(D, L)
 
     # treat it as a grid with 1 spin cells
