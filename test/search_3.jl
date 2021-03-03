@@ -3,7 +3,6 @@ using LightGraphs
 using GraphPlot
 using CSV
 
-
 @testset "Simplest possible system of two spins" begin
     #
     # ----------------- Ising model ----------------------
@@ -41,7 +40,7 @@ using CSV
     β = 1.
     num_states = 4
 
-    # read in pure ising
+    # read in pure Ising
     ig = ising_graph(D, L)
 
     # treat it as a grid with 1 spin cells
@@ -83,11 +82,7 @@ using CSV
 
             v1 = [ exp(-β * h1 * σ) for σ ∈ [-1, 1]]
             v2 = [ exp(-β * h2 * σ) for σ ∈ [-1, 1]]
-            println("Projectors: ")
-            display(p1)
-            println()
-            display(p2)
-            println()
+
             @cast A1[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
             @cast A2[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
 
@@ -96,6 +91,7 @@ using CSV
             @test R[1] ≈ A1
             @test R[2] ≈ A2
 
+<<<<<<< HEAD
             @cast C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
             println("C:")
             display(C)
@@ -111,10 +107,15 @@ using CSV
             display(R[2])
             
 
+=======
+            @testset "which produce correct Gibbs state" begin  
+                @reduce C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
+                @test C / sum(C) ≈ reshape(gibbs_tensor(ig, β), 2, 2)
+            end
+>>>>>>> e82b9e61fb89bdb0c92637a4cf41ab0dc6c44070
         end
 
         sol = low_energy_spectrum(peps, num_states)
-
 
         println(sol.probabilities)
         println(sol.states)

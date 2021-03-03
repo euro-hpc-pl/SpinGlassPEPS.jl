@@ -5,7 +5,7 @@ export Solution
 abstract type AbstractGibbsNetwork end
 
 mutable struct Solution
-    #energies::Vector{Float64}
+    energies::Vector{Float64}
     states::Vector{Vector{Int}}
     probabilities::Vector{Float64}
     largest_discarded_probability::Float64
@@ -61,17 +61,20 @@ function _branch_and_bound(
     pdo, eng, cfg = _init_solution()
     k = get_prop(fg, node, :loc_dim)
 
-    # for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
-    #     pdo = [pdo; p .* conditional_probability(network, σ)]
-    #     eng = [eng; e .+ update_energy(network, σ)]
-    #     cfg = _branch_state(cfg, σ, collect(1:k))
-    # end
-
+    for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
+        println("sigma ", σ)
+        pdo = [pdo; p .* conditional_probability(network, σ)]
+        eng = [eng; e .+ update_energy(network, σ)]
+        cfg = _branch_state(cfg, σ, collect(1:k))
+     end
+#=
     for (p, σ) ∈ zip(sol.probabilities, sol.states)
+        println("sigma ", σ)
         pdo = [pdo; p .* conditional_probability(network, σ)]
         cfg = _branch_state(cfg, σ, collect(1:k))
         #println("pdo: ", pdo)
     end
+    =#
 
     # bound
     idx = partialsortperm(pdo, 1:min(length(pdo), cut), rev=true)
@@ -83,8 +86,8 @@ function _branch_and_bound(
         lpCut < pdo[cut+1] ? lpCut = pdo[cut+1] : ()
     end
 
-    # Solution(eng[idx], cfg[idx], pdo[idx], lpCut)
-    Solution(cfg[idx], pdo, lpCut)
+    Solution(eng[idx], cfg[idx], pdo[idx], lpCut)
+    #Solution(cfg[idx], pdo[idx], lpCut)
 end
 
 #TODO: incorporate "going back" move to improve alghoritm
@@ -94,18 +97,18 @@ function low_energy_spectrum(
     )
     ng = network.network_graph
 
-    #sol = Solution([0.], [[]], [1.], -Inf)
-    sol = Solution([[]], [1.], -Inf)
+    sol = Solution([0.], [[]], [1.], -Inf)
+    #sol = Solution([[]], [1.], -Inf)
     for v ∈ 1:nv(ng.factor_graph)
         sol = _branch_and_bound(sol, network, v, cut)
     end
 
-    #idx = partialsortperm(sol.energies, 1:length(sol.energies), rev=true)
+    idx = partialsortperm(sol.energies, 1:length(sol.energies), rev=true)
     Solution(
-        # sol.energies[idx],
-        # sol.states[idx],
-        # sol.probabilities[idx],
-        sol.states,
-        sol.probabilities,
+        sol.energies[idx],
+        sol.states[idx],
+        sol.probabilities[idx],
+        #sol.states,
+        #sol.probabilities,
         sol.largest_discarded_probability)
 end
