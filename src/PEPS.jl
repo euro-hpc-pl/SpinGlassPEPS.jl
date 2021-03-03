@@ -189,13 +189,13 @@ end
     ) where {T <: Number}
 
     l, u = ∂v
-    @cast Ã[r, d, σ] := A[$l, $u, r, d, σ]
-    #println(L)
-    #println(M)
-    #println("A -> ", A)
-    #println(R)
+    println("l, u ", l, u)
+    Ã = A[l, u, :, :, :]
+    println("Ã -> ")
+    display(Ã)
+    println()
+    println("R ", R)
     @tensor prob[σ] := L[x] * M[x, d, y] * Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
-
     println("prob ", prob)
     prob
 end
@@ -214,7 +214,7 @@ function conditional_probability(
     ∂v = generate_boundary(peps, v, (i, j))
 
     println("∂v ->", ∂v)
-    
+
     println("i, j -> ", i, " ", j)
     W = MPO(peps, i)
     ψ = MPS(peps, i+1)

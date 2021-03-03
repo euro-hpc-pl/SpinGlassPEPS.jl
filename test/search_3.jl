@@ -14,7 +14,7 @@ using CSV
     # energies -> [-4.0, 0.0, 2.0, 2.0]
     #
     # -----------------------------------------------------
-    #         Grid                        
+    #         Grid
     #
     #     A1    |    A2
     #           |
@@ -27,12 +27,12 @@ using CSV
     h2 = 1.0
 
     total_energy(σ::Int, η::Int) = J12 * (σ * η) + h1 * σ + h2 * η
-    bond_energy(σ::Int, η::Int) = J12 * (σ * η) 
+    bond_energy(σ::Int, η::Int) = J12 * (σ * η)
 
     # dict to be read
-    D = Dict((1, 2) => J12, 
+    D = Dict((1, 2) => J12,
              (1, 1) => h1,
-             (2, 2) => h2, 
+             (2, 2) => h2,
     )
 
     # control parameters
@@ -53,7 +53,7 @@ using CSV
     # construct factor graph with no approx
     fg = factor_graph(
         ig,
-        Dict(1 => 2, 2 => 2), 
+        Dict(1 => 2, 2 => 2),
         energy = energy,
         spectrum = full_spectrum,
     )
@@ -72,7 +72,7 @@ using CSV
         p1, e, p2 = get_prop(fg, 1, 2, :split)
         en = [ bond_energy(σ, η) for σ ∈ [-1, 1], η ∈ [-1, 1]]
         @test en ≈ p1 * (e * p2)
-    end 
+    end
 
     for origin ∈ (:NW, )# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
@@ -80,18 +80,33 @@ using CSV
         @testset "has properly built PEPS tensors" begin
 
             p1, e, p2 = get_prop(fg, 1, 2, :split)
-    
+
             v1 = [ exp(-β * h1 * σ) for σ ∈ [-1, 1]]
             v2 = [ exp(-β * h2 * σ) for σ ∈ [-1, 1]]
-
-            @cast A1[_, _, r, _, σ] |= v1[σ] * exp(-β * p1[σ, r])
-            @cast A2[l, _, _, _, σ] |= v2[σ] * exp(-β * (e * p2)[l, σ])
+            println("Projectors: ")
+            display(p1)
+            println()
+            display(p2)
+            println()
+            @cast A1[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
+            @cast A2[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
 
             R = PEPSRow(peps, 1)
 
-            @test R[1] ≈ A1 
-            @test R[2] ≈ A2 
-        end 
+            @test R[1] ≈ A1
+            @test R[2] ≈ A2
+
+            @cast C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
+            println("C:")
+            display(C)
+            println()
+            println(C)
+            println(size(C))
+            println(typeof(C))
+            println("size of A1 and A2")
+            println(size(A1), size(A2))
+
+        end
 
         sol = low_energy_spectrum(peps, num_states)
 
