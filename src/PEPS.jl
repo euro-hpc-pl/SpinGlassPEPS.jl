@@ -181,6 +181,7 @@ function generate_boundary(
 end
 
 @inline function _contract(
+    C::Array{T, 2},
     A::Array{T, 5},
     M::Array{T, 3},
     L::Vector{T},
@@ -190,12 +191,15 @@ end
 
     l, u = ∂v
     println("l, u ", l, u)
-    Ã = A[l, u, :, :, :]
+    C̃ = C[l, :]
+    Ã = A[:, u, :, :, :]
     println("Ã -> ")
     display(Ã)
+    display(C̃)
     println()
     println("R ", R)
-    @tensor prob[σ] := L[x] * M[x, d, y] * Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
+    @tensor prob[σ] := L[x] * M[x, d, y] * C̃[k] * Ã[k, r, d, σ] * R[y, r] order = (k, x, d, r, y)
+    prob = prob / sum(prob)
     println("prob ", prob)
     prob
 end
@@ -222,8 +226,13 @@ function conditional_probability(
     L = left_env(ψ, ∂v[1:j-1])
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
     A = generate_tensor(peps, (i, j))
+    C = generate_tensor(peps, (i, j-1), (i, j))
+    println("display in conditional probability A")
+    display(A)
+    println("display in conditional probability C")
+    display(C)
 
-    prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
+    prob = _contract(C, A, ψ[j], L, R, ∂v[j:j+1])
 
     #println("prob ", prob)
     prob #_normalize_probability(prob)

@@ -105,6 +105,11 @@ using CSV
             println(typeof(C))
             println("size of A1 and A2")
             println(size(A1), size(A2))
+            display(A1) 
+            display(A2)
+            display(R[1])
+            display(R[2])
+            
 
         end
 
