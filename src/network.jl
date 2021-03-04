@@ -91,6 +91,7 @@ function generate_boundary(
      end
  end
 
+ #TODO: this can probably be done better
 function bond_energy(
     ng::NetworkGraph,
     u::Int,
@@ -108,7 +109,7 @@ function bond_energy(
     else
         energies = zeros(get_prop(fg, u, :loc_dim))
     end
-    energies
+    vec(energies)
 end
 
 function local_energy(

@@ -25,6 +25,7 @@ using CSV
     h1 = 0.5
     h2 = 0.75
 
+    total_energy(σ::Int, η::Int) = J12 * (σ * η) + h1 * σ + h2 * η
     bond_energy(σ::Int, η::Int) = J12 * (σ * η)
 
     # dict to be read
@@ -72,11 +73,15 @@ using CSV
         @test en ≈ p1 * (e * p2)
     end
 
-    for origin ∈ (:NW, :SW, :WS, :WN) #, :NE, :EN, :SE, :ES)
+#   for origin ∈ (:NW, :SW, :WS, :WN) #, :NE, :EN, :SE, :ES)
+    for origin ∈ (:NE, :EN, :SE, :ES)
+
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
-        if origin == :NW
-            @testset "has properly built PEPS tensors" begin
+        println("$(origin) -> ", peps.i_max, " ", peps.j_max)
+
+        if origin ∈ (:NW, :SW)
+            @testset "has properly built PEPS tensors given origin at $(origin)" begin
                 p1, e, p2 = get_prop(fg, 1, 2, :split)
 
                 v1 = [exp(-β * h1 * σ) for σ ∈ [-1, 1]]
@@ -90,7 +95,7 @@ using CSV
                 @test R[1] ≈ A1
                 @test R[2] ≈ A2
 
-                @testset "which produces correct Gibbs state" begin  
+                @testset "which produces correct Gibbs state given the origin at $(origin)" begin  
                     @reduce C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
                     @test C / sum(C) ≈ reshape(gibbs_tensor(ig, β), 2, 2)
                 end
@@ -100,7 +105,7 @@ using CSV
         # solve the problem using B & B
         sol = low_energy_spectrum(peps, num_states)
 
-        @testset "has correct spectrum" begin  
+        @testset "has correct spectrum given the origin at $(origin)" begin  
             @test sol.energies ≈ exact_spectrum.energies
 
             for (σ, η) ∈ zip(exact_spectrum.states, sol.states)
