@@ -44,6 +44,7 @@ push!(my_tests,
     "contract.jl", # This will not pass with normalization
 =#
     "search_3.jl"
+    #"search.jl"
 )
 
 for my_test in my_tests
