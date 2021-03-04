@@ -72,39 +72,43 @@ using CSV
         @test en ≈ p1 * (e * p2)
     end
 
-    for origin ∈ (:NW, ) #:SW, :WS)#, :WN)#, :NE, :EN, :SE, :ES)
+    for origin ∈ (:NW, :SW, :WS, :WN) #, :NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
-        @testset "has properly built PEPS tensors" begin
-            p1, e, p2 = get_prop(fg, 1, 2, :split)
+        if origin == :NW
+            @testset "has properly built PEPS tensors" begin
+                p1, e, p2 = get_prop(fg, 1, 2, :split)
 
-            v1 = [exp(-β * h1 * σ) for σ ∈ [-1, 1]]
-            v2 = [exp(-β * h2 * σ) for σ ∈ [-1, 1]]
+                v1 = [exp(-β * h1 * σ) for σ ∈ [-1, 1]]
+                v2 = [exp(-β * h2 * σ) for σ ∈ [-1, 1]]
 
-            @cast A1[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
-            @cast A2[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
+                @cast A1[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
+                @cast A2[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
 
-            R = PEPSRow(peps, 1)
+                R = PEPSRow(peps, 1)
 
-            @test R[1] ≈ A1
-            @test R[2] ≈ A2
+                @test R[1] ≈ A1
+                @test R[2] ≈ A2
 
-            @testset "which produces correct Gibbs state" begin  
-                @reduce C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
-                @test C / sum(C) ≈ reshape(gibbs_tensor(ig, β), 2, 2)
+                @testset "which produces correct Gibbs state" begin  
+                    @reduce C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
+                    @test C / sum(C) ≈ reshape(gibbs_tensor(ig, β), 2, 2)
+                end
             end
         end
 
         # solve the problem using B & B
         sol = low_energy_spectrum(peps, num_states)
 
-         @testset "has correct spectrum" begin  
+        @testset "has correct spectrum" begin  
             @test sol.energies ≈ exact_spectrum.energies
+
             for (σ, η) ∈ zip(exact_spectrum.states, sol.states)
                 @test map(i -> i == -1 ? 1 : 2, σ) == η
             end
+
             @test sol.largest_discarded_probability === -Inf
-         end
+        end
 
         println()
         println("approx: ", sol.energies)
