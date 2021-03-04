@@ -7,7 +7,7 @@ using CSV
     #
     # ----------------- Ising model ----------------------
     #
-    # E = -s1 * s2 + 2 * s1 + s2
+    # E = -s1 * s2 + 0.5 * s1 + s2
     #
     # states   -> [[-1, -1], [-1, 1], [1, -1], [1, 1]]
     # energies -> [-4.0, 0.0, 2.0, 2.0]
@@ -21,9 +21,9 @@ using CSV
     # -----------------------------------------------------
 
     # Model's parameters
-    J12 = -1.0
-    h1 = 2.0
-    h2 = 1.0
+    J12 = -1.
+    h1 = 0.5
+    h2 = 0.25
 
     total_energy(σ::Int, η::Int) = J12 * (σ * η) + h1 * σ + h2 * η
     bond_energy(σ::Int, η::Int) = J12 * (σ * η)
@@ -99,16 +99,14 @@ using CSV
 
         sol = low_energy_spectrum(peps, num_states)
 
-        println("--------------------------------")
-        println(sol.probabilities)
-        println(sol.states)
         println(sol.energies)
-        println(sol.largest_discarded_probability)
-        println("--------------------------------")
-        
-        # @test sol.energies[1] ≈ ground_energy
-    end
+        println(sol.states)
 
-    println(exact_spectrum.states)
-    println(exact_spectrum.energies)
+        # @testset "has correct spectrum" begin    
+        #     s#tates = [σ]
+        #     @test exact_spectrum.states == states  
+        #     @test exact_spectrum.energies ≈ sol.energies
+        #     @test sol.largest_discarded_probability === -Inf
+        # end
+    end
 end
