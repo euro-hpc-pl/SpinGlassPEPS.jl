@@ -6,9 +6,14 @@ const Instance = Union{String, Dict}
 const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
 const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
 
-struct Spectrum
-    energies::Array{<:Number}
-    states::Array{Vector{<:Number}}
+# struct Spectrum
+#     energies::Array{<:Number}
+#     states::Array{Vector{<:Number}}
+# end
+
+mutable struct Spectrum
+    energies::Vector{Float64}
+    states::Vector{Vector{Int}}
 end
 
 function rank_vec(ig::MetaGraph)

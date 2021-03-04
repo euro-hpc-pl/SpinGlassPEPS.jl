@@ -91,6 +91,7 @@ function generate_boundary(
      end
  end
 
+ #TODO: this can probably be done better
 function bond_energy(
     ng::NetworkGraph,
     u::Int,
@@ -100,15 +101,15 @@ function bond_energy(
     fg = ng.factor_graph
 
     if has_edge(fg, u, v)
-        pr, en, pl = get_prop(fg, u, v, :split)
-        energies = pr[σ, :] * en * pl
+        pu, en, pv = get_prop(fg, u, v, :split)
+        energies = (pu[σ:σ, :] * en) * pv
     elseif has_edge(fg, v, u)
-        pr, en, pl = get_prop(fg, v, u, :split)
-        energies = pr * en * pl[:, σ]
+        pv, en, pu = get_prop(fg, v, u, :split)
+        energies = pv * (en * pu[:, σ:σ])
     else
         energies = zeros(get_prop(fg, u, :loc_dim))
     end
-    energies
+    vec(energies)
 end
 
 function local_energy(

@@ -7,10 +7,10 @@ using CSV
     #
     # ----------------- Ising model ----------------------
     #
-    # E = -s1 * s2 + 0.5 * s1 + s2
+    # E = -1.0 * s1 * s2 + 0.5 * s1 + 0.75 * s2
     #
-    # states   -> [[-1, -1], [-1, 1], [1, -1], [1, 1]]
-    # energies -> [-4.0, 0.0, 2.0, 2.0]
+    # states   -> [[-1, -1], [1, 1], [1, -1], [-1, 1]]
+    # energies -> [-2.25, 0.25, 0.75, 1.25]
     #
     # -----------------------------------------------------
     #         Grid
@@ -21,9 +21,9 @@ using CSV
     # -----------------------------------------------------
 
     # Model's parameters
-    J12 = -1.
+    J12 = -1.0
     h1 = 0.5
-    h2 = 0.25
+    h2 = 0.75
 
     total_energy(σ::Int, η::Int) = J12 * (σ * η) + h1 * σ + h2 * η
     bond_energy(σ::Int, η::Int) = J12 * (σ * η)
@@ -73,40 +73,54 @@ using CSV
         @test en ≈ p1 * (e * p2)
     end
 
-    for origin ∈ (:NW, )# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+#   for origin ∈ (:NW, :SW, :WS, :WN) #, :NE, :EN, :SE, :ES)
+    for origin ∈ (:NE, :EN, :SE, :ES)
+
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
-        @testset "has properly built PEPS tensors" begin
+        println("$(origin) -> ", peps.i_max, " ", peps.j_max)
 
-            p1, e, p2 = get_prop(fg, 1, 2, :split)
+        if origin ∈ (:NW, :SW)
+            @testset "has properly built PEPS tensors given origin at $(origin)" begin
+                p1, e, p2 = get_prop(fg, 1, 2, :split)
 
-            v1 = [ exp(-β * h1 * σ) for σ ∈ [-1, 1]]
-            v2 = [ exp(-β * h2 * σ) for σ ∈ [-1, 1]]
+                v1 = [exp(-β * h1 * σ) for σ ∈ [-1, 1]]
+                v2 = [exp(-β * h2 * σ) for σ ∈ [-1, 1]]
 
-            @cast A1[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
-            @cast A2[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
+                @cast A1[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
+                @cast A2[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
 
-            R = PEPSRow(peps, 1)
+                R = PEPSRow(peps, 1)
 
-            @test R[1] ≈ A1
-            @test R[2] ≈ A2
+                @test R[1] ≈ A1
+                @test R[2] ≈ A2
 
-            @testset "which produce correct Gibbs state" begin  
-                @reduce C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
-                @test C / sum(C) ≈ reshape(gibbs_tensor(ig, β), 2, 2)
+                @testset "which produces correct Gibbs state given the origin at $(origin)" begin  
+                    @reduce C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
+                    @test C / sum(C) ≈ reshape(gibbs_tensor(ig, β), 2, 2)
+                end
             end
         end
 
+        # solve the problem using B & B
         sol = low_energy_spectrum(peps, num_states)
 
-        println(sol.energies)
-        println(sol.states)
+        @testset "has correct spectrum given the origin at $(origin)" begin  
+            @test sol.energies ≈ exact_spectrum.energies
 
-        # @testset "has correct spectrum" begin    
-        #     s#tates = [σ]
-        #     @test exact_spectrum.states == states  
-        #     @test exact_spectrum.energies ≈ sol.energies
-        #     @test sol.largest_discarded_probability === -Inf
-        # end
+            for (σ, η) ∈ zip(exact_spectrum.states, sol.states)
+                @test map(i -> i == -1 ? 1 : 2, σ) == η
+            end
+
+            @test sol.largest_discarded_probability === -Inf
+        end
+
+        println()
+        println("approx: ", sol.energies)
+        println("exact:  ", exact_spectrum.energies)
+        println("--------------------------------------------")
+        println("exact:  ", sol.states) 
+        println("approx: ", exact_spectrum.states)
+        println()
     end
 end

@@ -237,6 +237,7 @@ function conditional_probability(
     A = peps_tensor(peps, i, j)
 
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
+    println("prob: ", prob)
     _normalize_probability(prob)
 end
 
@@ -264,6 +265,7 @@ function update_energy(
     _local_energy(network, (i, j))
 end
 
+#TODO: translate this into rotations and reflections
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)
     @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 
