@@ -263,6 +263,7 @@ function update_energy(
     _bond_energy(network, (i, j), (i, j-1), σil) +
     _bond_energy(network, (i, j), (i-1, j), σkj) +
     _local_energy(network, (i, j))
+    
 end
 
 #TODO: translate this into rotations and reflections

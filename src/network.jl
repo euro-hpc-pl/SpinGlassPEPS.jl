@@ -99,16 +99,38 @@ function bond_energy(
     σ::Int,
     )
     fg = ng.factor_graph
-
+    println("u, v ", u, v)
+    println("σ ", σ)
     if has_edge(fg, u, v)
+        println("a")
         pu, en, pv = get_prop(fg, u, v, :split)
-        energies = (pu[σ:σ, :] * en) * pv
+        #energies = (pu[σ:σ, :] * en) * pv
+        energies = (pv * en * pu)[:, σ:σ]
+
     elseif has_edge(fg, v, u)
+        println("b")
         pv, en, pu = get_prop(fg, v, u, :split)
-        energies = pv * (en * pu[:, σ:σ])
+        
+        println("pv ")
+        display(pv)
+        println("------------------")
+        println("en ")
+        display(en)
+        println("------------------")
+        println("pu ")
+        display(pu)
+        println("------------------")
+        println("eng ")
+        display(pv * en * pu)
+        println("------------------")
+        
+        #energies = pv * (en * pu[:, σ:σ])
+        energies = (pv * en * pu)[σ:σ, :]
+
     else
         energies = zeros(get_prop(fg, u, :loc_dim))
     end
+    println("bond eng ", vec(energies))
     vec(energies)
 end
 
@@ -116,5 +138,7 @@ function local_energy(
     ng::NetworkGraph,
     v::Int,
     )
-    get_prop(ng.factor_graph, v, :loc_en)
+    l = get_prop(ng.factor_graph, v, :loc_en)
+    println("loc eng ", l)
+    l
 end
