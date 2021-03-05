@@ -73,34 +73,56 @@ using CSV
         @test en ≈ p1 * (e * p2)
     end
 
-#   for origin ∈ (:NW, :SW, :WS, :WN) #, :NE, :EN, :SE, :ES)
-    for origin ∈ (:NE, :EN, :SE, :ES)
+   for origin ∈ (:NW, :SW, :WS, :WN) 
+#    for origin ∈ (:NE,)# :EN, :SE, :ES)
 
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
         println("$(origin) -> ", peps.i_max, " ", peps.j_max)
+       
+        gibbs = reshape(gibbs_tensor(ig, β), 2, 2)
 
-        if origin ∈ (:NW, :SW)
-            @testset "has properly built PEPS tensors given origin at $(origin)" begin
-                p1, e, p2 = get_prop(fg, 1, 2, :split)
+        if origin ∈ (:NE, :SE, :EW, :ES) 
+            gibbs = gibbs'
+            h1, h2 = h2, h1 
+        end
 
-                v1 = [exp(-β * h1 * σ) for σ ∈ [-1, 1]]
-                v2 = [exp(-β * h2 * σ) for σ ∈ [-1, 1]]
+        @testset "has properly built PEPS tensors given origin at $(origin)" begin
+          
+            p1, e, p2 = get_prop(fg, 1, 2, :split)
+
+            v1 = [exp(-β * h1 * σ) for σ ∈ [-1, 1]]
+            v2 = [exp(-β * h2 * σ) for σ ∈ [-1, 1]]
+
+            # horizontal alignment
+            if origin ∈ (:NW, :SW, :NE, :SE) 
 
                 @cast A1[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
                 @cast A2[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
 
-                R = PEPSRow(peps, 1)
+                @reduce ρ[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
 
+                R = PEPSRow(peps, 1)
                 @test R[1] ≈ A1
                 @test R[2] ≈ A2
 
-                @testset "which produces correct Gibbs state given the origin at $(origin)" begin  
-                    @reduce C[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
-                    @test C / sum(C) ≈ reshape(gibbs_tensor(ig, β), 2, 2)
-                end
+            # vertical alignment
+            else origin ∈ (:WE, :WS, :EW, :ES) 
+
+                @cast A1[_, _, _, d, σ] |= v1[σ] * p1[σ, d]
+                @cast A2[_, u, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[u, σ]
+
+                @reduce ρ[σ, η] := sum(u) A1[1, 1, 1, u, σ] * A2[1, u, 1, 1, η]
+
+                @test PEPSRow(peps, 1)[1] ≈ A1
+                @test PEPSRow(peps, 2)[1] ≈ A2
+            end
+
+            @testset "which produces correct Gibbs state" begin  
+                @test ρ / sum(ρ) ≈ gibbs
             end
         end
+  
 
         # solve the problem using B & B
         sol = low_energy_spectrum(peps, num_states)
