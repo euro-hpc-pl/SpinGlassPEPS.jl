@@ -99,13 +99,16 @@ function bond_energy(
     σ::Int,
     )
     fg = ng.factor_graph
-
     if has_edge(fg, u, v)
         pu, en, pv = get_prop(fg, u, v, :split)
-        energies = (pu[σ:σ, :] * en) * pv
+        #energies = (pu[σ:σ, :] * en) * pv
+        energies = (pv * en * pu)[:, σ:σ]
+
     elseif has_edge(fg, v, u)
         pv, en, pu = get_prop(fg, v, u, :split)
-        energies = pv * (en * pu[:, σ:σ])
+        #energies = pv * (en * pu[:, σ:σ])
+        energies = (pv * en * pu)[σ:σ, :]
+
     else
         energies = zeros(get_prop(fg, u, :loc_dim))
     end
