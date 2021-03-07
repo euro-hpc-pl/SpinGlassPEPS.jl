@@ -25,7 +25,6 @@ using CSV
     h1 = 0.5
     h2 = 0.75
 
-    total_energy(σ::Int, η::Int) = J12 * (σ * η) + h1 * σ + h2 * η
     bond_energy(σ::Int, η::Int) = J12 * (σ * η)
 
     # dict to be read
@@ -66,83 +65,75 @@ using CSV
 
     # get BF results for comparison
     exact_spectrum = brute_force(ig; num_states=num_states)
-
+    ϱ = gibbs_tensor(ig, β)
+    
+    # split on the bond
+    p1, e, p2 = get_prop(fg, 1, 2, :split)
+    
     @testset "has correct energy on the bond" begin
-        p1, e, p2 = get_prop(fg, 1, 2, :split)
         en = [ bond_energy(σ, η) for σ ∈ [-1, 1], η ∈ [-1, 1]]
         @test en ≈ p1 * (e * p2)
     end
 
-   for origin ∈ (:NW, :SW, :WS, :WN) 
-#    for origin ∈ (:NE,)# :EN, :SE, :ES)
-
+    for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
-        println("$(origin) -> ", peps.i_max, " ", peps.j_max)
-       
-        gibbs = reshape(gibbs_tensor(ig, β), 2, 2)
+        @testset "has properly built PEPS tensors given origin at $(origin)" begin          
 
-        if origin ∈ (:NE, :SE, :EW, :ES) 
-            gibbs = gibbs'
-            h1, h2 = h2, h1 
-        end
+            # horizontal alignment - 1 row, 2 columns
+            if peps.i_max == 1 && peps.j_max == 2 
+                @test origin ∈ (:NW, :SW, :SE, :NE) 
 
-        @testset "has properly built PEPS tensors given origin at $(origin)" begin
-          
-            p1, e, p2 = get_prop(fg, 1, 2, :split)
+                l, k = peps.map[1, 1], peps.map[1, 2]
 
-            v1 = [exp(-β * h1 * σ) for σ ∈ [-1, 1]]
-            v2 = [exp(-β * h2 * σ) for σ ∈ [-1, 1]]
+                v1 = [exp(-β * D[l, l] * σ) for σ ∈ [-1, 1]]
+                v2 = [exp(-β * D[k, k] * σ) for σ ∈ [-1, 1]]
 
-            # horizontal alignment
-            if origin ∈ (:NW, :SW, :NE, :SE) 
+                @cast A[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
+                @cast B[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
 
-                @cast A1[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
-                @cast A2[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
-
-                @reduce ρ[σ, η] := sum(l) A1[1, 1, l, 1, σ] * A2[l, 1, 1, 1, η]
+                @reduce ρ[σ, η] := sum(l) A[1, 1, l, 1, σ] * B[l, 1, 1, 1, η]
+                if l == 2 ρ = ρ' end
 
                 R = PEPSRow(peps, 1)
-                @test R[1] ≈ A1
-                @test R[2] ≈ A2
+                @test [R[1], R[2]] ≈ [A, B]
 
-            # vertical alignment
-            else origin ∈ (:WE, :WS, :EW, :ES) 
+            # vertical alignment - 1 column, 2 rows
+            elseif peps.i_max == 2 && peps.j_max == 1  
+                @test origin ∈ (:WN, :WS, :ES, :EN)
 
-                @cast A1[_, _, _, d, σ] |= v1[σ] * p1[σ, d]
-                @cast A2[_, u, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[u, σ]
+                l, k = peps.map[1, 1], peps.map[2, 1]
 
-                @reduce ρ[σ, η] := sum(u) A1[1, 1, 1, u, σ] * A2[1, u, 1, 1, η]
+                v1 = [exp(-β * D[l, l] * σ) for σ ∈ [-1, 1]]
+                v2 = [exp(-β * D[k, k] * σ) for σ ∈ [-1, 1]]           
 
-                @test PEPSRow(peps, 1)[1] ≈ A1
-                @test PEPSRow(peps, 2)[1] ≈ A2
+                @cast A[_, _, _, d, σ] |= v1[σ] * p1[σ, d]
+                @cast B[_, u, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[u, σ]
+
+                @reduce ρ[σ, η] := sum(u) A[1, 1, 1, u, σ] * B[1, u, 1, 1, η]
+                if l == 2 ρ = ρ' end
+
+                @test PEPSRow(peps, 1)[1] ≈ A
+                @test PEPSRow(peps, 2)[1] ≈ B
             end
 
             @testset "which produces correct Gibbs state" begin  
-                @test ρ / sum(ρ) ≈ gibbs
+                @test ϱ ≈ ρ / sum(ρ)
             end
         end
   
-
         # solve the problem using B & B
         sol = low_energy_spectrum(peps, num_states)
 
         @testset "has correct spectrum given the origin at $(origin)" begin  
-            @test sol.energies ≈ exact_spectrum.energies
-
-            for (σ, η) ∈ zip(exact_spectrum.states, sol.states)
-                @test map(i -> i == -1 ? 1 : 2, σ) == η
-            end
-
-            @test sol.largest_discarded_probability === -Inf
+             for (σ, η) ∈ zip(exact_spectrum.states, sol.states)
+                for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
+                    s = η[peps.map[i, j]] == 1 ? -1 : 1
+                    @test s == σ[j + peps.j_max * (i - 1)]
+                end
+             end
+             @test sol.energies ≈ exact_spectrum.energies
+             @test sol.largest_discarded_probability === -Inf
         end
-
-        println()
-        println("approx: ", sol.energies)
-        println("exact:  ", exact_spectrum.energies)
-        println("--------------------------------------------")
-        println("exact:  ", sol.states) 
-        println("approx: ", exact_spectrum.states)
-        println()
     end
 end

@@ -237,7 +237,6 @@ function conditional_probability(
     A = peps_tensor(peps, i, j)
 
     prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
-    println("prob: ", prob)
     _normalize_probability(prob)
 end
 
