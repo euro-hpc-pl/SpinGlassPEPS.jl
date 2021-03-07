@@ -45,17 +45,15 @@ using CSV
         spectrum=full_spectrum,
     )
 
-   for origin ∈ (:NW,)# :SW, :WS, :WN) #, :NE, :EN, :SE, :ES)
+   for origin ∈ (:NW,) # :SW, :WS, :WN) #, :NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
         # solve the problem using B & B
         sol = low_energy_spectrum(peps, num_states)
 
-        #@testset "has correct spectrum given the origin at $(origin)" begin  
-        #    @test sol.energies ≈ exact_energies
-        #end
-
+        println(sol.energies)
         println(sol.states)
+        println(sol.largest_discarded_probability)
     end
 
 end
