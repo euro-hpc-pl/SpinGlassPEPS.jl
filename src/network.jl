@@ -57,17 +57,14 @@ end
     reshape(tensor, dim..., :)
 end
 
-#TODO: include min 
 @memoize function generate_tensor(ng::NetworkGraph, v::Int, w::Int)
     fg = ng.factor_graph
     if has_edge(fg, w, v)
         _, e, _ = get_prop(fg, w, v, :split)
-        #return exp.(-ng.β .* (e' .- minimum(e)))
-        return exp.(-ng.β .* e')
+        return exp.(-ng.β .* (e' .- minimum(e)))
     elseif has_edge(fg, v, w)
         _, e, _ = get_prop(fg, v, w, :split)
-        #return exp.(-ng.β .* (e .- minimum(e)))
-        return exp.(-ng.β .* e)
+        return exp.(-ng.β .* (e .- minimum(e)))
     else
         return ones(1, 1)
     end
@@ -101,14 +98,10 @@ function bond_energy(
     fg = ng.factor_graph
     if has_edge(fg, u, v)
         pu, en, pv = get_prop(fg, u, v, :split)
-        #energies = (pu[σ:σ, :] * en) * pv
-        energies = (pv * en * pu)[:, σ:σ]
-
+        energies = pv * (en * pu[:, σ:σ])
     elseif has_edge(fg, v, u)
         pv, en, pu = get_prop(fg, v, u, :split)
-        #energies = pv * (en * pu[:, σ:σ])
-        energies = (pv * en * pu)[σ:σ, :]
-
+        energies = (pv[σ:σ, :] * en) * pu
     else
         energies = zeros(get_prop(fg, u, :loc_dim))
     end

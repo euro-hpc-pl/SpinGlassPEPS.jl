@@ -1,3 +1,4 @@
+using LinearAlgebra
 using MetaGraphs
 using LightGraphs
 using GraphPlot
@@ -5,27 +6,24 @@ using CSV
 
 @testset "Simplest possible system of two spins" begin
     #
-    # ----------------- Ising model ----------------------
+    # ----------------- Ising model ------------------
     #
     # E = -1.0 * s1 * s2 + 0.5 * s1 + 0.75 * s2
     #
     # states   -> [[-1, -1], [1, 1], [1, -1], [-1, 1]]
     # energies -> [-2.25, 0.25, 0.75, 1.25]
     #
-    # -----------------------------------------------------
+    # -------------------------------------------------
     #         Grid
-    #
     #     A1    |    A2
     #           |
     #       1 - | - 2
-    # -----------------------------------------------------
+    # -------------------------------------------------
 
     # Model's parameters
     J12 = -1.0
     h1 = 0.5
     h2 = 0.75
-
-    bond_energy(σ::Int, η::Int) = J12 * (σ * η)
 
     # dict to be read
     D = Dict((1, 2) => J12,
@@ -71,8 +69,9 @@ using CSV
     p1, e, p2 = get_prop(fg, 1, 2, :split)
     
     @testset "has correct energy on the bond" begin
-        en = [ bond_energy(σ, η) for σ ∈ [-1, 1], η ∈ [-1, 1]]
+        en = [ J12 * σ * η for σ ∈ [-1, 1], η ∈ [-1, 1]]
         @test en ≈ p1 * (e * p2)
+        @test p1 ≈ p2 ≈ I
     end
 
     for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
@@ -90,7 +89,8 @@ using CSV
                 v2 = [exp(-β * D[k, k] * σ) for σ ∈ [-1, 1]]
 
                 @cast A[_, _, r, _, σ] |= v1[σ] * p1[σ, r]
-                @cast B[l, _, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[l, σ]
+                en = e * p2 .- minimum(e)
+                @cast B[l, _, _, _, σ] |= v2[σ] * exp.(-β * en)[l, σ]
 
                 @reduce ρ[σ, η] := sum(l) A[1, 1, l, 1, σ] * B[l, 1, 1, 1, η]
                 if l == 2 ρ = ρ' end
@@ -108,7 +108,8 @@ using CSV
                 v2 = [exp(-β * D[k, k] * σ) for σ ∈ [-1, 1]]           
 
                 @cast A[_, _, _, d, σ] |= v1[σ] * p1[σ, d]
-                @cast B[_, u, _, _, σ] |= v2[σ] * exp.(-β * (e * p2))[u, σ]
+                en = e * p2 .- minimum(e)
+                @cast B[_, u, _, _, σ] |= v2[σ] * exp.(-β * en)[u, σ]
 
                 @reduce ρ[σ, η] := sum(u) A[1, 1, 1, u, σ] * B[1, u, 1, 1, η]
                 if l == 2 ρ = ρ' end
@@ -128,6 +129,7 @@ using CSV
         @testset "has correct spectrum given the origin at $(origin)" begin  
              for (σ, η) ∈ zip(exact_spectrum.states, sol.states)
                 for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
+                    # 1 --> -1 and 2 --> 1
                     s = η[peps.map[i, j]] == 1 ? -1 : 1
                     @test s == σ[j + peps.j_max * (i - 1)]
                 end

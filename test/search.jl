@@ -46,7 +46,6 @@ using CSV
     )
 
    for origin ∈ (:NW,)# :SW, :WS, :WN) #, :NE, :EN, :SE, :ES)
-#    for origin ∈ (:NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
         # solve the problem using B & B
