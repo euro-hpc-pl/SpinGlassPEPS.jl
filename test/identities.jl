@@ -1,8 +1,8 @@
 ψ = randn(MPS{Float64}, 4, 3, 2)
 O = randn(MPO{Float64}, 4, 3, 2)
 
-IMPS = MPS(I)
-IMPO = MPO(I)
+IMPS = IdentityMPS()
+IMPO = IdentityMPO()
 
 @testset "multiplication of IdentityMPO" begin
 
@@ -35,8 +35,8 @@ end
 end
 
 @testset "Identities are singletons" begin
-    @test IMPO === MPO(I)
-    @test IMPS === MPS(I)
+    @test IMPO === IdentityMPO()
+    @test IMPS === IdentityMPS()
 end
 
 @testset "Identities have infinite length" begin

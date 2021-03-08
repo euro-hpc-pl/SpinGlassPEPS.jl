@@ -34,9 +34,10 @@ end
 function left_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     l = length(ψ)
     T = promote_type(eltype(ψ), eltype(ϕ))
-
-    L = Vector{Matrix{T}}(undef, l+1)
-    L[1] = ones(eltype(ψ), 1, 1)
+    S = typeof(similar(ψ[1], T, (1, 1)))
+    L = Vector{S}(undef, l+1)
+    L[1] = similar(ψ[1], T, (1, 1))
+    L[1][1, 1] = one(T)
 
     for i ∈ 1:l
         M = ψ[i]
@@ -66,9 +67,10 @@ end
 function right_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     L = length(ψ)
     T = promote_type(eltype(ψ), eltype(ϕ))
-
-    R = Vector{Matrix{T}}(undef, L+1)
-    R[end] = ones(eltype(ψ), 1, 1)
+    S = typeof(similar(ψ[1], T, (1, 1)))
+    R = Vector{S}(undef, L+1)
+    R[end] = similar(ψ[1], T, (1, 1))
+    R[end][1, 1] = one(T)
 
     for i ∈ L:-1:1
         M = ψ[i]
@@ -81,11 +83,12 @@ function right_env(ϕ::AbstractMPS, ψ::AbstractMPS)
     R
 end
 
-@memoize function right_env(ϕ::AbstractMPS, W::AbstractMPO, σ::Union{Vector, NTuple})
+@memoize function right_env(ϕ::AbstractMPS{T}, W::AbstractMPO{T}, σ::Union{Vector, NTuple}) where {T}
     l = length(σ)
     k = length(ϕ)
     if l == 0
-        R = ones(1, 1)
+        R = similar(ϕ[1], T, (1, 1))
+        R[1, 1] = one(T)
     else
         m = σ[1]
         R̃ = right_env(ϕ, W, σ[2:l])
@@ -121,7 +124,8 @@ in one pass, utlizing `TensorOperations`.
 
 function LinearAlgebra.dot(ϕ::AbstractMPS, O::Union{Vector, NTuple}, ψ::AbstractMPS) #where T <: AbstractMatrix
     S = promote_type(eltype(ψ), eltype(ϕ), eltype(O[1]))
-    C = ones(S, 1, 1)
+    C = similar(ψ[1], S, (1, 1))
+    C[1, 1] = one(S)
 
     for i ∈ eachindex(ψ)
         M = ψ[i]
@@ -162,8 +166,9 @@ end
 
 function LinearAlgebra.dot(O1::AbstractMPO, O2::AbstractMPO)
     L = length(O1)
-    T = promote_type(eltype(O1), eltype(O2))
-    O = MPO(T, L)
+    S = promote_type(eltype(O1), eltype(O2))
+    T = typeof(O1)
+    O = T.name.wrapper(S, L)
 
     for i ∈ 1:L
         W1 = O1[i]
