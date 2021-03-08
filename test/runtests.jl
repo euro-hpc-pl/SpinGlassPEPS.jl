@@ -32,7 +32,6 @@ end
 my_tests = []
 include("test_helpers.jl")
 push!(my_tests,
-
     #  "base.jl",
     #  "utils.jl",
     #  "contractions.jl",
@@ -42,9 +41,9 @@ push!(my_tests,
     #  "MPS_search.jl",
     #  "factor.jl",
     #  "PEPS.jl",
-    # "contract.jl", # This will not pass with normalization
-   "search_3.jl",
-   "search.jl"
+     "contract.jl", # This will not pass with normalization
+   #"search_3.jl",
+   #"search.jl"
 )
 
 for my_test in my_tests
