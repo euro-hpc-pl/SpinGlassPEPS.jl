@@ -48,6 +48,21 @@ end
 
 @inline _init_solution() = (Float64[], Float64[], Vector{Int}[])
 
+# TODO: logic here can probably be done better
+function _bound(pdo::Vector{Float64}, cut::Int)
+    k = length(pdo)
+    second_phase = false
+    if k > cut + 1 k = cut + 1; second_phase = true end
+   
+    idx = partialsortperm(pdo, 1:k, rev=true)
+
+    if second_phase  
+        return idx[1:end-1], pdo[last(idx)]
+    else
+        return idx, -Inf
+    end
+end
+
 function _branch_and_bound(
     sol::Solution,
     network::AbstractGibbsNetwork,
@@ -68,15 +83,11 @@ function _branch_and_bound(
      end
 
     # bound
-    idx = partialsortperm(pdo, 1:min(length(pdo), cut), rev=true)
+    K, lp = _bound(pdo, cut)
     lpCut = sol.largest_discarded_probability
-    pdo = pdo[idx]
+    lpCut < lp ? lpCut = lp : () 
 
-    if cut < length(pdo)
-        lpCut < pdo[cut+1] ? lpCut = pdo[cut+1] : ()
-    end
-
-    Solution(eng[idx], cfg[idx], pdo, lpCut)
+    Solution(eng[K], cfg[K], pdo[K], lpCut)
 end
 
 #TODO: incorporate "going back" move to improve alghoritm
@@ -91,10 +102,10 @@ function low_energy_spectrum(
         sol = _branch_and_bound(sol, network, v, cut)
     end
 
-    idx = partialsortperm(sol.energies, 1:length(sol.energies), rev=false)
+    K = partialsortperm(sol.energies, 1:length(sol.energies), rev=false)
     Solution(
-        sol.energies[idx],
-        sol.states[idx],
-        sol.probabilities[idx],
+        sol.energies[K],
+        sol.states[K],
+        sol.probabilities[K],
         sol.largest_discarded_probability)
 end

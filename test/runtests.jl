@@ -43,7 +43,7 @@ push!(my_tests,
     # "PEPS.jl",
     # "contract.jl", # This will not pass with normalization
 
-   #"search_3.jl"
+   "search_3.jl",
    "search.jl"
 )
 
