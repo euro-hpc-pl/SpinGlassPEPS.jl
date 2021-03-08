@@ -1,5 +1,37 @@
 export truncate!, canonise!, compress
 
+function compress(ψ::AbstractMPS, Dcut::Int, tol::Number=1E-8, max_sweeps::Int=4)
+
+    # Initial guess - truncated ψ
+    ϕ = copy(ψ)
+    truncate!(ϕ, :right, Dcut)
+
+    # Create environment
+    env = left_env(ϕ, ψ)
+
+    # Variational compression
+    overlap = 0
+    overlap_before = 1
+
+    @info "Compressing down to" Dcut
+
+    for sweep ∈ 1:max_sweeps
+        _left_sweep_var!!(ϕ, env, ψ, Dcut)
+        overlap = _right_sweep_var!!(ϕ, env, ψ, Dcut)
+
+        diff = abs(overlap_before - abs(overlap))
+        @info "Convergence" diff
+
+        if diff < tol
+            @info "Finished in $sweep sweeps of $(max_sweeps)."
+            return ϕ
+        else
+            overlap_before = overlap
+        end
+    end
+    ϕ
+end
+
 function canonise!(ψ::AbstractMPS)
     canonise!(ψ, :right)
     canonise!(ψ, :left)
@@ -55,38 +87,6 @@ function _left_sweep_SVD!(ψ::AbstractMPS, Dcut::Int=typemax(Int))
         ψ[i] = B
     end
     ψ[1] *= U[]
-end
-
-function compress(ψ::AbstractMPS, Dcut::Int, tol::Number=1E-8, max_sweeps::Int=4)
-
-    # Initial guess - truncated ψ
-    ϕ = copy(ψ)
-    truncate!(ϕ, :right, Dcut)
-
-    # Create environment
-    env = left_env(ϕ, ψ)
-
-    # Variational compression
-    overlap = 0
-    overlap_before = 1
-
-    @info "Compressing down to" Dcut
-
-    for sweep ∈ 1:max_sweeps
-        _left_sweep_var!!(ϕ, env, ψ, Dcut)
-        overlap = _right_sweep_var!!(ϕ, env, ψ, Dcut)
-
-        diff = abs(overlap_before - abs(overlap))
-        @info "Convergence" diff
-
-        if diff < tol
-            @info "Finished ∈ $sweep sweeps of $(max_sweeps)."
-            break
-        else
-            overlap_before = overlap
-        end
-    end
-    ϕ
 end
 
 function _left_sweep_var!!(ϕ::AbstractMPS, env::Vector{<:AbstractMatrix}, ψ::AbstractMPS, Dcut::Int)
@@ -148,4 +148,54 @@ function _right_sweep_var!!(ϕ::AbstractMPS, env::Vector{<:AbstractMatrix}, ψ::
         env[i+1] = LL
     end
     real(env[end][1])
+end
+
+
+function _right_sweep_SVD(::Type{T}, A::AbstractArray, Dcut::Int=typemax(Int), args...) where {T <: AbstractMPS}
+    rank = ndims(A)
+    ψ = T(eltype(A), rank)
+
+    V = reshape(copy(conj(A)), (length(A), 1))
+
+    for i ∈ 1:rank
+        d = size(A, i)
+
+        # reshape
+        VV = conj.(transpose(V))
+        @cast M[(x, σ), y] |= VV[x, (σ, y)] (σ:d)
+
+        # decompose
+        U, Σ, V = svd(M, Dcut, args...)
+        V *= Diagonal(Σ)
+
+        # create MPS
+        @cast B[x, σ, y] |= U[(x, σ), y] (σ:d)
+        ψ[i] = B
+    end
+    ψ
+end
+
+
+function _left_sweep_SVD(::Type{T}, A::AbstractArray, Dcut::Int=typemax(Int), args...) where {T <: AbstractMPS}
+    rank = ndims(A)
+    ψ = T(eltype(A), rank)
+
+    U = reshape(copy(A), (length(A), 1))
+
+    for i ∈ rank:-1:1
+        d = size(A, i)
+
+        # reshape
+        @cast M[x, (σ, y)] |= U[(x, σ), y] (σ:d)
+
+        # decompose
+        U, Σ, V = svd(M, Dcut, args...)
+        U *= Diagonal(Σ)
+
+        # create MPS
+        VV = conj.(transpose(V))
+        @cast B[x, σ, y] |= VV[x, (σ, y)] (σ:d)
+        ψ[i] = B
+    end
+    ψ
 end

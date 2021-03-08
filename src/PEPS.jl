@@ -30,7 +30,7 @@ mutable struct PepsNetwork <: AbstractGibbsNetwork
         fg::MetaDiGraph,
         β::Number,
         origin::Symbol=:NW,
-        args_override::Dict=Dict()
+        args_override::Dict{String, Number}=Dict{String, Number}()
         )
 
         pn = new((m, n))
@@ -141,7 +141,7 @@ end
     i::Int,
     cfg::Dict{Int, Int} = Dict{Int, Int}(),
     )
-    if i > peps.i_max return MPS(I * 1.0) end
+    if i > peps.i_max return IdentityMPS() end
     W = MPO(peps, i, cfg)
     ψ = MPS(peps, i+1, cfg)
     compress(W * ψ, peps)
