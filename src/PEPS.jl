@@ -30,7 +30,7 @@ mutable struct PepsNetwork <: AbstractGibbsNetwork
         fg::MetaDiGraph,
         β::Number,
         origin::Symbol=:NW,
-        args_override::Dict{String, Number}=Dict{String, Number}()
+        args_override::Dict=Dict()
         )
 
         pn = new((m, n))
@@ -63,26 +63,6 @@ generate_boundary(pn::PepsNetwork,
                   n::NTuple{2, Int},
                   σ::Int,
                  ) = generate_boundary(pn.network_graph, pn.map[m], pn.map[n], σ)
-
-# function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
-#     ψ = PEPSRow(T, peps.j_max)
-
-#     # generate tensors from projectors
-#     for j ∈ 1:length(ψ)
-#         ψ[j] = generate_tensor(peps, (i, j))
-#     end
-
-#     # include energy
-#     for j ∈ 1:peps.j_max
-#         A = ψ[j]
-#         h = generate_tensor(peps, (i, j-1), (i, j))
-#         v = generate_tensor(peps, (i-1, j), (i, j))
-#         @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ]
-#         ψ[j] = B
-#     end
-#     ψ
-# end
-# PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
 function peps_tensor(::Type{T}, peps::PepsNetwork, i::Int, j::Int) where {T <: Number}
     # generate tensors from projectors
