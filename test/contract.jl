@@ -31,10 +31,10 @@
         spectrum = full_spectrum,
     )
 
-    _, en, _ = get_prop(fg, 1, 2, :split)
+    _, e, p = get_prop(fg, 1, 2, :split)
+    ϕ = exp(β * minimum(e * p))
 
     for i ∈ 1:4, j ∈ 1:2
-
         cfg = Dict(1 => i, 2 => j)
 
         Z = []
@@ -50,9 +50,9 @@
         # the exact Gibbs state
         states = collect.(all_states(rank_vec(ig)))
         ρ = exp.(-β .* energy.(states, Ref(ig)))    
-        ϱ = reshape(ρ, (4, 2))
+        ϱ = reshape(ρ, (4, 2)) * ϕ
 
         # probabilities should agree
-        @test_broken first(Z) ≈ ϱ[cfg[1], cfg[2]]
+        @test first(Z) ≈ ϱ[cfg[1], cfg[2]]
     end
 end        
