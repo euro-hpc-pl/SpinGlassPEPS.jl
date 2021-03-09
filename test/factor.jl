@@ -166,8 +166,9 @@ end
 @testset "each edge comprises expected bunch of edges from source Ising graph" begin
 for e ∈ edges(fg)
    outer_edges = get_prop(fg, e, :outer_edges)
-   println(collect(outer_edges))
-   println(cedges[Tuple(e)])
+   # println(collect(outer_edges))
+   # println(cedges[Tuple(e)])
+   # Note: this test is ok if we translate edges correctly.
    # TODO: fix this by translating from nodes to graph coordinates
    # @test issetequal(cedges[Tuple(e)], collect(outer_edges))
 end

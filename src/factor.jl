@@ -32,7 +32,7 @@ function factor_graph(
     energy::Function=energy,
     spectrum::Function=full_spectrum,
     cluster_assignment_rule::Dict{Int, Int} # e.g. square lattice
-    )
+)
     ns = Dict(i => num_states_cl for i ∈ Set(values(cluster_assignment_rule)))
     factor_graph(
         ig,

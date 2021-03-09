@@ -3,8 +3,6 @@ export energy, rank_vec
 export Spectrum, cluster, rank, nodes, basis_size
 
 const Instance = Union{String, Dict}
-const SimpleEdge = LightGraphs.SimpleGraphs.SimpleEdge
-const EdgeIter = Union{LightGraphs.SimpleGraphs.SimpleEdgeIter, Base.Iterators.Filter, Array}
 
 struct Spectrum
     energies::Array{<:Number}
@@ -85,11 +83,7 @@ function cluster(ig::MetaGraph, verts)
     rank = getindex.(Ref(get_prop(ig, :rank)), vmap)
     J = get_prop(ig, :J)[vmap, vmap]
 
-    set_prop!(sub_ig, :rank, rank)
-    set_prop!(sub_ig, :J, J)
-    set_prop!(sub_ig, :h, h)
-    set_prop!(sub_ig, :vmap, vmap)
-
+    set_props!(sub_ig, Dict(:rank => rank, :J => J, :h => h, :vmap => vmap))
     sub_ig
 end
 
