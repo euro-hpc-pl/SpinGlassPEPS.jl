@@ -54,4 +54,5 @@
 
         # probabilities should agree
         @test_broken first(Z) ≈ ϱ[cfg[1], cfg[2]]
+    end
 end        
