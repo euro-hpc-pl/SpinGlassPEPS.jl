@@ -41,9 +41,9 @@ push!(my_tests,
     #  "MPS_search.jl",
     #  "factor.jl",
     #  "PEPS.jl",
-     "contract.jl", # This will not pass with normalization
+    # "contract.jl", # This will not pass with normalization
    #"search_3.jl",
-   #"search.jl"
+   "search.jl"
 )
 
 for my_test in my_tests
