@@ -1,7 +1,6 @@
-export square_lattice
-export cluster
+export chimera_to_square_lattice
 
- function square_lattice(size::NTuple{5, Int})  
+ function chimera_to_square_lattice(size::NTuple{5, Int})
     m, um, n, un, t = size
     new = LinearIndices((1:n, 1:m))
     old = LinearIndices((1:t, 1:un, 1:n, 1:um, 1:m))
@@ -12,9 +11,7 @@ export cluster
     )
 end
 
-function square_lattice(size::NTuple{3, Int})
+function chimera_to_square_lattice(size::NTuple{3, Int})
     m, n, t = size
-    square_lattice((m, 1, n, 1, t))
+    chimera_to_square_lattice((m, 1, n, 1, t))
 end
-
-cluster(i::Int, rule::Dict{Int, Int}) = collect(keys(filter(kv -> kv.second == i, rule)))

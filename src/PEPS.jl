@@ -1,90 +1,105 @@
-export PepsNetwork, contract_network
+export PEPSNetwork, contract_network
 export MPO, MPS, generate_boundary
 
-function _set_control_parameters(
-    args_override::Dict{String, Number}=Dict{String, Number}()
-    )
-    # put here more parameters if needs be
-    args = Dict(
-        "bond_dim" => typemax(Int),
-        "var_tol" => 1E-8,
-        "sweeps" => 4.,
-        "β" => 1.
-    )
-    merge(args, args_override)
-end
+const DEFAULT_CONTROL_PARAMS = Dict(
+    "bond_dim" => typemax(Int),
+    "var_tol" => 1E-8,
+    "sweeps" => 4.,
+    "β" => 1.
+)
 
-mutable struct PepsNetwork
+struct PEPSNetwork
     size::NTuple{2, Int}
     map::Dict
-    network_graph::NetworkGraph
+    fg::MetaDiGraph
+    nbrs::Dict
     origin::Symbol
     i_max::Int
     j_max::Int
+    β::Number
     args::Dict{String, Number}
 
-    function PepsNetwork(
+    function PEPSNetwork(
         m::Int,
         n::Int,
         fg::MetaDiGraph,
         β::Number,
         origin::Symbol=:NW,
         args_override::Dict{String, Number}=Dict{String, Number}()
+    )
+        map, i_max, j_max = peps_indices(m, n, origin)
+
+        # v => (l, u, r, d)
+        nbrs = Dict(
+            map[i, j] => (map[i, j-1], map[i-1, j], map[i, j+1], map[i+1, j])
+            for i ∈ 1:i_max, j ∈ 1:j_max
         )
 
-        pn = new((m, n))
-        pn.map, pn.i_max, pn.j_max = peps_indices(m, n, origin)
-
-        nbrs = Dict()
-        for i ∈ 1:pn.i_max, j ∈ 1:pn.j_max
-            # v => (l, u, r, d)
-            push!(nbrs,
-            pn.map[i, j] => (pn.map[i, j-1], pn.map[i-1, j],
-                             pn.map[i, j+1], pn.map[i+1, j]))
-        end
-        pn.network_graph = NetworkGraph(fg, nbrs, β)
-        pn.args = _set_control_parameters(args_override)
-        pn
+        args = merge(DEFAULT_CONTROL_PARAMS, args_override)
+        pn = new((m, n), map, fg, nbrs, origin, i_max, j_max, β, args)
     end
 end
 
-generate_tensor(pn::PepsNetwork,
-                m::NTuple{2,Int},
-                ) = generate_tensor(pn.network_graph, pn.map[m])
+function _get_projector(fg::MetaDiGraph, v::Int, w::Int)
+    if has_edge(fg, w, v)
+        get_prop(fg, w, v, :pr)'
+    elseif has_edge(fg, v, w)
+        get_prop(fg, v, w, :pl)
+    else
+        loc_dim = length(get_prop(fg, v, :loc_en))
+        ones(loc_dim, 1)
+    end
+end
 
-generate_tensor(pn::PepsNetwork,
-                m::NTuple{2, Int},
-                n::NTuple{2, Int},
-                ) = generate_tensor(pn.network_graph, pn.map[m], pn.map[n])
+@memoize function generate_tensor(network::PEPSNetwork, v::Int)
+    # TODO: does this require full network, or can we pass only fg?
+    loc_exp = exp.(-network.β .* get_prop(network.fg, v, :loc_en))
 
-generate_boundary(pn::PepsNetwork,
-                  m::NTuple{2, Int},
-                  n::NTuple{2, Int},
-                  σ::Int,
-                 ) = generate_boundary(pn.network_graph, pn.map[m], pn.map[n], σ)
+    dim = zeros(Int, length(network.nbrs[v]))
+    @cast A[_, i] := loc_exp[i]
 
-function PEPSRow(::Type{T}, peps::PepsNetwork, i::Int) where {T <: Number}
+    for (j, w) ∈ enumerate(network.nbrs[v])
+        pv = _get_projector(network.fg, v, w)
+        @cast A[(c, γ), σ] |= A[c, σ] * pv[σ, γ]
+        dim[j] = size(pv, 2)
+    end
+    reshape(A, dim..., :)
+end
+
+@memoize function generate_tensor(network::PEPSNetwork, v::Int, w::Int)
+    fg = network.fg
+    if has_edge(fg, w, v)
+        en = get_prop(fg, w, v, :en)'
+    elseif has_edge(fg, v, w)
+        en = get_prop(fg, v, w, :en)
+    else
+        en = zeros(1, 1)
+    end
+    exp.(-network.β .* en)
+end
+
+function PEPSRow(::Type{T}, peps::PEPSNetwork, i::Int) where {T <: Number}
     ψ = PEPSRow(T, peps.j_max)
 
     # generate tensors from projectors
     for j ∈ 1:length(ψ)
-        ψ[j] = generate_tensor(peps, (i, j))
+        ψ[j] = generate_tensor(peps, peps.map[i, j])
     end
 
     # include energy
     for j ∈ 1:peps.j_max
         A = ψ[j]
-        h = generate_tensor(peps, (i, j-1), (i, j))
-        v = generate_tensor(peps, (i-1, j), (i, j))
+        h = generate_tensor(peps, peps.map[i, j-1], peps.map[i, j])
+        v = generate_tensor(peps, peps.map[i-1, j], peps.map[i, j])
         @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ]
         ψ[j] = B
     end
     ψ
 end
-PEPSRow(peps::PepsNetwork, i::Int) = PEPSRow(Float64, peps, i)
+PEPSRow(peps::PEPSNetwork, i::Int) = PEPSRow(Float64, peps, i)
 
 function MPO(::Type{T},
-    peps::PepsNetwork,
+    peps::PEPSNetwork,
     i::Int,
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) where {T <: Number}
@@ -103,19 +118,20 @@ function MPO(::Type{T},
     end
     W
 end
-MPO(peps::PepsNetwork,
+
+MPO(peps::PEPSNetwork,
     i::Int,
     config::Dict{Int, Int} = Dict{Int, Int}()
     ) = MPO(Float64, peps, i, config)
 
-function compress(ψ::AbstractMPS, peps::PepsNetwork)
+function compress(ψ::AbstractMPS, peps::PEPSNetwork)
     Dcut = peps.args["bond_dim"]
     if bond_dimension(ψ) < Dcut return ψ end
     compress(ψ, Dcut, peps.args["var_tol"], peps.args["sweeps"])
 end
 
 @memoize function MPS(
-    peps::PepsNetwork,
+    peps::PEPSNetwork,
     i::Int,
     cfg::Dict{Int, Int} = Dict{Int, Int}(),
     )
@@ -126,7 +142,7 @@ end
 end
 
 function contract_network(
-    peps::PepsNetwork,
+    peps::PEPSNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}(),
     )
     ψ = MPS(peps, 1, config)
@@ -134,74 +150,62 @@ function contract_network(
 end
 
 @inline function _get_coordinates(
-    peps::PepsNetwork,
+    peps::PEPSNetwork,
     k::Int
     )
     ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
 end
 
-@inline function _get_local_state(
-    peps::PepsNetwork,
-    v::Vector{Int},
-    i::Int,
-    j::Int,
-    )
-    k = j + peps.j_max * (i - 1)
-    if k > length(v) || k <= 0 return 1 end
-    v[k]
+function generate_boundary(fg::MetaDiGraph, v::Int, w::Int, state::Int)
+    if v ∉ vertices(fg) return 1 end
+    loc_dim = length(get_prop(fg, v, :loc_en))
+    pv = _get_projector(fg, v, w)
+    findfirst(x -> x > 0, pv[state, :])
 end
 
-function generate_boundary(
-    peps::PepsNetwork,
-    v::Vector{Int},
-    i::Int,
-    j::Int,
-    )
+function generate_boundary(peps::PEPSNetwork, v::Vector{Int}, i::Int, j::Int)
     ∂v = zeros(Int, peps.j_max + 1)
 
     # on the left below
     for k ∈ 1:j-1
         ∂v[k] = generate_boundary(
-            peps.network_graph,
-            (i, k),
-            (i+1, k),
+            peps.fg,
+            peps.map[i, k],
+            peps.map[i+1, k],
             _get_local_state(peps, v, i, k))
     end
 
     # on the left at the current row
     ∂v[j] = generate_boundary(
-        peps.network_graph,
-        (i, j-1),
-        (i, j),
+        peps.fg,
+        peps.map[i, j-1],
+        peps.map[i, j],
         _get_local_state(peps, v, i, j-1))
 
     # on the right above
     for k ∈ j:peps.j_max
         ∂v[k+1] = generate_boundary(
-            peps.network_graph,
-            (i-1, k),
-            (i, k),
+            peps.fg,
+            peps.map[i-1, k],
+            peps.map[i, k],
             _get_local_state(peps, v, i-1, k))
     end
     ∂v
 end
 
-function generate_boundary(
-    peps::PepsNetwork,
-    v::Vector{Int},
-    )
-    i, j = _get_coordinates(peps, length(v)+1)
-    generate_boundary(peps, v, i, j)
+function _get_local_state(peps::PEPSNetwork, v::Vector{Int}, i::Int, j::Int)
+    k = j + peps.j_max * (i - 1)
+    0 < k <= lenght(v) ? v[k] : 1
 end
 
-@inline function _contract(
-    A::Array{T, 5},
-    M::Array{T, 3},
-    L::Vector{T},
-    R::Matrix{T},
-    ∂v::Vector{Int},
-    ) where {T <: Number}
+# function generate_boundary(peps::PEPSNetwork, v::Vector{Int})
+#     i, j = _get_coordinates(peps, length(v)+1)
+#     generate_boundary(peps, v, i, j)
+# end
 
+function _contract(
+    A::Array{T, 5}, M::Array{T, 3}, L::Vector{T}, R::Matrix{T}, ∂v::Vector{Int}
+) where {T <: Number}
     l, u = ∂v
     @cast Ã[r, d, σ] := A[$l, $u, r, d, σ]
     @tensor prob[σ] := L[x] * M[x, d, y] *
@@ -216,7 +220,7 @@ function _normalize_probability(prob::Vector{T}) where {T <: Number}
 end
 
 function conditional_probability(
-    peps::PepsNetwork,
+    peps::PEPSNetwork,
     v::Vector{Int},
     )
     i, j = _get_coordinates(peps, length(v)+1)
@@ -229,7 +233,11 @@ function conditional_probability(
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
     A = generate_tensor(peps, i, j)
 
-    prob = _contract(A, ψ[j], L, R, ∂v[j:j+1])
+    l, u = ∂v[j:j+1]
+    M = ψ[j]
+    Ã[:, :, :] = A[l, u, :, :, :]
+    @tensor prob[σ] := L[x] * M[x, d, y] *
+                       Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
     _normalize_probability(prob)
 end
 

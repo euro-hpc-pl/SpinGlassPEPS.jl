@@ -31,7 +31,7 @@ end
 
 """
 ....
-    conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, mpo::MPO{T}, peps_row::PEPSRow{T}) where T <: Number
+    conditional_probabs(peps::PEPSNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, mpo::MPO{T}, peps_row::PEPSRow{T}) where T <: Number
 
 
 The contraction scheme
@@ -46,7 +46,7 @@ T - 5 mode tensor
       |    |                  |              |
 1 --mps_1-- mps_2 -- ...--   mps_i-- ... -- mps_peps.j_max -- 1
 """
-function conditional_probabs(peps::PepsNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, mpo::MPO{T}, peps_row::PEPSRow{T}) where T <: Number
+function conditional_probabs(peps::PEPSNetwork, ps::Partial_sol{T}, boundary_mps::MPS{T}, mpo::MPO{T}, peps_row::PEPSRow{T}) where T <: Number
 
     j = length(ps.spins) + 1
     ng = peps.network_graph
@@ -157,7 +157,7 @@ function merge_dX(partial_s::Vector{Partial_sol{T}}, dX_inds::Vector{Int}, δH::
 end
 
 
-function solve(peps::PepsNetwork, no_sols::Int = 2; β::T, χ::Int = typemax(Int),
+function solve(peps::PEPSNetwork, no_sols::Int = 2; β::T, χ::Int = typemax(Int),
                                                threshold::Float64 = 0.,
                                                δH::Float64 = 0., max_sweeps=4) where T <: Real
 

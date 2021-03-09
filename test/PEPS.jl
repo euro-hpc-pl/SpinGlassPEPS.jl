@@ -33,21 +33,19 @@ T = Float64
 instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
 ig = ising_graph(instance, L)
-update_cells!(
-   ig,
-   rule = square_lattice((m, n, t)),
-)
+
 
 fg = factor_graph(
     ig,
     energy=energy,
     spectrum=full_spectrum,
+    cluster_assignment_rule=chimera_to_square_lattice((m, n, t))
 )
 
 x, y = m, n
 
 for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-    peps = PepsNetwork(x, y, fg, β, origin)
+    peps = PEPSNetwork(x, y, fg, β, origin)
 
     ψ = IdentityMPS()
     for i ∈ peps.i_max:-1:1
