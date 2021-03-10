@@ -22,8 +22,8 @@ function tensor(ψ::MPS)
 
     for σ ∈ all_states(dims)
         Θ[idx.(σ)...] = tensor(ψ, σ)
-    end 
-    Θ    
+    end
+    Θ
 end
 
 #removes bonds that do not fit to the grid, testing function
@@ -80,7 +80,7 @@ function make_interactions_case1()
     (8,9) => -0.1)
 
 
-    ising_graph(D, L)#, ising_graph(D, L)
+    ising_graph(D)#, ising_graph(D, L)
 end
 
 
@@ -135,7 +135,7 @@ function make_interactions_case2(T::Type = Float64)
     (15, 16) => T(0.21)
     )
 
-    ising_graph(D, L)
+    ising_graph(D)
 end
 
 enum(vec) = Dict(v => i for (i, v) ∈ enumerate(vec))

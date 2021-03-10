@@ -14,7 +14,7 @@ using CSV
     num_states = 22
 
     # energies
-    exact_energies = 
+    exact_energies =
     [
         -16.4, -16.4, -16.4, -16.4, -16.1, -16.1, -16.1, -16.1, -15.9,
         -15.9, -15.9, -15.9, -15.9, -15.9, -15.6, -15.6, -15.6, -15.6,
@@ -22,7 +22,7 @@ using CSV
     ]
 
     # degenerate fg solutions
-    exact_states = 
+    exact_states =
     [   # E =-16.4
         [
         [1, 4, 5, 1, 2, 2, 1, 1, 1, 4, 2, 1], [1, 4, 7, 1, 2, 2, 1, 1, 1, 4, 2, 1],
@@ -31,7 +31,7 @@ using CSV
         # E =-16.1
         [
         [2, 5, 4, 1, 1, 3, 1, 1, 1, 5, 7, 1], [2, 5, 2, 1, 1, 3, 1, 1, 1, 5, 3, 1],
-        [2, 5, 4, 1, 1, 3, 1, 1, 1, 5, 3, 1], [2, 5, 2, 1, 1, 3, 1, 1, 1, 5, 7, 1]        
+        [2, 5, 4, 1, 1, 3, 1, 1, 1, 5, 3, 1], [2, 5, 2, 1, 1, 3, 1, 1, 1, 5, 7, 1]
         ],
         # E = -15.9
         [
@@ -58,11 +58,11 @@ using CSV
         #
         9 => 3, 10 => 3, 11 => 3, 12 => 3, 13 => 3, 14 => 3,
         #
-        15 => 4, 16 => 4, 17 => 4, 18 => 4, 19 => 4, 20 => 4, 
+        15 => 4, 16 => 4, 17 => 4, 18 => 4, 19 => 4, 20 => 4,
         #
         21 => 5, 22 => 5,
-        ) 
-    
+        )
+
     control_params = Dict(
         "bond_dim" => typemax(Int),
         "var_tol" => 1E-8,
@@ -71,27 +71,24 @@ using CSV
 
     instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
-    ig = ising_graph(instance, L)
-    update_cells!(
-        ig, 
-        rule = square_lattice((m, n, t))
-    )
+    ig = ising_graph(instance)
 
     fg = factor_graph(
         ig,
         energy=energy,
         spectrum=full_spectrum,
+        cluster_assignment_rule=super_square_lattice((m, n, t))
     )
 
-   #for origin ∈ (:NW, )# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-   for origin ∈ (:WN, )
-        peps = PepsNetwork(m, n, fg, β, origin, control_params)
+   for origin ∈ (:NW, )# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+   # for origin ∈ (:WN, )
+        peps = PEPSNetwork(m, n, fg, β, origin, control_params)
 
         # solve the problem using B & B
         sol = low_energy_spectrum(peps, num_states)
-      
-        @testset "has correct spectrum given the origin at $(origin)" begin 
-            @test sol.energies ≈ exact_energies 
+
+        @testset "has correct spectrum given the origin at $(origin)" begin
+            @test sol.energies ≈ exact_energies
             for (i, σ) ∈ enumerate(sol.states)
                 @test σ ∈ exact_states[deg[i]]
             end

@@ -1,6 +1,6 @@
-export chimera_to_square_lattice
+export super_square_lattice
 
- function chimera_to_square_lattice(size::NTuple{5, Int})
+ function super_square_lattice(size::NTuple{5, Int})
     m, um, n, un, t = size
     new = LinearIndices((1:n, 1:m))
     old = LinearIndices((1:t, 1:un, 1:n, 1:um, 1:m))
@@ -11,7 +11,7 @@ export chimera_to_square_lattice
     )
 end
 
-function chimera_to_square_lattice(size::NTuple{3, Int})
+function super_square_lattice(size::NTuple{3, Int})
     m, n, t = size
-    chimera_to_square_lattice((m, 1, n, 1, t))
+    super_square_lattice((m, 1, n, 1, t))
 end

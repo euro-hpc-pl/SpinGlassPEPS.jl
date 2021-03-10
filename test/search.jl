@@ -38,13 +38,7 @@ using CSV
     num_states = 4
 
     # read in pure Ising
-    ig = ising_graph(D, L)
-
-    # treat it as a grid with 1 spin cells
-    update_cells!(
-        ig,
-        rule = Dict(1 => 1, 2 => 2),
-    )
+    ig = ising_graph(D)
 
     # construct factor graph with no approx
     fg = factor_graph(
@@ -52,6 +46,7 @@ using CSV
         Dict(1 => 2, 2 => 2),
         energy = energy,
         spectrum = full_spectrum,
+        cluster_assignment_rule = Dict(1 => 1, 2 => 2), # treat it as a grid with 1 spin cells
     )
 
     # set parameters to contract exactely
@@ -66,8 +61,9 @@ using CSV
     ϱ = gibbs_tensor(ig, β)
 
     # split on the bond
-    p1, e, p2 = get_prop(fg, 1, 2, :split)
-
+    p1, e, p2 = get_prop.(Ref(fg), 1, 2, (:pl, :en, :pr))
+    print("")
+    println(p1, e, p2)
     @testset "has correct energy on the bond" begin
         en = [ J12 * σ * η for σ ∈ [-1, 1], η ∈ [-1, 1]]
         @test en ≈ p1 * (e * p2)
@@ -75,7 +71,7 @@ using CSV
     end
 
     for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-        peps = PepsNetwork(m, n, fg, β, origin, control_params)
+        peps = PEPSNetwork(m, n, fg, β, origin, control_params)
 
         @testset "has properly built PEPS tensors given origin at $(origin)" begin
 

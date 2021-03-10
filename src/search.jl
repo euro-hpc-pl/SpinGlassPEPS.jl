@@ -53,10 +53,10 @@ function _bound(pdo::Vector{Float64}, cut::Int)
     k = length(pdo)
     second_phase = false
     if k > cut + 1 k = cut + 1; second_phase = true end
-   
+
     idx = partialsortperm(pdo, 1:k, rev=true)
 
-    if second_phase  
+    if second_phase
         return idx[1:end-1], pdo[last(idx)]
     else
         return idx, -Inf
@@ -69,12 +69,10 @@ function _branch_and_bound(
     node::Int,
     cut::Int,
     )
-    ng = network.network_graph
-    fg = ng.factor_graph
 
     # branch
     pdo, eng, cfg = _init_solution()
-    k = get_prop(fg, node, :loc_dim)
+    k = get_prop(network.fg, node, :loc_dim)
 
     for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
         pdo = [pdo; p .* conditional_probability(network, σ)]
@@ -85,7 +83,7 @@ function _branch_and_bound(
     # bound
     K, lp = _bound(pdo, cut)
     lpCut = sol.largest_discarded_probability
-    lpCut < lp ? lpCut = lp : () 
+    lpCut < lp ? lpCut = lp : ()
 
     Solution(eng[K], cfg[K], pdo[K], lpCut)
 end
@@ -94,11 +92,9 @@ end
 function low_energy_spectrum(
     network::AbstractGibbsNetwork,
     cut::Int
-    )
-    ng = network.network_graph
-
+)
     sol = Solution([0.], [[]], [1.], -Inf)
-    for v ∈ 1:nv(ng.factor_graph)
+    for v ∈ vertices(network.fg)
         sol = _branch_and_bound(sol, network, v, cut)
     end
 
@@ -109,4 +105,3 @@ function low_energy_spectrum(
         sol.probabilities[K],
         sol.largest_discarded_probability)
 end
-

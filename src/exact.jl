@@ -43,7 +43,7 @@ function brute_force(ig::MetaGraph; sorted=true, num_states::Int=1)
         perm = partialsortperm(vec(energies), 1:num_states)
         return Spectrum(energies[perm], σ[perm])
     else
-        return Spectrum(energies, σ)
+        return Spectrum(energies[1:num_states], σ[1:num_states])
     end
 end
 

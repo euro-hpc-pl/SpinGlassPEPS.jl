@@ -32,14 +32,14 @@ T = Float64
 
 instance = "$(@__DIR__)/instances/pathological/test_$(m)_$(n)_$(t).txt"
 
-ig = ising_graph(instance, L)
+ig = ising_graph(instance)
 
 
 fg = factor_graph(
     ig,
     energy=energy,
     spectrum=full_spectrum,
-    cluster_assignment_rule=chimera_to_square_lattice((m, n, t))
+    cluster_assignment_rule=super_square_lattice((m, n, t))
 )
 
 x, y = m, n

@@ -27,7 +27,7 @@
         cluster_assignment_rule = Dict(1 => 1, 2 => 1, 3 => 2, 4 => 2)
     )
 
-    _, e, p = get_prop(fg, 1, 2, :split)
+    e, p = get_prop(fg, 1, 2, :en), get_prop(fg, 1, 2, :pr)
     ϕ = exp(β * minimum(e * p))
 
     for i ∈ 1:4, j ∈ 1:2

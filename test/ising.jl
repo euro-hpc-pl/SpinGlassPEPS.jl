@@ -193,7 +193,7 @@ end
         L = 4
         instance = "$(@__DIR__)/instances/$(L)_001.txt"
 
-        ig = ising_graph(instance, L)
+        ig = ising_graph(instance)
 
         set_prop!(ig, :rank, [3,2,5,4])
         rank = get_prop(ig, :rank)
@@ -218,8 +218,8 @@ end
             push!(instance_dict, (i, j) => v)
         end
 
-        ig = ising_graph(instance, N)
-        ig_dict = ising_graph(instance_dict, N)
+        ig = ising_graph(instance)
+        ig_dict = ising_graph(instance_dict)
 
         @test gibbs_tensor(ig) ≈ gibbs_tensor(ig_dict)
     end
