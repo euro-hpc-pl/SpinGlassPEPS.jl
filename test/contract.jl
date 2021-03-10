@@ -5,11 +5,11 @@
     #           |
     #   1 -- 2 -|- 3
 
-    D = Dict((1, 2) => -0.9049, 
-             (2, 3) =>  0.2838, 
+    D = Dict((1, 2) => -0.9049,
+             (2, 3) =>  0.2838,
 
-             (3, 3) => -0.7928, 
-             (2, 2) =>  0.1208, 
+             (3, 3) => -0.7928,
+             (2, 2) =>  0.1208,
              (1, 1) => -0.3342
     )
 
@@ -17,18 +17,14 @@
     L = 4
     β = 1.
 
-    ig = ising_graph(D, L)
-
-    update_cells!(
-        ig,
-        rule = Dict(1 => 1, 2 => 1, 3 => 2, 4 => 2),
-    )
+    ig = ising_graph(D)
 
     fg = factor_graph(
         ig,
         Dict(1 => 4, 2 => 2),
         energy = energy,
         spectrum = full_spectrum,
+        cluster_assignment_rule = Dict(1 => 1, 2 => 1, 3 => 2, 4 => 2)
     )
 
     _, e, p = get_prop(fg, 1, 2, :split)
@@ -38,8 +34,8 @@
         cfg = Dict(1 => i, 2 => j)
 
         Z = []
-        for origin ∈ (:NW, :SW, :WS, :WN) 
-            peps = PepsNetwork(m, n, fg, β, origin)
+        for origin ∈ (:NW, :SW, :WS, :WN)
+            peps = PEPSNetwork(m, n, fg, β, origin)
             p = contract_network(peps, cfg)
             push!(Z, p)
         end
@@ -49,10 +45,10 @@
 
         # the exact Gibbs state
         states = collect.(all_states(rank_vec(ig)))
-        ρ = exp.(-β .* energy.(states, Ref(ig)))    
+        ρ = exp.(-β .* energy.(states, Ref(ig)))
         ϱ = reshape(ρ, (4, 2)) * ϕ
 
         # probabilities should agree
         @test first(Z) ≈ ϱ[cfg[1], cfg[2]]
     end
-end        
+end

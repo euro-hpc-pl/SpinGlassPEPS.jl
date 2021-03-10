@@ -64,10 +64,10 @@ using CSV
     # get BF results for comparison
     exact_spectrum = brute_force(ig; num_states=num_states)
     ϱ = gibbs_tensor(ig, β)
-    
+
     # split on the bond
     p1, e, p2 = get_prop(fg, 1, 2, :split)
-    
+
     @testset "has correct energy on the bond" begin
         en = [ J12 * σ * η for σ ∈ [-1, 1], η ∈ [-1, 1]]
         @test en ≈ p1 * (e * p2)
@@ -77,11 +77,11 @@ using CSV
     for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
-        @testset "has properly built PEPS tensors given origin at $(origin)" begin          
+        @testset "has properly built PEPS tensors given origin at $(origin)" begin
 
             # horizontal alignment - 1 row, 2 columns
-            if peps.i_max == 1 && peps.j_max == 2 
-                @test origin ∈ (:NW, :SW, :SE, :NE) 
+            if peps.i_max == 1 && peps.j_max == 2
+                @test origin ∈ (:NW, :SW, :SE, :NE)
 
                 l, k = peps.map[1, 1], peps.map[1, 2]
 
@@ -99,13 +99,13 @@ using CSV
                 @test [R[1], R[2]] ≈ [A, B]
 
             # vertical alignment - 1 column, 2 rows
-            elseif peps.i_max == 2 && peps.j_max == 1  
+            elseif peps.i_max == 2 && peps.j_max == 1
                 @test origin ∈ (:WN, :WS, :ES, :EN)
 
                 l, k = peps.map[1, 1], peps.map[2, 1]
 
                 v1 = [exp(-β * D[l, l] * σ) for σ ∈ [-1, 1]]
-                v2 = [exp(-β * D[k, k] * σ) for σ ∈ [-1, 1]]           
+                v2 = [exp(-β * D[k, k] * σ) for σ ∈ [-1, 1]]
 
                 @cast A[_, _, _, d, σ] |= v1[σ] * p1[σ, d]
                 en = e * p2 .- minimum(e)
@@ -118,15 +118,15 @@ using CSV
                 @test PEPSRow(peps, 2)[1] ≈ B
             end
 
-            @testset "which produces correct Gibbs state" begin  
+            @testset "which produces correct Gibbs state" begin
                 @test ϱ ≈ ρ / sum(ρ)
             end
         end
-  
+
         # solve the problem using B & B
         sol = low_energy_spectrum(peps, num_states)
 
-        @testset "has correct spectrum given the origin at $(origin)" begin  
+        @testset "has correct spectrum given the origin at $(origin)" begin
              for (σ, η) ∈ zip(exact_spectrum.states, sol.states)
                 for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
                     # 1 --> -1 and 2 --> 1

@@ -10,26 +10,6 @@ struct MPSControl
     dβ::Number
 end
 
-#= it will be used instead of MPSControl
-function _set_control_parameters(
-    args_override::Dict{String, Number}=Dict{String, Number}()
-    )
-    args = Dict(
-        "max_bond" => typemax(Int),
-        "var_ϵ" => 1E-8,
-        "max_sweeps" => 4.,
-        "β" => 1.,
-        "dβ" => 0.01
-    )
-    for k in keys(args_override)
-        str = get(args_override, k, nothing)
-        if str !== nothing push!(args, str) end
-    end
-    args
-end
-=#
-
-
 _make_left_env(ψ::AbstractMPS, k::Int) = ones(eltype(ψ), 1, 1, k)
 _make_left_env_new(ψ::AbstractMPS, k::Int) = ones(eltype(ψ), 1, k)
 _make_LL(ψ::AbstractMPS, b::Int, k::Int, d::Int) = zeros(eltype(ψ), b, b, k, d)

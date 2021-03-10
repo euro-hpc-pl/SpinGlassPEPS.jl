@@ -22,12 +22,9 @@ module SpinGlassPEPS
     include("ising.jl")
     include("exact.jl")
     include("factor.jl")
-    include("network.jl")
     include("search.jl")
     include("PEPS.jl")
     include("MPS_search.jl")
-    include("notation.jl")
-    include("peps_no_types.jl")
 
     function __init__()
         @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" begin
