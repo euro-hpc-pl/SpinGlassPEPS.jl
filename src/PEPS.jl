@@ -16,7 +16,7 @@ struct PEPSNetwork <: AbstractGibbsNetwork
     origin::Symbol
     i_max::Int
     j_max::Int
-    β::Number
+    β::Number # TODO: get rid of this
     args::Dict{String, Number}
 
     function PEPSNetwork(
