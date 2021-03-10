@@ -98,7 +98,7 @@ function bond_energy(
     fg = ng.factor_graph
     if has_edge(fg, u, v)
         pu, en, pv = get_prop(fg, u, v, :split)
-        energies = pv * (en * pu[:, σ:σ])
+        energies = (pu * (en * pv[:, σ:σ]))'
     elseif has_edge(fg, v, u)
         pv, en, pu = get_prop(fg, v, u, :split)
         energies = (pv[σ:σ, :] * en) * pu

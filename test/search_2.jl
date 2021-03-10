@@ -83,7 +83,8 @@ using CSV
         spectrum=full_spectrum,
     )
 
-   for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+   #for origin ∈ (:NW, )# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+   for origin ∈ (:WN, )
         peps = PepsNetwork(m, n, fg, β, origin, control_params)
 
         # solve the problem using B & B

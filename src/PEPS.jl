@@ -169,6 +169,7 @@ function generate_boundary(
     for k ∈ 1:j-1
         v, pivot = (i, k), (i+1, k)
         σ = _get_local_state(peps, cfg, v)
+        println(v, " ", pivot, " ", σ)
         ∂v[k] = generate_boundary(peps, v, pivot, σ)
     end
 
