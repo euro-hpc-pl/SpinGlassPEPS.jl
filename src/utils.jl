@@ -22,9 +22,6 @@ function HadamardMPS(::Type{T}, rank::Union{Vector, NTuple}) where {T <: Number}
 end
 HadamardMPS(rank::Union{Vector, NTuple}) = HadamardMPS(Float64, rank)
 
-HadamardMPS(::Type{T}, L::Int) where {T <: Number} = MPS(fill(T(2), L))
-HadamardMPS(L::Int) = HadamardMPS(Float64, L)
-
 function LinearAlgebra.qr(M::AbstractMatrix, Dcut::Int, args...)
     fact = pqrfact(M, rank=Dcut, args...)
     Q = fact[:Q]
