@@ -62,8 +62,7 @@ using CSV
 
     # split on the bond
     p1, e, p2 = get_prop.(Ref(fg), 1, 2, (:pl, :en, :pr))
-    print("")
-    println(p1, e, p2)
+
     @testset "has correct energy on the bond" begin
         en = [ J12 * σ * η for σ ∈ [-1, 1], η ∈ [-1, 1]]
         @test en ≈ p1 * (e * p2)

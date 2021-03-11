@@ -154,7 +154,6 @@ end
     ceil(Int, k / peps.j_max), (k - 1) % peps.j_max + 1
 end
 
-
 function generate_boundary(fg::MetaDiGraph, v::Int, w::Int, state::Int)
     if v ∉ vertices(fg) return 1 end
     loc_dim = length(get_prop(fg, v, :loc_en))
@@ -199,16 +198,6 @@ end
 function _get_local_state(peps::PEPSNetwork, σ::Vector{Int}, w::NTuple{2, Int})
     k = w[2] + peps.j_max * (w[1] - 1)
     0 < k <= length(σ) ? σ[k] : 1
-end
-
-function _contract(
-    A::Array{T, 5}, M::Array{T, 3}, L::Vector{T}, R::Matrix{T}, ∂v::Vector{Int}
-) where {T <: Number}
-    l, u = ∂v
-    Ã = A[l, u, :, :, :]
-    @tensor prob[σ] := L[x] * M[x, d, y] *
-                       Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
-    prob
 end
 
 function _normalize_probability(prob::Vector{T}) where {T <: Number}

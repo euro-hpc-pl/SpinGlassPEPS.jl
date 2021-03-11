@@ -85,6 +85,11 @@ function _branch_and_bound(
     lpCut = sol.largest_discarded_probability
     lpCut < lp ? lpCut = lp : ()
 
+    println("eng: ", size(eng))
+    println("cfg: ", size(cfg))
+    println("pdo: ", size(pdo))
+    println("K: ", size(K))
+    println("-----------------")
     Solution(eng[K], cfg[K], pdo[K], lpCut)
 end
 
@@ -94,8 +99,12 @@ function low_energy_spectrum(
     cut::Int
 )
     sol = Solution([0.], [[]], [1.], -Inf)
-    for v ∈ vertices(network.fg)
-        sol = _branch_and_bound(sol, network, v, cut)
+#    for v ∈ vertices(network.fg)
+    for i ∈ 1:network.i_max
+        for j ∈ 1:network.j_max
+            v = j + network.j_max * (i - 1)
+            sol = _branch_and_bound(sol, network, v, cut)
+        end
     end
 
     K = partialsortperm(sol.energies, 1:length(sol.energies), rev=false)

@@ -80,7 +80,7 @@ using CSV
         cluster_assignment_rule=super_square_lattice((m, n, t))
     )
 
-   #for origin ∈ (:NW, )# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+   #for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
     for origin ∈ (:WN, )
         peps = PEPSNetwork(m, n, fg, β, origin, control_params)
 
