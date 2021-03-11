@@ -5,9 +5,5 @@
     
     @testset "Has correct size" begin
         @test size(ψ) == (length(rank), )
-    end
+    en
 
-    @testset "Is normalized" begin
-        @test norm(ψ) ≈ 1.
-    end
-end
