@@ -104,16 +104,10 @@ function low_energy_spectrum(
     perm = zeros(Int, nv(network.fg)) # TODO: to be removed
 
     #TODO: this should be replaced with the iteration over fg that is consistent with the order network
-    for i ∈ 1:network.i_max
-        for j ∈ 1:network.j_max
-            #----------------------------------
-            # TODO: This is a rough patch!!!
-            v_peps = j + network.j_max * (i - 1)
-            v_fg = network.map[i, j]
-            perm[v_fg] = v_peps
-            #-----------------------------------
-            sol = _branch_and_bound(sol, network, v_fg, cut)
-        end
+    for i ∈ 1:network.i_max, j ∈ 1:network.j_max
+        v_fg = network.map[i, j]
+        perm[v_fg] = j + network.j_max * (i - 1)
+        sol = _branch_and_bound(sol, network, v_fg, cut)
     end
     K = partialsortperm(sol.energies, 1:length(sol.energies), rev=false)
 
