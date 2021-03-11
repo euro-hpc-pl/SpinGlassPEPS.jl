@@ -1,9 +1,10 @@
 @testset "HadamardMPS" begin
-    L = 10
-    ψ = HadamardMPS(L)
+    rank = (2, 3, 4)
+    T = Float64
+    ψ = HadamardMPS(T, rank)
     
-    @testset "Has correct length" begin
-        @test_broken length(ψ) == L
+    @testset "Has correct size" begin
+        @test size(ψ) == (length(rank), )
     end
 
     @testset "Is normalized" begin

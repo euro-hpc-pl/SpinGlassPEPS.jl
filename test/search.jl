@@ -123,10 +123,10 @@ using CSV
 
         @testset "has correct spectrum given the origin at $(origin)" begin
              for (σ, η) ∈ zip(exact_spectrum.states, sol.states)
-                for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
-                    # 1 --> -1 and 2 --> 1
-                    s = η[peps.map[i, j]] == 1 ? -1 : 1
-                    @test s == σ[j + peps.j_max * (i - 1)]
+                 for i ∈ 1:peps.i_max, j ∈ 1:peps.j_max
+                    v = j + peps.j_max * (i - 1)
+                     # 1 --> -1 and 2 --> 1
+                     @test (η[v] == 1 ? -1 : 1) == σ[v]
                 end
              end
              @test sol.energies ≈ exact_spectrum.energies
