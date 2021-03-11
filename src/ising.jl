@@ -4,7 +4,7 @@ export Spectrum, cluster, rank, nodes, basis_size
 
 const Instance = Union{String, Dict}
 
-mutable struct Spectrum
+struct Spectrum
     energies::Vector{Float64}
     states::Vector{Vector{Int}}
 end

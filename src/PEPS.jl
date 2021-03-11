@@ -147,7 +147,7 @@ function contract_network(
     config::Dict{Int, Int} = Dict{Int, Int}(),
 )
     ψ = MPS(peps, 1, config)
-    prod(dropdims(ψ))[]
+    prod(dropindices(ψ))[]
 end
 
 @inline function get_coordinates(peps::PEPSNetwork, k::Int)

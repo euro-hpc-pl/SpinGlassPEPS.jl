@@ -4,36 +4,12 @@ export Solution
 
 abstract type AbstractGibbsNetwork end
 
-mutable struct Solution
+struct Solution
     energies::Vector{Float64}
     states::Vector{Vector{Int}}
     probabilities::Vector{Float64}
     largest_discarded_probability::Float64
 end
-
-# function _partition_into_unique(
-#     boundary::Vector{Int},
-#     partial_eng::Vector{T}
-#     ) where {T <: Number}
-
-# end
-
-# function _merge(
-#      network::AbstractGibbsNetwork,
-#      sol::Solution,
-#     )
-#     boundary = []
-#     for (i, σ) ∈ enumerate(sol.states)
-#         push!(boundary, generate_boundary(network, σ))
-#     end
-
-#     idx = _partition_into_unique(boundary, sol.energies)
-#     Solution(
-#         sol.energies[idx],
-#         sol.states[idx],
-#         sol.probabilities[idx],
-#         sol.largest_discarded_probability)
-# end
 
 #TODO: this can probably be done better
 function _branch_state(
@@ -46,18 +22,20 @@ function _branch_state(
     vcat(cfg, tmp)
 end
 
-@inline _init_solution() = (Float64[], Float64[], Vector{Int}[])
-
 # TODO: logic here can probably be done better
-function _bound(pdo::Vector{Float64}, cut::Int)
-    k = length(pdo)
+function _bound(probabilities::Vector{Float64}, cut::Int)
+    k = length(probabilities)
     second_phase = false
-    if k > cut + 1 k = cut + 1; second_phase = true end
 
-    idx = partialsortperm(pdo, 1:k, rev=true)
+    if k > cut + 1 
+        k = cut + 1
+        second_phase = true 
+    end
+
+    idx = partialsortperm(probabilities, 1:k, rev=true)
 
     if second_phase
-        return idx[1:end-1], pdo[last(idx)]
+        return idx[1:end-1], probabilities[last(idx)]
     else
         return idx, -Inf
     end
@@ -71,14 +49,9 @@ function _branch_and_bound(
     )
 
     # branch
-    pdo, eng, cfg = _init_solution()
-    k = get_prop(network.fg, node, :loc_dim)
+    pdo, eng, cfg = Float64[], Float64[], Vector{Int}[]
 
-    # for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
-    #     pdo = [pdo; p .* conditional_probability(network, σ)]
-    #     eng = [eng; e .+ update_energy(network, σ)]
-    #     cfg = _branch_state(cfg, σ, collect(1:k))
-    #  end
+    k = get_prop(network.fg, node, :loc_dim)
 
     for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
         pdo = [pdo; p .* conditional_probability(network, σ)]
@@ -87,11 +60,11 @@ function _branch_and_bound(
      end
 
     # bound
-    K, lp = _bound(pdo, cut)
+    indices, lowest_prob = _bound(pdo, cut)
     lpCut = sol.largest_discarded_probability
-    lpCut < lp ? lpCut = lp : ()
+    lpCut < lowest_prob ? lpCut = lowest_prob : ()
 
-    Solution(eng[K], cfg[K], pdo[K], lpCut)
+    Solution(eng[indices], cfg[indices], pdo[indices], lpCut)
 end
 
 #TODO: incorporate "going back" move to improve alghoritm
