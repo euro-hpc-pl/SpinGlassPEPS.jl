@@ -80,8 +80,7 @@ using CSV
         cluster_assignment_rule=super_square_lattice((m, n, t))
     )
 
-   #for origin ∈ (:NW,)# :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-    for origin ∈ (:WN, )
+   for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
         peps = PEPSNetwork(m, n, fg, β, origin, control_params)
 
         # solve the problem using B & B
@@ -89,9 +88,9 @@ using CSV
 
         @testset "has correct spectrum given the origin at $(origin)" begin
             @test sol.energies ≈ exact_energies
-            for (i, σ) ∈ enumerate(sol.states)
-                @test σ ∈ exact_states[deg[i]]
-            end
+             for (i, σ) ∈ enumerate(sol.states)
+                 @test σ ∈ exact_states[deg[i]]
+             end
         end
     end
 end

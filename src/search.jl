@@ -74,6 +74,12 @@ function _branch_and_bound(
     pdo, eng, cfg = _init_solution()
     k = get_prop(network.fg, node, :loc_dim)
 
+    # for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
+    #     pdo = [pdo; p .* conditional_probability(network, σ)]
+    #     eng = [eng; e .+ update_energy(network, σ)]
+    #     cfg = _branch_state(cfg, σ, collect(1:k))
+    #  end
+
     for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
         pdo = [pdo; p .* conditional_probability(network, σ)]
         eng = [eng; e .+ update_energy(network, σ)]
@@ -85,11 +91,6 @@ function _branch_and_bound(
     lpCut = sol.largest_discarded_probability
     lpCut < lp ? lpCut = lp : ()
 
-    println("eng: ", size(eng))
-    println("cfg: ", size(cfg))
-    println("pdo: ", size(pdo))
-    println("K: ", size(K))
-    println("-----------------")
     Solution(eng[K], cfg[K], pdo[K], lpCut)
 end
 
@@ -99,18 +100,26 @@ function low_energy_spectrum(
     cut::Int
 )
     sol = Solution([0.], [[]], [1.], -Inf)
-#    for v ∈ vertices(network.fg)
+
+    perm = zeros(Int, nv(network.fg)) # TODO: to be removed
+
+    #TODO: this should be replaced with the iteration over fg that is consistent with the order network
     for i ∈ 1:network.i_max
         for j ∈ 1:network.j_max
-            v = j + network.j_max * (i - 1)
-            sol = _branch_and_bound(sol, network, v, cut)
+            #----------------------------------
+            # TODO: This is a rough patch!!!
+            v_peps = j + network.j_max * (i - 1)
+            v_fg = network.map[i, j]
+            perm[v_fg] = v_peps
+            #-----------------------------------
+            sol = _branch_and_bound(sol, network, v_fg, cut)
         end
     end
-
     K = partialsortperm(sol.energies, 1:length(sol.energies), rev=false)
+
     Solution(
         sol.energies[K],
-        sol.states[K],
+        [ σ[perm] for σ ∈ sol.states[K] ], #TODO: to be changed
         sol.probabilities[K],
         sol.largest_discarded_probability)
 end
