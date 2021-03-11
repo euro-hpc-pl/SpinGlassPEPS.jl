@@ -6,4 +6,4 @@
     @testset "Has correct size" begin
         @test size(ψ) == (length(rank), )
     en
-
+end
