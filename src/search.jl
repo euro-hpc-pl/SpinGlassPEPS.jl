@@ -1,81 +1,92 @@
-#=
-# This is the most general (still semi-sudo-code) of the search function.
-# 
+export AbstractGibbsNetwork
 export low_energy_spectrum
+export Solution
 
-mutable struct Solution
+abstract type AbstractGibbsNetwork end
+
+struct Solution
     energies::Vector{Float64}
     states::Vector{Vector{Int}}
     probabilities::Vector{Float64}
+    largest_discarded_probability::Float64
 end
 
-function _partition_into_unique(
-    boundary::Vector{Int}, 
-    partial_eng::Vector{T}
-    ) where {T <: Number}
-
-end
-
-function _merge(
-     model::Model,
-     sol::Solution,
+#TODO: this can probably be done better
+function _branch_state(
+    cfg::Vector,
+    state::Vector,
+    basis::Vector,
     )
-    boundary = zeros(Int, length(sol.states))
-    for (i, σ) ∈ enumerate(sol.states)
-        boundary[i] = generate_boundary(model, σ)
+    tmp = Vector{Int}[]
+    for σ ∈ basis push!(tmp, vcat(state, σ)) end
+    vcat(cfg, tmp)
+end
+
+# TODO: logic here can probably be done better
+function _bound(probabilities::Vector{Float64}, cut::Int)
+    k = length(probabilities)
+    second_phase = false
+
+    if k > cut + 1 
+        k = cut + 1
+        second_phase = true 
     end
 
-    idx = _partition_into_unique(boundary, sol.energies)
-    Solution(sol.energies[idx], sol.states[idx], sol.probabilities[idx])
-end
+    idx = partialsortperm(probabilities, 1:k, rev=true)
 
-function _sort(
-    sol::Solution,
-    k::Int,
-    )
-    perm = partialsortperm(sol.probabilities, 1:k, rev=true)
-    Solution(sol.energies[perm], sol.states[perm], sol.probabilities[perm])
-end
-
-function _update_solution!(
-    sol::Solution,
-    model::Model, 
-    )
-    prob = eng = psol = [] 
-
-    for (i, σ) ∈ enumerate(sol.states)
-        p = conditional_probability(model, σ)
-        push!(prob, sol.probabilities[i] .* p)
-        push!(eng, sol.energies[i] .+ δE(model, σ))
-        # add sol
+    if second_phase
+        return idx[1:end-1], probabilities[last(idx)]
+    else
+        return idx, -Inf
     end
-
-    sol = Solution(vec(eng), sol, vec(prob)) 
-    _sort(_merge(model, sol), k)
 end
 
-@inline function _largest_discarded_probability!(
-    lpCut::Float64,
+function _branch_and_bound(
     sol::Solution,
+    network::AbstractGibbsNetwork,
+    node::Int,
+    cut::Int,
     )
-    p = last(sol.probabilities)
-    lpCut < p ? lpCut = p : ()
+
+    # branch
+    pdo, eng, cfg = Float64[], Float64[], Vector{Int}[]
+
+    k = get_prop(network.fg, node, :loc_dim)
+
+    for (p, σ, e) ∈ zip(sol.probabilities, sol.states, sol.energies)
+        pdo = [pdo; p .* conditional_probability(network, σ)]
+        eng = [eng; e .+ update_energy(network, σ)]
+        cfg = _branch_state(cfg, σ, collect(1:k))
+     end
+
+    # bound
+    indices, lowest_prob = _bound(pdo, cut)
+    lpCut = sol.largest_discarded_probability
+    lpCut < lowest_prob ? lpCut = lowest_prob : ()
+
+    Solution(eng[indices], cfg[indices], pdo[indices], lpCut)
 end
 
+#TODO: incorporate "going back" move to improve alghoritm
 function low_energy_spectrum(
-    model::Model, 
-    k::Int
-    )
-    sol = Solution(zeros(k), fill([], k), zeros(k))
-    lpCut = -typemax(Int)
+    network::AbstractGibbsNetwork,
+    cut::Int
+)
+    sol = Solution([0.], [[]], [1.], -Inf)
 
-    for v ∈ 1:model.size 
-        _update_solution!(sol, model)
-        _largest_discarded_probability!(lpCut, sol)
+    perm = zeros(Int, nv(network.fg)) # TODO: to be removed
+
+    #TODO: this should be replaced with the iteration over fg that is consistent with the order network
+    for i ∈ 1:network.i_max, j ∈ 1:network.j_max
+        v_fg = network.map[i, j]
+        perm[v_fg] = j + network.j_max * (i - 1)
+        sol = _branch_and_bound(sol, network, v_fg, cut)
     end
+    K = partialsortperm(sol.energies, 1:length(sol.energies), rev=false)
 
-    perm = partialsortperm(vec(sol.energies), 1:size(sol.energies), rev=true)
-    sol = Solution(sol.energies[perm], sol.states[perm], sol.probabilities[perm])
-    sol, lpCut
+    Solution(
+        sol.energies[K],
+        [ σ[perm] for σ ∈ sol.states[K] ], #TODO: to be changed
+        sol.probabilities[K],
+        sol.largest_discarded_probability)
 end
-=#

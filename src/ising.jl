@@ -5,8 +5,8 @@ export Spectrum, cluster, rank, nodes, basis_size
 const Instance = Union{String, Dict}
 
 struct Spectrum
-    energies::Array{<:Number}
-    states::Array{Vector{<:Number}}
+    energies::Vector{Float64}
+    states::Vector{Vector{Int}}
 end
 
 unique_nodes(ising_tuples) = sort(collect(Set(Iterators.flatten((i, j) for (i, j, _) ∈ ising_tuples))))

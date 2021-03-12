@@ -58,6 +58,7 @@ function factor_graph(
         sp = spectrum(cl, num_states=get(num_states_cl, v, basis_size(cl)))
         set_prop!(fg, v, :spectrum, sp)
         set_prop!(fg, v, :loc_en, vec(sp.energies))
+        set_prop!(fg, v, :loc_dim, length(vec(sp.energies)))
     end
 
     for i ∈ 1:L, j ∈ i+1:L
@@ -80,19 +81,6 @@ function factor_graph(
         end
     end
     fg
-end
-
-
-# TODO: eradicate it
-function projectors(fg::MetaDiGraph, i::Int, j::Int)
-    if has_edge(fg, i, j)
-        p1, en, p2 = get_prop(fg, i, j, :split)
-    elseif has_edge(fg, j, i)
-        p2, en, p1 = get_prop(fg, j, i, :split)
-    else
-        p1 = en = p2 = ones(1, 1)
-    end
-    p1, en, p2
 end
 
 function rank_reveal(energy, order=:PE)

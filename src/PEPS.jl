@@ -8,7 +8,7 @@ const DEFAULT_CONTROL_PARAMS = Dict(
     "β" => 1.
 )
 
-struct PEPSNetwork
+struct PEPSNetwork <: AbstractGibbsNetwork
     size::NTuple{2, Int}
     map::Dict
     fg::MetaDiGraph
@@ -16,7 +16,7 @@ struct PEPSNetwork
     origin::Symbol
     i_max::Int
     j_max::Int
-    β::Number
+    β::Number # TODO: get rid of this
     args::Dict{String, Number}
 
     function PEPSNetwork(
@@ -25,8 +25,8 @@ struct PEPSNetwork
         fg::MetaDiGraph,
         β::Number,
         origin::Symbol=:NW,
-        args_override::Dict{String, Number}=Dict{String, Number}()
-    )
+        args_override::Dict{String, T}=Dict{String, Number}()  # TODO: change String to Symbol
+    ) where T <: Number
         map, i_max, j_max = peps_indices(m, n, origin)
 
         # v => (l, u, r, d)
@@ -75,24 +75,25 @@ end
     else
         en = zeros(1, 1)
     end
-    exp.(-network.β .* en)
+    exp.(-network.β .* (en .- minimum(en)))
 end
+
+function peps_tensor(::Type{T}, peps::PEPSNetwork, i::Int, j::Int) where {T <: Number}
+    # generate tensors from projectors
+    A = generate_tensor(peps, peps.map[i, j])
+
+    # include energy
+    h = generate_tensor(peps, peps.map[i, j-1], peps.map[i, j])
+    v = generate_tensor(peps, peps.map[i-1, j], peps.map[i, j])
+    @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ]
+    B
+end
+peps_tensor(peps::PEPSNetwork, i::Int, j::Int) = peps_tensor(Float64, peps, i, j)
 
 function PEPSRow(::Type{T}, peps::PEPSNetwork, i::Int) where {T <: Number}
     ψ = PEPSRow(T, peps.j_max)
-
-    # generate tensors from projectors
-    for j ∈ 1:length(ψ)
-        ψ[j] = generate_tensor(peps, peps.map[i, j])
-    end
-
-    # include energy
     for j ∈ 1:peps.j_max
-        A = ψ[j]
-        h = generate_tensor(peps, peps.map[i, j-1], peps.map[i, j])
-        v = generate_tensor(peps, peps.map[i-1, j], peps.map[i, j])
-        @tensor B[l, u, r, d, σ] := h[l, l̃] * v[u, ũ] * A[l̃, ũ, r, d, σ]
-        ψ[j] = B
+        ψ[j] = peps_tensor(T, peps, i, j)
     end
     ψ
 end
@@ -144,16 +145,13 @@ end
 function contract_network(
     peps::PEPSNetwork,
     config::Dict{Int, Int} = Dict{Int, Int}(),
-    )
+)
     ψ = MPS(peps, 1, config)
-    prod(dropdims(ψ))[]
+    prod(dropindices(ψ))[]
 end
 
-@inline function _get_coordinates(
-    peps::PEPSNetwork,
-    k::Int
-    )
-    ceil(k / peps.j_max), (k - 1) % peps.j_max + 1
+@inline function get_coordinates(peps::PEPSNetwork, k::Int)
+    ceil(Int, k / peps.j_max), (k - 1) % peps.j_max + 1
 end
 
 function generate_boundary(fg::MetaDiGraph, v::Int, w::Int, state::Int)
@@ -163,7 +161,8 @@ function generate_boundary(fg::MetaDiGraph, v::Int, w::Int, state::Int)
     findfirst(x -> x > 0, pv[state, :])
 end
 
-function generate_boundary(peps::PEPSNetwork, v::Vector{Int}, i::Int, j::Int)
+function generate_boundary(peps::PEPSNetwork, v::Vector{Int}, w::NTuple{2, Int})
+    i, j = w
     ∂v = zeros(Int, peps.j_max + 1)
 
     # on the left below
@@ -172,7 +171,8 @@ function generate_boundary(peps::PEPSNetwork, v::Vector{Int}, i::Int, j::Int)
             peps.fg,
             peps.map[i, k],
             peps.map[i+1, k],
-            _get_local_state(peps, v, i, k))
+            _get_local_state(peps, v, (i, k))
+        )
     end
 
     # on the left at the current row
@@ -180,7 +180,8 @@ function generate_boundary(peps::PEPSNetwork, v::Vector{Int}, i::Int, j::Int)
         peps.fg,
         peps.map[i, j-1],
         peps.map[i, j],
-        _get_local_state(peps, v, i, j-1))
+        _get_local_state(peps, v, (i, j-1))
+    )
 
     # on the right above
     for k ∈ j:peps.j_max
@@ -188,29 +189,15 @@ function generate_boundary(peps::PEPSNetwork, v::Vector{Int}, i::Int, j::Int)
             peps.fg,
             peps.map[i-1, k],
             peps.map[i, k],
-            _get_local_state(peps, v, i-1, k))
+            _get_local_state(peps, v, (i-1, k))
+        )
     end
     ∂v
 end
 
-function _get_local_state(peps::PEPSNetwork, v::Vector{Int}, i::Int, j::Int)
-    k = j + peps.j_max * (i - 1)
-    0 < k <= lenght(v) ? v[k] : 1
-end
-
-# function generate_boundary(peps::PEPSNetwork, v::Vector{Int})
-#     i, j = _get_coordinates(peps, length(v)+1)
-#     generate_boundary(peps, v, i, j)
-# end
-
-function _contract(
-    A::Array{T, 5}, M::Array{T, 3}, L::Vector{T}, R::Matrix{T}, ∂v::Vector{Int}
-) where {T <: Number}
-    l, u = ∂v
-    @cast Ã[r, d, σ] := A[$l, $u, r, d, σ]
-    @tensor prob[σ] := L[x] * M[x, d, y] *
-                       Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
-    prob
+function _get_local_state(peps::PEPSNetwork, σ::Vector{Int}, w::NTuple{2, Int})
+    k = w[2] + peps.j_max * (w[1] - 1)
+    0 < k <= length(σ) ? σ[k] : 1
 end
 
 function _normalize_probability(prob::Vector{T}) where {T <: Number}
@@ -223,24 +210,52 @@ function conditional_probability(
     peps::PEPSNetwork,
     v::Vector{Int},
     )
-    i, j = _get_coordinates(peps, length(v)+1)
-    ∂v = generate_boundary(peps, v, i, j)
+    i, j = get_coordinates(peps, length(v)+1)
+    ∂v = generate_boundary(peps, v, (i, j))
 
     W = MPO(peps, i)
     ψ = MPS(peps, i+1)
 
     L = left_env(ψ, ∂v[1:j-1])
     R = right_env(ψ, W, ∂v[j+2:peps.j_max+1])
-    A = generate_tensor(peps, i, j)
+    A = peps_tensor(peps, i, j)
 
     l, u = ∂v[j:j+1]
     M = ψ[j]
-    Ã[:, :, :] = A[l, u, :, :, :]
+    Ã = A[l, u, :, :, :]
     @tensor prob[σ] := L[x] * M[x, d, y] *
                        Ã[r, d, σ] * R[y, r] order = (x, d, r, y)
     _normalize_probability(prob)
 end
 
+function bond_energy(fg::MetaDiGraph, u::Int, v::Int, σ::Int)
+    if has_edge(fg, u, v)
+        pu, en, pv = get_prop.(Ref(fg), u, v, (:pl, :en, :pr))
+        energies = (pu * (en * pv[:, σ:σ]))'
+    elseif has_edge(fg, v, u)
+        pv, en, pu = get_prop.(Ref(fg), v, u, (:pl, :en, :pr))
+        energies = (pv[σ:σ, :] * en) * pu
+    else
+        energies = zeros(get_prop(fg, u, :loc_dim))
+    end
+    vec(energies)
+end
+
+function update_energy(
+    network::AbstractGibbsNetwork,
+    σ::Vector{Int},
+    )
+    i, j = get_coordinates(network, length(σ)+1)
+
+    σkj = _get_local_state(network, σ, (i-1, j))
+    σil = _get_local_state(network, σ, (i, j-1))
+
+    bond_energy(network.fg, network.map[i, j], network.map[i, j-1], σil) +
+    bond_energy(network.fg, network.map[i, j], network.map[i-1, j], σkj) +
+    get_prop(network.fg, network.map[i, j], :loc_en)
+end
+
+#TODO: translate this into rotations and reflections
 function peps_indices(m::Int, n::Int, origin::Symbol=:NW)
     @assert origin ∈ (:NW, :WN, :NE, :EN, :SE, :ES, :SW, :WS)
 

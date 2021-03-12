@@ -22,6 +22,7 @@ module SpinGlassPEPS
     include("ising.jl")
     include("exact.jl")
     include("factor.jl")
+    include("search.jl")
     include("PEPS.jl")
     include("MPS_search.jl")
 

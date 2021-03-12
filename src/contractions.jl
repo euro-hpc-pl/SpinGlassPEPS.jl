@@ -1,7 +1,7 @@
 export left_env, right_env, dot!
 
 # --------------------------- Conventions -----------------------
-#                                                                 
+#
 #      MPS          MPS*         MPO       left env     right env
 #       2            2            2           - 1          2 -
 #   1 - A - 3    1 - B - 3    1 - W - 3      L               R
@@ -85,7 +85,8 @@ end
 
 @memoize function right_env(ϕ::AbstractMPS{T}, W::AbstractMPO{T}, σ::Union{Vector, NTuple}) where {T}
     l = length(σ)
-    k = length(ϕ)
+    #k = length(ϕ)
+    k = length(W)
     if l == 0
         R = similar(ϕ[1], T, (1, 1))
         R[1, 1] = one(T)

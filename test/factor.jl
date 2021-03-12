@@ -24,14 +24,14 @@ end
    m = 4
    n = 4
    t = 4
-   L = n * m * (2 * t)
+   L = 128
 
    instance = "$(@__DIR__)/instances/chimera_droplets/$(L)power/001.txt"
 
-   ig = ising_graph(instance, L)
+   ig = ising_graph(instance)
 
    fg = factor_graph(
-      ig, 2, cluster_assignment_rule=chimera_to_square_lattice((m, n, 2*t))
+      ig, 2, cluster_assignment_rule=super_square_lattice((m, n, 2*t))
    )
 
    @test collect(vertices(fg)) == collect(1:m * n)
@@ -114,7 +114,7 @@ fg = factor_graph(
     ig,
     energy=energy,
     spectrum=full_spectrum,
-    cluster_assignment_rule=chimera_to_square_lattice((m, n, t)),
+    cluster_assignment_rule=super_square_lattice((m, n, t)),
 )
 
 for v ∈ vertices(fg)

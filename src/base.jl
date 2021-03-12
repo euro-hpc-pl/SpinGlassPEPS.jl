@@ -1,6 +1,6 @@
 export bond_dimension, is_left_normalized, is_right_normalized
 export verify_bonds, verify_physical_dims, tensor, rank, physical_dim
-export State, idMPS
+export State, dropindices
 
 const State = Union{Vector, NTuple}
 
@@ -50,9 +50,7 @@ end
 @inline MPS(A::AbstractArray, ::Val{:right}, Dcut::Int, args...) = _left_sweep_SVD(MPS, A, Dcut, args...)
 @inline MPS(A::AbstractArray, ::Val{:left}, Dcut::Int, args...) = _right_sweep_SVD(MPS, A, Dcut, args...)
 
-@inline Base.dropdims(ψ::MPS, i::Int) = (dropdims(A, dims=i) for A ∈ ψ)
-@inline Base.dropdims(ψ::MPS) = Base.dropdims(ψ, 2)
-
+@inline dropindices(ψ::AbstractMPS, i::Int=2) = (dropdims(A, dims=i) for A ∈ ψ)
 
 function MPS(states::Vector{Vector{T}}) where {T <: Number}
     state_arrays = [reshape(copy(v), (1, length(v), 1)) for v ∈ states]
