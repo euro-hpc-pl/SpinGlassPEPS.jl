@@ -1,11 +1,12 @@
 module SpinGlassPEPS
 
     using Reexport
-    @reexport using SpinGlassTensors, SpinGlassNetworks, SpinGlass Engine
+    @reexport using SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine
 
+    using Requires
     function __init__()
         @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" begin
-            if CUDA.functional() && CUDA.has_cutensor()
+            if CUDA.functional() && CUDA.has_cutensor() && false
                 const CuArray = CUDA.CuArray
                 const CuVector = CUDA.CuVector
                 const CuMatrix = CUDA.CuMatrix

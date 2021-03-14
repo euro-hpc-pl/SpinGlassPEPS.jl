@@ -1,4 +1,4 @@
-using Test, SpinGlassPEPS
+using Test, CUDA, SpinGlassPEPS
 
 my_tests = []
 if CUDA.functional() && CUDA.has_cutensor() && false
