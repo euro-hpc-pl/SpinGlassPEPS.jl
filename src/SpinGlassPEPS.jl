@@ -1,30 +1,7 @@
 module SpinGlassPEPS
-    using LinearAlgebra
-    using Requires
-    using TensorOperations, TensorCast
-    using LowRankApprox
-    using LightGraphs
-    using MetaGraphs
-    using CSV
-    using Logging
-    using StatsBase
-    using Memoize, LRUCache
 
-    using DocStringExtensions
-    const product = Iterators.product
-
-    include("base.jl")
-    include("utils.jl")
-    include("compressions.jl")
-    include("identities.jl")
-    include("contractions.jl")
-    include("lattice.jl")
-    include("ising.jl")
-    include("exact.jl")
-    include("factor.jl")
-    include("search.jl")
-    include("PEPS.jl")
-    include("MPS_search.jl")
+    using Reexport
+    @reexport using SpinGlassTensors, SpinGlassNetworks, SpinGlass Engine
 
     function __init__()
         @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" begin
