@@ -27,7 +27,7 @@ makedocs(
     clean = true,
     format = format,
     sitename = "SpinGlassPEPS.jl",
-    authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams",
+    authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna",
     pages = [
         "Home" => "index.md",
         "Library" => "lib/SpinGlassPEPS.md"
