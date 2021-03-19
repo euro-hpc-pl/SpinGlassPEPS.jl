@@ -12,6 +12,8 @@ SpinGlassTensors = "7584fc6a-5a23-4eeb-8277-827aab0146ea"
 
 [compat]
 CUDA = "2.3"
+Reexport = "1.0"
+Requires = "1.1"
 SpinGlassEngine = "0.1"
 SpinGlassNetworks = "0.1"
 SpinGlassTensors = "0.1"
