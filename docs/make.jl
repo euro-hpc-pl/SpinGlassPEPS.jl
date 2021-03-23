@@ -1,5 +1,12 @@
 using Documenter, SpinGlassPEPS
 using DocumenterTools: Themes
+using SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine
+
+cd(@__DIR__)
+CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
+using Pkg
+Pkg.activate(@__DIR__)
+CI && Pkg.instantiate()
 
 # %%
 # download the themes
@@ -42,6 +49,7 @@ format = Documenter.HTML(
 makedocs(
     clean = true,
     format = format,
+    modules=[SpinGlassPEPS, SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine],
     sitename = "SpinGlassPEPS.jl",
     authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna",
     pages = [
