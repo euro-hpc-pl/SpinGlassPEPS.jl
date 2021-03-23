@@ -10,5 +10,5 @@ A list of all documentation sorted by module.
 
 
 ```@autodocs
-Modules = [SpinGlassPEPS]
+Modules = [SpinGlassPEPS, SpinGlassTensors]
 ```

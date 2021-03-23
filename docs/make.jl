@@ -3,9 +3,9 @@ using DocumenterTools: Themes
 
 # %%
 # download the themes
-for file in ("juliadynamics-lightdefs.scss", "juliadynamics-darkdefs.scss", "juliadynamics-style.scss")
-    download("https://raw.githubusercontent.com/JuliaDynamics/doctheme/master/$file", joinpath(@__DIR__, file))
-end
+#for file in ("juliadynamics-lightdefs.scss", "juliadynamics-darkdefs.scss", "juliadynamics-style.scss")
+#    download("https://raw.githubusercontent.com/JuliaDynamics/doctheme/master/$file", joinpath(@__DIR__, file))
+#end
 # create the themes
 for w in ("light", "dark")
     header = read(joinpath(@__DIR__, "juliadynamics-style.scss"), String)
@@ -46,6 +46,7 @@ makedocs(
     authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna",
     pages = [
         "Home" => "index.md",
+        "Examples" => "examples.md",
         "Contents" => "contents.md",
         "Library" => "lib/SpinGlassPEPS.md"
     ]
