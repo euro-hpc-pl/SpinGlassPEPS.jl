@@ -1,6 +1,7 @@
 using Documenter, SpinGlassPEPS
 using DocumenterTools: Themes
 using SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine
+using MetaGraphs
 
 cd(@__DIR__)
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
@@ -54,13 +55,25 @@ makedocs(
     authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna",
     pages = [
         "Home" => "index.md",
-        "Examples" => "examples.md",
         "Contents" => "contents.md",
-        "Library" => "lib/SpinGlassPEPS.md"
+        "Examples" => "examples.md",
+        "Library" => ["Index" => "lib/SpinGlassPEPS.md",
+                       "SpinGlassEngine" => "lib/SpinGlassEngine.md",
+                       "SpinGlassTensors" => "lib/SpinGlassTensors.md",
+                       "SpinGlassNetwork" => "lib/SpinGlassNetwork.md"]
     ]
 )
 
+if "deploy" in ARGS
+    include("../../faketravis.jl")
+end
+
 deploydocs(
+    #root = "github.com/iitis/SpinGlassPEPS.jl/tree/ad/docs",
+    #repo = "github.com/iitis/SpinGlassPEPS.jl.git",
     repo = "github.com/iitis/SpinGlassPEPS.jl.git",
-    devbranch = "lp/docs-example"
+    branch = "ad/docs",
+    devbranch = "ad/docs"
+    #devbranch = "lp/docs-example",
+    #branch = "ad/docs"
 )

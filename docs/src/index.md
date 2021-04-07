@@ -9,6 +9,7 @@ Author = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawe
 !!! info "Star us on GitHub!" 
     If you have found this library useful, please consider starring the GitHub repository. This gives us an accurate lower bound of the satisfied users.
 
+
 ## Getting started
 In this section we will provide a condensed overview of the package.
 
@@ -22,6 +23,51 @@ The package `SpinGlassPEPS` includes:
 * `SpinGlassNetworks.jl` - creates factor graph and Ising spin-glass model
 * `SpinGlassEngine.jl` - search for low energy spectrum using PEPS and MPS
 
+
+## Quick example
+Let us consider optimization problem defined on a pathological instance defined as follows.
+
+We can find a ground state of this instance using SpinGlassPEPS interface via the procedure below.
+
+```jldoctest
+using SpinGlassEngine, SpinGlassTensors, SpinGlassNetworks, SpinGlassPEPS, MetaGraphs
+
+m = 3
+n = 4
+t = 3
+
+β = 1.
+
+L = n * m * t
+num_states = 22
+
+control_params = Dict(
+    "bond_dim" => typemax(Int),
+    "var_tol" => 1E-8,
+    "sweeps" => 4.
+)
+
+instance = "/Users/annamaria/Documents/GitHub/SpinGlassPEPS.jl/test/instances/test_$(m)_$(n)_$(t).txt"
+
+ig = SpinGlassNetworks.ising_graph(instance)
+
+fg = SpinGlassNetworks.factor_graph(
+    ig,
+    spectrum=full_spectrum,
+    cluster_assignment_rule=super_square_lattice((m, n, t))
+)
+
+#for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
+peps = SpinGlassEngine.PEPSNetwork(m, n, fg, β, :NW, control_params)
+
+    # solve the problem using B & B
+sol = SpinGlassEngine.low_energy_spectrum(peps, num_states)
+#end
+(x->round.(x, digits = 1)).(sol.energies)[1]
+# output
+-16.4
+```
+
 ## Our goals
 
 `SpinGlassPEPS.jl` was created to heuristically solve Ising-type optimization problems defined on quasi-2d lattices.
@@ -33,38 +79,3 @@ We aim to provide fast, reliable and easy to use emulator of D-Wave ``2000``Q qu
 If you use `SpinGlassPEPS` for academic research and wish to cite it, please use the following paper:
 
 K. Jałowiecki, K. Domino, A. M. Dziubyna, M. M. Rams, B. Gardas and Ł. Pawela, *“SpinGlassPEPS.jl: software to emulate quantum annealing processors”*
-
-# Examples
-Before providing the documentation of the offered functionality, it is good to demonstrate exactly what the package does.
-
-## Introduction
-We consider a classical Ising Hamiltonian
-```math
-E = -\sum_{<i,j> \in \mathcal{E}} J_{ij} s_i s_j - \sum_j h_i s_j.
-```
-where ``s`` is a configuration of ``N`` classical spins taking values ``s_i = \pm 1``
-and ``J_{ij}, h_i \in \mathbb{R}`` are input parameters of a given problem instance. 
-Nonzero couplings ``J_ij`` form a graph ``\mathcal{E}``. 
-
-## MPS
-Before providing the documentation of the offered functionality, it is good to demonstrate exactly what the matrix product states (MPS) are.
-
-## PEPS
-## Examples of building documentation from docstrings
-```@docs
-SpinGlassNetworks.ising_graph
-```
-```@docs
-SpinGlassNetworks.gibbs_tensor
-```
-```@docs
-SpinGlassNetworks.energy
-```
-```@docs
-SpinGlassNetworks.brute_force
-```
-```@docs
-SpinGlassTensors.compress
-```
-
-## Finding structure of low energy states
