@@ -1,6 +1,5 @@
 using LinearAlgebra
 using LightGraphs
-using MetaGraphs
 using NPZ
 
 using SpinGlassPEPS
@@ -82,11 +81,14 @@ s1 = isqrt(div(si,8))
 n = div(s1, node_size[1])
 m = div(s1, node_size[2])
 
-ig = ising_graph(fi, si, 1)
-update_cells!(
-    ig,
-    rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
-  )
+ig = ising_graph(fi)
+
+println(ig)
+
+#update_cells!(
+#    ig,
+#    rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
+#  )
 
 
 D = Dict{Int, Int}()
@@ -96,12 +98,18 @@ end
 
 fg = factor_graph(
       ig,
-      D,
-      energy=energy,
       spectrum=brute_force,
+      cluster_assignment_rule=super_square_lattice((m, node_size[1], n, node_size[2], 8))
   )
 
-peps = PepsNetwork(m, n, fg, β, :NW)
+
+  control_params = Dict(
+       "bond_dim" => typemax(Int),
+       "var_tol" => 1E-12,
+       "sweeps" => 4.
+   )
+
+peps = PEPSNetwork(m, n, fg, β, :NW, control_params)
 
 n_sols = parse_args(s)["n_sols"]
 

@@ -1,6 +1,6 @@
 using LinearAlgebra
 using LightGraphs
-using MetaGraphs
+
 using NPZ
 
 using SpinGlassPEPS
@@ -10,7 +10,26 @@ using ArgParse
 using CSV
 using Test
 
-import SpinGlassPEPS: solve, M2graph
+import SpinGlassPEPS: solve
+
+
+function M2graph(M::Matrix{Float64}, sgn::Int = 1)
+    size(M,1) == size(M,2) || error("matrix not squared")
+    L = size(M,1)
+    #TODO we do not require symmetric, is it ok?
+
+    D = Dict{Tuple{Int64,Int64},Float64}()
+    for j ∈ 1:size(M, 1)
+        for i ∈ 1:j
+            if (i == j)
+                push!(D, (i,j) => M[j,i])
+            elseif M[j,i] != 0.
+                push!(D, (i,j) => M[i,j]+M[j,i])
+            end
+        end
+    end
+    ising_graph(D; sgn = sgn)
+end
 
 disable_logging(LogLevel(0))
 
@@ -68,14 +87,24 @@ for k in 1:examples
     si = Int(sqrt(size(Mat_of_interactions, 1)))
 
     ################ exact method ###################
+
+    println(g)
+    println(g)
     fg = factor_graph(
         g,
-        2,
-        energy=energy,
-        spectrum=brute_force,
+        spectrum=full_spectrum,
+        cluster_assignment_rule=super_square_lattice((si, si, 1))
     )
 
-    peps = PepsNetwork(si, si, fg, β, :NW)
+    println(typeof(fg))
+
+    control_params = Dict(
+       "bond_dim" => typemax(Int),
+       "var_tol" => 1E-12,
+       "sweeps" => 4.
+   )
+
+    peps = PEPSNetwork(si, si, fg, β, :NW, control_params)
     println("size of peps = ", peps.size)
     print("peps time  = ")
 

@@ -1,4 +1,5 @@
 using SpinGlassPEPS
+using SpinGlassNetworks
 using MetaGraphs
 using LightGraphs
 using Test
@@ -43,7 +44,7 @@ end
         t = 2
 
         L = m * n * t
-        g_ising = ising_graph(D, L)
+        g_ising = ising_graph(D)
 
         # brute force solution
         bf = brute_force(g_ising; num_states = 1)
@@ -52,14 +53,15 @@ end
         sol_A2 = states[[3]]
 
         #particular form of peps tensors
-        update_cells!(
-          g_ising,
-          rule = square_lattice((m, 1, n, 1, t)),
-        )
+        #update_cells!(
+         # g_ising,
+          #cluster_assignment_rule=super_square_lattice((m, n, t)),
+        #)
 
         fg = factor_graph(
             g_ising,
             Dict(1=>4, 2=>2),
+            cluster_assignment_rule=super_square_lattice((m, n, t)),
             energy=energy,
             spectrum = brute_force
         )
@@ -67,6 +69,7 @@ end
         fg1 = factor_graph(
             g_ising,
             1,
+            cluster_assignment_rule=super_square_lattice((m, n, t)),
             energy=energy,
             spectrum = brute_force
         )
