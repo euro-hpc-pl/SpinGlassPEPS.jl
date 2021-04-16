@@ -112,7 +112,7 @@ f(i) = (i == 0)  ? -1 : 1
 ground_spins = map(f, ground_ref)
 energy_ref = energy(ground_spins, ig)
 
-println("reference energy form data = ", energy_ref)
+println("reference energy form real ground state = ", energy_ref)
 println("reference energy form file = ", data[i][3])
 
 spins_mat = vecvec2matrix(sols.states)

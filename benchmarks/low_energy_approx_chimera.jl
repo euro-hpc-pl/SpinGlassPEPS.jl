@@ -33,7 +33,7 @@ s = ArgParseSettings("description")
     arg_type = Float64
     help = "beta value"
     "--chi", "-c"
-    default = 20
+    default = typemax(Int)
     arg_type = Int
     help = "cutoff size"
     "--n_sols", "-n"
@@ -86,12 +86,11 @@ data = split.(readlines(open(fil)))
 
 i = findall(x->x[1]==file, data)[1]
 ground_ref = [parse(Int, el) for el in data[i][4:end]]
-#TODO this may need to be corrected
+
 f(i) = (i == 0)  ? -1 : 1
 ground_spins = map(f, ground_ref)
-println(ground_spins)
 energy_ref = energy(ground_spins, ig)
-println(energy_ref)
+
 
 ses = spectrum_cutoff:-1:lower_cutoff
 step = 10
