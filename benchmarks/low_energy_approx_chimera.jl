@@ -87,9 +87,11 @@ data = split.(readlines(open(fil)))
 i = findall(x->x[1]==file, data)[1]
 ground_ref = [parse(Int, el) for el in data[i][4:end]]
 #TODO this may need to be corrected
-ground_spins = ground_ref
+f(i) = (i == 0)  ? -1 : 1
+ground_spins = map(f, ground_ref)
 println(ground_spins)
 energy_ref = energy(ground_spins, ig)
+println(energy_ref)
 
 ses = spectrum_cutoff:-1:lower_cutoff
 step = 10
@@ -97,7 +99,7 @@ n_s = n_sols:-step:1
 
 delta_e = ones(length(ses), length(n_s))
 cut = ones(Int, length(ses), length(n_s))
-rule = supersquare_lattice((m, node_size[1], n, node_size[2], 8))
+rule = super_square_lattice((m, node_size[1], n, node_size[2], 8))
 
 function proceed()
   j = 1

@@ -107,8 +107,9 @@ data = split.(readlines(open(fil)))
 
 i = findall(x->x[1]==file, data)[1]
 ground_ref = [parse(Int, el) for el in data[i][4:end]]
-# TODO they may need to be transformed
-ground_spins = ground_ref
+
+f(i) = (i == 0)  ? -1 : 1
+ground_spins = map(f, ground_ref)
 energy_ref = energy(ground_spins, ig)
 
 println("reference energy form data = ", energy_ref)
@@ -116,5 +117,5 @@ println("reference energy form file = ", data[i][3])
 
 spins_mat = vecvec2matrix(sols.states)
 
-d = Dict("spins" => spins_mat, "spins_ref" => ground_spins, "energies" => energies, "energy_ref" => energy_ref, "chi" => χ, "beta" => β)
+d = Dict("energies" => energies, "energy_ref" => energy_ref, "chi" => χ, "beta" => β)
 npzwrite(folder*file[1:3]*"output.npz", d)
