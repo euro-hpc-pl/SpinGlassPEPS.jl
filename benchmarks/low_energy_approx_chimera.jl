@@ -9,7 +9,6 @@ using ArgParse
 using CSV
 using Test
 
-import SpinGlassPEPS: _energy
 
 disable_logging(LogLevel(0))
 δH = 0.9
@@ -89,7 +88,8 @@ i = findall(x->x[1]==file, data)[1]
 ground_ref = [parse(Int, el) for el in data[i][4:end]]
 #TODO this may need to be corrected
 ground_spins = ground_ref
-energy_ref = _energy(ig, ground_spins)
+println(ground_spins)
+energy_ref = energy(ground_spins, ig)
 
 ses = spectrum_cutoff:-1:lower_cutoff
 step = 10

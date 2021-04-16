@@ -7,8 +7,6 @@ using ArgParse
 using CSV
 using Test
 
-import SpinGlassPEPS: _energy
-
 disable_logging(LogLevel(0))
 
 # this is axiliary function for npz write
@@ -111,7 +109,7 @@ i = findall(x->x[1]==file, data)[1]
 ground_ref = [parse(Int, el) for el in data[i][4:end]]
 # TODO they may need to be transformed
 ground_spins = ground_ref
-energy_ref = _energy(ig, ground_spins)
+energy_ref = energy(ground_spins, ig)
 
 println("reference energy form data = ", energy_ref)
 println("reference energy form file = ", data[i][3])
