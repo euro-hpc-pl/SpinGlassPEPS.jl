@@ -3,15 +3,13 @@ using LightGraphs
 using MetaGraphs
 using NPZ
 using Plots
-
 using SpinGlassPEPS
-
 using Logging
 using ArgParse
 using CSV
 using Test
 
-import SpinGlassPEPS: solve, M2graph, energy, binary2spins, ising_graph
+import SpinGlassPEPS: _energy
 
 disable_logging(LogLevel(0))
 δH = 0.9
@@ -31,10 +29,6 @@ s = ArgParseSettings("description")
     "--file", "-i"
     arg_type = String
     help = "the file name"
-    "--size", "-s"
-    default = 128
-    arg_type = Int
-    help = "problem size"
     "--beta", "-b"
     default = 2.
     arg_type = Float64
@@ -70,11 +64,11 @@ file = split(fi, "/")[end]
 folder = fi[1:end-length(file)]
 println(file)
 println(folder)
+ig = ising_graph(fi)
 
-problem_size = parse_args(s)["size"]
 β = parse_args(s)["beta"]
 χ = parse_args(s)["chi"]
-si = parse_args(s)["size"]
+
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
 lower_cutoff = parse_args(s)["lower_cutoff"]
 
@@ -83,16 +77,9 @@ node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
 println(node_size)
 
 
-s1 = isqrt(div(si, 8))
+s1 = isqrt(div( nv(ig), 8))
 n = div(s1, node_size[1])
 m = div(s1, node_size[2])
-
-ig = ising_graph(fi, si, 1)
-
-update_cells!(
-    ig,
-    rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
-  )
 
 
 fil = folder*"groundstates_otn2d.txt"
@@ -109,6 +96,7 @@ n_s = n_sols:-step:1
 
 delta_e = ones(length(ses), length(n_s))
 cut = ones(Int, length(ses), length(n_s))
+rule = supersquare_lattice((m, node_size[1], n, node_size[2], 8))
 
 function proceed()
   j = 1
@@ -123,7 +111,7 @@ function proceed()
       fg = factor_graph(
             ig,
             D,
-            energy=energy,
+            cluster_assignment_rule=rule,
             spectrum=brute_force,
         )
 

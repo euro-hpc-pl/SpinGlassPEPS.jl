@@ -15,7 +15,7 @@ CUDA = "2.3"
 Reexport = "1.0"
 Requires = "1.1"
 SpinGlassEngine = "0.1"
-SpinGlassNetworks = "0.1, 0.2"
+SpinGlassNetworks = "0.1"
 SpinGlassTensors = "0.1"
 julia = "1.5"
 
