@@ -87,8 +87,9 @@ data = split.(readlines(open(fil)))
 
 i = findall(x->x[1]==file, data)[1]
 ground_ref = [parse(Int, el) for el in data[i][4:end]]
-ground_spins = binary2spins(ground_ref)
-energy_ref = energy(ground_spins, ig)
+#TODO this may need to be corrected
+ground_spins = ground_ref
+energy_ref = _energy(ig, ground_spins)
 
 ses = spectrum_cutoff:-1:lower_cutoff
 step = 10
@@ -121,13 +122,18 @@ function proceed()
       end
       println("..............")
 
-      peps = PepsNetwork(m, n, fg, β, :NW)
+      control_params = Dict(
+           "bond_dim" => χ,
+           "var_tol" => 1E-12,
+           "sweeps" => 4.
+       )
 
-      @time sols = solve(peps, n_sol; β=β, χ = χ, threshold = 1e-8, δH=δH)
+      peps = PEPSNetwork(m, n, fg, β, :NW, control_params)
 
-      spins = return_solution(ig, fg, sols)
+      @time sols = low_energy_spectrum(peps, n_sol)
 
-      en = minimum([energy(s, ig) for s in spins])
+
+      en = minimum(sold.energies)
 
       cut[i,j] = sc
       delta_e[i,j] = (en-energy_ref)/abs(energy_ref)

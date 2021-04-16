@@ -37,20 +37,12 @@ file = parse_args(s)["file"]
 println(file)
 
 data = npzread(file)
-number_of_all_states = length(data["energies"][1,:])
+number_of_states = minimum([length(data["energies"][1,:]), 150])
 examples = length(data["energies"][:,1])
 println("examples = ", examples)
 
 
 β = 3.
-
-println(number_of_all_states)
-number_of_states = 10
-if number_of_all_states > 150
-    number_of_states = 150
-end
-
-
 
 for k in 1:examples
 
