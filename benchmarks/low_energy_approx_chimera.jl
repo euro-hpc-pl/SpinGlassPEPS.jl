@@ -147,7 +147,7 @@ function proceed()
     j = j+1
   end
 
-  d = Dict("percentage_delta_e" => delta_e, "spectrum_size" => cut, "chi" => χ, "beta" => β, "chimera_size" => si, "no_solutions" => n_s)
+  d = Dict("percentage_delta_e" => delta_e, "spectrum_size" => cut, "chi" => χ, "beta" => β, "chimera_size" => nv(ig), "no_solutions" => n_s)
   npzwrite(folder*"low_energy_sols/"*file[1:3]*"approx$(si).npz", d)
 
   p = plot(cut[:,1], delta_e[:,1], title = "low spectr. approx., beta = $β, chi = $χ, chimera_s. = $(si)", label = "n_sols = $(n_s[1])", lw = 1.5, left_margin = 10Plots.mm, bottom_margin = 10Plots.mm)
