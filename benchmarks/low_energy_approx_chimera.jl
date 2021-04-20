@@ -134,7 +134,7 @@ function proceed()
       @time sols = low_energy_spectrum(peps, n_sol)
 
 
-      en = minimum(sold.energies)
+      en = minimum(sols.energies)
 
       cut[i,j] = sc
       delta_e[i,j] = (en-energy_ref)/abs(energy_ref)
