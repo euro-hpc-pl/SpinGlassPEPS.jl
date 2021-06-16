@@ -3,6 +3,9 @@ Author = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawe
 ```
 
 # Welcome to SpinGlassPEPS documentation!
+![CI](https://github.com/iitis/SpinGlassPEPS.jl/workflows/CI/badge.svg?branch=master)
+[![version](https://juliahub.com/docs/SpinGlassPEPS/version.svg)](https://juliahub.com/ui/Packages/SpinGlassPEPS/bUwXr)
+
 ## Home
 `SpinGlassPEPS` is an open-source Julia package for numerical computation in quantum information theory. 
 
@@ -26,6 +29,70 @@ The package `SpinGlassPEPS` includes:
 
 ## Quick example
 Let us consider optimization problem defined on a pathological instance defined as follows.
+
+![summary_time](../assets/images/pathological.png)
+
+```@raw html
+<img src="../assets/images/pathological.png" width="25%"/>
+``` 
+
+```{execute="false"}
+Pkg.add("GraphPlot")
+```
+
+```julia
+using GraphPlot
+```
+
+```julia
+using LightGraphs 
+using PlotRecipes
+using Colors
+
+
+# construct a simple undirected graph
+g = SimpleGraph(36)
+add_edge!(g, 1, 4)
+add_edge!(g, 1, 5)
+add_edge!(g, 1, 6)
+add_edge!(g, 4, 7)
+add_edge!(g, 4, 6)
+add_edge!(g, 5, 16)
+add_edge!(g, 6, 16)
+add_edge!(g, 5, 7)
+add_edge!(g, 6, 8)
+add_edge!(g, 6, 9)
+add_edge!(g, 6, 18)
+add_edge!(g, 16, 18)
+add_edge!(g, 1, 13)
+add_edge!(g, 13, 16)
+add_edge!(g, 13, 18)
+add_edge!(g, 18, 28)
+add_edge!(g, 28, 29)
+add_edge!(g, 29, 30)
+add_edge!(g, 28, 30)
+add_edge!(g, 28, 31)
+add_edge!(g, 28, 32)
+add_edge!(g, 28, 33)
+add_edge!(g, 29, 31)
+add_edge!(g, 29, 32)
+add_edge!(g, 29, 33)
+add_edge!(g, 30, 31)
+add_edge!(g, 30, 32)
+add_edge!(g, 30, 33)
+
+nodelabel = collect(1:36)
+#num_vertices(g)
+membership = [1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,7,7,8,8,8,9,9,9,10, 10, 10, 11, 11,11,12,12,12]
+#nodecolor = [colorant"lightseagreen", colorant"orange"]
+nodecolor = [RGBA(0.0,0.8,0.8,i) for i in 1:12]
+# membership color
+nodefillc = nodecolor[membership]
+gplot(g, nodefillc=nodefillc, nodelabel=nodelabel)
+# just plot it
+#gplot(g)
+
+```
 
 We can find a ground state of this instance using SpinGlassPEPS interface via the procedure below.
 
@@ -79,3 +146,13 @@ We aim to provide fast, reliable and easy to use emulator of D-Wave ``2000``Q qu
 If you use `SpinGlassPEPS` for academic research and wish to cite it, please use the following paper:
 
 K. Jałowiecki, K. Domino, A. M. Dziubyna, M. M. Rams, B. Gardas and Ł. Pawela, *“SpinGlassPEPS.jl: software to emulate quantum annealing processors”*
+
+## Contributing
+Contributions are always welcome:
+* Please report any issues and bugs that you encounter in Issues
+* Questions about `SpinGlassPEPS.jl` can be asked by directly opening up an Issue on its GitHub page
+* If you plan to contribute new features, extensions, bug fixes, etc, please first open an issue and discuss the feature with us.
+
+!!! info "Report the bug" 
+    Filling an issue to report a bug, counterintuitive behavior, or even to request a feature is extremely valuable in helping us prioritize what to work on, so don't hestitate.
+

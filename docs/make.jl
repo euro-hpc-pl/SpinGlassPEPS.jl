@@ -57,10 +57,11 @@ makedocs(
         "Home" => "index.md",
         "Contents" => "contents.md",
         "Examples" => "examples.md",
-        "Library" => ["Index" => "lib/SpinGlassPEPS.md",
-                       "SpinGlassEngine" => "lib/SpinGlassEngine.md",
-                       "SpinGlassTensors" => "lib/SpinGlassTensors.md",
-                       "SpinGlassNetwork" => "lib/SpinGlassNetwork.md"]
+        "Index" => "lib/SpinGlassPEPS.md"
+        #"Library" => ["Index" => "lib/SpinGlassPEPS.md"],
+                      # "SpinGlassEngine" => "lib/SpinGlassEngine.md",
+                      # "SpinGlassTensors" => "lib/SpinGlassTensors.md",
+                      # "SpinGlassNetwork" => "lib/SpinGlassNetwork.md"]
     ]
 )
 

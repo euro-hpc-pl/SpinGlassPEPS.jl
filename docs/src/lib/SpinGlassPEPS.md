@@ -1,6 +1,5 @@
 # Documentation
 
-
 ## Index
 
 A list of all documentation sorted by module.
@@ -10,5 +9,5 @@ A list of all documentation sorted by module.
 
 
 ```@autodocs
-Modules = [SpinGlassPEPS, SpinGlassTensors, SpinGlassNetwork, SpinGlassEngine]
+Modules = [SpinGlassPEPS, SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine]
 ```

@@ -25,6 +25,9 @@ SpinGlassNetworks.ising_graph
 SpinGlassNetworks.gibbs_tensor
 ```
 ```@docs
+SpinGlassTensors.left_env
+```
+```@docs
 SpinGlassNetworks.energy
 ```
 ```@docs
