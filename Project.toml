@@ -1,6 +1,6 @@
 name = "SpinGlassPEPS"
 uuid = "2c514f87-1261-494e-8566-326879aaf4fe"
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -17,7 +17,7 @@ Requires = "1.1"
 SpinGlassEngine = "0.1"
 SpinGlassNetworks = "0.2"
 SpinGlassTensors = "0.1"
-julia = "1.5"
+julia = "1.5, 1.6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
