@@ -1,16 +1,28 @@
 using LinearAlgebra
 using LightGraphs
-using MetaGraphs
 using NPZ
-
 using SpinGlassPEPS
-
 using Logging
 using ArgParse
 using CSV
 using Test
 
-import SpinGlassPEPS: solve, M2graph
+function M2graph(M::Matrix{Float64}, sgn::Int = 1)
+    size(M,1) == size(M,2) || error("matrix not squared")
+    L = size(M,1)
+
+    D = Dict{Tuple{Int64,Int64},Float64}()
+    for j ∈ 1:size(M, 1)
+        for i ∈ 1:j
+            if (i == j)
+                push!(D, (i,j) => M[j,i])
+            elseif M[j,i] != 0.
+                push!(D, (i,j) => M[i,j]+M[j,i])
+            end
+        end
+    end
+    ising_graph(D, sgn)
+end
 
 disable_logging(LogLevel(0))
 
@@ -25,27 +37,12 @@ file = parse_args(s)["file"]
 println(file)
 
 data = npzread(file)
-number_of_all_states = length(data["energies"][1,:])
+number_of_states = minimum([length(data["energies"][1,:]), 150])
 examples = length(data["energies"][:,1])
 println("examples = ", examples)
 
 
 β = 3.
-δH = 0.
-
-number_of_states = 10
-
-more_states_for_peps = 2
-more_states_for_mps = 10
-
-if number_of_all_states > 150
-    number_of_states = 150
-    more_states_for_mps = 20
-end
-
-
-# the type of data can be changed if someone wishes
-T = Float64
 
 for k in 1:examples
 
@@ -65,107 +62,98 @@ for k in 1:examples
     energies_given = data["energies"][k,:,:]
 
     g = M2graph(Mat_of_interactions, -1)
-    si = Int(sqrt(size(Mat_of_interactions, 1)))
+    grid_size = isqrt(size(Mat_of_interactions, 1))
 
     ################ exact method ###################
+
+
     fg = factor_graph(
         g,
-        2,
-        energy=energy,
         spectrum=brute_force,
+        cluster_assignment_rule=super_square_lattice((grid_size, grid_size, 1))
     )
 
-    peps = PepsNetwork(si, si, fg, β, :NW)
+
+    control_params = Dict(
+       "bond_dim" => typemax(Int),
+       "var_tol" => 1E-12,
+       "sweeps" => 4.
+   )
+
+    peps = PEPSNetwork(grid_size, grid_size, fg, β, :NW, control_params)
     println("size of peps = ", peps.size)
     print("peps time  = ")
 
-
-    number = number_of_states + more_states_for_peps
-    @time sols = solve(peps, number ; β = T(β), threshold = 0., δH = δH)
-    objective = [e.objective for e in sols]
-    spins = return_solution(g, fg, sols)
+    @time sols = low_energy_spectrum(peps, number_of_states + 2)
 
     for i in 1:number_of_states
 
-        @test energy(spins[i], g) ≈ energies_given[i]
-
+        @test sols.energies[i] ≈ energies_given[i]
         if states_given != 0
-            @test states_given[i,:] == spins[i]
+            f(i) = (i == 2) ? -1 : 1
+            @test map(f, sols.states[i]) == states_given[i,:]
         end
     end
 
     ############### approximated methods  ################
     χ = 2
+    χ = typemax(Int)
+
+    control_params = Dict(
+       "bond_dim" => χ,
+       "var_tol" => 1E-7,
+       "sweeps" => 4.
+   )
+
     print("approx peps  ")
 
-    number = number_of_states + more_states_for_peps
-    @time sols = solve(peps, number; β = T(β), χ = χ, threshold = 1e-12, δH = δH)
+    peps = PEPSNetwork(grid_size, grid_size, fg, β, :NW, control_params)
 
-    objective_approx = [e.objective for e in sols]
-    spins_approx = return_solution(g, fg, sols)
+    @time sols_approx = low_energy_spectrum(peps, number_of_states + 2)
+
 
     for i in 1:number_of_states
 
-        @test energy(spins_approx[i], g) ≈ energies_given[i]
-
+        @test sols_approx.energies[i] ≈ energies_given[i]
         if states_given != 0
-            @test states_given[i,:] == spins_approx[i]
+            f(i) = (i == 2) ? -1 : 1
+            @test map(f, sols_approx.states[i]) == states_given[i,:]
         end
     end
 
-    @test objective ≈ objective_approx atol = 1.e-7
-
     print("peps larger T")
-    s1 = ceil(Int, si/2)
-    s2 = floor(Int, si/2)
-    println(s1)
+    s1 = ceil(Int, grid_size/2)
 
-    if s1 == s2
-        rule = square_lattice((s1, 2, s1, 2, 1))
+    if grid_size % 2 == 0
+        rule = super_square_lattice((s1, 2, s1, 2, 1))
     else
-        D1 = Dict{Any,Any}(1 => 1, 2 => 1, 6 => 1, 7 => 1)
-        D2 = Dict{Any,Any}(3 => 2, 4 => 2, 8 => 2, 9 => 2)
-        D3 = Dict{Any,Any}(5 => 3, 10 => 3)
-        D4 = Dict{Any,Any}(11 => 4, 12 => 4, 16 => 4, 17 => 4)
-        D5 = Dict{Any,Any}(13 => 5, 14 => 5, 18 => 5, 19 => 5)
-        D6 = Dict{Any,Any}(15 => 6, 20 => 6)
-        D7 = Dict{Any,Any}(21 => 7, 22 => 7)
-        D8 = Dict{Any,Any}(23 => 8, 24 => 8)
-        D9 = Dict{Any,Any}(25 => 9)
-
-        rule = merge(D1, D2, D3, D4, D5, D6, D7, D8, D9)
+        rule = Dict{Int, Int}(1 => 1, 2 => 1, 6 => 1, 7 => 1)
+        push!(rule, (3 => 2), (4 => 2), (8 => 2), (9 => 2), (5 => 3), (10 => 3))
+        push!(rule, (11 => 4), (12 => 4), (16 => 4), (17 => 4), (13 => 5), (14 => 5))
+        push!(rule, (18 => 5), (19 => 5), (15 => 6), (20 => 6), (21 => 7), (22 => 7))
+        push!(rule, (23 => 8), (24 => 8), (25 => 9))
     end
 
-    update_cells!(
-      g,
-      rule = rule,
-    )
 
     fg = factor_graph(
         g,
-        16,
-        energy=energy,
+        cluster_assignment_rule=rule,
         spectrum=brute_force,
     )
+    peps = PEPSNetwork(s1, s1, fg, β, :NW, control_params)
 
-    peps = PepsNetwork(s1, s1, fg, β, :NW)
     println("size of peps = ", peps.size)
 
-    number = number_of_states + more_states_for_peps
-    @time sols = solve(peps, number; β = T(β), χ = χ, threshold = 1e-12, δH = δH)
-    objective_larger_nodes = [e.objective for e in sols]
-    spins_larger_nodes = return_solution(g, fg, sols)
+    @time sols_large = low_energy_spectrum(peps, number_of_states + 2)
 
     for i in 1:number_of_states
 
-        @test energy(spins_larger_nodes[i], g) ≈ energies_given[i]
-
-        if states_given != 0
-            @test states_given[i,:] == spins_larger_nodes[i]
-        end
+        @test sols_large.energies[i] ≈ energies_given[i]
+        #TODO we need to know how to read states from clusters
+        #if states_given != 0
+        #    @test sols_large.states[i] == states_given[i,:]
+        #end
     end
-
-    @test objective ≈ objective_larger_nodes atol = 1.e-7
 
     print("peps larger T, limited spectrum")
     D = Dict{Int, Int}()
@@ -175,50 +163,19 @@ for k in 1:examples
     fg = factor_graph(
         g,
         D,
-        energy=energy,
+        cluster_assignment_rule=rule,
         spectrum=brute_force,
     )
 
-    peps = PepsNetwork(s1, s1, fg, β, :NW)
-    number = number_of_states + more_states_for_peps
-    @time sols = solve(peps, number; β = T(β), χ = χ, threshold = 1e-12, δH = δH)
+    peps = PEPSNetwork(s1, s1, fg, β, :NW, control_params)
 
-    objective_spec = [e.objective for e in sols]
-    spins_spec = return_solution(g, fg, sols)
+    @time sols_spec = low_energy_spectrum(peps, number_of_states+2)
 
-    for i in 1:minimum([number_of_states, 60])
-        @test energy(spins_spec[i], g) ≈ energies_given[i]
-
-        if states_given != 0
-            @test states_given[i,:] == spins_spec[i]
-        end
+    for i in 1:minimum([number_of_states, 65])
+        @test sols_spec.energies[i] ≈ energies_given[i]
+        #TODO we need to know how to read states from clusters
+        #if states_given != 0
+        #    @test sols_spec.states[i] == states_given[i,:]
+        #end
     end
-    #=
-    ############ MPO - MPS #########
-    χ = 15
-
-    β_step = 4
-
-    print("mps time  =  ")
-
-    number = number_of_states + more_states_for_mps
-
-    @time spins_mps, objective_mps = solve_mps(g, number ; β=β, β_step=β_step, χ=χ, threshold = 1.e-14)
-
-    # sorting improves the oputput
-    energies_mps = [energy(spins, g) for spins in spins_mps]
-    p = sortperm(energies_mps)
-
-    spins_mps = spins_mps[p]
-    energies_mps = energies_mps[p]
-
-    for i in 1:number_of_states
-
-        @test energy(spins_mps[i], g) ≈ energies_given[i]
-
-        if states_given != 0
-            @test states_given[i,:] == spins_mps[i]
-        end
-    end
-    =#
 end

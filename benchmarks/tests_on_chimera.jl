@@ -1,16 +1,11 @@
 using LinearAlgebra
 using LightGraphs
-using MetaGraphs
 using NPZ
-
 using SpinGlassPEPS
-
 using Logging
 using ArgParse
 using CSV
 using Test
-
-import SpinGlassPEPS: solve, M2graph, energy, binary2spins, ising_graph
 
 disable_logging(LogLevel(0))
 
@@ -29,16 +24,12 @@ s = ArgParseSettings("description")
     "--file", "-i"
     arg_type = String
     help = "the file name"
-    "--size", "-s"
-    default = 128
-    arg_type = Int
-    help = "problem size"
     "--beta", "-b"
     default = 2.
     arg_type = Float64
     help = "beta value"
     "--chi", "-c"
-    default = 20
+    default = typemax(Int)
     arg_type = Int
     help = "cutoff size"
     "--n_sols", "-n"
@@ -57,11 +48,7 @@ s = ArgParseSettings("description")
     default = 256
     arg_type = Int
     help = "size of the lower spectrum"
-    "--deltaH", "-d"
-    default = 0.1
-    arg_type = Float64
-    help = "merge parameter on merging dX, the threshold on ratios of objectives"
-  end
+end
 
 fi = parse_args(s)["file"]
 file = split(fi, "/")[end]
@@ -69,24 +56,16 @@ folder = fi[1:end-length(file)]
 println(file)
 println(folder)
 
-problem_size = parse_args(s)["size"]
+ig = ising_graph(fi)
+
 β = parse_args(s)["beta"]
 χ = parse_args(s)["chi"]
-si = parse_args(s)["size"]
-δH = parse_args(s)["deltaH"]
 spectrum_cutoff = parse_args(s)["spectrum_cutoff"]
-
 node_size = (parse_args(s)["node_size1"], parse_args(s)["node_size2"])
-s1 = isqrt(div(si,8))
+s1 = isqrt(div( nv(ig) ,8))
 
 n = div(s1, node_size[1])
 m = div(s1, node_size[2])
-
-ig = ising_graph(fi, si, 1)
-update_cells!(
-    ig,
-    rule = square_lattice((m, node_size[1], n, node_size[2], 8)),
-  )
 
 
 D = Dict{Int, Int}()
@@ -97,21 +76,27 @@ end
 fg = factor_graph(
       ig,
       D,
-      energy=energy,
       spectrum=brute_force,
+      cluster_assignment_rule=super_square_lattice((m, node_size[1], n, node_size[2], 8))
   )
 
-peps = PepsNetwork(m, n, fg, β, :NW)
+
+  control_params = Dict(
+       "bond_dim" => χ,
+       "var_tol" => 1E-12,
+       "sweeps" => 4.
+   )
+
+peps = PEPSNetwork(m, n, fg, β, :NW, control_params)
 
 n_sols = parse_args(s)["n_sols"]
 
 println(node_size)
 
-@time sols = solve(peps, n_sols; β=β, χ = χ, threshold = 1e-8, δH=δH)
-objective = [e.objective for e in sols]
-spins = return_solution(ig, fg, sols)
+@time sols = low_energy_spectrum(peps, n_sols)
 
-energies = [energy(s, ig) for s in spins]
+
+energies = sols.energies
 println("energies from peps")
 for energy in energies
     println(energy)
@@ -122,13 +107,15 @@ data = split.(readlines(open(fil)))
 
 i = findall(x->x[1]==file, data)[1]
 ground_ref = [parse(Int, el) for el in data[i][4:end]]
-ground_spins = binary2spins(ground_ref)
+
+f(i) = (i == 0)  ? -1 : 1
+ground_spins = map(f, ground_ref)
 energy_ref = energy(ground_spins, ig)
 
-println("reference energy form data = ", energy_ref)
+println("reference energy form real ground state = ", energy_ref)
 println("reference energy form file = ", data[i][3])
 
-spins_mat = vecvec2matrix(spins)
+spins_mat = vecvec2matrix(sols.states)
 
-d = Dict("spins" => spins_mat, "spins_ref" => ground_spins, "energies" => energies, "energy_ref" => energy_ref, "chi" => χ, "beta" => β)
+d = Dict("energies" => energies, "energy_ref" => energy_ref, "chi" => χ, "beta" => β)
 npzwrite(folder*file[1:3]*"output.npz", d)
