@@ -59,6 +59,32 @@ The module `SpinGlassPEPS.jl` re-exports all following functionality.
     (LE::S, B::S, C::S, M::T, N::T, RE::S, ::Val{:c}) where {T <: AbstractArray{Float64, 4}, S <: AbstractArray{Float64, 3}}
 ![](assets/images/compressions/project_ket_on_bra_2c.png)
 
+### Contractions
+
+#### contract left
+    (A::AbstractArray{T, 3}, B::AbstractMatrix{T}) where T
+![](assets/images/contractions/contract_left.png)
+
+#### contract up
+    (A::AbstractArray{T, 3}, B::AbstractArray{T, 2}) where T
+![](assets/images/contractions/contract_up.png)
+
+#### contract down
+    (A::AbstractArray{T, 2}, B::AbstractArray{T, 3}) where T
+![](assets/images/contractions/contract_down.png)
+
+#### contract up
+    (A::AbstractArray{T, 3}, B::AbstractArray{T, 4}) where T
+![](assets/images/contractions/contract_up_2.png)
+
+#### contract down
+    (A::AbstractArray{T, 4}, B::AbstractArray{T, 3}) where T
+![](assets/images/contractions/contract_down_2.png)
+
+#### overlap density matrix
+![](assets/images/contractions/overlap_density_matrix.png)
+
+
 ## SpinGlassNetworks
 * `factor.jl` - introduces factor graph
 * `ising.jl` - creates the Ising spin glass model
