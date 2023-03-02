@@ -1,4 +1,4 @@
-# Contents
+<!-- # Contents
 
 The module `SpinGlassPEPS.jl` re-exports all following functionality.
 
@@ -39,4 +39,4 @@ SpinGlassNetworks.brute_force
 `SpinGlassEngine` is a main module of the package `SpinGlassPEPS` which allows for searching for the low energy spectrum using branch and bound algorithm.
 * `MPS_search.jl` - searching for the low energy spectrum on quasi-1d graph
 * `PEPS.jl` - introduces PEPS tensor network and contracts it using boundary matrix prduct state approach
-* `search.jl` - searching for the low-energy spectrum on a quasi-2d graph
+* `search.jl` - searching for the low-energy spectrum on a quasi-2d graph -->

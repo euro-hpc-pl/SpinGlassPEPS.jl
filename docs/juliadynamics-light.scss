@@ -8,8 +8,8 @@
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 // Thse define the JuliaDynamics template:
-$maincolor: hsl(257,32%,45%);   // main color of the org theme
-$secondcolor: hsl(182,72%,32%); // secondary color that serves as accents
+$maincolor: #654ca3;   // main color of the org theme
+$secondcolor: #149eaa; // secondary color that serves as accents
                        // it is used as-is for links in light theme
 $mainwhite: #fff;      // color representing white
 $mainblack: #202020;   // color representing black
@@ -78,7 +78,7 @@ $text-strong: $boldcolor;
 // Code text color:
 $code: #000000;
 //$code-background: rgba(0.5,0,0, 0.05);
-$codebg: lighten-color($maincolor, 6.2);
+$codebg: lighten-color($maincolor, 5.8);
 // $codebg: lighten-color($secondcolor, 8);
 $code-background: $codebg; // for inline code
 $pre-background: $codebg;  // for code blocks

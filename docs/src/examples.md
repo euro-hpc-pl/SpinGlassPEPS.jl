@@ -4,11 +4,11 @@ Before providing the documentation of the offered functionality, it is good to d
 ## Introduction
 We consider a classical Ising Hamiltonian
 ```math
-E = -\sum_{<i,j> \in \mathcal{E}} J_{ij} s_i s_j - \sum_j h_i s_j.
+E = \sum_{<i,j> \in \mathcal{E}} J_{ij} s_i s_j + \sum_j h_i s_j.
 ```
 where ``s`` is a configuration of ``N`` classical spins taking values ``s_i = \pm 1``
 and ``J_{ij}, h_i \in \mathbb{R}`` are input parameters of a given problem instance. 
-Nonzero couplings ``J_{ij}`` form a graph ``\mathcal{E}``. Edges of ``\mathcal{E}`` form a quasi-two-dimensional structure, where we focus in particular on the chimera graph with up to 2048 spins. 
+Nonzero couplings ``J_{ij}`` form a graph ``\mathcal{E}``. Edges of ``\mathcal{E}`` form a quasi-two-dimensional structure. In this package we focus in particular on the chimera graph with up to 2048 spins. 
 
 
 ## Finding structure of low energy states
