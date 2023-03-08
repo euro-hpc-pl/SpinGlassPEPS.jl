@@ -77,7 +77,24 @@ function add_sgn_pages()
 end
 
 function add_sgt_pages()
-
+    sgt_dir = joinpath(@__DIR__, "src", "sgt")
+    try
+        rm(sgt_dir; recursive = true)
+    catch
+    end
+    sgt_docs = joinpath(dirname(dirname(pathof(SpinGlassTensors))), "docs")
+    cp(joinpath(sgt_docs, "src"), sgt_dir; force = true)
+    # Files in `sgn_docs` are probably in read-only mode (`0o444`). Let's give
+    # ourselves write permission.
+    chmod(sgt_dir, 0o777; recursive = true)
+    make = read(joinpath(sgt_docs, "make.jl"), String)
+     # Match from `_PAGES = [` until the start of in `# =====`
+     s = strip(match(r"_pages = (\[.+?)\#"s, make)[1])
+     # Rename every file to the `sgn/` directory.
+     for m in eachmatch(r"\"([a-zA-Z\_\/]+?\.md)\"", s)
+         s = replace(s, m[1] => "sgt/" * m[1])
+     end
+     push!(_pages, "SpinGlassTensors" => eval(Meta.parse(s)))
 end
 
 function add_sge_pages()
@@ -85,6 +102,7 @@ function add_sge_pages()
 end
 
 add_sgn_pages()
+#add_sgt_pages()
 # =================================
 makedocs(
     clean = true,
@@ -92,8 +110,7 @@ makedocs(
     modules=[SpinGlassPEPS, SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine],
     sitename = "SpinGlassPEPS.jl",
     authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna",
-    pages = _pages,
-    sidebar_sitename = false
+    pages = _pages
 )
 
 # if "deploy" in ARGS

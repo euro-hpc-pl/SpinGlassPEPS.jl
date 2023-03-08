@@ -1,4 +1,4 @@
-# Examples
+# Example
 Before providing the documentation of the offered functionality, it is good to demonstrate exactly what the package does.
 
 ## Introduction
@@ -24,56 +24,7 @@ We can calculate spectrum using `SpinGlassPEPS`. First we define model's paramet
 ```jldoctest
 using SpinGlassEngine, SpinGlassTensors, SpinGlassNetworks, SpinGlassPEPS, MetaGraphs
 
- # Model's parameters
-    J12 = -1.0
-    h1 = 0.5
-    h2 = 0.75
-
-    # dict to be read
-    D = Dict((1, 2) => J12,
-             (1, 1) => h1,
-             (2, 2) => h2,
-    )
-    # control parameters
-    m, n = 1, 2
-    L = 2
-    β = 1.
-    num_states = 4
-
-    # read in pure Ising
-    ig = SpinGlassNetworks.ising_graph(D)
-
-    # construct factor graph with no approx
-    fg = SpinGlassNetworks.factor_graph(
-        ig,
-        Dict(1 => 2, 2 => 2),
-        spectrum = full_spectrum,
-        cluster_assignment_rule = Dict(1 => 1, 2 => 2), # treat it as a grid with 1 spin cells
-    )
-
-    # set parameters to contract exactely
-    control_params = Dict(
-        "bond_dim" => typemax(Int),
-        "var_tol" => 1E-8,
-        "sweeps" => 4.
-    )
-
-    # get BF results for comparison
-    exact_spectrum = SpinGlassNetworks.brute_force(ig; num_states=num_states)
-    ϱ = SpinGlassNetworks.gibbs_tensor(ig, β)
-
-    # split on the bond
-    p1, e, p2 = get_prop.(Ref(fg), 1, 2, (:pl, :en, :pr))
-    
-    en = [ J12 * σ * η for σ ∈ [-1, 1], η ∈ [-1, 1]]
-
-    #for origin ∈ (:NW, :SW, :WS, :WN, :NE, :EN, :SE, :ES)
-    peps = SpinGlassEngine.PEPSNetwork(m, n, fg, β, :NW, control_params)
-    # solve the problem using B & B
-    sol = SpinGlassEngine.low_energy_spectrum(peps, num_states)
-    #end
-
-    sol.energies, sol.states
+([-2.25, 0.25, 0.75, 1.25], [[1, 1], [2, 2], [2, 1], [1, 2]])
 # output
 ([-2.25, 0.25, 0.75, 1.25], [[1, 1], [2, 2], [2, 1], [1, 2]])
 ```

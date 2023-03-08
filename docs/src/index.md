@@ -1,30 +1,30 @@
 ```@meta
-Author = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna"
+Author = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna, Tomasz Śmierzchalski"
 ```
 
 # Welcome to SpinGlassPEPS documentation!
 ![CI](https://github.com/iitis/SpinGlassPEPS.jl/workflows/CI/badge.svg?branch=master)
 [![version](https://juliahub.com/docs/SpinGlassPEPS/version.svg)](https://juliahub.com/ui/Packages/SpinGlassPEPS/bUwXr)
 
-## Home
+
 `SpinGlassPEPS` is an open-source Julia package for numerical computation in quantum information theory. 
 
 !!! info "Star us on GitHub!" 
     If you have found this library useful, please consider starring the GitHub repository. This gives us an accurate lower bound of the satisfied users.
 
 
-## Getting started
+## Overview
 In this section we will provide a condensed overview of the package.
 
-`SpinGlassPEPS.jl` is a collection of Julia packages bundled together under a single package `SpinGlassPEPS`. It can be installed using the Julia package manager for Julia v1.5 and higher. Inside the Julia REPL, type ] to enter the Pkg REPL mode and then run
+`SpinGlassPEPS.jl` is a collection of Julia packages bundled together under a single package `SpinGlassPEPS`. It can be installed using the Julia package manager for Julia v1.6 and higher. Inside the Julia REPL, type ] to enter the Pkg REPL mode and then run
 ```julia
 using Pkg; 
 Pkg.add("SpinGlassPEPS")
 ```
 The package `SpinGlassPEPS` includes:
-* `SpinGlassTensors.jl` - contains auxiliary functions used in `SpinGlassPEPS`
+* `SpinGlassTensors.jl` - contains functions used in tensor network contractions
 * `SpinGlassNetworks.jl` - creates factor graph and Ising spin-glass model
-* `SpinGlassEngine.jl` - search for low energy spectrum using PEPS and MPS
+* `SpinGlassEngine.jl` - search for low energy spectrum using PEPS tensor network
 
 
 
