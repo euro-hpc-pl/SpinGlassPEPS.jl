@@ -98,11 +98,29 @@ function add_sgt_pages()
 end
 
 function add_sge_pages()
-
+    sge_dir = joinpath(@__DIR__, "src", "sge")
+    try
+        rm(sge_dir; recursive = true)
+    catch
+    end
+    sge_docs = joinpath(dirname(dirname(pathof(SpinGlassTensors))), "docs")
+    cp(joinpath(sge_docs, "src"), sge_dir; force = true)
+    # Files in `sgn_docs` are probably in read-only mode (`0o444`). Let's give
+    # ourselves write permission.
+    chmod(sge_dir, 0o777; recursive = true)
+    make = read(joinpath(sge_docs, "make.jl"), String)
+     # Match from `_PAGES = [` until the start of in `# =====`
+     s = strip(match(r"_pages = (\[.+?)\#"s, make)[1])
+     # Rename every file to the `sgn/` directory.
+     for m in eachmatch(r"\"([a-zA-Z\_\/]+?\.md)\"", s)
+         s = replace(s, m[1] => "sge/" * m[1])
+     end
+     push!(_pages, "SpinGlassEngine" => eval(Meta.parse(s)))
 end
 
+add_sgt_pages()
 add_sgn_pages()
-#add_sgt_pages()
+add_sge_pages()
 # =================================
 makedocs(
     clean = true,
