@@ -21,3 +21,9 @@ prune
 ```@docs
 factor_graph
 ```
+
+## Auxiliary Functions
+
+```@docs
+super_square_lattice
+```
