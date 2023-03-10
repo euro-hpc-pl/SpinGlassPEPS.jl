@@ -2,6 +2,7 @@ using Documenter, SpinGlassPEPS
 using DocumenterTools: Themes
 using SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine
 using MetaGraphs
+using LinearAlgebra
 
 cd(@__DIR__)
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
