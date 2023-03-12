@@ -50,6 +50,8 @@ format = Documenter.HTML(
     ))
 )
 
+# format = Documenter.LaTeX(platform="none")
+
 const Page = Union{Pair{String, String}, Pair{String, Vector{Pair{String, String}}}}
 
 _pages::Vector{Page} = [
@@ -130,10 +132,8 @@ makedocs(
     format = format,
     modules=[SpinGlassPEPS, SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine],
     sitename = "SpinGlassPEPS.jl",
-    authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna, Tomasz Śmierzchalski",
     pages = _pages
 )
-
 # if "deploy" in ARGS
 #     include("../../faketravis.jl")
 # end

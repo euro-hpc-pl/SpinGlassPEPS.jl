@@ -3,9 +3,6 @@ Author = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawe
 ```
 
 # Welcome to SpinGlassPEPS documentation!
-![CI](https://github.com/iitis/SpinGlassPEPS.jl/workflows/CI/badge.svg?branch=master)
-[![version](https://juliahub.com/docs/SpinGlassPEPS/version.svg)](https://juliahub.com/ui/Packages/SpinGlassPEPS/bUwXr)
-
 
 `SpinGlassPEPS` is an open-source Julia package for numerical computation in quantum information theory. 
 
