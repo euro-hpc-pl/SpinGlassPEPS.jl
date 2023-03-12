@@ -1,13 +1,12 @@
 # Library
 
 ---
-```@meta
-CurrentModule = SpinGlassEngine
-```
 
-## Basic 
+## Core 
 
-```@autodocs
-Modules = [SpinGlassEngine]
-Pages = ["search.jl"]
+```@docs
+Solution
+Solution()
+low_energy_spectrum
+PEPSNetwork
 ```

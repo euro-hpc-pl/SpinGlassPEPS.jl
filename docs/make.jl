@@ -121,16 +121,16 @@ function add_sge_pages()
      push!(_pages, "SpinGlassEngine" => eval(Meta.parse(s)))
 end
 
-add_sgt_pages()
-add_sgn_pages()
 add_sge_pages()
+add_sgn_pages()
+add_sgt_pages()
 # =================================
 makedocs(
     clean = true,
     format = format,
     modules=[SpinGlassPEPS, SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine],
     sitename = "SpinGlassPEPS.jl",
-    authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna",
+    authors = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawela, Marek Rams, Anna Dziubyna, Tomasz Śmierzchalski",
     pages = _pages
 )
 
