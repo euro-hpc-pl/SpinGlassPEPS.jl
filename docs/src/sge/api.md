@@ -1,8 +1,13 @@
 # Library
 
-## Basic functions
+---
+```@meta
+CurrentModule = SpinGlassEngine
+```
 
-```@docs
-LinearAlgebra.rank(ψ::AbstractMPS)
-physical_dim(ψ::AbstractMPS, i::Int)
+## Basic 
+
+```@autodocs
+Modules = [SpinGlassEngine]
+Pages = ["search.jl"]
 ```

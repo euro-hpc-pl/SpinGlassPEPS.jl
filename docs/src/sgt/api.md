@@ -1,8 +1,27 @@
 # Library
 
-## Basic functions
+---
+```@meta
+CurrentModule = SpinGlassTensors
+```
+
+
+## MPS
+```@docs
+MPS
+is_left_normalized
+is_right_normalized
+physical_dim
+verify_physical_dims
+```
+
+## Compresions and Contractions
 
 ```@docs
-LinearAlgebra.rank(ψ::AbstractMPS)
-physical_dim(ψ::AbstractMPS, i::Int)
+canonise!
+compress!
+left_env
+right_env
+truncate!
+
 ```

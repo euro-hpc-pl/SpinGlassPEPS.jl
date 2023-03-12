@@ -12,18 +12,25 @@ CurrentModule = SpinGlassNetworks
 ising_graph
 biases
 couplings
-rank_vec
+cluster
 prune
+rank_vec
 ```
 
 ## Factor Graphs
 
 ```@docs
 factor_graph
+decode_factor_graph_state
 ```
 
 ## Auxiliary Functions
 
 ```@docs
+brute_force
+energy
+full_spectrum
+gibbs_tensor
+rank_reveal
 super_square_lattice
 ```

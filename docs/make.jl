@@ -4,6 +4,8 @@ using SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine
 using MetaGraphs
 using LinearAlgebra
 
+
+
 cd(@__DIR__)
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 using Pkg
@@ -104,7 +106,7 @@ function add_sge_pages()
         rm(sge_dir; recursive = true)
     catch
     end
-    sge_docs = joinpath(dirname(dirname(pathof(SpinGlassTensors))), "docs")
+    sge_docs = joinpath(dirname(dirname(pathof(SpinGlassEngine))), "docs")
     cp(joinpath(sge_docs, "src"), sge_dir; force = true)
     # Files in `sgn_docs` are probably in read-only mode (`0o444`). Let's give
     # ourselves write permission.
