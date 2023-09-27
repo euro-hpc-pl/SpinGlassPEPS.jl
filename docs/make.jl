@@ -128,7 +128,7 @@ add_sgn_pages()
 add_sgt_pages()
 # =================================
 makedocs(
-    clean = true,
+    # clean = true,
     format = format,
     modules=[SpinGlassPEPS, SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine],
     sitename = "SpinGlassPEPS.jl",
