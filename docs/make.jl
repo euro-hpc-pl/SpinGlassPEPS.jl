@@ -4,8 +4,6 @@ using SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine
 using MetaGraphs
 using LinearAlgebra
 
-
-
 cd(@__DIR__)
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 using Pkg
@@ -25,7 +23,7 @@ for w in ("light", "dark")
 end
 # compile the themes
 Themes.compile(joinpath(@__DIR__, "juliadynamics-light.scss"), joinpath(@__DIR__, "src/assets/themes/documenter-light.css"))
-Themes.compile(joinpath(@__DIR__, "juliadynamics-dark.scss"), joinpath(@__DIR__, "src/assets/themes/documenter-dark.css"))
+# Themes.compile(joinpath(@__DIR__, "juliadynamics-dark.scss"), joinpath(@__DIR__, "src/assets/themes/documenter-dark.css"))
 
 format = Documenter.HTML(
     edit_link = "master",
@@ -56,7 +54,8 @@ const Page = Union{Pair{String, String}, Pair{String, Vector{Pair{String, String
 
 _pages::Vector{Page} = [
     "Home" => "index.md",
-    "Example" => "examples.md"
+    "Getting started" => "intro.md",
+    "Examples" => "examples.md"
 ]
 
 

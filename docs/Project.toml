@@ -1,12 +1,14 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterTools = "35a29f4d-8980-5a13-9543-d66fff28ecb8"
+LabelledGraphs = "605abd48-4d17-4660-b914-d4df33194460"
 SpinGlassEngine = "0563570f-ea1b-4080-8a64-041ac6565a4e"
+SpinGlassExhaustive = "a894d7c4-7f54-4100-9d77-d00d924adeb3"
 SpinGlassNetworks = "b7f6bd3e-55dc-4da6-96a9-ef9dbec6ac19"
 SpinGlassPEPS = "2c514f87-1261-494e-8566-326879aaf4fe"
 SpinGlassTensors = "7584fc6a-5a23-4eeb-8277-827aab0146ea"
 
 [compat]
-SpinGlassEngine = "0.1"
-SpinGlassNetworks = "0.1"
-SpinGlassTensors = "0.1"
+SpinGlassEngine = "0.1.1"
+SpinGlassNetworks = "0.2.3"
+SpinGlassTensors = "0.1.5"
