@@ -11,6 +11,7 @@ CurrentModule = SpinGlassNetworks
 ising_graph
 inter_cluster_edges
 prune
+couplings
 ```
 
 ## Clustered Hamiltonian
@@ -18,6 +19,58 @@ prune
 split_into_clusters
 clustered_hamiltonian
 decode_clustered_hamiltonian_state
+rank_reveal
+energy
+energy_2site
+cluster_size
+bond_energy
+exact_cond_prob
+truncate_clustered_hamiltonian
+```
+
+## Lattice
+```@docs
+super_square_lattice
+pegasus_lattice
+zephyr_lattice
+```
+
+## Belief propagation
+```@docs
+local_energy
+interaction_energy
+get_neighbors
+belief_propagation
+MergedEnergy
+update_message
+clustered_hamiltonian_2site
+merge_vertices_cl_h
+projector
+SparseCSC
+```
+
+## Projectors
+```@docs
+PoolOfProjectors
+get_projector!
+add_projector!
+empty!
+```
+
+## Spectrum
+```@docs
+Spectrum
+matrix_to_integers
+gibbs_tensor
+brute_force
+```
+
+## Truncate
+```@docs
+truncate_clustered_hamiltonian_1site_BP
+truncate_clustered_hamiltonian_2site_BP
+truncate_clustered_hamiltonian_2site_energy
+select_numstate_best
 ```
 
 ## Auxiliary Functions
