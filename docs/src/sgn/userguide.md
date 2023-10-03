@@ -65,7 +65,7 @@ instance = Dict((1, 1) => 1.0, (2, 2) => 0.5, (3, 3) => -0.25,
 (1, 2) => -1.0, (2, 3) => 1.0)
 ig = ising_graph(instance)
 
-# Create factor graph.
+# Create clustered Hamiltonian.
 cl_h = clustered_hamiltonian(
     ig,
     cluster_assignment_rule = super_square_lattice((3, 1, 1))
@@ -73,7 +73,7 @@ cl_h = clustered_hamiltonian(
 ```
 
 ## Pegasus graphs
-The Pegasus graph is a type of graph architecture used in quantum computing systems, particularly in the quantum annealing machines developed by D-Wave Systems. It is a two-dimensional lattice of unit cells, each consisting of a bipartite graph of $K_{4,4}$ complete bipartite subgraphs. Futer details can be found [here](https://docs.dwavesys.com/docs/latest/c_gs_4.html#pegasus-graph).
+The Pegasus graph is a type of graph architecture used in quantum computing systems, particularly in the quantum annealing machines developed by D-Wave Systems. It is designed to provide a grid of qubits with specific connectivity patterns optimized for solving certain optimization problems. Futer details can be found [here](https://docs.dwavesys.com/docs/latest/c_gs_4.html#pegasus-graph).
 ```@raw html
 <img src="../images/peg.pdf" width="200%" class="center"/>
 ```
@@ -95,7 +95,7 @@ cl_h = clustered_hamiltonian(
     cluster_assignment_rule = pegasus_lattice((m, n, t))
 )
 
-println("Number of nodes in oryginal instance: ", length(LabelledGraphs.vertices(ig)), "\n", " Number of nodes in factor graph: ", length(LabelledGraphs.vertices(cl_h)))
+println("Number of nodes in oryginal instance: ", length(LabelledGraphs.vertices(ig)), "\n", " Number of nodes in clustered Hamiltonian: ", length(LabelledGraphs.vertices(cl_h)))
 ```
 
 
@@ -121,5 +121,5 @@ cl_h = clustered_hamiltonian(
     cluster_assignment_rule = zephyr_lattice((m, n, t))
 )
 
-println("Number of nodes in oryginal instance: ", length(LabelledGraphs.vertices(ig)), "\n", " Number of nodes in factor graph: ", length(LabelledGraphs.vertices(cl_h)))
+println("Number of nodes in oryginal instance: ", length(LabelledGraphs.vertices(ig)), "\n", " Number of nodes in clustered Hamiltonian: ", length(LabelledGraphs.vertices(cl_h)))
 ```
