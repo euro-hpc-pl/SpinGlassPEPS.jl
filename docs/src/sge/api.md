@@ -2,6 +2,22 @@
 
 ---
 
+## Search
+```@docs
+SearchParameters
+Solution
+empty_solution
+low_energy_spectrum
+gibbs_sampling
+bound_solution
+no_merge
+merge_branches
+branch_energy
+SingleLayerDroplets
+Flip
+Droplet
+```
+
 ## Core 
 ```@docs
 error_measure

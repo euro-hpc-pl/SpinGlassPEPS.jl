@@ -1,12 +1,18 @@
 [deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterTools = "35a29f4d-8980-5a13-9543-d66fff28ecb8"
 LabelledGraphs = "605abd48-4d17-4660-b914-d4df33194460"
+LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
 SpinGlassEngine = "0563570f-ea1b-4080-8a64-041ac6565a4e"
 SpinGlassExhaustive = "a894d7c4-7f54-4100-9d77-d00d924adeb3"
 SpinGlassNetworks = "b7f6bd3e-55dc-4da6-96a9-ef9dbec6ac19"
 SpinGlassPEPS = "2c514f87-1261-494e-8566-326879aaf4fe"
 SpinGlassTensors = "7584fc6a-5a23-4eeb-8277-827aab0146ea"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+TensorCast = "02d47bb6-7ce6-556a-be16-bb1710789e2b"
 
 [compat]
 SpinGlassEngine = "0.1.1"
