@@ -1,6 +1,12 @@
 # Introduction
 In this section, we will introduce two illustrative examples to highlight the effectiveness of the software. The first example will delve into a classical Ising problem commonly encountered in research, while the second will focus on an optimization problem related to Random Markov Fields. These examples serve as practical demonstrations of `SpinGlassPEPS.jl` in action, providing valuable insights into the software's capabilities and showcasing its utility across a wide range of scenarios.
 # Ising type optimization problems
+Ising type optimization problems with the cost function:
+
+$$H =  \sum_{(i,j) \in \mathcal{E}} J_{ij} s_i s_j + \sum_{i} h_i s_i$$
+
+where $J_{ij}$ is the coupling constant between spins $i$ and $j$, $s_i$, $s_j$ can take on the values of either +1 or -1, $h_i$ is the external magnetic field at spin $i$, and the sum is taken over all pairs of spins and all spins in the system $\mathcal{E}$, respectively.
+
 ## Ground state search on super square lattice
 
 In this example, we demonstrate how to use the `SpinGlassPEPS.jl` package to perform a low-energy spectrum search for a Spin Glass Hamiltonian defined on a square lattice with next nearest neighbors interactions on 100 spins.
@@ -320,3 +326,6 @@ ctr = MpsContractor{Strategy, Gauge}(net, [β/6, β/3, β/2, β], :graduate_trun
 ```
 
 # Random Markov Field optimization problems
+Random Markov Field type model on a 2d squarre lattice with cost function
+$$H =  \sum_{(i,j) \in \mathcal{E}} E(s_i, s_j) + \sum_{i} E(s_i)$$
+and nearest-neighbour interactions only.

@@ -55,7 +55,7 @@ cl_h = clustered_hamiltonian(
     cluster_assignment_rule = pegasus_lattice((m, n, t))
 )
 
-println("Number of nodes in oryginal instance: ", length(LabelledGraphs.vertices(ig)), "\n", " Number of nodes in clustered Hamiltonian: ", length(LabelledGraphs.vertices(cl_h)))
+println("Number of nodes in original instance: ", length(LabelledGraphs.vertices(ig)), "\n", " Number of nodes in clustered Hamiltonian: ", length(LabelledGraphs.vertices(cl_h)))
 ```
 
 
