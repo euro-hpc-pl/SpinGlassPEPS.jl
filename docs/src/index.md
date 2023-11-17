@@ -4,7 +4,8 @@ Author = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawe
 
 # Welcome to SpinGlassPEPS documentation!
 
-`SpinGlassPEPS` is an open-source Julia package for numerical computation in quantum information theory. 
+Welcome to `SpinGlassPEPS.jl`, a powerful open-source Julia package designed for heuristically solving Ising-type optimization problems defined on quasi-2D lattices and Random Markov Fields on 2D rectangular lattices.
+<!-- `SpinGlassPEPS` is an open-source Julia package for numerical computation in quantum information theory.  -->
 
 !!! info "Star us on GitHub!" 
     If you have found this library useful, please consider starring the GitHub repository. This gives us an accurate lower bound of the satisfied users.
@@ -19,19 +20,16 @@ using Pkg;
 Pkg.add("SpinGlassPEPS")
 ```
 The package `SpinGlassPEPS` includes:
-* `SpinGlassTensors.jl` - contains functions used in tensor network contractions
-* `SpinGlassNetworks.jl` - creates factor graph and Ising spin-glass model
-* `SpinGlassEngine.jl` - search for low energy spectrum using PEPS tensor network
-
-
+* `SpinGlassTensors.jl` - Package containing all necessary functionalities for creating and operating on tensors. It allows the use of both CPU and GPU
+* `SpinGlassNetworks.jl` - Package containing all tools needed to construct a tensor network from a given instance.
+* `SpinGlassEngine.jl` - Package containing the solver itself and tools focused on finding and operating on droplets. 
 
 
 ## Our goals
 
-`SpinGlassPEPS.jl` was created to heuristically solve Ising-type optimization problems defined on quasi-2d lattices.
-It enables to compute conditional probabilities and find the most probable states according to Gibbs distribution by contracting tensor networks. It is a powerful tool to reconstruct the low-energy spectrum of the model. 
+`SpinGlassPEPS.jl` was created to heuristically solve Ising-type optimization problems defined on quasi-2D lattices or Random Markov Fields (RMF) on 2D rectangular lattices. This package combines advanced heuristics to address optimization challenges and employs tensor network contractions to compute conditional probabilities and identify the most probable states according to the Gibbs distribution. `SpinGlassPEPS.jl` is a versatile tool for reconstructing the low-energy spectrum of Ising spin glass Hamiltonians and RMF Hamiltonians. Beyond energy computations, the package offers insights into spin configurations, associated probabilities, and even retains the largest discarded probability during the branch and bound optimization procedure. Notably, `SpinGlassPEPS.jl` goes beyond ground states, introducing a unique feature for identifying and analyzing spin glass droplets — collective excitations crucial for understanding system dynamics beyond the fundamental ground state configurations. 
 
-We aim to provide fast, reliable and easy to use emulator of D-Wave ``2000``Q quantum annealers. Our solver calculates ``L \ll 2 ^N`` low energy states (and their corresponding energies) for ``N \le 2048``. 
+<!-- We aim to provide fast, reliable and easy to use emulator of D-Wave ``2000``Q quantum annealers. Our solver calculates ``L \ll 2 ^N`` low energy states (and their corresponding energies) for ``N \le 2048``.  -->
 
 ## Citing SpinGlassPEPS
 If you use `SpinGlassPEPS` for academic research and wish to cite it, please use the following paper:

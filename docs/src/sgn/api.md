@@ -8,7 +8,6 @@ CurrentModule = SpinGlassNetworks
 
 ## Ising Graphs
 ```@docs
-ising_graph
 inter_cluster_edges
 prune
 couplings
@@ -17,7 +16,6 @@ couplings
 ## Clustered Hamiltonian
 ```@docs
 split_into_clusters
-clustered_hamiltonian
 decode_clustered_hamiltonian_state
 rank_reveal
 energy
@@ -28,22 +26,13 @@ exact_cond_prob
 truncate_clustered_hamiltonian
 ```
 
-## Lattice
-```@docs
-super_square_lattice
-pegasus_lattice
-zephyr_lattice
-```
-
 ## Belief propagation
 ```@docs
 local_energy
 interaction_energy
 get_neighbors
-belief_propagation
 MergedEnergy
 update_message
-clustered_hamiltonian_2site
 merge_vertices_cl_h
 projector
 SparseCSC
@@ -68,7 +57,6 @@ brute_force
 ## Truncate
 ```@docs
 truncate_clustered_hamiltonian_1site_BP
-truncate_clustered_hamiltonian_2site_BP
 truncate_clustered_hamiltonian_2site_energy
 select_numstate_best
 ```

@@ -122,8 +122,8 @@ function add_sge_pages()
      push!(_pages, "SpinGlassEngine" => eval(Meta.parse(s)))
 end
 
-add_sge_pages()
 add_sgn_pages()
+add_sge_pages()
 add_sgt_pages()
 # =================================
 makedocs(
