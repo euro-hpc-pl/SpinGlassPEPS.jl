@@ -1,4 +1,15 @@
-# Structures to store parameters
+# Contracting PEPS tensor network
+Once we construct the tensor network, we can proceed with its contraction. The first step involves preparing structures to store information about the approximate contraction using the MPS-MPO method and the exploration of states through the branch-and-bound algorithm.
+
+```@raw html
+<img src="../images/contract.pdf" width="200%" class="center"/>
+```
+
+```@docs
+MpsContractor
+```
+
+# Structures to store parameters used in branch and bound search
 ```@docs
 MpsParameters
 SearchParameters
@@ -17,9 +28,9 @@ These approaches provide users with distinct strategies to efficiently contract 
 
 # Sparsity 
 In the domain of matrix operations, our package recognizes the significance of two primary approaches: 
-* `dense` 
-* `sparse`. 
-The latter, referred to as sparsity, plays a pivotal role in various computational contexts. Frequently, the matrices involved in our calculations exhibit sparse characteristics, wherein a significant portion of their elements is zero. To accommodate this, our package offers the flexibility to choose the `sparse` mode. This option not only optimizes memory usage but also substantially enhances computational efficiency, particularly when dealing with matrices characterized by a scarcity of non-zero entries. By selecting the sparse mode, users can leverage the inherent structure of these matrices, streamlining computations, and expediting solutions for intricate problems. This feature underscores our commitment to providing users with the tools to tailor their computational strategies based on the nature of the matrices involved, ensuring optimal performance across diverse scenarios.
+* `Dense` 
+* `Sparse`. 
+The latter, referred to as sparsity, plays a pivotal role in various computational contexts. Frequently, the matrices involved in our calculations exhibit sparse characteristics, wherein a significant portion of their elements is zero. To accommodate this, our package offers the flexibility to choose the `Sparse` mode. This option not only optimizes memory usage but also substantially enhances computational efficiency, particularly when dealing with matrices characterized by a scarcity of non-zero entries. By selecting the sparse mode, users can leverage the inherent structure of these matrices, streamlining computations, and expediting solutions for intricate problems. This feature underscores our commitment to providing users with the tools to tailor their computational strategies based on the nature of the matrices involved, ensuring optimal performance across diverse scenarios.
 
 # Layout 
 Different decompositions of the network into MPS:

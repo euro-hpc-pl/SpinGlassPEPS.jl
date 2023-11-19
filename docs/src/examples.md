@@ -326,6 +326,6 @@ ctr = MpsContractor{Strategy, Gauge}(net, [β/6, β/3, β/2, β], :graduate_trun
 ```
 
 # Random Markov Field optimization problems
-Random Markov Field type model on a 2d squarre lattice with cost function
+Random Markov Field type model on a 2D square lattice with cost function
 $$H =  \sum_{(i,j) \in \mathcal{E}} E(s_i, s_j) + \sum_{i} E(s_i)$$
 and nearest-neighbour interactions only.
