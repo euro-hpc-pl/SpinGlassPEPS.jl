@@ -55,7 +55,7 @@ const Page = Union{Pair{String, String}, Pair{String, Vector{Pair{String, String
 _pages::Vector{Page} = [
     "Home" => "index.md",
     "Getting started" => "intro.md",
-    "Examples" => "examples.md"
+    "Brief description of the algorithm" => "algorithm.md"
 ]
 
 

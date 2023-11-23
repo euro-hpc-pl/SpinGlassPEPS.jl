@@ -4,7 +4,7 @@ Author = "Krzysztof Domino, Bartłomiej Gardas, Konrad Jałowiecki, Łukasz Pawe
 
 # Welcome to SpinGlassPEPS documentation!
 
-Welcome to `SpinGlassPEPS.jl`, a powerful open-source Julia package designed for heuristically solving Ising-type optimization problems defined on quasi-2D lattices and Random Markov Fields on 2D rectangular lattices.
+Welcome to `SpinGlassPEPS.jl`, a open-source Julia package designed for heuristically solving Ising-type optimization problems defined on quasi-2D lattices and Random Markov Fields on 2D rectangular lattices.
 
 !!! info "Star us on GitHub!" 
     If you have found this library useful, please consider starring the GitHub repository. This gives us an accurate lower bound of the satisfied users.
@@ -19,7 +19,7 @@ using Pkg;
 Pkg.add("SpinGlassPEPS")
 ```
 The package `SpinGlassPEPS` includes:
-* `SpinGlassTensors.jl` - Package containing all necessary functionalities for creating and operating on tensors. It allows the use of both CPU and GPU
+* `SpinGlassTensors.jl` - Package containing all necessary functionalities for creating and operating on tensors. It allows the use of both CPU and GPU.
 * `SpinGlassNetworks.jl` - Package containing all tools needed to construct a tensor network from a given instance.
 * `SpinGlassEngine.jl` - Package containing the solver itself and tools focused on finding and operating on droplets. 
 

@@ -1,7 +1,5 @@
 # Library
 
----
-
 ```@meta
 CurrentModule = SpinGlassNetworks
 ```
@@ -64,4 +62,5 @@ select_numstate_best
 ## Auxiliary Functions
 ```@docs
 zephyr_to_linear
+load_openGM
 ```

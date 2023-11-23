@@ -1,10 +1,6 @@
 # Contracting PEPS tensor network
 Once we construct the tensor network, we can proceed with its contraction. The first step involves preparing structures to store information about the approximate contraction using the MPS-MPO method and the exploration of states through the branch-and-bound algorithm.
 
-```@raw html
-<img src="../images/contract.pdf" width="200%" class="center"/>
-```
-
 ```@docs
 MpsContractor
 ```
