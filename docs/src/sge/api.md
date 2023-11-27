@@ -4,7 +4,6 @@
 
 ## Search
 ```@docs
-Solution
 empty_solution
 gibbs_sampling
 bound_solution
@@ -46,11 +45,11 @@ clear_memoize_cache_after_row
 ```@docs
 vertex_map
 check_bounds
+LatticeTransformation
 ```
 
 ## Droplets
 ```@docs
-SingleLayerDroplets
 Flip
 Droplet
 NoDroplets
@@ -96,7 +95,6 @@ _equalize
 nodes_search_order_Mps
 sampling
 VirtualDoubleNode
-merge_branches_blur
 fuse_projectors
 local_spins
 tensor

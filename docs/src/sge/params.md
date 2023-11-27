@@ -12,47 +12,48 @@ SearchParameters
 ```
 
 # Strategy 
-Our package offers users the flexibility to choose between three distinct methods for contracting the tensor network: 
+In the boundary MPS-MPO approach we apply Matrix Product Operator (MPO) to appropriate sites of Matrix Product State (MPS). In this context, the absorption of a MPO into a MPS leads to an exponential growth of the bond dimension. Hence, a truncation scheme is necessary to mitigate this issue and to keep the bond dimension in a reasonable size. 
+Our package offers users the flexibility to choose between three distinct methods for optimizing the boundary MPS used in contracting the tensor network: 
 * `Zipper`
 * `MPSAnnealing`
 * `SVDTruncate`.
 
-With the `SVDTruncate` method, the Matrix Product State (MPS) is systematically constructed row by row, contracting with the Matrix Product Operator (MPO) from the preceding row. The resulting MPS undergoes a Singular Value Decomposition (SVD) to trim its bond dimension, followed by variational compression. 
+With the `SVDTruncate` method, the Matrix Product State (MPS) is systematically constructed row by row, contracted with the Matrix Product Operator (MPO) from the preceding row. The resulting MPS undergoes a Singular Value Decomposition (SVD) to truncate its bond dimension, followed by variational compression. 
 On the other hand, the `MPSAnnealing` method tailors the construction of MPS based on temperature considerations, with a subsequent variational compression step. 
-
-These approaches provide users with distinct strategies to efficiently contract the tensor network, catering to different preferences and requirements in the exploration of spin systems within the SpinGlassPEPS package.
+`Zipper` method combines randomized truncated Singular Value Decomposition (SVD) and a variational
+scheme.
 
 # Sparsity 
 Our software package acknowledges the importance of two fundamental methodologies in tensor processing
 * `Dense` 
 * `Sparse`. 
-The latter, referred to as sparsity, plays a pivotal role in manipulation on large tensors. To accommodate this, our package offers the flexibility to choose the `Sparse` mode. In this mode, tensors are not explicitly constructed but are storerd in structures and represented as blocks where not every dimension is contracted. This choice not only optimizes memory utilization but also significantly improves computational efficiency. In the `Dense` mode tensors are build explicitly.
+The latter, referred to as sparsity, plays a pivotal role in manipulation on large tensors. To accommodate this, our package offers the flexibility to choose the `Sparse` mode. In this mode, tensors are not explicitly constructed but are stored in structures and represented as blocks, in which not every dimension is contracted. This choice not only optimizes memory utilization but also significantly improves computational efficiency. In the `Dense` mode tensors are build explicitly.
 
 # Geometry
-* SquareSingleNode
-* SquareDoubleNode
-* SquareCrossSingleNode
-* SquareCrossDoubleNode
+* `SquareSingleNode`
+* `SquareDoubleNode`
+* `SquareCrossSingleNode`
+* `SquareCrossDoubleNode`
 
 # Layout 
-Different decompositions of the network into MPS:
+`SpinGlassPEPS.jl` allows for different decompositions of the network into MPS:
 * `GaugesEnergy`
 * `EnergyGauges`
 * `EngGaugesEng`
+For complex problems, the solution may depend on the choice of decomposition.
 
 ```@raw html
 <img src="../images/layout.pdf" width="200%" class="center"/>
 ```
 
 # Lattice transformations
-Our package offers users the ability to undergo diverse transformations of PEPS network to meet distinct computational requirements. Notably, users can apply `rotations`, occurring in multiples of $\frac{\pi}{2}$ radians, and `reflections` along various axes. These transformations include rotations and reflections around the horizontal (x), vertical (y), diagonal, and antidiagonal axes. 
+Our package offers users the ability to undergo diverse transformations of PEPS network. Notably, users can apply `rotations`, occurring in multiples of $\frac{\pi}{2}$ radians, and `reflections` along various axes. These transformations include rotations and reflections around the horizontal (x), vertical (y), diagonal, and antidiagonal axes. Transformations are used to contract PEPS and perform search starting from different sites of the lattice. 
 
 ```@docs
 all_lattice_transformations
-LatticeTransformation
 rotation
 reflection
 ```
 
 # Gauge 
-* NoUpdate
+Currently only `NoUpdate` mode is supported.
