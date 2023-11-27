@@ -12,7 +12,7 @@ ising_graph
 ```
 
 ## Simple example
-In this simple example below we show how to create Ising graph of a instance given as txt file in a format (i, j, Jij). The resulting graph has vertices (black circles) corresponding to positions of spins in the system and edges defining coupling strength between spins. Each vertex contains information about local field.
+In this simple example below we show how to create Ising graph of a instance given as txt file in a format (i, j, Jij). The resulting graph has vertices corresponding to positions of spins in the system and edges defining coupling strength between spins. Each vertex contains information about local field.
 
 ```@example
 using SpinGlassNetworks

@@ -1,20 +1,8 @@
 # Getting started
 Before providing the documentation of the offered functionality, it is good to demonstrate exactly what the package does.
 
-## Introduction
-We consider tensor network based algorithm for finding ground state configurations of quasi-2D problems. We employ tensor networks to represent the Gibbs distribution. Then we use approximate tensor network contraction to efficiently identify the low-energy spectrum of some quasi-two-dimensional Hamiltonians.
-
-## Ising spin glass problems
-Let us consider a classical Ising Hamiltonian
-```math
-H(\underline{s}_N) =  \sum_{\langle i, j\rangle \in \mathcal{E}} J_{ij} s_i s_j + \sum_{i =1}^N J_{ii} s_i,
-```
-where $\underline{s}_N$ denotes a particular configuration of $N$ binary variables $s_i=\pm 1$. Non-zero couplings $J_{ij} \in \mathbb{R}$ are input parameters of a given problem instance and form a connectivity graph $\mathcal{E}$. We assume that graph $\mathcal{E}$ forms a quasi-2D lattice.
-
-`SpinGlassPEPS.jl` translates the problem into a tensor network language, and performing branch and bound search, finds the low energy spectrum of a given problem.
-
-# Basic examples
-In this example, we demonstrate how to use the `SpinGlassPEPS.jl` package to perform a low-energy spectrum search for a spin glass Hamiltonian defined on a square lattice with diagonal interactions on 100 spins.
+# Basic example
+In this example, we demonstrate how to use the `SpinGlassPEPS.jl` package to obtain a low-energy spectrum search for a spin glass Hamiltonian defined on a square lattice with diagonal interactions on 100 spins.
 
 The package is used to explore various strategies for solving the problem, and it provides functionalities for performing Hamiltonian clustering, belief propagation, and low-energy spectrum searches using different MPS (Matrix Product State) strategies.
 

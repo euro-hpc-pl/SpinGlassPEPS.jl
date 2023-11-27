@@ -1,6 +1,6 @@
 # Constructing PEPS tensor network
 
-After creating the clustered Hamiltonian, we can turn it into a PEPS tensor network as shown in the figure below. 
+After creating the clustered Hamiltonian, we can turn it into a PEPS tensor network as shown in the figure TODO(cite Brief description of the algorithm). 
 
 ```@docs
 PEPSNetwork

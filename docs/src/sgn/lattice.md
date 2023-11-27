@@ -1,10 +1,10 @@
-## Lattice geometries
-The Ising graph allowed for loading instances directly from a file and translating it into a graph. The next step towards constructing the tensor network is to build a lattice, based on which we will transform the Ising graph into a clustered Hamiltonian.
-Within the `SpinGlassNetworks.jl` package, users have the flexibility to construct various lattice geometries, each tailored to specific needs. With these diverse lattice geometries, SpinGlassNetworks empowers users to model and study complex spin systems with a high degree of flexibility and precision. 
+# Lattice geometries
+The Ising graph allowed for loading instances directly from a file and translating them into a graph. The next step towards constructing the tensor network is to build a lattice, based on which we will transform the Ising graph into a clustered Hamiltonian.
+Within the `SpinGlassNetworks.jl` package, users have the flexibility to construct three types of lattice geometries, each tailored to specific needs. 
 
 ## Super square lattice
 The `super_square_lattice` geometry represents a square lattice with nearest neighbors interactions (horizontal and vertical interactions between unit cells) and next nearest neighbor interactions (diagonal interactions). Unit cells depicted on the schematic picture below as red ellipses can consist of multiple spins.
-This geometry allows for a nuanced exploration of spin interactions beyond the traditional square lattice framework. 
+This geometry allows for an exploration of spin interactions beyond the traditional square lattice framework. 
 ```@raw html
 <img src="../images/sd.pdf" width="200%" class="center"/>
 ```

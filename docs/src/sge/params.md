@@ -23,10 +23,16 @@ On the other hand, the `MPSAnnealing` method tailors the construction of MPS bas
 These approaches provide users with distinct strategies to efficiently contract the tensor network, catering to different preferences and requirements in the exploration of spin systems within the SpinGlassPEPS package.
 
 # Sparsity 
-In the domain of matrix operations, our package recognizes the significance of two primary approaches: 
+Our software package acknowledges the importance of two fundamental methodologies in tensor processing
 * `Dense` 
 * `Sparse`. 
-The latter, referred to as sparsity, plays a pivotal role in various computational contexts. Frequently, the matrices involved in our calculations exhibit sparse characteristics, wherein a significant portion of their elements is zero. To accommodate this, our package offers the flexibility to choose the `Sparse` mode. This option not only optimizes memory usage but also substantially enhances computational efficiency, particularly when dealing with matrices characterized by a scarcity of non-zero entries. By selecting the sparse mode, users can leverage the inherent structure of these matrices, streamlining computations, and expediting solutions for intricate problems. This feature underscores our commitment to providing users with the tools to tailor their computational strategies based on the nature of the matrices involved, ensuring optimal performance across diverse scenarios.
+The latter, referred to as sparsity, plays a pivotal role in manipulation on large tensors. To accommodate this, our package offers the flexibility to choose the `Sparse` mode. In this mode, tensors are not explicitly constructed but are storerd in structures and represented as blocks where not every dimension is contracted. This choice not only optimizes memory utilization but also significantly improves computational efficiency. In the `Dense` mode tensors are build explicitly.
+
+# Geometry
+* SquareSingleNode
+* SquareDoubleNode
+* SquareCrossSingleNode
+* SquareCrossDoubleNode
 
 # Layout 
 Different decompositions of the network into MPS:
@@ -39,7 +45,7 @@ Different decompositions of the network into MPS:
 ```
 
 # Lattice transformations
-The PEPS tensor network within our package stands out for its remarkable versatility, offering users the ability to undergo diverse transformations to meet distinct computational requirements. Notably, users can apply `rotations`, occurring in multiples of $\frac{\pi}{2}$ radians, and `reflections` along various axes. These transformations include rotations and reflections around the horizontal (x), vertical (y), diagonal, and antidiagonal axes. This comprehensive set of transformations empowers researchers to meticulously adjust the orientation and arrangement of the tensor network, providing the means to optimize it for specific problem-solving strategies or align it with the geometrical considerations of their chosen application domain.
+Our package offers users the ability to undergo diverse transformations of PEPS network to meet distinct computational requirements. Notably, users can apply `rotations`, occurring in multiples of $\frac{\pi}{2}$ radians, and `reflections` along various axes. These transformations include rotations and reflections around the horizontal (x), vertical (y), diagonal, and antidiagonal axes. 
 
 ```@docs
 all_lattice_transformations
