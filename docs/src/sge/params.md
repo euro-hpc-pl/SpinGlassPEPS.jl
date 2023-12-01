@@ -31,12 +31,27 @@ The latter, referred to as sparsity, plays a pivotal role in manipulation on lar
 
 # Geometry
 * `SquareSingleNode`
+```@docs
+SquareSingleNode
+```
+
 * `SquareDoubleNode`
+```@docs
+SquareDoubleNode
+```
+
 * `SquareCrossSingleNode`
+```@docs
+SquareCrossSingleNode
+```
+
 * `SquareCrossDoubleNode`
+```@docs
+SquareCrossDoubleNode
+```
 
 # Layout 
-`SpinGlassPEPS.jl` allows for different decompositions of the network into MPS:
+`SpinGlassPEPS.jl` allows for different decompositions of the network into MPOs:
 * `GaugesEnergy`
 * `EnergyGauges`
 * `EngGaugesEng`
@@ -48,7 +63,9 @@ For complex problems, the solution may depend on the choice of decomposition.
 
 # Lattice transformations
 Our package offers users the ability to undergo diverse transformations of PEPS network. Notably, users can apply `rotations`, occurring in multiples of $\frac{\pi}{2}$ radians, and `reflections` along various axes. These transformations include rotations and reflections around the horizontal (x), vertical (y), diagonal, and antidiagonal axes. Transformations are used to contract PEPS and perform search starting from different sites of the lattice. 
-
+```@raw html
+<img src="../images/transform.pdf" width="200%" class="center"/>
+```
 ```@docs
 all_lattice_transformations
 rotation

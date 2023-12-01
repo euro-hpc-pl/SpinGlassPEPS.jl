@@ -88,8 +88,6 @@ branch_probability
 exact_conditional_probability
 branch_solution
 gauges_list
-SquareCrossDoubleNode
-SquareSingleNode
 branch_energies
 _equalize
 nodes_search_order_Mps
