@@ -6,7 +6,7 @@ Within the `SpinGlassNetworks.jl` package, users have the flexibility to constru
 The `super_square_lattice` geometry represents a square lattice with nearest neighbors interactions (horizontal and vertical interactions between unit cells) and next nearest neighbor interactions (diagonal interactions). Unit cells depicted on the schematic picture below as red ellipses can consist of multiple spins.
 This geometry allows for an exploration of spin interactions beyond the traditional square lattice framework. 
 ```@raw html
-<img src="../images/sd.pdf" width="200%" class="center"/>
+<img src="../images/sd.png" width="200%" class="center"/>
 ```
 
 In `SpinGlassPEPS.jl` solver, a grid of this type can be loaded using the command `super_square_lattice`.
@@ -38,7 +38,7 @@ println("Number of nodes in oryginal instance: ", length(LabelledGraphs.vertices
 ## Pegasus graphs
 The Pegasus graph is a type of graph architecture used in quantum computing systems, particularly in the quantum annealing machines developed by D-Wave Systems. It is designed to provide a grid of qubits with specific connectivity patterns optimized for solving certain optimization problems. Futer details can be found [here](https://docs.dwavesys.com/docs/latest/c_gs_4.html#pegasus-graph).
 ```@raw html
-<img src="../images/peg.pdf" width="200%" class="center"/>
+<img src="../images/peg.png" width="200%" class="center"/>
 ```
 
 In `SpinGlassPEPS.jl` solver, a grid of this type can be loaded using the command `pegasus_lattice`.
@@ -73,7 +73,7 @@ println("Number of nodes in original instance: ", length(LabelledGraphs.vertices
 ## Zephyr graphs
 The Zephyr graph is a type of graph architecture used in quantum computing systems, particularly in the quantum annealing machines developed by D-Wave Systems. Futer details can be found [here](https://docs.dwavesys.com/docs/latest/c_gs_4.html#zephyr-graph).
 ```@raw html
-<img src="../images/zep.pdf" width="200%" class="center"/>
+<img src="../images/zep.png" width="200%" class="center"/>
 ```
 
 In `SpinGlassPEPS.jl` solver, a grid of this type can be loaded using the command `zephyr_lattice`.

@@ -19,15 +19,15 @@ Our package offers users the flexibility to choose between three distinct method
 * `SVDTruncate`.
 `Zipper` method combines randomized truncated Singular Value Decomposition (SVD) and a variational scheme.
 ```@raw html
-<img src="../images/zipper.pdf" width="200%" class="center"/>
+<img src="../images/zipper.png" width="200%" class="center"/>
 ```
 With the `SVDTruncate` method, the Matrix Product State (MPS) is systematically constructed row by row, contracted with the Matrix Product Operator (MPO) from the preceding row. The resulting MPS undergoes a Singular Value Decomposition (SVD) to truncate its bond dimension, followed by variational compression. 
 ```@raw html
-<img src="../images/svd_truncate.pdf" width="50%" class="center"/>
+<img src="../images/svd_truncate.png" width="50%" class="center"/>
 ```
 On the other hand, the `MPSAnnealing` method tailors the construction of MPS based on variational compression.
 ```@raw html
-<img src="../images/annealing.pdf" width="50%" class="center"/>
+<img src="../images/annealing.png" width="50%" class="center"/>
 ```
 
 # Sparsity 
@@ -40,7 +40,7 @@ The latter, referred to as sparsity, plays a pivotal role in manipulation on lar
 
 * `SquareSingleNode`
 ```@raw html
-<img src="../images/square_single.pdf" width="50%" class="center"/>
+<img src="../images/square_single.png" width="50%" class="center"/>
 ```
 ```@docs
 SquareSingleNode
@@ -48,7 +48,7 @@ SquareSingleNode
 
 * `SquareDoubleNode`
 ```@raw html
-<img src="../images/square_double.pdf" width="50%" class="center"/>
+<img src="../images/square_double.png" width="50%" class="center"/>
 ```
 ```@docs
 SquareDoubleNode
@@ -56,7 +56,7 @@ SquareDoubleNode
 
 * `SquareCrossSingleNode`
 ```@raw html
-<img src="../images/square_cross_single.pdf" width="50%" class="center"/>
+<img src="../images/square_cross_single.png" width="50%" class="center"/>
 ```
 ```@docs
 SquareCrossSingleNode
@@ -64,7 +64,7 @@ SquareCrossSingleNode
 
 * `SquareCrossDoubleNode`
 ```@raw html
-<img src="../images/square_cross_double.pdf" width="50%" class="center"/>
+<img src="../images/square_cross_double.png" width="50%" class="center"/>
 ```
 ```@docs
 SquareCrossDoubleNode
@@ -78,13 +78,13 @@ SquareCrossDoubleNode
 For complex problems, the solution may depend on the choice of decomposition.
 
 ```@raw html
-<img src="../images/layout.pdf" width="200%" class="center"/>
+<img src="../images/layout.png" width="200%" class="center"/>
 ```
 
 # Lattice transformations
 Our package offers users the ability to undergo diverse transformations of PEPS network. Notably, users can apply `rotations`, occurring in multiples of $\frac{\pi}{2}$ radians, and `reflections` along various axes. These transformations include rotations and reflections around the horizontal (x), vertical (y), diagonal, and antidiagonal axes. Transformations are used to contract PEPS and perform search starting from different sites of the lattice. 
 ```@raw html
-<img src="../images/trans.pdf" width="200%" class="center"/>
+<img src="../images/trans.png" width="200%" class="center"/>
 ```
 ```@docs
 all_lattice_transformations

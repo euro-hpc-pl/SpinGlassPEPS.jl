@@ -14,7 +14,7 @@ We assume that graph $\mathcal{E}$ forms a quasi-2D lattice. In real life applic
     More information on lattice geometries you can find in section Lattice Geometries (TODO: link).
 
 ```@raw html
-<img src="../images/lattice.pdf" width="200%" class="center"/>
+<img src="../images/lattice.png" width="200%" class="center"/>
 ```
 In order to adress this three types of geometries using tensor networks, we represent the problem as a clustered Hamiltonian. To that end we group together sets of variables. In this framework Ising problem translates to:
 ```math
@@ -24,7 +24,7 @@ where $\mathcal{F}$ forms a 2D graph, in which we indicate nearest-neighbour int
 Each $x_n$ takes $d$ values with  $d=2^4$ for square diagonal, $d=2^{24}$ for Pegasus and $2^{16}$ for Zephyr geometry. 
 $E_{x_n}$ is an intra-node energy of the corresponding binary-variables configuration, and $E_{x_n x_m}$ is inter-node energy.
 ```@raw html
-<img src="../images/clustering.pdf" width="200%" class="center"/>
+<img src="../images/clustering.png" width="200%" class="center"/>
 ```
 ## Calculating conditional probabilities
 We assume that finding low energy states is equivalent to finding most probable states.
@@ -42,17 +42,17 @@ Subsequently, we select only the configurations with the highest marginal probab
 By employing branch and bound search strategy iteratively row after row, we address the solution of Hamiltonian in the terms of conditional probabilities. This approach enables the identification of most probable (low-energy) spin configurations within the problem space. 
 
 ```@raw html
-<img src="../images/bb.pdf" width="200%" class="center"/>
+<img src="../images/bb.png" width="200%" class="center"/>
 ```
 
 ## Tensor network contractions for optimization problems
 Branch and bound search relies on the calculation of conditional probabilities. To that end, we use tensor network techniques. Conditional probabilities are obtained by contracting a PEPS tensor network, which, although an NP-hard problem, can be computed approximately. The approach utilized is boundary MPS-MPO, which involves contracting a tensor network row by row and truncating the bond dimension.
 
 ```@raw html
-<img src="../images/prob.pdf" width="150%" class="center"/>
+<img src="../images/prob.png" width="150%" class="center"/>
 ```
 ```@raw html
-<img src="../images/explain.pdf" width="75%" class="center"/>
+<img src="../images/explain.png" width="75%" class="center"/>
 ```
 
 ## References & Related works

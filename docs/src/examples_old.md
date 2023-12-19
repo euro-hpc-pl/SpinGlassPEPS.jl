@@ -11,7 +11,7 @@ where $J_{ij}$ is the coupling constant between spins $i$ and $j$, $s_i$, $s_j$ 
 
 In this example, we demonstrate how to use the `SpinGlassPEPS.jl` package to perform a low-energy spectrum search for a Spin Glass Hamiltonian defined on a square lattice with next nearest neighbors interactions on 100 spins.
 ```@raw html
-<img src="../images/square_diag.pdf" width="70%" class="center"/>
+<img src="../images/square_diag.png" width="70%" class="center"/>
 ```
 The package is used to explore various strategies for solving the problem, and it provides functionalities for performing Hamiltonian clustering, belief propagation, and low-energy spectrum searches using different MPS (Matrix Product State) strategies.
 
@@ -70,7 +70,7 @@ bench("$(@__DIR__)/../src/instances/square_diagonal/5x5/diagonal.txt")
 ## Ground state search on Pegasus lattice
 In this example, we demonstrate how to use the `SpinGlassPEPS.jl` package to perform a low-energy spectrum search for a Spin Glass Hamiltonian defined on a D-Wave Pegasus lattice with 216 spins and 1324 couplings.
 ```@raw html
-<img src="../images/pegasus.pdf" width="70%" class="center"/>
+<img src="../images/pegasus.png" width="70%" class="center"/>
 ```
 
 ```@example
@@ -264,7 +264,7 @@ ctr = MpsContractor{Strategy, Gauge}(net, [β/6, β/3, β/2, β], :graduate_trun
 ## Ground state search on Zephyr lattice
 In this example, we demonstrate how to use the `SpinGlassPEPS.jl` package to perform a low-energy spectrum search for a Spin Glass Hamiltonian defined on a D-Wave Zephyr lattice with 332 spins and 2735 couplings.
 ```@raw html
-<img src="../images/zephyr.pdf" width="70%" class="center"/>
+<img src="../images/zephyr.png" width="70%" class="center"/>
 ```
 
 ```@example
