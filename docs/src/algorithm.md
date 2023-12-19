@@ -23,7 +23,9 @@ H(\underline{x}_{\bar{N}}) = \sum_{\langle m,n\rangle \in \mathcal{F}} E_{x_m x_
 where $\mathcal{F}$ forms a 2D graph, in which we indicate nearest-neighbour interactions with blue lines, and diagonal connections with green lines in the picture above.
 Each $x_n$ takes $d$ values with  $d=2^4$ for square diagonal, $d=2^{24}$ for Pegasus and $2^{16}$ for Zephyr geometry. 
 $E_{x_n}$ is an intra-node energy of the corresponding binary-variables configuration, and $E_{x_n x_m}$ is inter-node energy.
-
+```@raw html
+<img src="../images/clustering.pdf" width="200%" class="center"/>
+```
 ## Calculating conditional probabilities
 We assume that finding low energy states is equivalent to finding most probable states.
 We represent the probability distribution as a PEPS tensor network.

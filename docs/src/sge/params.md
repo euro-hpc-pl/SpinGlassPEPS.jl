@@ -17,11 +17,18 @@ Our package offers users the flexibility to choose between three distinct method
 * `Zipper`
 * `MPSAnnealing`
 * `SVDTruncate`.
-
+`Zipper` method combines randomized truncated Singular Value Decomposition (SVD) and a variational scheme.
+```@raw html
+<img src="../images/zipper.pdf" width="200%" class="center"/>
+```
 With the `SVDTruncate` method, the Matrix Product State (MPS) is systematically constructed row by row, contracted with the Matrix Product Operator (MPO) from the preceding row. The resulting MPS undergoes a Singular Value Decomposition (SVD) to truncate its bond dimension, followed by variational compression. 
-On the other hand, the `MPSAnnealing` method tailors the construction of MPS based on temperature considerations, with a subsequent variational compression step. 
-`Zipper` method combines randomized truncated Singular Value Decomposition (SVD) and a variational
-scheme.
+```@raw html
+<img src="../images/svd_truncate.pdf" width="50%" class="center"/>
+```
+On the other hand, the `MPSAnnealing` method tailors the construction of MPS based on temperature considerations, with a subsequent variational compression step.
+```@raw html
+<img src="../images/annealing.pdf" width="50%" class="center"/>
+```
 
 # Sparsity 
 Our software package acknowledges the importance of two fundamental methodologies in tensor processing
@@ -30,22 +37,35 @@ Our software package acknowledges the importance of two fundamental methodologie
 The latter, referred to as sparsity, plays a pivotal role in manipulation on large tensors. To accommodate this, our package offers the flexibility to choose the `Sparse` mode. In this mode, tensors are not explicitly constructed but are stored in structures and represented as blocks, in which not every dimension is contracted. This choice not only optimizes memory utilization but also significantly improves computational efficiency. In the `Dense` mode tensors are build explicitly.
 
 # Geometry
+
 * `SquareSingleNode`
+```@raw html
+<img src="../images/square_single.pdf" width="50%" class="center"/>
+```
 ```@docs
 SquareSingleNode
 ```
 
 * `SquareDoubleNode`
+```@raw html
+<img src="../images/square_double.pdf" width="50%" class="center"/>
+```
 ```@docs
 SquareDoubleNode
 ```
 
 * `SquareCrossSingleNode`
+```@raw html
+<img src="../images/square_cross_single.pdf" width="50%" class="center"/>
+```
 ```@docs
 SquareCrossSingleNode
 ```
 
 * `SquareCrossDoubleNode`
+```@raw html
+<img src="../images/square_cross_double.pdf" width="50%" class="center"/>
+```
 ```@docs
 SquareCrossDoubleNode
 ```
@@ -64,7 +84,7 @@ For complex problems, the solution may depend on the choice of decomposition.
 # Lattice transformations
 Our package offers users the ability to undergo diverse transformations of PEPS network. Notably, users can apply `rotations`, occurring in multiples of $\frac{\pi}{2}$ radians, and `reflections` along various axes. These transformations include rotations and reflections around the horizontal (x), vertical (y), diagonal, and antidiagonal axes. Transformations are used to contract PEPS and perform search starting from different sites of the lattice. 
 ```@raw html
-<img src="../images/transform.pdf" width="200%" class="center"/>
+<img src="../images/trans.pdf" width="200%" class="center"/>
 ```
 ```@docs
 all_lattice_transformations
