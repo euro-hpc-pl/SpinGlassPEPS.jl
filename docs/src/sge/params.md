@@ -25,7 +25,7 @@ With the `SVDTruncate` method, the Matrix Product State (MPS) is systematically 
 ```@raw html
 <img src="../images/svd_truncate.pdf" width="50%" class="center"/>
 ```
-On the other hand, the `MPSAnnealing` method tailors the construction of MPS based on temperature considerations, with a subsequent variational compression step.
+On the other hand, the `MPSAnnealing` method tailors the construction of MPS based on variational compression.
 ```@raw html
 <img src="../images/annealing.pdf" width="50%" class="center"/>
 ```
