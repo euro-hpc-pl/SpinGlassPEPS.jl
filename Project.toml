@@ -1,6 +1,6 @@
 name = "SpinGlassPEPS"
 uuid = "2c514f87-1261-494e-8566-326879aaf4fe"
-version = "0.3.0"
+version = "1.0.0"
 
 [deps]
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
@@ -17,7 +17,7 @@ PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 Reexport = "1.0"
 
 
-julia = "1.7, 1.8"
+julia = "1.8, 1.9"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
