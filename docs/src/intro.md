@@ -14,7 +14,7 @@ Next line defines the problem size
 ```@julia
 m, n, t = 5, 5, 4
 ```
-In this example, we have number of columns and row, `m` and `n` respectively, equal 5. Parameter `t` tells how many spins are creating a cluster.
+In this example, number of columns and row, `m` and `n` respectively, is equal 5. Parameter `t` tells how many spins are creating a cluster.
 
 `SpinGlassPEPS.jl` enables to perform calculations not only on CPU, but also on GPU. If you want to switch on GPU mode, then type
 ```@julia
@@ -63,6 +63,12 @@ params = MpsParameters(bond_dim, tol_var, max_num_sweeps,
 search_params = SearchParameters(num_states, δp)
 ```
 
+User can not only calculate the ground state of the given problem, but also find exitations in the system. To achieve this, the user must specify the energy range `eng` above the ground state within which the solver should search for low-energy excitations. The `SpinGlassPEPS.jl` algorithm seeks large independent excitations, meaning states that are far from each other in a Hamming sense, so states that differ from each other by at least a `hamming_dist` distance – this distance is provided by the user.
+```@julia
+eng = 10
+hamming_dist = 10
+```
+
 With this prepared set of parameters, we are ready for the actual computations. The first step is to create the Ising graph. In the Ising graph, nodes are formed by the spin positions, and interactions between them are represented by the edges.
 ```@julia
 ig = ising_graph(instance)
@@ -89,7 +95,8 @@ ctr = MpsContractor{Strategy, NoUpdate}(net, [β], graduate_truncation, params; 
 
 Finally the call
 ```@julia
-sol_peps, s = low_energy_spectrum(ctr, search_params, merge_branches(ctr))
+sol_peps, schmidts = low_energy_spectrum(ctr, search_params, merge_branches(ctr, :fit, SingleLayerDroplets(eng, hamming_dist, :hamming)))
+
 ```
 which runs branch and bound algorithm included in `SpinGlassPEPS.jl` It is actual solver, which iteratively explores the state space in search of the most probable states. The probabilities of a given configuration are calculated approximately through the contractions of the tensor network.
 

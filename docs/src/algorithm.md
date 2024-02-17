@@ -11,7 +11,7 @@ where $\underline{s}_N$ denotes a particular configuration of $N$ binary variabl
 We assume that graph $\mathcal{E}$ forms a quasi-2D lattice. In real life applications such graphs have large unit cells approaching 24 spins. `SpinGlassPEPS.jl` allows for unit cells containing multiple spins. 
 
 !!! info
-    More information on lattice geometries you can find in section Lattice Geometries (TODO: link).
+    More information on lattice geometries you can find in section [Lattice Geometries](sgn/lattice.md).
 
 ```@raw html
 <img src="../images/lattice.png" width="200%" class="center"/>
@@ -32,7 +32,7 @@ We represent the probability distribution as a PEPS tensor network.
 ```math
     p(\underline{x}_{\bar{N}}) = \frac{1}{Z} \exp{(-\beta H(\underline{x}_{\bar{N}}))}
 ```
-where $Z$ is a partition function and $\beta$ is inverse temperature. Once the PEPS tensor network is constructed, the probability distribution can be obtained by approximately contracting the tensor network, which is described in more details in subsection Tensor network contractions for optimization problems (TODO: link).
+where $Z$ is a partition function and $\beta$ is inverse temperature. Once the PEPS tensor network is constructed, the probability distribution can be obtained by approximately contracting the tensor network, which is described in more details in subsection [Tensor network contractions for optimization problems](#Tensor-network-contractions-for-optimization-problems).
 Subsequently, we select only the configurations with the highest marginal probabilities
 ```math
     p(\underline{x}_{n+1}) = p(x_{n+1} | \underline{x}_{n}) \times p(\underline{x}_{n})
@@ -44,7 +44,6 @@ By employing branch and bound search strategy iteratively row after row, we addr
 ```@raw html
 <img src="../images/bb.png" width="200%" class="center"/>
 ```
-
 ## Tensor network contractions for optimization problems
 Branch and bound search relies on the calculation of conditional probabilities. To that end, we use tensor network techniques. Conditional probabilities are obtained by contracting a PEPS tensor network, which, although an NP-hard problem, can be computed approximately. The approach utilized is boundary MPS-MPO, which involves contracting a tensor network row by row and truncating the bond dimension.
 
