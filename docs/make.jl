@@ -137,12 +137,6 @@ makedocs(
 #     include("../../faketravis.jl")
 # end
 
-# deploydocs(
-#     #root = "github.com/iitis/SpinGlassPEPS.jl/tree/ad/docs",
-#     #repo = "github.com/iitis/SpinGlassPEPS.jl.git",
-#     repo = "github.com/iitis/SpinGlassPEPS.jl.git",
-#     branch = "ad/docs",
-#     devbranch = "ad/docs"
-#     #devbranch = "lp/docs-example",
-#     #branch = "ad/docs"
-# )
+deploydocs(
+    repo = "github.com/euro-hpc-pl/SpinGlassPEPS.jl.git",
+)
