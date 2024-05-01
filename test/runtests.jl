@@ -1,4 +1,3 @@
-using Test
 using Pkg
 
 Pkg.test("SpinGlassTensors")
