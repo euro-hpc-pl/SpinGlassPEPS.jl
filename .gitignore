@@ -10,3 +10,7 @@ docs/build
 **/.DS_Store
 Manifest.toml
 sysimage.so
+docs/build
+docs/src/sge
+docs/src/sgn
+docs/src/sgt

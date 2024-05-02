@@ -1,10 +1,6 @@
 using Documenter, SpinGlassPEPS
 using DocumenterTools: Themes
 using SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine
-using MetaGraphs
-using LinearAlgebra
-
-
 
 cd(@__DIR__)
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
@@ -14,18 +10,18 @@ CI && Pkg.instantiate()
 
 # %%
 #download the themes
-for file in ("juliadynamics-lightdefs.scss", "juliadynamics-darkdefs.scss", "juliadynamics-style.scss")
-   download("https://raw.githubusercontent.com/JuliaDynamics/doctheme/master/$file", joinpath(@__DIR__, file))
-end
+# for file in ("juliadynamics-lightdefs.scss", "juliadynamics-darkdefs.scss", "juliadynamics-style.scss")
+#    download("https://raw.githubusercontent.com/JuliaDynamics/doctheme/master/$file", joinpath(@__DIR__, file))
+# end
 # create the themes
-for w in ("light", "dark")
-    header = read(joinpath(@__DIR__, "juliadynamics-style.scss"), String)
-    theme = read(joinpath(@__DIR__, "juliadynamics-$(w)defs.scss"), String)
-    write(joinpath(@__DIR__, "juliadynamics-$(w).scss"), header*"\n"*theme)
-end
+# for w in ("light", "dark")
+#     header = read(joinpath(@__DIR__, "juliadynamics-style.scss"), String)
+#     theme = read(joinpath(@__DIR__, "juliadynamics-$(w)defs.scss"), String)
+#     write(joinpath(@__DIR__, "juliadynamics-$(w).scss"), header*"\n"*theme)
+# end
 # compile the themes
-Themes.compile(joinpath(@__DIR__, "juliadynamics-light.scss"), joinpath(@__DIR__, "src/assets/themes/documenter-light.css"))
-Themes.compile(joinpath(@__DIR__, "juliadynamics-dark.scss"), joinpath(@__DIR__, "src/assets/themes/documenter-dark.css"))
+# Themes.compile(joinpath(@__DIR__, "juliadynamics-light.scss"), joinpath(@__DIR__, "src/assets/themes/documenter-light.css"))
+# Themes.compile(joinpath(@__DIR__, "juliadynamics-dark.scss"), joinpath(@__DIR__, "src/assets/themes/documenter-dark.css"))
 
 format = Documenter.HTML(
     edit_link = "master",
@@ -56,7 +52,8 @@ const Page = Union{Pair{String, String}, Pair{String, Vector{Pair{String, String
 
 _pages::Vector{Page} = [
     "Home" => "index.md",
-    "Example" => "examples.md"
+    "Getting started" => "intro.md",
+    "Brief description of the algorithm" => "algorithm.md"
 ]
 
 
@@ -123,12 +120,12 @@ function add_sge_pages()
      push!(_pages, "SpinGlassEngine" => eval(Meta.parse(s)))
 end
 
-add_sge_pages()
 add_sgn_pages()
+add_sge_pages()
 add_sgt_pages()
 # =================================
 makedocs(
-    clean = true,
+    # clean = true,
     format = format,
     modules=[SpinGlassPEPS, SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine],
     sitename = "SpinGlassPEPS.jl",
@@ -138,12 +135,6 @@ makedocs(
 #     include("../../faketravis.jl")
 # end
 
-# deploydocs(
-#     #root = "github.com/iitis/SpinGlassPEPS.jl/tree/ad/docs",
-#     #repo = "github.com/iitis/SpinGlassPEPS.jl.git",
-#     repo = "github.com/iitis/SpinGlassPEPS.jl.git",
-#     branch = "ad/docs",
-#     devbranch = "ad/docs"
-#     #devbranch = "lp/docs-example",
-#     #branch = "ad/docs"
-# )
+deploydocs(
+    repo = "github.com/euro-hpc-pl/SpinGlassPEPS.jl.git",
+)

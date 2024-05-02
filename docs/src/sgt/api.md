@@ -6,29 +6,16 @@ CurrentModule = SpinGlassTensors
 ```
 ## Additional methods for `Base` and `LinearAlgebra`
 ```@docs
-dot
-norm
-randn
-rank
+left_nbrs_site
+right_nbrs_site
+project_ket_on_bra
 ```
-
 ## MPS
-```@docs
-MPS
-is_left_normalized
-is_right_normalized
-physical_dim
-verify_bonds
-verify_physical_dims
-```
+
 
 ## Compresions and Contractions
-
 ```@docs
-canonise!
-compress!
-left_env
-right_env
-truncate!
-
+update_env_left
+update_env_right
+update_reduced_env_right
 ```
