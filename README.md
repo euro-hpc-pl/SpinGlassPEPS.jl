@@ -1,3 +1,2 @@
-[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://iitis.github.io/SpinGlassPEPS.jl/dev/)
-[![Build Status](https://travis-ci.org/iitis/SpinGlassPEPS.jl.svg?branch=master)](https://travis-ci.org/iitis/SpinGlassPEPS.jl)
-[![Coverage Status](https://coveralls.io/repos/github/iitis/SpinGlassPEPS.jl/badge.svg?branch=master)](https://coveralls.io/github/iitis/SpinGlassPEPS.jl?branch=master)
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://euro-hpc-pl.github.io/SpinGlassPEPS.jl/dev/)
+[![Coverage Status](https://coveralls.io/repos/github/euro-hpc-pl/SpinGlassPEPS.jl/badge.svg?branch=master)](https://coveralls.io/github/euro-hpc-pl/SpinGlassPEPS.jl?branch=master)
