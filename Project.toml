@@ -15,7 +15,7 @@ SpinGlassEngine = "1.0.2"
 SpinGlassExhaustive = "1.0.0"
 SpinGlassNetworks = "1.1.2"
 SpinGlassTensors = "1.1.2"
-julia = "1.9, 1.10"
+julia = "1.10"
 
 [extras]
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
