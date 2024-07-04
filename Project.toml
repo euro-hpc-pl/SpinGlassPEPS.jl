@@ -1,6 +1,6 @@
 name = "SpinGlassPEPS"
 uuid = "2c514f87-1261-494e-8566-326879aaf4fe"
-version = "1.0.1"
+version = "1.1.0"
 
 [deps]
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
