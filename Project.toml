@@ -1,6 +1,6 @@
 name = "SpinGlassPEPS"
 uuid = "2c514f87-1261-494e-8566-326879aaf4fe"
-version = "1.0.0"
+version = "1.1.0"
 
 [deps]
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
@@ -11,11 +11,11 @@ SpinGlassTensors = "7584fc6a-5a23-4eeb-8277-827aab0146ea"
 
 [compat]
 Reexport = "1.0"
-SpinGlassEngine = "1.0.1"
+SpinGlassEngine = "1.1.0"
 SpinGlassExhaustive = "1.0.0"
 SpinGlassNetworks = "1.1.2"
-SpinGlassTensors = "1.1.1"
-julia = "1.9, 1.10"
+SpinGlassTensors = "1.1.2"
+julia = "1.10"
 
 [extras]
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
