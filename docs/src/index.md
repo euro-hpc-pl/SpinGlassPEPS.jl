@@ -36,7 +36,8 @@ The package `SpinGlassPEPS.jl` includes:
 ## Citing SpinGlassPEPS.jl
 If you use `SpinGlassPEPS.jl` for academic research and wish to cite it, please use the following paper:
 
-K. Jałowiecki, K. Domino, A. M. Dziubyna, M. M. Rams, B. Gardas and Ł. Pawela, *“SpinGlassPEPS.jl: software to emulate quantum annealing processors”*
+Tomasz Śmierzchalski, Anna M. Dziubyna, Konrad Jałowiecki, Zkaria Mzaouali, Łukasz Pawela, Bartłomiej Gardas and Marek M. Rams, *“SpinGlassPEPS.jl: software to emulate quantum annealing processors”*
+*“SpinGlassPEPS.jl: low-energy solutions for near-term quantum annealers"*
 
 ## Contributing
 Contributions are always welcome:
