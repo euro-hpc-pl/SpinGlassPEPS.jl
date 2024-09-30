@@ -11,17 +11,17 @@ prune
 couplings
 ```
 
-## Clustered Hamiltonian
+## Potts Hamiltonian
 ```@docs
 split_into_clusters
-decode_clustered_hamiltonian_state
+decode_potts_hamiltonian_state
 rank_reveal
 energy
 energy_2site
 cluster_size
 bond_energy
 exact_cond_prob
-truncate_clustered_hamiltonian
+truncate_potts_hamiltonian
 ```
 
 ## Belief propagation
@@ -31,7 +31,7 @@ interaction_energy
 get_neighbors
 MergedEnergy
 update_message
-merge_vertices_cl_h
+merge_vertices_potts_h
 projector
 SparseCSC
 ```
@@ -54,8 +54,8 @@ brute_force
 
 ## Truncate
 ```@docs
-truncate_clustered_hamiltonian_1site_BP
-truncate_clustered_hamiltonian_2site_energy
+truncate_potts_hamiltonian_1site_BP
+truncate_potts_hamiltonian_2site_energy
 select_numstate_best
 ```
 
