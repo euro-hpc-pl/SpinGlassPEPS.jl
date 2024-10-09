@@ -16,7 +16,7 @@ We assume that graph $\mathcal{E}$ forms a quasi-2D lattice. In real life applic
 ```@raw html
 <img src="../images/lattice.png" width="200%" class="center"/>
 ```
-In order to adress this three types of geometries using tensor networks, we represent the problem as a clustered Hamiltonian. To that end we group together sets of variables. In this framework Ising problem translates to:
+In order to adress this three types of geometries using tensor networks, we represent the problem as a Potts Hamiltonian. To that end we group together sets of variables. In this framework Ising problem translates to:
 ```math
 H(\underline{x}_{\bar{N}}) = \sum_{\langle m,n\rangle \in \mathcal{F}} E_{x_m x_n} + \sum_{n=1}^{\bar{N}} E_{x_n}
 ```
