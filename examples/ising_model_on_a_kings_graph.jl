@@ -26,15 +26,8 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
             m, n, potts_h, transform,
         )
 
-        ctr = MpsContractor{SVDTruncate, NoUpdate, T}(
-            net, params; 
-            onGPU = false, beta = T(2), graduate_truncation = true,
-        )
-
-        # After update to SpinGlassEngine 1.5
-        # ctr = MpsContractor(SVDTruncate, net, params; 
-        # onGPU = false, beta = T(2), graduate_truncation = true,
-        # )
+        ctr = MpsContractor(SVDTruncate, net, params; 
+        onGPU = false, beta = T(2), graduate_truncation = true)
 
         droplets = SingleLayerDroplets(; max_energy = 10, min_size = 5, metric = :hamming)
         merge_strategy = merge_branches(
