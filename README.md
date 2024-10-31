@@ -21,12 +21,12 @@ The package `SpinGlassPEPS.jl` includes:
 
 * `SpinGlassNetworks.jl` - Package  facilitating the generation of an Ising graph from a given instance using a set of standard inputs (e.g., instances compatible with the Ocean environment provided by D-Wave) and suports clustering to create effective Potts Hamiltonians
 
-* `SpinGlassEngine.jl` - The main package , consisting of routines for executing the branch-and-bound method (with the ability to leverage the problem’s locality) for a given Potts instance. It also includes capabilities for reconstructing the low-energy spectrum from identified localized excitations and provides a tensor network constructor.
+* `SpinGlassEngine.jl` - The main package, consisting of routines for executing the branch-and-bound method (with the ability to leverage the problem’s locality) for a given Potts instance. It also includes capabilities for reconstructing the low-energy spectrum from identified localized excitations and provides a tensor network constructor.
 
 
 # Code Example
 
-Breakdown of this example can be found in the documentation.
+A breakdown of this example can be found in the documentation.
 
 ```@julia
 using SpinGlassPEPS
@@ -88,7 +88,7 @@ T = Float64
 
 # Citing
 
-Article decribing this package and code
+Article describing this package and code.
 ```
 @article{SpinGlassPEPS.jl,
     author = {Tomasz \'{S}mierzchalski and Anna Maria Dziubyna and Konrad Ja\l{}owiecki and Zakaria
@@ -99,7 +99,7 @@ Article decribing this package and code
 }
 ```
 
-Article describing in detail used algorithms and containing extensive benchmarks
+Article describing in detail used algorithms and containing extensive benchmarks.
 ```
 @article{SpinGlassPEPS, 
     author = {Anna Maria Dziubyna and Tomasz \'{S}mierzchalski and Bart\l{}omiej Gardas and Marek M. Rams and Masoud Mohseni},
