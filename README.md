@@ -9,9 +9,12 @@
 Welcome to `SpinGlassPEPS.jl`, an open-source Julia package designed for heuristically finding low-energy configurations of generalized Potts models, including Ising and QUBO (Quadratic Unconstrained Binary Optimization) problems. It utilizes heuristic tensor network contraction algorithms on quasi-2D geometries, such as the graphs describing the structure of the D-Waves QPU processor.
 </div>
 
->
-> **_IMPORTANT:_**  Right now, this package supports only julia 1.10
->
+---
+ **_IMPORTANT:_** 
+
+ Right now, this package supports only julia 1.10
+
+---
 
 ## Package Description
 
