@@ -12,7 +12,7 @@ Welcome to `SpinGlassPEPS.jl`, an open-source Julia package designed for heurist
 ---
  **_IMPORTANT:_** 
 
- Right now, this package supports only julia 1.10
+Currently, this package supports Julia version 1.10 only
 
 ---
 
