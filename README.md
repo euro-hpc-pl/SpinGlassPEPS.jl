@@ -36,7 +36,7 @@ The package `SpinGlassPEPS.jl` includes:
 
 # Code Example
 
-A breakdown of this example can be found in the documentation.
+A breakdown of this example can be found in the documentation. To run provided examples, activate `Project.toml` file in "examples" folder.
 
 ```@julia
 using SpinGlassPEPS
