@@ -111,11 +111,14 @@ Article describing this package and code.
 
 Article describing in detail used algorithms and containing extensive benchmarks.
 ```
-@article{SpinGlassPEPS, 
+@misc{SpinGlassPEPS, 
     author = {Anna Maria Dziubyna and Tomasz \'{S}mierzchalski and Bart\l{}omiej Gardas and Marek M. Rams and Masoud Mohseni},
     title = {Limitations of tensor network approaches for optimization and sampling: A comparison against quantum and classical {Ising} machines},
-    journal = {},
-    year = {},
+    year = {2024},
+    eprint={2411.16431},
+    archivePrefix={arXiv},
+    primaryClass={cond-mat.dis-nn},
+    doi = {10.48550/arXiv.2411.16431} 
 }
 ```
 
