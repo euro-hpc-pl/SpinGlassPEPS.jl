@@ -10,7 +10,7 @@ using SpinGlassNetworks
 
 function get_instance(topology::NTuple{3, Int})
     m, n, t = topology
-    "$(@__DIR__)/instances/square_diagonal/$(m)x$(n)x$(t).txt"
+    "$(@__DIR__)/instances/$(m)x$(n)x$(t).txt"
 end
 
 function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
@@ -30,7 +30,7 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
     )
 
     params = MpsParameters{T}(; bond_dim = 16, num_sweeps = 1)
-    search_params = SearchParameters(; max_states = 2^8, cut_off_prob = 1E-4)
+    search_params = SearchParameters(; max_states = 2^8, cutoff_prob = 1E-4)
 
     for transform ∈ all_lattice_transformations
         net = PEPSNetwork{KingSingleNode{GaugesEnergy}, Dense, T}(
@@ -41,12 +41,18 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
             onGPU = false, beta = T(2), graduate_truncation = true,
         )
 
-        single = SingleLayerDroplets(eng, hamming_dist, :hamming)
+        droplets = SingleLayerDroplets(; max_energy = 10, min_size = 5, metric = :hamming)
         merge_strategy = merge_branches(
-            ctr; merge_type = :nofit, update_droplets = single,
+            ctr; merge_prob = :none , droplets_encoding = droplets,
         )
 
         sol, _ = low_energy_spectrum(ctr, search_params, merge_strategy)
+        sol2 = unpack_droplets(sol, T(2))
+        ig_states = decode_potts_hamiltonian_state.(Ref(potts_h), sol2.states)
+        ldrop = length(sol2.states)
+
+        println("Number of droplets for transform $(transform) is $(ldrop)")
+        println("Droplet energies: $(sol2.energies)")
 
         push!(best_energies, sol.energies[1])
         clear_memoize_cache()
