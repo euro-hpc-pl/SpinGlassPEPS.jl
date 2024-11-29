@@ -100,12 +100,12 @@ Here, `ising_graph(instance)` reads the Ising graph from the file and the spins 
 To control the complexity and accuracy of the simulation, we define several parameters:
 ```@julia
 params = MpsParameters{T}(; bond_dim = 16, num_sweeps = 1)
-search_params = SearchParameters(; max_states = 2^8, cut_off_prob = 1E-4)
+search_params = SearchParameters(; max_states = 2^8, cutoff_prob = 1E-4)
 ```
 * `bond_dim = 16`: The bond dimension for the tensor network.
 * `num_sweeps = 1`: Number of sweeps during variational compression.
 * `max_states = 2^8`: Maximum number of states considered during the search.
-* `cut_off_prob = 1E-4`: The cutoff probability specifies the probability below which states are discarded from further consideration.
+* `cutoff_prob = 1E-4`: The cutoff probability specifies the probability below which states are discarded from further consideration.
 
 #### Tensor network construction and contraction
 The tensor network representation of the system is created using the `PEPSNetwork` structure:
@@ -136,10 +136,10 @@ onGPU = true
 #### Searching for excitations
 The branch-and-bound search algorithm is used to find low-energy excitations:
 ```@julia
-single = SingleLayerDroplets(eng, hamming_dist, :hamming)
-merge_strategy = merge_branches(ctr; merge_type = :nofit, update_droplets = single)
+droplets = SingleLayerDroplets(; max_energy = 10, min_size = 5, metric = :hamming)
+merge_strategy = merge_branches(ctr; merge_prob = :none , droplets_encoding = droplets)
 ```
-Here, the parameter `eng` sets the energy range within which we look for excitations above the ground state. The `hamming_dist` parameter enforces a minimum Hamming distance between excitations, ensuring that the algorithm searches for distinct, independent excitations.
+Here, the parameter `max_energy` sets the energy range within which we look for excitations above the ground state. The `min_size` parameter enforces a minimum Hamming distance between excitations, ensuring that the algorithm searches for distinct, independent excitations.
 The optional `merge_branches` function allows us to identify spin glass droplets.
 
 #### Multiple lattice transformations
