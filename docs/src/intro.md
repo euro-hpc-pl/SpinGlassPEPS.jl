@@ -46,7 +46,7 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
             ctr; merge_prob = :none , droplets_encoding = droplets,
         )
 
-        sol, _ = low_energy_spectrum(ctr, search_params, merge_strategy)
+        sol, schmidts = low_energy_spectrum(ctr, search_params, merge_strategy)
         sol2 = unpack_droplets(sol, T(2))
         ig_states = decode_potts_hamiltonian_state.(Ref(potts_h), sol2.states)
         ldrop = length(sol2.states)
@@ -86,7 +86,7 @@ m, n, _ = topology
 This defines a 3x3 grid with clusters of size 2.
 
 #### Defining the Hamiltonian
-Then we map the Ising problem to a Potts Hamiltonian defined on a king’s graph (`super_square_lattice`):
+Then we map the Ising problem to an effective Potts Hamiltonian defined on a king’s graph (`super_square_lattice`):
 ```@julia
 potts_h = potts_hamiltonian(
 ising_graph(instance),
@@ -94,7 +94,7 @@ spectrum = full_spectrum,
 cluster_assignment_rule = super_square_lattice(topology),
 )
 ```
-Here, `ising_graph(instance)` reads the Ising graph from the file and the spins are grouped into clusters based on the `super_square_lattice rule`.
+Here, `ising_graph(instance)` reads the Ising graph from the provided file and the spins are grouped into clusters based on the `super_square_lattice` rule, which performs transformation of linear Ising spin indices to clustered hamiltonian coordinate system.
 
 #### Setting parameters
 To control the complexity and accuracy of the simulation, we define several parameters:
@@ -112,7 +112,7 @@ The tensor network representation of the system is created using the `PEPSNetwor
 ```@julia
 net = PEPSNetwork{KingSingleNode{GaugesEnergy}, Dense, T}(m, n, potts_h, transform)
 ```
-This constructs a PEPS network based on the `KingSingleNode`, which specifies the type of the node used within the tensor networks. The layout `GaugesEnergy` defines how the tensor network is divided into boundary Matrix Product States (MPSs). 
+This constructs a PEPS network based on the `KingSingleNode`, which specifies the type of the node used within the tensor networks. The layout `GaugesEnergy` defines how the tensor network is divided into Matrix Product Operators (MPO). 
 Other control parameter includes `Sparsity` which determines whether dense or sparse tensors should be used. In this example, as we apply small clusters containing two spins, we can use `Dense` mode. The parameter `T` represents the data type used for numerical calculations. In this example, we set: 
 ```@julia
 T = Float64
@@ -154,9 +154,11 @@ This loop applies all possible transformations (rotations and reflections) to th
 #### Low-energy spectrum calculation
 Finally, the low-energy spectrum is calculated with:
 ```@julia
-sol, _ = low_energy_spectrum(ctr, search_params, merge_strategy)
+sol, schmidts = low_energy_spectrum(ctr, search_params, merge_strategy)
+sol2 = unpack_droplets(sol, T(2))
+ig_states = decode_potts_hamiltonian_state.(Ref(potts_h), sol2.states)
 ```
-This function returns the low-energy states found during the search.
+This function returns the Solution structure `sol` along with the `schmidts` - smallest retained singular value of boundary MPSs. In the Solution structure one can find not only states with the lowest energy, their probabilities and largest probability discarded during the search, but also spin-glass droplets build on the top of the low energy state. To reconstruct the low-energy spectrum from identified localized excitation one can use `unpack_droplets` function. In the `Solution` structure, we store the states according to the language of the clustered Potts Hamiltonian. To return to Ising spins, the Potts states are decoded using the `decode_potts_hamiltonian_state` function.
 
 ### Expected output
 The output of this example should print the best energy found during the optimization:
