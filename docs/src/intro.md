@@ -158,7 +158,7 @@ sol, schmidts = low_energy_spectrum(ctr, search_params, merge_strategy)
 sol2 = unpack_droplets(sol, T(2))
 ig_states = decode_potts_hamiltonian_state.(Ref(potts_h), sol2.states)
 ```
-This function returns the Solution structure `sol` along with the `schmidts` - smallest retained singular value of boundary MPSs. In the Solution structure one can find not only states with the lowest energy, their probabilities and largest probability discarded during the search, but also spin-glass droplets build on the top of the low energy state. To reconstruct the low-energy spectrum from identified localized excitation one can use `unpack_droplets` function. In the `Solution` structure, we store the states according to the language of the clustered Potts Hamiltonian. To return to Ising spins, the Potts states are decoded using the `decode_potts_hamiltonian_state` function.
+This function returns the Solution structure `sol` along with the `schmidts` - smallest retained singular value of boundary MPSs. In the Solution structure one can find not only states with the lowest energy, their probabilities and largest probability discarded during the search, but also spin-glass droplets build on the top of the low energy state. To reconstruct the low-energy spectrum from identified localized excitation one can use `unpack_droplets` function. In the `Solution` structure, we store the states build from Pottts variables of higher dimensions. To return to binary Ising spins, the Potts states are decoded using the `decode_potts_hamiltonian_state` function.
 
 ### Expected output
 The output of this example should print the best energy found during the optimization:

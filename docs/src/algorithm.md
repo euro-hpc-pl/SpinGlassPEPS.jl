@@ -1,6 +1,9 @@
 # Brief description of the algorithm
-We consider tensor network based algorithm for finding ground state configurations of quasi-2D Ising problems. We employ tensor networks to represent the Gibbs distribution [1]. Then we use approximate tensor network contraction to efficiently identify the low-energy spectrum of some quasi-two-dimensional Hamiltonians [2].
+SpinGlassPEPS.jl is a specialized package developed for finding low-energy configurations in optimization problems such as Ising models and Quadratic Unconstrained Binary Optimization (QUBO) [1, 2]. By leveraging Projected Entangled Pair States (PEPS) tensor networks, the algorithm efficiently represents the Boltzmann distribution [5], enabling heuristic exploration of quasi-2D problem spaces. In particular, this approach is tailored to tackle the challenges posed by graph geometries relevant to modern quantum annealing devices, such as the Pegasus and Zephyr graphs employed by D-Wave systems.
 
+This section builds upon the broader methodology outlined in the analysis of tensor-network limitations in solving large-scale Ising problems on Pegasus and Zephyr geometries​ [1].
+
+## Problem representation
 Let us consider a classical Ising Hamiltonian
 ```math
 H(\underline{s}_N) =  \sum_{\langle i, j\rangle \in \mathcal{E}} J_{ij} s_i s_j + \sum_{i =1}^N J_{ii} s_i
@@ -56,8 +59,12 @@ Branch and bound search relies on the calculation of conditional probabilities. 
 
 ## References & Related works
 
-1. "Two-Dimensional Tensor Product Variational Formulation" T. Nishino, Y. Hieida, K. Okunishi, N. Maeshima, Y. Akutsu, A. Gendiar, [Progr. Theor. Phys. 105, 409 (2001)](https://academic.oup.com/ptp/article/105/3/409/1834124)
+1. "Limitations of tensor network approaches for optimization and sampling: A comparison against quantum and classical Ising machines" A.M. Dziubyna, T. Śmierzchalski, B. Gardas, M.M. Rams, M. Mohseni [arXiv:2411.16431] (https://arxiv.org/abs/2411.16431)
 
-2. "Approximate optimization, sampling, and spin-glass droplet discovery with tensor networks" Marek M. Rams, Masoud Mohseni, Daniel Eppens, Konrad Jałowiecki, Bartłomiej Gardas [Phys. Rev. E 104, 025308 (2021)](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.104.025308) or arXiv version [arXiv:1811.06518](https://arxiv.org/abs/1811.06518)
+2. "SpinGlassPEPS.jl: low-energy solutions for near-term quantum annealers" T. Śmierzchalski, A.M. Dziubyna, K. Jałowiecki, Z. Mzaouali, Ł. Pawela, B. Gardas, M.M. Rams []
 
-3. [tnac4o](https://github.com/marekrams/tnac4o/tree/master)
+3. "Approximate optimization, sampling, and spin-glass droplet discovery with tensor networks" Marek M. Rams, Masoud Mohseni, Daniel Eppens, Konrad Jałowiecki, Bartłomiej Gardas [Phys. Rev. E 104, 025308 (2021)](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.104.025308) or arXiv version [arXiv:1811.06518](https://arxiv.org/abs/1811.06518)
+
+4. [tnac4o](https://github.com/marekrams/tnac4o/tree/master)
+
+5. "Two-Dimensional Tensor Product Variational Formulation" T. Nishino, Y. Hieida, K. Okunishi, N. Maeshima, Y. Akutsu, A. Gendiar, [Progr. Theor. Phys. 105, 409 (2001)](https://academic.oup.com/ptp/article/105/3/409/1834124)
