@@ -1,14 +1,17 @@
 # Branch and bound search
-Here you find the main function of the package, which is an actual solver.
+Here you find the main function of the package, which is an actual branch and bound solver.
 
 ```@docs
 low_energy_spectrum
 merge_branches
 merge_branches_blur
 ```
-Results of the branch and bound search are stored in a Solution structure.
+
+# Output structure
+Results of the branch and bound search are stored in a `Solution` structure. To decode Potts Hamiltonian states into binary Ising states one can use `decode_potts_hamiltonian_state` function.
 ```@docs
 Solution
+SpinGlassNetworks.decode_potts_hamiltonian_state
 ```
 
 # Droplet search
@@ -22,4 +25,5 @@ This behavior is controlled by two key parameters:
 By adjusting these parameters, users can search for different excitations while ensuring that only sufficiently distinct ones are included.
 ```@docs
 SingleLayerDroplets
+unpack_droplets
 ```
