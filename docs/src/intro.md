@@ -5,21 +5,18 @@ Before diving into the documentation for the provided functionalities, let's dem
 In this example, we demonstrate how to use the `SpinGlassPEPS.jl` package to calculate a low-energy spectrum for a spin glass Hamiltonian defined on a square lattice with diagonal interactions. 
 
 ```@julia
-using SpinGlassEngine
-using SpinGlassNetworks
+using SpinGlassPEPS
 
 function get_instance(topology::NTuple{3, Int})
     m, n, t = topology
     "$(@__DIR__)/instances/$(m)x$(n)x$(t).txt"
 end
 
+
 function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
     m, n, _ = topology
     instance = get_instance(topology)
     lattice = super_square_lattice(topology)
-
-    hamming_dist = 5
-    eng = 10
 
     best_energies = T[]
 
@@ -47,12 +44,11 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
         )
 
         sol, schmidts = low_energy_spectrum(ctr, search_params, merge_strategy)
-        sol2 = unpack_droplets(sol, T(2))
-        ig_states = decode_potts_hamiltonian_state.(Ref(potts_h), sol2.states)
-        ldrop = length(sol2.states)
+        droplets = unpack_droplets(sol, T(2))
+        ig_states = decode_potts_hamiltonian_state.(Ref(potts_h), droplets.states)
+        ldrop = length(droplets.states)
 
         println("Number of droplets for transform $(transform) is $(ldrop)")
-        println("Droplet energies: $(sol2.energies)")
 
         push!(best_energies, sol.energies[1])
         clear_memoize_cache()
@@ -63,6 +59,7 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
 
     println("Best energy found: $(ground)")
 end
+
 
 T = Float64
 @time run_square_diag_bench(T; topology = (3, 3, 2))
@@ -155,13 +152,13 @@ This loop applies all possible transformations (rotations and reflections) to th
 Finally, the low-energy spectrum is calculated with:
 ```@julia
 sol, schmidts = low_energy_spectrum(ctr, search_params, merge_strategy)
-sol2 = unpack_droplets(sol, T(2))
-ig_states = decode_potts_hamiltonian_state.(Ref(potts_h), sol2.states)
+droplets = unpack_droplets(sol, T(2))
+ig_states = decode_potts_hamiltonian_state.(Ref(potts_h), droplets.states)
 ```
-This function returns the Solution structure `sol` along with the `schmidts` - smallest retained singular value of boundary MPSs. In the Solution structure one can find not only states with the lowest energy, their probabilities and largest probability discarded during the search, but also spin-glass droplets build on the top of the low energy state. To reconstruct the low-energy spectrum from identified localized excitation one can use `unpack_droplets` function. In the `Solution` structure, we store the states build from Pottts variables of higher dimensions. To return to binary Ising spins, the Potts states are decoded using the `decode_potts_hamiltonian_state` function.
+This function returns the Solution structure `sol` along with the `schmidts` - smallest retained singular value of boundary MPSs. In the Solution structure one can find not only states with the lowest energy, their probabilities and largest probability discarded during the search, but also spin-glass droplets build on the top of the low energy state. To reconstruct the low-energy spectrum from identified localized excitation one can use `unpack_droplets` function. In the `Solution` structure, we store the states build from Potts variables of higher dimensions. To return to binary Ising spins, the Potts states are decoded using the `decode_potts_hamiltonian_state` function.
 
 ### Expected output
-The output of this example should print the best energy found during the optimization:
+The output of this example should print number of droplets found during each transformation and the best energy found during the optimization:
 
 ```@julia
 println("Best energy found: $(ground)")
