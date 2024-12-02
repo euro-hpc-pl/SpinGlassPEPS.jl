@@ -11,9 +11,6 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
     instance = get_instance(topology)
     lattice = super_square_lattice(topology)
 
-    hamming_dist = 5
-    eng = 10
-
     best_energies = T[]
 
     potts_h = potts_hamiltonian(

@@ -53,7 +53,8 @@ const Page = Union{Pair{String, String}, Pair{String, Vector{Pair{String, String
 _pages::Vector{Page} = [
     "Home" => "index.md",
     "Getting started" => "intro.md",
-    "Brief description of the algorithm" => "algorithm.md"
+    "Brief description of the algorithm" => "algorithm.md",
+    "More examples" => "examples.md"
 ]
 
 
@@ -123,6 +124,7 @@ end
 add_sgn_pages()
 add_sge_pages()
 add_sgt_pages()
+push!(_pages, "More examples" => "examples.md")
 # =================================
 makedocs(
     # clean = true,
