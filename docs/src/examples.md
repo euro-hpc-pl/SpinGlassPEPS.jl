@@ -3,8 +3,8 @@ In this section, we present a few examples demonstrating the functionality of `S
 
 The full list of examples, including detailed code and visualizations, can be found on the [GitHub](https://github.com/euro-hpc-pl/SpinGlassPEPS.jl/tree/master/examples).
 
-## Random Markov Field
-This example demonstrates how to solve a Random Markov Field (RMF) optimization problem using `SpinGlassPEPS.jl`. The process involves constructing a Potts Hamiltonian, setting up a tensor network, and using contraction methods to compute the low-energy spectrum of the system. The result includes the ground state energy and the corresponding configurations.
+## Inpainting
+This example demonstrates how to solve an [inpainting](https://en.wikipedia.org/wiki/Inpainting) problem  using `SpinGlassPEPS.jl`. 
 
 ```@julia
 using SpinGlassPEPS
@@ -40,8 +40,7 @@ sol = bench_inpaining(Float64, 6, 64, 4)
 This example demonstrates how to perform an optimization on the Pegasus lattice with 216 spins using `SpinGlassPEPS.jl`. It is a computationally demanding example that involves truncating cluster states from 2^24 to the 2^16  most probable states. The example requires GPU support for efficient computation and may take several minutes to complete.
 
 ```@julia
-using SpinGlassEngine
-using SpinGlassNetworks
+using SpinGlassPEPS
 
 function run_pegasus_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
     m, n, t = topology

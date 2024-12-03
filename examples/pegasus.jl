@@ -1,5 +1,5 @@
-using SpinGlassEngine
-using SpinGlassNetworks
+using SpinGlassPEPS
+
 
 function run_pegasus_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
     m, n, t = topology
