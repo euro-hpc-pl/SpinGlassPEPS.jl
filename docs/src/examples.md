@@ -90,7 +90,7 @@ T = Float64
 
 ### Key steps
 * The Potts Hamiltonian is constructed from an Ising graph build based on the input file (`P4_CBFM-P.txt`).
-* The Hamiltonian is then truncated using a `truncate_potts_hamiltonian` function, keeping only the most probable states, with the number of states reduced from 2^24 to 2^16 . This truncation significantly reduces the numerical ccost of the subsequent  tensor network contraction. Note thet, this is optional step.
+* The Hamiltonian is then truncated using a truncate_potts_hamiltonian function, keeping only the most probable states, with the number of states in every cluster reduced from 2^24 to 2^16 . This truncation significantly reduces the numerical cost of the subsequent tensor network contraction. Note that, this is optional step.
 * A PEPS (Projected Entangled Pair States) network is created with a `SquareCrossDoubleNode` and `GaugesEnergy` for representing the system on the lattice. 
 * Structures such as `MpsParameters` and  `SearchParameters` stores the information about e.g. a predefined bond dimension and a number of states considered during the search.
 * `MpsContractor` stores information needed in subsequent tensor network contraction. The contraction is performed using a `Zipper` method for optimizing boundary MPS. 
