@@ -13,7 +13,7 @@ Welcome to `SpinGlassPEPS.jl`, a open-source Julia package designed for heuristi
 ## Overview
 In this section we will provide a condensed overview of the package.
 
-`SpinGlassPEPS.jl` is a collection of Julia packages bundled together under a single package `SpinGlassPEPS.jl`. It can be installed using the Julia package manager for Julia v1.10 (TODO: update to Julia v1.11). Inside the Julia REPL, type ] to enter the Pkg REPL mode and then run
+`SpinGlassPEPS.jl` is a collection of Julia packages bundled together under a single package `SpinGlassPEPS.jl`. It can be installed using the Julia package manager for Julia v1.10. Inside the Julia REPL, type ] to enter the Pkg REPL mode and then run
 ```julia
 using Pkg; 
 Pkg.add("SpinGlassPEPS")
