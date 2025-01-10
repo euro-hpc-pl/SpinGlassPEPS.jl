@@ -1,4 +1,5 @@
 using SpinGlassPEPS
+using CUDA
 using Pkg
 using Logging
 
@@ -17,6 +18,7 @@ end
 disable_logging(LogLevel(1))
 
 instance = "$(@__DIR__)/instances/triplepoint4-plain-ring.h5"
+onGPU = CUDA.has_cuda_gpu()
 
 GEOMETRY = SquareSingleNode
 LAYOUT = GaugesEnergy
@@ -30,7 +32,7 @@ function bench_inpaining(::Type{T}, β::Real, max_states::Integer, bond_dim::Int
 	params = MpsParameters{T}(; bond_dim = bond_dim, method = :svd)
 	search_params = SearchParameters(; max_states = max_states)
 	net = PEPSNetwork{GEOMETRY{LAYOUT}, SPARSITY, T}(120, 120, potts_h, rotation(0))
-	ctr = MpsContractor{STRATEGY, GAUGE, T}(net, params; onGPU = true, beta = convert(Float64, β), graduate_truncation = true)
+	ctr = MpsContractor{STRATEGY, GAUGE, T}(net, params; onGPU = onGPU, beta = convert(Float64, β), graduate_truncation = true)
     droplets = SingleLayerDroplets(; max_energy = 100, min_size = 100 , metric = :hamming, mode=:RMF)
 	merge_strategy = merge_branches(ctr; merge_prob = :none, droplets_encoding = droplets)
 
