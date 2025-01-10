@@ -1,4 +1,4 @@
-# Matrix Product States and Matrix Product Operations
+# Matrix Product States and Matrix Product Operators
 
 ```@docs
 MpoTensor

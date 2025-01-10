@@ -1,10 +1,8 @@
 # Introduction
-A clustered Hamiltonian is a graphical representation that allows for a convenient and intuitive way to describe the structure of a network.
-
-The concept of a clustered Hamiltonian within `SpinGlassNetworks.jl` introduces a mechanism for organizing spins into desired geometries, facilitating a structured approach to modeling complex spin systems. Analogous to a standard factor graph, the clustered Hamiltonian involves nodes that represent tensors within the underlying network. The edges connecting these nodes in the clustered Hamiltonian correspond to the indices shared between the respective tensors in the tensor network.
+In `SpinGlassNetworks.jl`, the Potts Hamiltonian serves as a framework for transforming Ising graphs into clustered representations, enabling efficient modeling of complex spin systems. Instead of treating individual spins as separate variables, spins are grouped into clusters corresponding to unit cells of a given lattice geometry. This process reduces the number of variables while increasing their dimensionality, making the system more manageable for tensor-network-based approaches.
 
 ```@docs
-clustered_hamiltonian
+potts_hamiltonian
 ```
 
 ## Simple example
@@ -12,12 +10,12 @@ clustered_hamiltonian
 ```@example
 using SpinGlassNetworks
 
-# Prepare simple instance
+# Load instance
 instance = "$(@__DIR__)/../../src/instances/square_diagonal/5x5/diagonal.txt"
 ig = ising_graph(instance)
 
-# Create clustered Hamiltonian
-cl_h = clustered_hamiltonian(
+# Create Potts Hamiltonian
+potts_h = potts_hamiltonian(
     ig,
     cluster_assignment_rule = super_square_lattice((5,5,4))
 )
