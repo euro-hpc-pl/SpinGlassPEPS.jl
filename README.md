@@ -2,7 +2,7 @@
 
 | **Documentation** | **Digital Object Identifier** |
 |:-----------------:|:-----------------------------:|
-|[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://euro-hpc-pl.github.io/SpinGlassPEPS.jl/dev/)| [![Doi](https://img.shields.io/badge/docs-dev-blue.svg)](10.5281/zenodo.14627393)|
+|[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://euro-hpc-pl.github.io/SpinGlassPEPS.jl/dev/)| [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3245496.svg)](10.5281/zenodo.14627393)|
 
 
 <div align="justify">
