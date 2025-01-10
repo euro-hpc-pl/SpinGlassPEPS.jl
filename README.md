@@ -2,19 +2,13 @@
 
 | **Documentation** | **Digital Object Identifier** |
 |:-----------------:|:-----------------------------:|
-|[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://euro-hpc-pl.github.io/SpinGlassPEPS.jl/dev/)| TO DO |
+|[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://euro-hpc-pl.github.io/SpinGlassPEPS.jl/dev/)| [![Doi](https://img.shields.io/badge/docs-dev-blue.svg)](10.5281/zenodo.14627393)|
 
 
 <div align="justify">
 Welcome to `SpinGlassPEPS.jl`, an open-source Julia package designed for heuristically finding low-energy configurations of generalized Potts models, including Ising and QUBO (Quadratic Unconstrained Binary Optimization) problems. It utilizes heuristic tensor network contraction algorithms on quasi-2D geometries, such as the graphs describing the structure of the D-Waves QPU processor.
 </div>
 
----
- **_IMPORTANT:_** 
-
-Currently, this package supports Julia version 1.10 only
-
----
 
 ## Package Description
 
@@ -36,7 +30,7 @@ The package `SpinGlassPEPS.jl` includes:
 
 # Code Example
 
-A breakdown of this example can be found in the documentation. To run provided examples, activate `Project.toml` file in "examples" folder.
+A breakdown of this example can be found in the documentation. To run provided examples, activate and instantiate `Project.toml` file in "examples" folder.
 
 ```@julia
 using SpinGlassPEPS
