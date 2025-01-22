@@ -1,11 +1,10 @@
 # Lattice geometries
-The Ising graph serves as the starting point, allowing users to load instances directly from a file and translate them into a graph with vertices numerated using linear indices. To group spins into clusters for the Potts Hamiltonian, it is necessary to map these linear spin coordinates onto the corresponding coordinates of a Potts clusters in a specific lattice geometry. 
-
-The `SpinGlassNetworks.jl` package provides tools for mapping linear indices into three types of lattice geometries, enabling users to adapt the mapping process to the structure of the problem being analyzed. These geometries include super square lattice, Pegasus lattice, and Zephyr lattice, each optimized for specific topologies and applications. For example, in the Pegasus lattice, groups of 24 binary spins are clustered into a single Potts variable, while in the Zephyr lattice, clusters consist of 16 binary spins. 
+The Ising graph allowed for loading instances directly from a file and translating them into a graph. The next step towards constructing the tensor network is to build a lattice, based on which we will transform the Ising graph into a Potts Hamiltonian.
+Within the `SpinGlassNetworks.jl` package, users have the flexibility to construct three types of lattice geometries, each tailored to specific needs. 
 
 ## Super square lattice
-The `super_square_lattice` geometry defines a square lattice with interactions between nearest neighbors (horizontal and vertical connections between unit cells) and next-nearest neighbors (diagonal connections). In `super_square_lattice` function, linear indices of spins from the Ising graph are mapped onto a 2D super square lattice coordinate system (King's lattice). 
-Spins (denoted as black dots in the figure below) are grouped into clusters represented as red ellipses. Every spin in this cluster is indexed coresponding to the square lattice coordinate in the new graph with reduced number of variables of higher dimensions (shown on the right).
+The `super_square_lattice` geometry represents a square lattice with nearest neighbors interactions (horizontal and vertical interactions between unit cells) and next nearest neighbor interactions (diagonal interactions). Unit cells depicted on the schematic picture below as red ellipses can consist of multiple spins.
+This geometry allows for an exploration of spin interactions beyond the traditional square lattice framework. 
 ```@raw html
 <img src="../images/sd.png" width="200%" class="center"/>
 ```

@@ -54,6 +54,7 @@ Flip
 Droplet
 NoDroplets
 hamming_distance
+unpack_droplets
 perm_droplet
 filter_droplets
 my_push!
