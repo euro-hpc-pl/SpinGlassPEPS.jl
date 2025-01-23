@@ -1,5 +1,7 @@
 # Introduction
-In `SpinGlassNetworks.jl`, the Potts Hamiltonian serves as a framework for transforming Ising graphs into clustered representations, enabling efficient modeling of complex spin systems. Instead of treating individual spins as separate variables, spins are grouped into clusters corresponding to unit cells of a given lattice geometry. This process reduces the number of variables while increasing their dimensionality, making the system more manageable for tensor-network-based approaches.
+A Potts Hamiltonian is a graphical representation that allows for a convenient and intuitive way to describe the structure of a network.
+
+The concept of a Potts Hamiltonian within `SpinGlassNetworks.jl` introduces a mechanism for organizing spins into desired clustered geometries, facilitating a structured approach to modeling complex spin systems. 
 
 ```@docs
 potts_hamiltonian

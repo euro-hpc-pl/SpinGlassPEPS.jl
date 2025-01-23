@@ -1,40 +1,58 @@
 name: CI
 on:
-  pull_request:
+  push:
     branches:
       - master
+  pull_request:
   workflow_dispatch:
+env:
+  JULIA_NUM_THREADS: 2
 jobs:
   test:
-    name: Julia ${{ matrix.version }}
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: [self-hosted,titan,gpu]
     strategy:
       fail-fast: false
       matrix:
         version:
-          - '1.11'
+          - 1.11
+        os:
+          - ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
+      - uses: actions/cache@v3
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@latest
       - uses: julia-actions/julia-runtest@latest
-        env:
-          JULIA_NUM_THREADS: 4
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: lcov.info
-          parallel: true
-          flag-name: run-${{ matrix.version }}
-  finish:
-    needs: test
-    runs-on: [self-hosted,titan]
+      - uses: codecov/codecov-action@v4
+        with: 
+          file: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false  # or true if you want CI to fail when Codecov fails
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
     steps:
-      - name: Close parallel build
-        uses: coverallsapp/github-action@v1
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
         with:
-          parallel-finished: true
-          carryforward: "run-1.9,run-1.10"
+          version: '1.11'
+      - name: Install dependencies
+        run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Build and deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
+        run: julia --project=docs/ docs/make.jl

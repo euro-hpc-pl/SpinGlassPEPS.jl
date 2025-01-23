@@ -1,6 +1,6 @@
-```@meta
+<!-- ```@meta
 Author = "Tomasz Śmierzchalski, Anna M. Dziubyna, Konrad Jałowiecki, Zakaria Mzaouali, Łukasz Pawela, Bartłomiej Gardas and Marek M. Rams"
-```
+``` -->
 
 # Welcome to SpinGlassPEPS.jl documentation!
 
