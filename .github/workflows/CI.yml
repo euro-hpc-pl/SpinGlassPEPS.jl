@@ -10,7 +10,7 @@ env:
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
-    runs-on: ${{ matrix.os }}
+    runs-on: [self-hosted,titan,gpu]
     strategy:
       fail-fast: false
       matrix:
