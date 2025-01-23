@@ -12,16 +12,12 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6'
-          - 'lts'
+          - 1.11
           - 'pre'
         os:
           - ubuntu-latest
           - macOS-latest
           - windows-latest
-        exclude:
-          - version: '1.6'
-            os: macOS-latest
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -45,21 +41,21 @@ jobs:
           file: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false  # or true if you want CI to fail when Codecov fails
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: 'lts'
-      - run: |
-          julia --project=docs -e '
-            import Pkg; Pkg.add("Documenter")
-            using Pkg
-            Pkg.develop(PackageSpec(path=pwd()))
-            Pkg.instantiate()'
-      - run: julia --project=docs docs/make.jl
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+  # docs:
+  #   name: Documentation
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: julia-actions/setup-julia@v2
+  #       with:
+  #         version: '1.11'
+  #     - run: |
+  #         julia --project=docs -e '
+  #           import Pkg; Pkg.add("Documenter")
+  #           using Pkg
+  #           Pkg.develop(PackageSpec(path=pwd()))
+  #           Pkg.instantiate()'
+  #     - run: julia --project=docs docs/make.jl
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}

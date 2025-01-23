@@ -11,8 +11,8 @@ SpinGlassPEPS = "2c514f87-1261-494e-8566-326879aaf4fe"
 SpinGlassTensors = "7584fc6a-5a23-4eeb-8277-827aab0146ea"
 
 [compat]
-Documenter = "1.4.0"
-DocumenterTools = "0.1.19"
+Documenter = "1.8.0"
+DocumenterTools = "0.1.20"
 Graphs = "1.9.0"
 LabelledGraphs = "0.4.4"
 MetaGraphs = "0.7.2"
