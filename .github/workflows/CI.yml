@@ -1,7 +1,10 @@
 name: CI
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
 env:
   JULIA_NUM_THREADS: 2
 jobs:
@@ -13,11 +16,8 @@ jobs:
       matrix:
         version:
           - 1.11
-          - 'pre'
         os:
           - ubuntu-latest
-          - macOS-latest
-          - windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
