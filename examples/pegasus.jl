@@ -1,5 +1,7 @@
 using SpinGlassPEPS
+using CUDA
 
+onGPU = CUDA.has_cuda_gpu()
 
 function run_pegasus_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
     m, n, t = topology
@@ -18,13 +20,13 @@ function run_pegasus_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
     potts_h = truncate_potts_hamiltonian(potts_h, T(2), 2^16, results_folder, "P4_CBFM-P"; tol=1e-6, iter=2)
 
     params = MpsParameters{T}(bond_dim=16, num_sweeps=1)
-    search_params = SearchParameters(max_states=2^8, cutoff_prob=1e-4)
+    search_params = SearchParameters(max_states=2^10, cutoff_prob=1e-4)
 
     best_energies = T[]
 
     for transform in all_lattice_transformations
         net = PEPSNetwork{SquareCrossDoubleNode{GaugesEnergy}, Sparse, T}(m, n, potts_h, transform)
-        ctr = MpsContractor(Zipper, net, params; onGPU=true, beta=T(2), graduate_truncation=true)
+        ctr = MpsContractor(Zipper, net, params; onGPU=onGPU, beta=T(1), graduate_truncation=true)
 
         droplets = SingleLayerDroplets(max_energy=10, min_size=54, metric=:hamming)
         merge_strategy = merge_branches(ctr; merge_prob=:none, droplets_encoding=droplets)
