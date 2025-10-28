@@ -117,3 +117,10 @@ Article describing in detail used algorithms and containing extensive benchmarks
 ```
 
 Those citations are also in [`CITATION.bib`](CITATION.bib).
+
+
+This project was supported by:
+
+* The National Science Center (NCN), Poland, under Projects: Sonata Bis 10, No. 2020/38/E/ST3/00269 (T.S., Z.M.) and 2020/38/E/ST3/00150 (A.D., M.R.)
+* Foundation for Polish Science (grant no POIR.04.04.00-00-14DE/18-00 carried out within the Team-Net program co-financed by the European Union under the European Regional Development Fund) (B.G., Ł.P.).
+
