@@ -13,4 +13,4 @@ sysimage.so
 docs/build
 docs/src/sge
 docs/src/sgn
-docs/src/sgt
+docs/src/sgtbenchmark/results/

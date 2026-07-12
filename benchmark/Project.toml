@@ -1,0 +1,6 @@
+[deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+SpinGlassPEPS = "2c514f87-1261-494e-8566-326879aaf4fe"
+
+[sources]
+SpinGlassPEPS = {path = ".."}
