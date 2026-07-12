@@ -1,0 +1,39 @@
+name = "SpinGlassNetworks"
+uuid = "b7f6bd3e-55dc-4da6-96a9-ef9dbec6ac19"
+authors = ["Anna Maria Dziubyna <annamariadziubyna@gmail.com>", "Tomasz Śmierzchalski <smierzchalski.tomek@gmail.com>", "Bartłomiej Gardas <bartek.gardas@gmail.com>", "Konrad Jałowiecki <dexter2206@gmail.com>", "Łukasz Pawela <lukasz.pawela@gmail.com>", "Marek M. Rams <marekrams@gmail.com>"]
+version = "1.4.0"
+
+[deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+LabelledGraphs = "605abd48-4d17-4660-b914-d4df33194460"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MKL = "33e6dc65-8f57-5167-99aa-e5a354878fb2"
+MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SpinGlassTensors = "7584fc6a-5a23-4eeb-8277-827aab0146ea"
+
+[compat]
+CSV = "0.8"
+CUDA = "5"
+DocStringExtensions = "0.9"
+Graphs = "1.9.0"
+HDF5 = "0.17"
+JLD2 = "0.4"
+LabelledGraphs = "0.4.4"
+MKL = "0.4.2"
+MetaGraphs = "0.7"
+SparseArrays = "1.9"
+SpinGlassTensors = "1.2"
+julia = "1.11"
+
+[extras]
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Logging", "Test"]
