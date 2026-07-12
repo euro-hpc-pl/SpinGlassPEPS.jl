@@ -1,0 +1,5 @@
+.ipynb_checkpoints
+*.csv
+.idea
+Manifest.toml
+docs/build/

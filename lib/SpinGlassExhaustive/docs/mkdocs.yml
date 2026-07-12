@@ -1,0 +1,23 @@
+site_name:        SpinGlassExhaustive.jl
+repo_url:         https://github.com/euro-hpc-pl/SpinGlassExhaustive.jl.git
+site_description: A Julia package for brute-force spin-glass problems with CUDA.
+site_author:      Dariusz Kurzyk, Łukasz Pawela
+
+theme: readthedocs
+
+extra:
+  palette:
+    primary: 'indigo'
+    accent:  'blue'
+
+# extra_css:
+# - assets/Documenter.css
+
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML
+  - assets/mathjaxhelper.js
+
+docs_dir: 'build'
+
+pages:
+- Home: index.html
