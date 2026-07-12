@@ -7,8 +7,8 @@
     
     res_naive = SpinGlassNetworks.brute_force(ig)
     res_ising_bucket = exhaustive_search(ig)
-    
-    @test CUDA.@allowscalar res_ising_bucket.energies[1] ≈ res_ising_bucket.energies[1]
+
+    @test CUDA.@allowscalar res_ising_bucket.energies[1] ≈ minimum(res_naive.energies)
 
 end 
 
@@ -40,8 +40,8 @@ end
     qubo_energies = CUDA.zeros(2^N)
   
     threads = 512
-    blocks = cld(N, threads)
-  
+    blocks = cld(2^N, threads)
+
     @cuda blocks=blocks threads=threads kernel(cu_graph, energies)
   
     CUDA.@allowscalar cuda_min_energy = sort!(energies)[1]
@@ -63,7 +63,7 @@ end
     
     res_naive = SpinGlassNetworks.brute_force(ig)
     res_ising_bucket = exhaustive_search_bucket(ig)
-    
-    CUDA.@allowscalar @test res_ising_bucket.energies[1] ≈ res_ising_bucket.energies[1]
+
+    CUDA.@allowscalar @test res_ising_bucket.energies[1] ≈ minimum(res_naive.energies)
 
 end 

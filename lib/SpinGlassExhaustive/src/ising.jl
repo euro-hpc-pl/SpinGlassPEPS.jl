@@ -1,4 +1,4 @@
-export energy_qubo, energy, kernel, kernel_qubo, kernel_part, exhaustive_search, partial_exhaustive_search, exhaustive_search_bucket
+export energy_qubo, energy, kernel, kernel_qubo, exhaustive_search, exhaustive_search_bucket
 
 struct Spectrum
     energies::AbstractVector
@@ -146,14 +146,12 @@ function exhaustive_search(ig::IsingGraph)
     J = couplings(ig) + Diagonal(biases(ig))
     J_dev = CUDA.CuArray(J)
     
-    energies = CUDA.zeros(L)
-    
     N = size(J_dev,1)
-    
+
     energies = CUDA.zeros(2^N)
-    
+
     threads = 512
-    blocks = cld(N, threads)
+    blocks = cld(length(energies), threads)
     
     @cuda blocks=blocks threads=threads kernel(J_dev, energies)
     
@@ -263,9 +261,7 @@ function exhaustive_search_bucket(ig::IsingGraph, how_many::Int = 8)
     lowest_states_d = CUDA.zeros(Int64, how_many*2)
     
     threads = 512
-    blocks = cld(N, threads)
-
-
+    blocks = cld(length(energies_d), threads)
 
     for i in 1:2^(N-chunk_size)
 
