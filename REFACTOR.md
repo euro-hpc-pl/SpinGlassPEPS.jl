@@ -165,9 +165,18 @@ and SpinGlassDynamics are archived.
     budgets (halved Float32 batches; overflowed small GPUs): landed.
   - Zipper matvec PCIe crossings: **still open** — coupled to LowRankApprox's CPU Krylov
     vectors; needs a device-side randomized SVD (Phase 4+ follow-up).
-- [ ] **Phase 4 — kill global state.** `ContractionCache`/workspace owned by the contractor,
-  converting one `@memoize` function at a time; delete the `sparse` piracy; remove
-  Memoization. Then thread the 8-transform sweep (CPU) / one stream per transform (GPU).
+- [x] **Phase 4 — kill global state.** DONE (core): every `@memoize` in the stack replaced
+  by contractor-owned `ContractionCache{S}` with explicit row eviction and solve-end
+  release; `SparseArrays.sparse` piracy deleted (`projector_matrix` cached in
+  `PoolOfProjectors`); Memoization.jl removed from all dependencies;
+  `clear_memoize_cache*` kept as documented no-op shims. Full Engine suite + umbrella
+  green; benchmark: faster than memoize on every case (up to −5.9% time, −6.5% allocs —
+  no more hashing contractor+vector keys per lookup). Still open as follow-ups:
+  device-resident environments with deterministic freeing, threaded 8-transform sweep,
+  GPU-side randomized SVD for the zipper.
+- [x] **Phase 5 step 1 — accessor layer.** All 67 property reads across the stack go
+  through 12 accessor functions (`accessors.jl`); the MetaGraphs property bag is now an
+  implementation detail with a 12-function surface.
 - [ ] **Phase 5 — typed model layer.** `PottsHamiltonian{T}` with accessors mirroring today's
   `get_prop` call sites; migrate Networks internals, then Engine call sites; drop MetaGraphs;
   edge-driven belief propagation rewrite.
