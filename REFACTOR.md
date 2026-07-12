@@ -177,7 +177,15 @@ and SpinGlassDynamics are archived.
 - [x] **Phase 5 step 1 — accessor layer.** All 67 property reads across the stack go
   through 12 accessor functions (`accessors.jl`); the MetaGraphs property bag is now an
   implementation detail with a 12-function surface.
-- [ ] **Phase 5 — typed model layer.** `PottsHamiltonian{T}` with accessors mirroring today's
+- [x] **Phase 5 — typed model layer.** DONE for the standard (solver-facing) flavor:
+  `PottsHamiltonian{L,T,C,SP,OE}` with concrete typed fields (clusters, spectra,
+  `ClusterInteraction{T}` edge data, owned projector pool) over a SimpleDiGraph topology;
+  parametric `Spectrum{T,S}`/`MergedEnergy`; openGM loader eltype fixed; accessor layer
+  + MetaGraphs-compat `get_prop` shims keep old call sites working. The legacy
+  representation still backs the 2-site BP graph and RMF loader behind the same
+  accessors (`PottsLike`); MetaGraphs is still a dep for IsingGraph — full removal rides
+  with a later IsingGraph typing pass. Full suite + umbrella green; benchmark
+  neutral-to-positive (sparse −5.7%, allocations down across cases). `PottsHamiltonian{T}` with accessors mirroring today's
   `get_prop` call sites; migrate Networks internals, then Engine call sites; drop MetaGraphs;
   edge-driven belief propagation rewrite.
 - [ ] **Phase 6 — Engine type system.** Concrete fields, standardized parameter order,
