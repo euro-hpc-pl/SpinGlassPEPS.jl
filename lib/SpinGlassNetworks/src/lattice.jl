@@ -1,7 +1,5 @@
 export super_square_lattice,
     pegasus_lattice,
-    pegasus_lattice_masoud,
-    pegasus_lattice_tomek,
     j_function,
     zephyr_lattice,
     zephyr_lattice_5tuple,
@@ -63,63 +61,6 @@ function pegasus_lattice(size::NTuple{3,Int})
     )
     for i = 1:m, j = 1:n, k ∈ (p * 8 + q for p ∈ 0:t-1, q ∈ 5:8)
         push!(map, old[k, j, i] => (i, j, 2))
-    end
-    map
-end
-
-# TODO masoud / tomek should be removed from function names
-function pegasus_lattice_alternative(size::NTuple{3,Int})
-    m, n, t = size
-    old = LinearIndices((1:8*t, 1:n, 1:m))
-    map = Dict(
-        old[k, j, i] => (i, j, 2) for i = 1:m, j = 1:n,
-        k ∈ (p * 8 + q for p ∈ 0:t-1, q ∈ 1:4)
-    )
-    for i = 1:m, j = 1:n, k ∈ (p * 8 + q for p ∈ 0:t-1, q ∈ 5:8)
-        push!(map, old[k, j, i] => (i, j, 1))
-    end
-    map
-end
-
-function pegasus_lattice_old_numering(size::NTuple{3,Int})
-    m, n, t = size
-    old = LinearIndices((1:8*t, 1:n, 1:m))
-    map = Dict(
-        old[k, j, i] => (i, n - j + 1, 2) for i = 1:m, j = 1:n,
-        k ∈ (p * 8 + q for p ∈ 0:t-1, q ∈ 1:4)
-    )
-    for i = 1:m, j = 1:n, k ∈ (p * 8 + q for p ∈ 0:t-1, q ∈ 5:8)
-        push!(map, old[k, j, i] => (i, n - j + 1, 1))
-    end
-    map
-end
-
-function zephyr_lattice_z1(size::NTuple{3,Int})
-    m, n, t = size # t is identical to dwave (Tile parameter for the Zephyr lattice)
-    map = Dict{Int,NTuple{3,Int}}()
-    for i = 1:2*n, j ∈ 1:2*m
-        for p in p_func(i, j, t, n, m)
-            push!(
-                map,
-                (i - 1) * (2 * n * t) +
-                (j - 1) * (2 * m * t) +
-                p * n +
-                (i - 1) * (j % 2) +
-                1 => (i, j, 1),
-            )
-        end
-
-        for q ∈ q_func(i, j, t, n, m)
-            push!(
-                map,
-                2 * t * (2 * n + 1) +
-                (i - 1) * (2 * n * t) +
-                (j % 2) * (2 * m * t) +
-                q * m +
-                (j - 1) * (i - 1) +
-                1 => (i, j, 2),
-            )
-        end
     end
     map
 end

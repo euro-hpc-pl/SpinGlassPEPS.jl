@@ -4,13 +4,11 @@ using Graphs
 using MetaGraphs # TODO: to be replaced by MetaGraphsNext
 using CSV
 using DocStringExtensions
-using LinearAlgebra, MKL
+using LinearAlgebra
 using Base.Cartesian
 using SparseArrays
-using CUDA, CUDA.CUSPARSE
 using SpinGlassTensors
 using JLD2
-import Base.Prehashed
 
 
 include("ising.jl")

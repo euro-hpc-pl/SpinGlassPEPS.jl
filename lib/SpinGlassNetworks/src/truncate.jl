@@ -201,13 +201,13 @@ function truncate_potts_hamiltonian(
     result_folder,
     inst;
     tol = 1e-6,
-    iter = iter,
+    iter = 1,
 )
     states = Dict()
     saved_states = load_file(joinpath(result_folder, "$(inst).jld2"))
     if isnothing(saved_states)
         new_potts_h = potts_hamiltonian_2site(potts_h, β)
-        beliefs = belief_propagation(new_potts_h, β; tol = 1e-6, iter = iter)
+        beliefs = belief_propagation(new_potts_h, β; tol = tol, iter = iter)
         potts_h = truncate_potts_hamiltonian_2site_BP(
             potts_h,
             beliefs,

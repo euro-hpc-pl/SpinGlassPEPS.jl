@@ -3,8 +3,6 @@ using LabelledGraphs
 export ising_graph,
     rank_vec,
     cluster,
-    rank,
-    nodes,
     basis_size,
     biases,
     couplings,
