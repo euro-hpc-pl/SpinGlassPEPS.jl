@@ -57,7 +57,7 @@ function belief_propagation(
                 node_messages[n1, v] = messages_ev[n1, v][pv1]
             end
             for (n1, pv1, _) ∈ get_neighbors(potts_h, v)
-                E_local = get_prop(potts_h, v, :spectrum).energies
+                E_local = cluster_spectrum(potts_h, v).energies
                 temp = exp.(-(E_local .- minimum(E_local)) * beta)
                 for (n2, pv2, _) in get_neighbors(potts_h, v)
                     if n1 == n2
@@ -86,7 +86,7 @@ function belief_propagation(
 
     beliefs = Dict()
     for v in vertices(potts_h)
-        E_local = get_prop(potts_h, v, :spectrum).energies
+        E_local = cluster_spectrum(potts_h, v).energies
         beliefs[v] = exp.(-E_local * beta)
         for (n, pv, _) ∈ get_neighbors(potts_h, v)
             beliefs[v] .*= messages_ev[n, v][pv]
@@ -122,14 +122,14 @@ function get_neighbors(potts_h::LabelledGraph{S,T}, vertex::NTuple) where {S,T}
     for edge in edges(potts_h)
         src_node, dst_node = src(edge), dst(edge)
         if src_node == vertex
-            en = get_prop(potts_h, src_node, dst_node, :en)
-            idx_pv = get_prop(potts_h, src_node, dst_node, :ipl)
-            pv = get_projector!(get_prop(potts_h, :pool_of_projectors), idx_pv, :CPU)
+            en = interaction(potts_h, src_node, dst_node)
+            idx_pv = left_projector(potts_h, src_node, dst_node)
+            pv = get_projector!(projector_pool(potts_h), idx_pv, :CPU)
             push!(neighbors, (dst_node, pv, en))
         elseif dst_node == vertex
-            en = get_prop(potts_h, src_node, dst_node, :en)'
-            idx_pv = get_prop(potts_h, src_node, dst_node, :ipr)
-            pv = get_projector!(get_prop(potts_h, :pool_of_projectors), idx_pv, :CPU)
+            en = interaction(potts_h, src_node, dst_node)'
+            idx_pv = right_projector(potts_h, src_node, dst_node)
+            pv = get_projector!(projector_pool(potts_h), idx_pv, :CPU)
             push!(neighbors, (src_node, pv, en))
         end
     end
@@ -396,7 +396,7 @@ If the vertex exists in the graph and has associated energy values, it returns t
 The local energy values are typically obtained from the spectrum associated with the vertex.
 """
 function local_energy(potts_h::LabelledGraph{S,T}, v::NTuple{3,Int64}) where {S,T}
-    has_vertex(potts_h, v) ? get_prop(potts_h, v, :spectrum).energies : zeros(1)
+    has_vertex(potts_h, v) ? cluster_spectrum(potts_h, v).energies : zeros(1)
 end
 
 """
@@ -424,9 +424,9 @@ function interaction_energy(
     w::NTuple{3,Int64},
 ) where {S,T}
     if has_edge(potts_h, w, v)
-        get_prop(potts_h, w, v, :en)'
+        interaction(potts_h, w, v)'
     elseif has_edge(potts_h, v, w)
-        get_prop(potts_h, v, w, :en)
+        interaction(potts_h, v, w)
     else
         zeros(1, 1)
     end
@@ -457,15 +457,15 @@ function projector(
     w::NTuple{N,Int64},
 ) where {S,T,N}
     if has_edge(potts_h, w, v)
-        idx_p = get_prop(potts_h, w, v, :ipr)
-        p = get_projector!(get_prop(potts_h, :pool_of_projectors), idx_p, :CPU)
+        idx_p = right_projector(potts_h, w, v)
+        p = get_projector!(projector_pool(potts_h), idx_p, :CPU)
     elseif has_edge(potts_h, v, w)
-        idx_p = get_prop(potts_h, v, w, :ipl)
-        p = get_projector!(get_prop(potts_h, :pool_of_projectors), idx_p, :CPU)
+        idx_p = left_projector(potts_h, v, w)
+        p = get_projector!(projector_pool(potts_h), idx_p, :CPU)
     else
         p = ones(
             Int,
-            v ∈ vertices(potts_h) ? length(get_prop(potts_h, v, :spectrum).energies) : 1,
+            v ∈ vertices(potts_h) ? length(cluster_spectrum(potts_h, v).energies) : 1,
         )
     end
 end

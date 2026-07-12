@@ -116,7 +116,7 @@ function potts_hamiltonian(
     end
 
     for (i, v) ∈ enumerate(vertices(potts_h)), w ∈ vertices(potts_h)[i+1:end]
-        cl1, cl2 = get_prop(potts_h, v, :cluster), get_prop(potts_h, w, :cluster)
+        cl1, cl2 = cluster_graph(potts_h, v), cluster_graph(potts_h, w)
         outer_edges, J = inter_cluster_edges(ig, cl1, cl2)
 
         if !isempty(outer_edges)
@@ -126,8 +126,8 @@ function potts_hamiltonian(
             ind2 = reshape(ind2, length(ind2))
             JJ = J[ind1, ind2]
 
-            states_v = get_prop(potts_h, v, :spectrum).states
-            states_w = get_prop(potts_h, w, :spectrum).states
+            states_v = cluster_spectrum(potts_h, v).states
+            states_w = cluster_spectrum(potts_h, w).states
 
             pl, unique_states_v = rank_reveal([s[ind1] for s ∈ states_v], :PE)
             pr, unique_states_w = rank_reveal([s[ind2] for s ∈ states_w], :PE)
@@ -238,8 +238,8 @@ function decode_potts_hamiltonian_state(
 ) where {S,T}
     ret = Dict{Int,Int}()
     for (i, vert) ∈ zip(state, vertices(potts_h))
-        spins = get_prop(potts_h, vert, :cluster).labels
-        states = get_prop(potts_h, vert, :spectrum).states
+        spins = cluster_graph(potts_h, vert).labels
+        states = cluster_spectrum(potts_h, vert).states
         if length(states) > 0
             curr_state = states[i]
             merge!(ret, Dict(k => v for (k, v) ∈ zip(spins, curr_state)))
@@ -270,14 +270,14 @@ It takes into account the cluster spectra and projectors stored in the Potts Ham
 function energy(potts_h::LabelledGraph{S,T}, σ::Dict{T,Int}) where {S,T}
     en_potts_h = 0.0
     for v ∈ vertices(potts_h)
-        en_potts_h += get_prop(potts_h, v, :spectrum).energies[σ[v]]
+        en_potts_h += cluster_spectrum(potts_h, v).energies[σ[v]]
     end
     for edge ∈ edges(potts_h)
-        idx_pl = get_prop(potts_h, edge, :ipl)
-        pl = get_projector!(get_prop(potts_h, :pool_of_projectors), idx_pl, :CPU)
-        idx_pr = get_prop(potts_h, edge, :ipr)
-        pr = get_projector!(get_prop(potts_h, :pool_of_projectors), idx_pr, :CPU)
-        en = get_prop(potts_h, edge, :en)
+        idx_pl = left_projector(potts_h, src(edge), dst(edge))
+        pl = get_projector!(projector_pool(potts_h), idx_pl, :CPU)
+        idx_pr = right_projector(potts_h, src(edge), dst(edge))
+        pr = get_projector!(projector_pool(potts_h), idx_pr, :CPU)
+        en = interaction(potts_h, src(edge), dst(edge))
         en_potts_h += en[pl[σ[src(edge)]], pr[σ[dst(edge)]]]
     end
     en_potts_h
@@ -305,18 +305,18 @@ If no interaction edge is found, it returns a zero matrix.
 function energy_2site(potts_h::LabelledGraph{S,T}, i::Int, j::Int) where {S,T}
     # matrix of interaction energies between two nodes
     if has_edge(potts_h, (i, j, 1), (i, j, 2))
-        en12 = copy(get_prop(potts_h, (i, j, 1), (i, j, 2), :en))
-        idx_pl = get_prop(potts_h, (i, j, 1), (i, j, 2), :ipl)
-        pl = copy(get_projector!(get_prop(potts_h, :pool_of_projectors), idx_pl, :CPU))
-        idx_pr = get_prop(potts_h, (i, j, 1), (i, j, 2), :ipr)
-        pr = copy(get_projector!(get_prop(potts_h, :pool_of_projectors), idx_pr, :CPU))
+        en12 = copy(interaction(potts_h, (i, j, 1), (i, j, 2)))
+        idx_pl = left_projector(potts_h, (i, j, 1), (i, j, 2))
+        pl = copy(get_projector!(projector_pool(potts_h), idx_pl, :CPU))
+        idx_pr = right_projector(potts_h, (i, j, 1), (i, j, 2))
+        pr = copy(get_projector!(projector_pool(potts_h), idx_pr, :CPU))
         int_eng = en12[pl, pr]
     elseif has_edge(potts_h, (i, j, 2), (i, j, 1))
-        en21 = copy(get_prop(potts_h, (i, j, 2), (i, j, 1), :en))
-        idx_pl = get_prop(potts_h, (i, j, 2), (i, j, 1), :ipl)
-        pl = copy(get_projector!(get_prop(potts_h, :pool_of_projectors), idx_pl, :CPU))
-        idx_pr = get_prop(potts_h, (i, j, 2), (i, j, 1), :ipr)
-        pr = copy(get_projector!(get_prop(potts_h, :pool_of_projectors), idx_pr, :CPU))
+        en21 = copy(interaction(potts_h, (i, j, 2), (i, j, 1)))
+        idx_pl = left_projector(potts_h, (i, j, 2), (i, j, 1))
+        pl = copy(get_projector!(projector_pool(potts_h), idx_pl, :CPU))
+        idx_pr = right_projector(potts_h, (i, j, 2), (i, j, 1))
+        pr = copy(get_projector!(projector_pool(potts_h), idx_pr, :CPU))
         int_eng = en21[pl, pr]'
     else
         int_eng = zeros(1, 1)
@@ -351,14 +351,20 @@ function bond_energy(
     σ::Int,
 ) where {S,T,N}
     if has_edge(potts_h, potts_h_u, potts_h_v)
-        ipu, en, ipv = get_prop.(Ref(potts_h), Ref(potts_h_u), Ref(potts_h_v), (:ipl, :en, :ipr))
-        pu = get_projector!(get_prop(potts_h, :pool_of_projectors), ipu, :CPU)
-        pv = get_projector!(get_prop(potts_h, :pool_of_projectors), ipv, :CPU)
+        ipu = left_projector(potts_h, potts_h_u, potts_h_v)
+        en = interaction(potts_h, potts_h_u, potts_h_v)
+        ipv = right_projector(potts_h, potts_h_u, potts_h_v)
+        lp = projector_pool(potts_h)
+        pu = get_projector!(lp, ipu, :CPU)
+        pv = get_projector!(lp, ipv, :CPU)
         @inbounds energies = en[pu, pv[σ]]
     elseif has_edge(potts_h, potts_h_v, potts_h_u)
-        ipv, en, ipu = get_prop.(Ref(potts_h), Ref(potts_h_v), Ref(potts_h_u), (:ipl, :en, :ipr))
-        pu = get_projector!(get_prop(potts_h, :pool_of_projectors), ipu, :CPU)
-        pv = get_projector!(get_prop(potts_h, :pool_of_projectors), ipv, :CPU)
+        ipv = left_projector(potts_h, potts_h_v, potts_h_u)
+        en = interaction(potts_h, potts_h_v, potts_h_u)
+        ipu = right_projector(potts_h, potts_h_v, potts_h_u)
+        lp = projector_pool(potts_h)
+        pu = get_projector!(lp, ipu, :CPU)
+        pv = get_projector!(lp, ipv, :CPU)
         @inbounds energies = en[pv[σ], pu]
     else
         energies = zeros(cluster_size(potts_h, potts_h_u))
@@ -382,7 +388,7 @@ This function returns the size (number of states) of a cluster in a Potts Hamilt
 The function retrieves the spectrum associated with the specified cluster and returns the length of the energy vector in that spectrum.
 """
 function cluster_size(potts_hamiltonian::LabelledGraph{S,T}, vertex::T) where {S,T}
-    length(get_prop(potts_hamiltonian, vertex, :spectrum).energies)
+    length(cluster_spectrum(potts_hamiltonian, vertex).energies)
 end
 
 """
@@ -425,8 +431,8 @@ function truncate_potts_hamiltonian(potts_h::LabelledGraph{S,T}, states::Dict) w
     new_lp = PoolOfProjectors{Int}()
 
     for v ∈ vertices(new_potts_h)
-        cl = get_prop(potts_h, v, :cluster)
-        sp = get_prop(potts_h, v, :spectrum)
+        cl = cluster_graph(potts_h, v)
+        sp = cluster_spectrum(potts_h, v)
         if sp.states == Vector{Int64}[]
             sp = Spectrum(sp.energies[states[v]], sp.states, [1])
         else
@@ -438,12 +444,12 @@ function truncate_potts_hamiltonian(potts_h::LabelledGraph{S,T}, states::Dict) w
     for e ∈ edges(potts_h)
         v, w = src(e), dst(e)
         add_edge!(new_potts_h, v, w)
-        outer_edges = get_prop(potts_h, v, w, :outer_edges)
-        ipl = get_prop(potts_h, v, w, :ipl)
-        pl = get_projector!(get_prop(potts_h, :pool_of_projectors), ipl, :CPU)
-        ipr = get_prop(potts_h, v, w, :ipr)
-        pr = get_projector!(get_prop(potts_h, :pool_of_projectors), ipr, :CPU)
-        en = get_prop(potts_h, v, w, :en)
+        outer_edges = outer_cluster_edges(potts_h, v, w)
+        ipl = left_projector(potts_h, v, w)
+        pl = get_projector!(projector_pool(potts_h), ipl, :CPU)
+        ipr = right_projector(potts_h, v, w)
+        pr = get_projector!(projector_pool(potts_h), ipr, :CPU)
+        en = interaction(potts_h, v, w)
         pl = pl[states[v]]
         pr = pr[states[w]]
         pl_transition, pl_unique = rank_reveal(pl, :PE)

@@ -71,7 +71,7 @@ mutable struct PEPSNetwork{T<:AbstractGeometry,S<:AbstractSparsity,R<:Real} <:
         transformation::LatticeTransformation,
         gauge_type::Symbol = :id,
     ) where {T<:AbstractGeometry,S<:AbstractSparsity,R<:Real}
-        lp = get_prop(potts_hamiltonian, :pool_of_projectors)
+        lp = projector_pool(potts_hamiltonian)
         net = new(potts_hamiltonian, vertex_map(transformation, m, n), lp, m, n)
         net.nrows, net.ncols = transformation.flips_dimensions ? (n, m) : (m, n)
 
@@ -228,7 +228,7 @@ Retrieve the spectrum associated with a specific vertex in the Gibbs network.
 - Spectrum associated with the specified vertex.
 """
 function spectrum(network::AbstractGibbsNetwork{S,T}, vertex::S) where {S,T}
-    get_prop(network.potts_hamiltonian, network.vertex_map(vertex), :spectrum)
+    cluster_spectrum(network.potts_hamiltonian, network.vertex_map(vertex))
 end
 
 """
@@ -278,9 +278,9 @@ function interaction_energy(network::AbstractGibbsNetwork{S,T,R}, v::S, w::S) wh
     potts_h = network.potts_hamiltonian
     potts_h_v, potts_h_w = network.vertex_map(v), network.vertex_map(w)
     if has_edge(potts_h, potts_h_w, potts_h_v)
-        R.(get_prop(potts_h, potts_h_w, potts_h_v, :en)')
+        R.(interaction(potts_h, potts_h_w, potts_h_v)')
     elseif has_edge(potts_h, potts_h_v, potts_h_w)
-        R.(get_prop(potts_h, potts_h_v, potts_h_w, :en))
+        R.(interaction(potts_h, potts_h_v, potts_h_w))
     else
         zeros(R, 1, 1)
     end

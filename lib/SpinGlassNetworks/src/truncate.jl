@@ -63,8 +63,8 @@ function truncate_potts_hamiltonian_2site_energy(
             continue
         end
         i, j, _ = node
-        E1 = copy(get_prop(potts_h, (i, j, 1), :spectrum).energies)
-        E2 = copy(get_prop(potts_h, (i, j, 2), :spectrum).energies)
+        E1 = copy(cluster_spectrum(potts_h, (i, j, 1)).energies)
+        E2 = copy(cluster_spectrum(potts_h, (i, j, 2)).energies)
         E = energy_2site(potts_h, i, j) .+ reshape(E1, :, 1) .+ reshape(E2, 1, :)
         sx, sy = size(E)
         E = reshape(E, sx * sy)
@@ -125,7 +125,7 @@ function truncate_potts_hamiltonian_2site_BP(
         i, j, _ = node
         sx =
             has_vertex(potts_h, (i, j, 1)) ?
-            length(get_prop(potts_h, (i, j, 1), :spectrum).energies) : 1
+            length(cluster_spectrum(potts_h, (i, j, 1)).energies) : 1
         E = beliefs[(i, j)]
         ind1, ind2 = select_numstate_best(E, sx, num_states)
         push!(states, (i, j, 1) => ind1)

@@ -111,12 +111,12 @@ The energy is calculated based on the interactions between spins and their assoc
 function energy(ig::IsingGraph{T}, ig_state::Dict{Int,Int}) where {T}
     en = zero(T)
     for (i, σ) ∈ ig_state
-        en += get_prop(ig, i, :h) * σ
+        en += bias(ig, i) * σ
         for (j, η) ∈ ig_state
             if has_edge(ig, i, j)
-                en += T(1 / 2) * σ * get_prop(ig, i, j, :J) * η
+                en += T(1 / 2) * σ * coupling(ig, i, j) * η
             elseif has_edge(ig, j, i)
-                en += T(1 / 2) * σ * get_prop(ig, j, i, :J) * η
+                en += T(1 / 2) * σ * coupling(ig, j, i) * η
             end
         end
     end

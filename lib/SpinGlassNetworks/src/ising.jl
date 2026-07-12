@@ -74,9 +74,9 @@ function ising_graph(inst::Instance; scale::Real = 1, rank_override::Dict = Dict
 end
 Base.eltype(ig::IsingGraph{T}) where {T} = T
 
-rank_vec(ig::IsingGraph) = Int[get_prop((ig), v, :rank) for v ∈ vertices(ig)]
+rank_vec(ig::IsingGraph) = Int[vertex_rank(ig, v) for v ∈ vertices(ig)]
 basis_size(ig::IsingGraph) = prod(rank_vec(ig))
-biases(ig::IsingGraph) = get_prop.(Ref(ig), vertices(ig), :h)
+biases(ig::IsingGraph) = bias.(Ref(ig), vertices(ig))
 
 """
 $(TYPEDSIGNATURES)
@@ -99,7 +99,7 @@ function couplings(ig::IsingGraph{T}) where {T}
     for edge ∈ edges(ig)
         i = ig.reverse_label_map[src(edge)]
         j = ig.reverse_label_map[dst(edge)]
-        @inbounds J[i, j] = get_prop(ig, edge, :J)
+        @inbounds J[i, j] = coupling(ig, edge)
     end
     J
 end
@@ -137,7 +137,7 @@ function inter_cluster_edges(
     J = zeros(T, nv(cl1), nv(cl2))
     for e ∈ outer_edges
         i, j = cl1.reverse_label_map[src(e)], cl2.reverse_label_map[dst(e)]
-        @inbounds J[i, j] = get_prop(ig, e, :J)
+        @inbounds J[i, j] = coupling(ig, e)
     end
     outer_edges, J
 end
@@ -166,7 +166,7 @@ function prune(ig::IsingGraph; atol::Real = 1e-14)
         findall(!iszero, degree(ig)),
         findall(
             x ->
-                iszero(degree(ig, x)) && !isapprox(get_prop(ig, x, :h), 0, atol = atol),
+                iszero(degree(ig, x)) && !isapprox(bias(ig, x), 0, atol = atol),
             vertices(ig),
         ),
     )
