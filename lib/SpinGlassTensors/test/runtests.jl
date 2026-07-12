@@ -8,7 +8,7 @@ disable_logging(LogLevel(1))
 
 using Test
 
-my_tests = ["canonise.jl", "variational.jl", "projectors.jl"]
+my_tests = ["canonise.jl", "variational.jl", "projectors.jl", "linear_algebra_ext.jl"]
 
 for my_test in my_tests
     include(my_test)

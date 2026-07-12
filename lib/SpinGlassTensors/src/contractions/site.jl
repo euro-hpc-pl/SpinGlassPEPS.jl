@@ -168,7 +168,6 @@ function contract_tensors43(M::SiteTensor{R,4}, B::Tensor{R,3}) where {R<:Real}
     sb1, sb2, _ = size(B)
     sm1, sm2, sm3 = size.(Ref(M.lp), M.projs[1:3])
     @inbounds Bp = B[:, :, p4] .* reshape(M.loc_exp, 1, 1, :)
-    # @cast Bp[(x, y), z] := Bp[x, y, z] TODO: restore when deps merged
     Bp = reshape(Bp, size(Bp, 1) * size(Bp, 2), :)
     ip123 = sparse(R, M.lp, M.projs[1], M.projs[2], M.projs[3], device)
     out = reshape(ip123 * Bp', sm1, sm2, sm3, sb1, sb2)
@@ -187,7 +186,6 @@ function corner_matrix(
     @inbounds Cp = C[:, :, projs[3]]
     outp = Bp ⊠ Cp
     outp .*= reshape(M.loc_exp, 1, 1, :)
-    # @cast outp[(x, y), z] := outp[x, y, z]  TODO: restore when deps merged
     Bp = reshape(outp, size(Bp, 1) * size(outp, 2), :)
     sm1, sm2 = maximum(projs[1]), maximum(projs[2])
     @inbounds p12 = projs[1] .+ (projs[2] .- 1) .* sm1

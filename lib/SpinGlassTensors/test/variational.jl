@@ -41,12 +41,4 @@ id = Dict(j => d[i] for (i, j) in enumerate(sites))
     @test bond_dimension(W) == 1
 end
 
-@testset "Compressions for sparse mps and mpo works" begin
-    W = rand(QMpo{S}, mpomap)
-    ψ = rand(QMps{S}, id, D)
-    canonise!(ψ, :left)
-    ϕ = rand(QMps{S}, id, D)
-    canonise!(ϕ, :left)
 
-
-end

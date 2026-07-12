@@ -1,14 +1,5 @@
 #TODO add support for CuSparseMatrixCSR (cf. https://github.com/JuliaGPU/CUDA.jl/issues/1113)
 
-# TODO This function is a patch and may not provide any advantage - to be tested
-#=
-function CUDA.:*(Md::DenseCuMatrix{T}, Mcsr::CUSPARSE.CuSparseMatrixCSR{T}) where T
-    ret = CUDA.zeros(T, size(Md, 1), size(Mcsr, 2))
-    CUSPARSE.mm!('T', 'T', one(T), Mcsr, Md, zero(T), ret, 'O')
-    ret'
-end
-=#
-#
 # TODO shouldn't we have CSR format instead?
 function SparseArrays.sparse(::Type{R}, p::CuArray{Int64,1}; mp = nothing) where {R<:Real}
     n = length(p)

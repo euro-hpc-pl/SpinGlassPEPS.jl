@@ -1,67 +1,6 @@
 # virtual.jl: contractions with VirtualTensor on CPU and CUDA
-# export update_env_left2, update_env_right2, project_ket_on_bra2
-
-# @memoize Dict
 alloc_undef(R, onGPU, shape) = onGPU ? CuArray{R}(undef, shape) : Array{R}(undef, shape)
 alloc_zeros(R, onGPU, shape) = onGPU ? CUDA.zeros(R, shape) : zeros(R, shape)
-
-function proj_out(lp, k1, k2, k3, device)
-    p1 = get_projector!(lp, k1, device)
-    p2 = get_projector!(lp, k2, device)
-    p3 = get_projector!(lp, k3, device)
-    @assert length(p1) == length(p2) == length(p3)
-    s1, s2 = size(lp, k1), size(lp, k2)
-    p1 .+ s1 * (p2 .- 1) .+ s1 * s2 * (p3 .- 1)
-end
-
-function proj_2step_12(lp, (k1, k2), k3, device)
-    p1 = get_projector!(lp, k1, :CPU)
-    p2 = get_projector!(lp, k2, :CPU)
-    p3 = get_projector!(lp, k3, device)
-    @assert length(p1) == length(p2) == length(p3)
-    s1 = size(lp, k1)
-
-    p12, transitions_matrix = rank_reveal(hcat(p1, p2), :PE)
-    (p1, p2) = Tuple(Array(t) for t ∈ eachcol(transitions_matrix))
-
-    s12 = maximum(p12)
-
-    if device == :CPU
-        p12 = CuArray(p12)
-        p1 = CuArray(p1)
-        p2 = CuArray(p2)
-    end
-
-    pf1 = p12 .+ s12 .* (p3 .- 1)
-    pf2 = p1 .+ s1 .* (p2 .- 1)
-
-    pf1, pf2, s12
-end
-
-function proj_2step_23(lp, k1, (k2, k3), device)
-    p1 = get_projector!(lp, k1, device)
-    p2 = get_projector!(lp, k2, :CPU)
-    p3 = get_projector!(lp, k3, :CPU)
-    @assert length(p1) == length(p2) == length(p3)
-
-    s1, s2 = size(lp, k1), size(lp, k2)
-
-    p23, transitions_matrix = rank_reveal(hcat(p2, p3), :PE)
-    (p2, p3) = Tuple(Array(t) for t ∈ eachcol(transitions_matrix))
-
-    s23 = maximum(p23)
-
-    if device == :CPU
-        p23 = CuArray(p23)
-        p2 = CuArray(p2)
-        p3 = CuArray(p3)
-    end
-
-    pf1 = p1 .+ s1 .* (p23 .- 1)
-    pf2 = p2 .+ s2 .* (p3 .- 1)
-
-    pf1, pf2, s23
-end
 
 function merge_projectors_inter(lp, p1, p2, p3, onGPU; order = "1_23")
     s1 = size(lp, p1)

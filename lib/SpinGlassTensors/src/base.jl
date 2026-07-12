@@ -66,7 +66,6 @@ const MatOrCentral{T,N} = Union{AbstractMatrix{T},CentralTensor{T,N}}
 
 # TODO: to be removed eventually
 function dense_central(ten::CentralTensor)
-    # @cast V[(u1, u2), (d1, d2)] :=
     #     ten.e11[u1, d1] * ten.e21[u2, d1] * ten.e12[u1, d2] * ten.e22[u2, d2]
     a11 = reshape(ten.e11, size(ten.e11, 1), :, size(ten.e11, 2))
     a21 = reshape(ten.e21, :, size(ten.e21, 1), size(ten.e21, 2))

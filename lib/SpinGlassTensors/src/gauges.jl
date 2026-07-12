@@ -4,45 +4,24 @@
 export optimize_gauges_for_overlaps!!, overlap_density_matrix
 
 function update_rq!(ψ::QMps{T}, AT::AbstractArray{T,3}, i::Site) where {T<:Real}
-    # @cast ATR[x, (σ, y)] := AT[x, σ, y]
     ATR = reshape(AT, size(AT, 1), size(AT, 2) * size(AT, 3))
     RT, QT = rq_fact(ATR)
     RT ./= maximum(abs.(RT))
-    # @cast AT[x, σ, y] := QT[x, (σ, y)] (σ ∈ 1:size(AT, 2))
     AT = reshape(QT, size(QT, 1), size(AT, 2), size(QT, 2) ÷ size(AT, 2))
     ψ[i] = AT
     RT
 end
 
-# function update_rq!(ψ::QMps{T}, AT::CuArray{T,3}, i::Site) where {T<:Real}
-#     # @cast ATR[x, (σ, y)] := AT[x, σ, y]
-#     ATR = reshape(AT, size(AT, 1), size(AT, 2) * size(AT, 3))
-#     RT, QT = rq_fact(ATR)
-#     RT ./= maximum(abs.(RT))
-#     @cast AT[x, σ, y] := QT[x, (σ, y)] (σ ∈ 1:size(AT, 2))
-#     ψ[i] = AT
-#     RT
-# end
 
 function update_qr!(ψ::QMps{T}, AT::AbstractArray{T,3}, i::Site) where {T<:Real}
-    # @cast ATR[(x, σ), y] := AT[x, σ, y]
     ATR = reshape(AT, size(AT, 1) * size(AT, 2), size(AT, 3))
     QT, RT = qr_fact(ATR)
     RT ./= maximum(abs.(RT))
-    # @cast AT[x, σ, y] := QT[(x, σ), y] (σ ∈ 1:size(AT, 2))
     AT = reshape(QT, size(QT, 1) ÷ size(AT, 2), size(AT, 2), size(QT, 2))
     ψ[i] = AT
     RT
 end
 
-# function update_qr!(ψ::QMps{T}, AT::CuArray{T,3}, i::Site) where {T<:Real}
-#     @cast ATR[(x, σ), y] := AT[x, σ, y]
-#     QT, RT = qr_fact(ATR)
-#     RT ./= maximum(abs.(RT))
-#     @cast AT[x, σ, y] := QT[(x, σ), y] (σ ∈ 1:size(AT, 2))
-#     ψ[i] = AT
-#     RT
-# end
 
 function _gauges_right_sweep!!!(
     ψ_top::QMps{R},

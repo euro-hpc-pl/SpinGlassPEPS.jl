@@ -106,10 +106,8 @@ function zipper(
             V, CCC = qr_fact(CCC', Dcut, tol; toGPU = ψ.onGPU, kwargs...)
             V = V' * Vr'
             s1, s2 = size(ψ[i])
-            # @cast CCC[z, x, y] := CCC[z, (x, y)] (y ∈ 1:s1)
             CCC = reshape(CCC, size(CCC, 1), size(CCC, 2) ÷ s1, s1)
             C = permutedims(CCC, (2, 1, 3))
-            # @cast V[x, y, z] := V[x, (y, z)] (z ∈ 1:s2)
             V = reshape(V, size(V, 1), size(V, 2) ÷ s2, s2)
             out[i] = V
         else
@@ -158,10 +156,8 @@ end
 function _left_sweep_var_site!(env::EnvironmentMixed, site; kwargs...)   # site: Union(Sites, :central)
     update_env_right!(env, site)
     A = project_ket_on_bra(env, site)
-    # @cast B[l, (r, t)] := A[l, r, t]
     B = reshape(A, size(A, 1), size(A, 2) * size(A, 3))
     _, Q = rq_fact(B; toGPU = env.onGPU, kwargs...)
-    # @cast C[l, r, t] := Q[l, (r, t)] (t ∈ 1:size(A, 3))
     C = reshape(Q, size(Q, 1), size(Q, 2) ÷ size(A, 3), size(A, 3))
     !env.onGPU && (C = collect(C))
     if site == :central
@@ -176,10 +172,8 @@ function _right_sweep_var_site!(env::EnvironmentMixed, site; kwargs...)
     update_env_left!(env, site)
     A = project_ket_on_bra(env, site)
     B = permutedims(A, (1, 3, 2))  # [l, t, r]
-    # @cast B[(l, t), r] := B[l, t, r]
     B = reshape(B, size(B, 1) * size(B, 2), size(B, 3))
     Q, _ = qr_fact(B; toGPU = env.onGPU, kwargs...)
-    # @cast C[l, t, r] := Q[(l, t), r] (t ∈ 1:size(A, 3))
     C = reshape(Q, size(Q, 1) ÷ size(A, 3), size(A, 3), size(Q, 2))
     C = permutedims(C, (1, 3, 2))  # [l, r, t]
     !env.onGPU && (C = collect(C))
@@ -197,16 +191,14 @@ function Base.Array(CM::CornerTensor)  # change name, or be happy with "psvd(Arr
         B = contract_matrix_tensor3(v, B)
     end
     Cnew = corner_matrix(C, M.ctr, B)
-    # @cast Cnew[(t1, t2), t3, t4] := Cnew[t1, t2, t3, t4]
     Cnew = reshape(Cnew, size(Cnew, 1) * size(Cnew, 2), size(Cnew, 3), size(Cnew, 4))
     for v ∈ reverse(M.top)
         Cnew = contract_matrix_tensor3(v, Cnew)
     end
-    # @cast Cnew[t12, (t3, t4)] := Cnew[t12, t3, t4]
     Cnew = reshape(Cnew, size(Cnew, 1), size(Cnew, 2) * size(Cnew, 3))
 end
 
-Base.Array(CM::Adjoint{T,CornerTensor{T}}) where {T} = adjoint(Array(CM.ten))
+Base.Array(CM::Adjoint{T,CornerTensor{T}}) where {T} = adjoint(Array(CM.parent))
 
 # TODO rethink this function
 function svd_corner_matrix(

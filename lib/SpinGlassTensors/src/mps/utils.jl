@@ -1,4 +1,4 @@
-# ./mps/aux.jl: This file provides auxiliary functions to verify various MPS properties.
+# ./mps/utils.jl: This file provides auxiliary functions to verify various MPS properties.
 
 export bond_dimension,
     bond_dimensions, is_consistent, is_left_normalized, is_right_normalized, length, size
@@ -14,7 +14,7 @@ function is_consistent(ψ::QMps)
     @assert size(ψ.tensors[site_min], 1) == 1 "Incorrect size on the left boundary."
     @assert size(ψ.tensors[site_max], 2) == 1 "Incorrect size on the right boundary."
     for (s1, s2) ∈ zip(ψ.sites[begin:end-1], ψ.sites[begin+1:end])
-        @assert size(ψ.tensors[s1], 2) == size(ψ.tensors[s2], 1) "Incorrect link between $i and $(i+1)."
+        @assert size(ψ.tensors[s1], 2) == size(ψ.tensors[s2], 1) "Incorrect link between $s1 and $s2."
     end
     dev = which_device(ψ)
     if ψ.onGPU

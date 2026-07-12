@@ -34,12 +34,10 @@ function LinearAlgebra.dot(ψ::QMpo{R}, ϕ::QMps{R}) where {R<:Real}
         while mpo_li > mps_li
             st = size(B, 3)
             sl2 = size(ψ[mpo_li], 2)
-            # @cast B[l1, l2, (r, t)] := B[(l1, l2), r, t] (l2 ∈ 1:sl2)
             B = reshape(B, size(B, 1) ÷ sl2, sl2, size(B, 2) * size(B, 3))
             B = permutedims(B, (1, 3, 2))
             B = contract_matrix_tensor3(ψ[mpo_li], B)
             B = permutedims(B, (1, 3, 2))
-            # @cast B[(l1, l2), r, t] := B[l1, l2, (r, t)] (t ∈ 1:st)
             B = reshape(B, size(B, 1) * size(B, 2), size(B, 3) ÷ st, st)
             mpo_li = left_nbrs_site(mpo_li, ψ.sites)
         end

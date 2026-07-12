@@ -49,10 +49,8 @@ function _left_sweep_var_site!(env::Environment, site::Site; kwargs...)
     toGPU = env.ket.onGPU && env.mpo.onGPU && env.bra.onGPU
     update_env_right!(env, site)
     A = project_ket_on_bra(env, site)
-    # @cast B[l, (r, t)] := A[l, r, t]
     B = reshape(A, size(A, 1), size(A, 2) * size(A, 3))
     _, Q = rq_fact(B; toGPU = toGPU, kwargs...)
-    # @cast C[l, r, t] := Q[l, (r, t)] (t ∈ 1:size(A, 3))
     C = reshape(Q, size(Q, 1), size(Q, 2) ÷ size(A, 3), size(A, 3))
     env.bra[site] = C
     clear_env_containing_site!(env, site)
@@ -69,10 +67,8 @@ function _right_sweep_var_site!(env::Environment, site::Site; kwargs...)
     update_env_left!(env, site)
     A = project_ket_on_bra(env, site)
     B = permutedims(A, (1, 3, 2))  # [l, t, r]
-    # @cast B[(l, t), r] := B[l, t, r]
     B = reshape(B, size(B, 1) * size(B, 2), size(B, 3))
     Q, _ = qr_fact(B; toGPU = toGPU, kwargs...)
-    # @cast C[l, t, r] := Q[(l, t), r] (t ∈ 1:size(A, 3))
     C = reshape(Q, size(Q, 1) ÷ size(A, 3), size(A, 3), size(Q, 2))
     C = permutedims(C, (1, 3, 2))  # [l, r, t]
     env.bra[site] = C
