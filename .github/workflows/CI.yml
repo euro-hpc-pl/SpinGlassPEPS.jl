@@ -3,44 +3,87 @@ on:
   push:
     branches:
       - master
+      - lp/**
   pull_request:
   workflow_dispatch:
 env:
   JULIA_NUM_THREADS: 2
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
-    runs-on: [self-hosted,titan,gpu]
+  test-cpu:
+    # CPU leg on public runners: CUDA.jl loads without a GPU; tests must gate GPU
+    # paths on CUDA.functional(). SpinGlassExhaustive is GPU-only, so it is excluded.
+    name: CPU ${{ matrix.package }} - Julia ${{ matrix.version }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         version:
-          - 1.11
-        os:
-          - ubuntu-latest
+          - '1.11'
+        package:
+          - SpinGlassTensors
+          - SpinGlassNetworks
+          - SpinGlassEngine
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
-      - uses: actions/cache@v3
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@latest
+        with:
+          project: lib/${{ matrix.package }}
       - uses: julia-actions/julia-runtest@latest
+        with:
+          project: lib/${{ matrix.package }}
+  test-gpu:
+    name: GPU ${{ matrix.package }} - Julia ${{ matrix.version }}
+    runs-on: [self-hosted, titan, gpu]
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.11'
+        package:
+          - SpinGlassTensors
+          - SpinGlassNetworks
+          - SpinGlassEngine
+          - SpinGlassExhaustive
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@latest
+        with:
+          project: lib/${{ matrix.package }}
+      - uses: julia-actions/julia-runtest@latest
+        with:
+          project: lib/${{ matrix.package }}
       - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: lib/${{ matrix.package }}/src
       - uses: codecov/codecov-action@v4
-        with: 
+        with:
           file: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false  # or true if you want CI to fail when Codecov fails
+          fail_ci_if_error: false
+  test-umbrella:
+    name: Umbrella - Julia ${{ matrix.version }}
+    runs-on: [self-hosted, titan, gpu]
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.11'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@latest
+      - uses: julia-actions/julia-runtest@latest
   docs:
     name: Documentation
     runs-on: ubuntu-latest
@@ -53,6 +96,6 @@ jobs:
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
         run: julia --project=docs/ docs/make.jl
