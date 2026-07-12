@@ -8,7 +8,8 @@
     res_naive = SpinGlassNetworks.brute_force(ig)
     res_ising_bucket = exhaustive_search(ig)
 
-    @test CUDA.@allowscalar res_ising_bucket.energies[1] ≈ minimum(res_naive.energies)
+    # GPU kernels accumulate in Float32; compare at Float32 precision.
+    @test CUDA.@allowscalar isapprox(res_ising_bucket.energies[1], minimum(res_naive.energies); rtol = 1e-6)
 
 end 
 
@@ -64,6 +65,7 @@ end
     res_naive = SpinGlassNetworks.brute_force(ig)
     res_ising_bucket = exhaustive_search_bucket(ig)
 
-    CUDA.@allowscalar @test res_ising_bucket.energies[1] ≈ minimum(res_naive.energies)
+    # GPU kernels accumulate in Float32; compare at Float32 precision.
+    CUDA.@allowscalar @test isapprox(res_ising_bucket.energies[1], minimum(res_naive.energies); rtol = 1e-6)
 
 end 

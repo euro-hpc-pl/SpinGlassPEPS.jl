@@ -28,22 +28,14 @@ using LowRankApprox
 end
 
 
-@testset "Truncation with with random SVD works correctly" begin
+# psvd is randomized, so run-to-run reproducibility cannot be asserted; what it
+# must guarantee is recovery of a matrix that actually has the requested rank.
+@testset "Truncation with random SVD works correctly" begin
+    D, r = 100, 50
+    B, C = rand(D, r), rand(r, D)
+    a = B * C  # exactly rank r
 
-    D = 100
-    Dcut = D - 1
-    tol = 1E-8
+    U, Σ, V = psvd(a, rank = r, atol = 1E-16, rtol = 1E-16)
 
-    a = rand(D, D)
-
-    U1, Σ1, V1 = psvd(a, rank = Dcut, atol = 1E-16, rtol = 1E-16)
-    U2, Σ2, V2 = psvd(a, rank = Dcut, atol = 1E-16, rtol = 1E-16)
-
-    r1 = U1 * Diagonal(Σ1) * V1'
-    r2 = U2 * Diagonal(Σ2) * V2'
-
-    println(norm(a - r2))
-    println(norm(a - r1))
-
-    @test norm(r1 - r2) < tol
+    @test norm(a - U * Diagonal(Σ) * V') < 1E-8 * norm(a)
 end
