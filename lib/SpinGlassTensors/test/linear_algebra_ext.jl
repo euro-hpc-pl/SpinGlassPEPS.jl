@@ -39,3 +39,28 @@ end
 
     @test norm(a - U * Diagonal(Σ) * V') < 1E-8 * norm(a)
 end
+
+# The CUSOLVER path only engages above QR_GPU_MIN_ELEMENTS; small fixtures
+# elsewhere in the suite take the CPU fallback, so exercise it directly here.
+if CUDA.functional()
+    @testset "Device-native QR/RQ above the size threshold" begin
+        for T in (Float64, Float32)
+            M = CUDA.rand(T, 512, 128)  # 65536 elements >= 2^15
+            @test length(M) >= SpinGlassTensors.QR_GPU_MIN_ELEMENTS
+            Q, R = qr_fact(M)
+            @test Q isa CuMatrix{T} && R isa CuMatrix{T}
+            @test isapprox(Array(Q * R), Array(M); rtol = sqrt(eps(T)))
+            @test isapprox(Array(Q' * Q), I(128); atol = 100 * sqrt(eps(T)))
+            # agreement with the CPU path (both sign-fixed, so comparable)
+            Qc, Rc = qr_fact(Array(M); toGPU = false)
+            @test isapprox(Array(Q), Qc; rtol = 100 * sqrt(eps(T)))
+            @test isapprox(Array(R), Rc; rtol = 100 * sqrt(eps(T)))
+
+            Rr, Qr = rq_fact(M)
+            @test isapprox(Array(Rr * Qr), Array(M); rtol = sqrt(eps(T)))
+            # truncated GPU branch (hits svd_fact on device)
+            Qt, Rt = qr_fact(M, 64, T(1e-12))
+            @test size(Qt, 2) == 64 && size(Rt, 1) == 64
+        end
+    end
+end

@@ -148,9 +148,16 @@ function main()
         @info "benchmark" case.name
         cold = solve_once(case, onGPU)
         onGPU && CUDA.reclaim()
-        warm = solve_once(case, onGPU)
-        onGPU && CUDA.reclaim()
-        results["cases"][case.name] = Dict("cold" => cold, "warm" => warm)
+        # single warm runs are too noisy on second-scale solves; gate on the
+        # best of three (standard min-of-N; all three are recorded)
+        warms = map(1:3) do _
+            w = solve_once(case, onGPU)
+            onGPU && CUDA.reclaim()
+            w
+        end
+        warm = warms[argmin([w["t_solve"] for w in warms])]
+        results["cases"][case.name] =
+            Dict("cold" => cold, "warm" => warm, "warm_all" => warms)
         @info "done" cold_s = round(cold["t_solve"], digits = 2) warm_s =
             round(warm["t_solve"], digits = 2) energy = warm["best_energy"]
     end
