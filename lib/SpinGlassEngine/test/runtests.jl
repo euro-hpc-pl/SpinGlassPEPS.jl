@@ -22,6 +22,7 @@ my_tests = []
 push!(
     my_tests,
     #quick tests:
+    "known_failures.jl",
     "search_squarecross_double_node_basic.jl",
     "operations.jl",
     "branch_and_bound.jl",

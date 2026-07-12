@@ -190,6 +190,6 @@ function corner_matrix(
     sm1, sm2 = maximum(projs[1]), maximum(projs[2])
     @inbounds p12 = projs[1] .+ (projs[2] .- 1) .* sm1
     ip12 = sparse(R, p12; mp = sm1 * sm2)
-    out = reshape(ip12 * outp', sm1, maximum(projs[2]), size(B, 1), size(C, 2))
+    out = reshape(ip12 * Bp', sm1, maximum(projs[2]), size(B, 1), size(C, 2))
     permutedims(out, (3, 1, 4, 2))
 end

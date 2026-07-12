@@ -370,6 +370,6 @@ function corner_matrix(
     V = contract_tensors43(M, B)
     vl, vr, vt = size(V, 1), size(V, 2), size(V, 3)
     V = reshape(V, (vl, srb, stc, vt))
-    @tensor Cnew[vl, vt, vrr] := V[vl, srb, stc, vt] * C[srb, vrr, stc]
+    @tensor Cnew[vl, vrr, vt] := V[vl, srb, stc, vt] * C[srb, vrr, stc]
     reshape(Cnew, (slb, :, srcc, vt))
 end
