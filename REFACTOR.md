@@ -141,13 +141,30 @@ and SpinGlassDynamics are archived.
   (Engine→Exhaustive to test-only; Networks drops CUDA/MKL; Exhaustive drops Tensors;
   umbrella drops Documenter from runtime deps), the latent-bug list above, vacuous/empty/
   orphaned tests. Nothing removed is tested, so this is trivially green.
-- [ ] **Phase 2 — kernel test net.** Unit tests for every contraction-kernel family against
-  dense reference contractions (today 0 of ~1,000 kernel LOC are tested in-package). Convert
-  the `mwe*.jl` failure harnesses into `@test_broken` known-failure sets.
-- [ ] **Phase 3 — GPU quick wins** (each local, independently benchmarked): device-native
-  QR/RQ; delete the `right_env` round trip; precompute projector merges at tensor
-  construction; batch the king-node kernel; memory budgets from `CUDA.available_memory()` +
-  `sizeof(T)`.
+- [x] **Phase 2 — kernel test net.** DONE: unit tests for all five kernel families against
+  independent dense references (~1,400 new assertion lines, CPU+GPU, Float64+Float32, all
+  size-heuristic branches). Writing them surfaced two real bugs, both fixed: SiteTensor
+  `corner_matrix` threw for every input (adjoint of a 3-D array); VirtualTensor
+  `corner_matrix` returned scrambled trailing dimensions. The `mwe*.jl` harnesses were
+  re-run in full (320 configurations, repeats, negative control): **zero historical
+  probability-vs-Boltzmann failures reproduce** on the current stack; the properties are
+  pinned as plain regression tests in `test/known_failures.jl` instead of `@test_broken`.
+- [x] **Phase 3 — GPU quick wins.** DONE, with measured corrections to the audit's
+  predictions (all on RTX 5080, min-of-3 warm solves, alternating A/B where noise demanded):
+  - Device-native QR/RQ via CUSOLVER: **landed, gated at 2^15 elements** — below that CPU
+    LAPACK + PCIe wins 10x; above it CUSOLVER wins 1.6–5.7x. Net ~10–20% at bond 32.
+  - Device-resident `right_env` cache: **deferred to Phase 4.** A/B showed the GC/pool
+    pressure of CuArray values in the memoize dict outweighs the PCIe traffic at small
+    bond dimensions (gc_time 2.4x, patho +20%). Needs the explicit cache's deterministic
+    freeing. The allocation-free `maximum(abs, x)` norms were kept.
+  - Projector-merge registry in `PoolOfProjectors` (was recomputed per VirtualTensor
+    kernel call): landed.
+  - King-node conditional probability: serial CPU scalar loop replaced by device-resident
+    batched GEMM: landed.
+  - `kernel_batch_size(T, per_item, onGPU)` replaces hardcoded 2^32/2^33-byte, 8-byte/element
+    budgets (halved Float32 batches; overflowed small GPUs): landed.
+  - Zipper matvec PCIe crossings: **still open** — coupled to LowRankApprox's CPU Krylov
+    vectors; needs a device-side randomized SVD (Phase 4+ follow-up).
 - [ ] **Phase 4 — kill global state.** `ContractionCache`/workspace owned by the contractor,
   converting one `@memoize` function at a time; delete the `sparse` piracy; remove
   Memoization. Then thread the 8-transform sweep (CPU) / one stream per transform (GPU).
