@@ -157,7 +157,7 @@ function main()
 
     outdir = joinpath(@__DIR__, "results")
     mkpath(outdir)
-    stamp = replace(string(round(time())), r"\.0$" => "")
+    stamp = string(round(Int, time()))
     file = joinpath(outdir, "$(stamp)-$(commit)$(isempty(tag) ? "" : "-" * tag).json")
     open(file, "w") do io
         write(io, json(results))

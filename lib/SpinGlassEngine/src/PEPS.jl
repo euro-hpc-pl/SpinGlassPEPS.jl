@@ -2,6 +2,11 @@
 
 using LabelledGraphs
 
+# These extend the SpinGlassNetworks generics with network-level methods; without
+# the explicit import, Engine would create separate same-named functions and the
+# two exports would be an ambiguous binding for any user loading both packages.
+import SpinGlassNetworks: bond_energy, projector, local_energy, interaction_energy
+
 export AbstractGibbsNetwork,
     interaction_energy,
     connecting_tensor,

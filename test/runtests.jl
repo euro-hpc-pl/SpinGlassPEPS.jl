@@ -14,6 +14,21 @@ using Test
     end
 end
 
+@testset "No ambiguous bindings across the stack" begin
+    # Two packages exporting *distinct* functions under one name is a hard
+    # UndefVarError for downstream users on Julia >= 1.12. Same-named exports
+    # must be the same binding (method extension), not parallel definitions.
+    mods = (SpinGlassTensors, SpinGlassNetworks, SpinGlassEngine, SpinGlassExhaustive)
+    owners = Dict{Symbol,Vector{Any}}()
+    for mod ∈ mods, name ∈ names(mod)
+        name == nameof(mod) && continue
+        push!(get!(owners, name, Any[]), getglobal(mod, name))
+    end
+    for (name, bindings) ∈ owners
+        @test length(unique(objectid, bindings)) == 1
+    end
+end
+
 @testset "End-to-end: smallest chimera instance solves through the umbrella" begin
     exact_energies = [-2.6, -1.1, -0.6, -0.4, -0.4, 1.1, 1.9, 2.1]
 
