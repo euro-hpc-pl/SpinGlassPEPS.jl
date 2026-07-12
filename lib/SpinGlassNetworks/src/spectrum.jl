@@ -31,20 +31,20 @@ A `Spectrum` consists of energy levels, their corresponding states, and integer 
 - `Spectrum(energies, states, states_int)`: Creates a `Spectrum` object with the specified energy levels, states, and integer representations.
 - `Spectrum(energies, states)`: Creates a `Spectrum` object with the specified energy levels and states, automatically generating integer representations.
 """
-struct Spectrum
-    energies::Vector{<:Real}
-    states::AbstractArray{State}
+struct Spectrum{T<:Real,S<:AbstractArray}
+    energies::Vector{T}
+    states::S
     states_int::Vector{Int}
-    function Spectrum(energies, states, states_int)
-        new(energies, states, states_int)
+    function Spectrum(energies::Vector{T}, states::S, states_int) where {T<:Real,S}
+        new{T,S}(energies, states, states_int)
     end
     function Spectrum(energies, states::Matrix)
         states_int = matrix_to_integers(states)
-        new(energies, Vector{eltype(states)}[eachcol(states)...], states_int)
+        Spectrum(energies, Vector{eltype(states)}[eachcol(states)...], states_int)
     end
     function Spectrum(energies, states::Vector{<:State})
         states_int = matrix_to_integers(states)
-        new(energies, states, states_int)
+        Spectrum(energies, states, states_int)
     end
 end
 

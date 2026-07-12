@@ -154,11 +154,17 @@ Each field of the `MergedEnergy` struct stores energy values as an `AbstractMatr
 where `T` is a subtype of the `Real` abstract type. 
 The specific organization and interpretation of these energy values depend on the context in which this struct is used.    
 """
-struct MergedEnergy{T<:Real}
-    e11::AbstractMatrix{T}
-    e12::AbstractMatrix{T}
-    e21::AbstractMatrix{T}
-    e22::AbstractMatrix{T}
+struct MergedEnergy{
+    T<:Real,
+    M11<:AbstractMatrix{T},
+    M12<:AbstractMatrix{T},
+    M21<:AbstractMatrix{T},
+    M22<:AbstractMatrix{T},
+}
+    e11::M11
+    e12::M12
+    e21::M21
+    e22::M22
 end
 
 Base.adjoint(s::MergedEnergy) = MergedEnergy(s.e11', s.e21', s.e12', s.e22')

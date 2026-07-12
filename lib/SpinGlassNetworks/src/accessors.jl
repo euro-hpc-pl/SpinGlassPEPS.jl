@@ -20,27 +20,31 @@ export projector_pool,
     rank_map,
     grid_size
 
-projector_pool(potts_h::LabelledGraph) = get_prop(potts_h, :pool_of_projectors)
+projector_pool(potts_h::LabelledGraph) =
+    get_prop(potts_h, :pool_of_projectors)::PoolOfProjectors{Int}
 
 cluster_graph(potts_h::LabelledGraph, v) = get_prop(potts_h, v, :cluster)
 
-cluster_spectrum(potts_h::LabelledGraph, v) = get_prop(potts_h, v, :spectrum)
+cluster_spectrum(potts_h::LabelledGraph, v) = get_prop(potts_h, v, :spectrum)::Spectrum
 
 interaction(potts_h::LabelledGraph, u, v) = get_prop(potts_h, u, v, :en)
 
-left_projector(potts_h::LabelledGraph, u, v) = get_prop(potts_h, u, v, :ipl)
+left_projector(potts_h::LabelledGraph, u, v) = get_prop(potts_h, u, v, :ipl)::Int
 
-right_projector(potts_h::LabelledGraph, u, v) = get_prop(potts_h, u, v, :ipr)
+right_projector(potts_h::LabelledGraph, u, v) = get_prop(potts_h, u, v, :ipr)::Int
 
 outer_cluster_edges(potts_h::LabelledGraph, u, v) = get_prop(potts_h, u, v, :outer_edges)
 
+bias(ig::IsingGraph{T}, v) where {T} = get_prop(ig, v, :h)::T
 bias(ig::LabelledGraph, v) = get_prop(ig, v, :h)
 
+coupling(ig::IsingGraph{T}, u, v) where {T} = get_prop(ig, u, v, :J)::T
 coupling(ig::LabelledGraph, u, v) = get_prop(ig, u, v, :J)
+coupling(ig::IsingGraph{T}, e) where {T} = get_prop(ig, e, :J)::T
 coupling(ig::LabelledGraph, e) = get_prop(ig, e, :J)
 
-vertex_rank(ig::LabelledGraph, v) = get_prop(ig, v, :rank)
+vertex_rank(ig::LabelledGraph, v) = get_prop(ig, v, :rank)::Int
 
 rank_map(ig::LabelledGraph) = get_prop(ig, :rank)
 
-grid_size(potts_h::LabelledGraph) = (get_prop(potts_h, :Nx), get_prop(potts_h, :Ny))
+grid_size(potts_h::LabelledGraph) = (get_prop(potts_h, :Nx)::Int, get_prop(potts_h, :Ny)::Int)

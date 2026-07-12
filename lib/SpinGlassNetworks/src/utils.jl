@@ -42,7 +42,7 @@ function load_openGM(
     H = collect(Int64, data["header"])
     F = Array{Int64}(data["factors"])
     J = Array{Int64}(data["function-id-16000"]["indices"])
-    V = Array{Real}(data["function-id-16000"]["values"])
+    V = Array{Float64}(data["function-id-16000"]["values"])
     N = Array{Int64}(data["numbers-of-states"])
 
     if isnothing(Nx) || isnothing(Ny)

@@ -11,9 +11,9 @@ using SpinGlassTensors
 using JLD2
 
 
-include("accessors.jl")
 include("ising.jl")
 include("spectrum.jl")
+include("accessors.jl")
 include("lattice.jl")
 include("potts_hamiltonian.jl")
 include("bp.jl")
