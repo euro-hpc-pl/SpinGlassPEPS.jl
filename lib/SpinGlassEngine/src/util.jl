@@ -22,7 +22,7 @@ The function utilizes memoization to efficiently store and retrieve previously c
 The Hamiltonian is represented as a labelled graph (`LabelledGraph`) with vertices corresponding to clusters and edges 
 representing interactions between clusters.
 """
-@memoize function exact_spectrum(potts_hamiltonian::LabelledGraph{S,T}) where {S,T}
+function exact_spectrum(potts_hamiltonian::LabelledGraph{S,T}) where {S,T}
     # TODO: Not going to work without PoolOfProjectors
     ver = vertices(potts_hamiltonian)
     rank = cluster_size.(Ref(potts_hamiltonian), ver)

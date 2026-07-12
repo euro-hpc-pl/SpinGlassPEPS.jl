@@ -235,11 +235,12 @@ It takes into account the geometry of the tensor network, interaction energies, 
 The precomputed values are used during the tensor contraction process to speed up the computation.
 The function is specialized for the `SquareCrossDoubleNode` tensor network type and is parametrized by the layout type `S` of the contractor.
 """
-@memoize Dict function precompute_conditional(
+function precompute_conditional(
     ::Type{T},
     ctr::MpsContractor{S},
     current_node,
 ) where {T<:SquareCrossDoubleNode,S}
+    get!(ctr.cache.precond, current_node) do
     i, j, k = current_node
     β = ctr.beta
     if k == 1
@@ -374,6 +375,7 @@ The function is specialized for the `SquareCrossDoubleNode` tensor network type 
             sprf2,
             spd2,
         )
+    end
     end
 end
 

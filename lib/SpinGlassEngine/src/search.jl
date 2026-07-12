@@ -566,8 +566,7 @@ function low_energy_spectrum(
     @showprogress "Preprocessing: " for i ∈ ctr.peps.nrows+1:-1:2
         ψ0 = mps(ctr, i)
         push!(schmidts, i => measure_spectrum(ψ0))
-        clear_memoize_cache_after_row()
-        Memoization.empty_cache!(SpinGlassTensors.sparse)
+        empty_row_caches!(ctr)
         empty!(ctr.peps.lp, :GPU)
         if i <= ctr.peps.nrows
             ψ0 = mps(ctr, i + 1)
@@ -597,7 +596,7 @@ function low_energy_spectrum(
         current_row = node[1]
         if current_row > old_row
             old_row = current_row
-            clear_memoize_cache_after_row()
+            empty_row_caches!(ctr)
             empty!(ctr.peps.lp, :GPU)
         end
         sol = branch_solution(sol, ctr)
@@ -613,12 +612,12 @@ function low_energy_spectrum(
             # end
         end
         sol = bound_solution(sol, sparams.max_states, sparams.cutoff_prob, merge_strategy)
-        Memoization.empty_cache!(precompute_conditional)
+        empty!(ctr.cache.precond)
         if no_cache
-            Memoization.empty_all_caches!()
+            empty!(ctr.cache)
         end
     end
-    clear_memoize_cache_after_row()
+    empty_row_caches!(ctr)
     empty!(ctr.peps.lp, :GPU)
 
     # Translate variable order (network --> factor graph)
@@ -649,6 +648,11 @@ function low_energy_spectrum(
         Ref(ctr.peps.potts_hamiltonian),
         decode_state.(Ref(ctr.peps), sol.states),
     )
+    # The solve is done: release the contractor's caches now instead of
+    # waiting for GC (test/benchmark loops build many contractors in a row,
+    # and lingering device buffers fragment the CUDA pool).
+    empty!(ctr.cache)
+    empty!(ctr.peps.lp, :GPU)
     sol, s
 end
 
@@ -680,7 +684,7 @@ function gibbs_sampling(
 
     @showprogress "Preprocessing: " for i ∈ ctr.peps.nrows:-1:1
         dressed_mps(ctr, i)
-        clear_memoize_cache_after_row()
+        empty_row_caches!(ctr)
     end
 
     # Start branch and bound search
@@ -691,17 +695,17 @@ function gibbs_sampling(
         current_row = node[1]
         if current_row > old_row
             old_row = current_row
-            clear_memoize_cache_after_row()
+            empty_row_caches!(ctr)
         end
         sol = branch_solution(sol, ctr)
         sol = sampling(sol, sparams.max_states, sparams.cutoff_prob, merge_strategy)
-        Memoization.empty_cache!(precompute_conditional)
+        empty!(ctr.cache.precond)
         # TODO: clear memoize cache partially
         if no_cache
-            Memoization.empty_all_caches!()
+            empty!(ctr.cache)
         end
     end
-    clear_memoize_cache_after_row()
+    empty_row_caches!(ctr)
 
     # Translate variable order (network --> factor graph)
     inner_perm = sortperm([
@@ -730,5 +734,7 @@ function gibbs_sampling(
         Ref(ctr.peps.potts_hamiltonian),
         decode_state.(Ref(ctr.peps), sol.states),
     )
+    empty!(ctr.cache)
+    empty!(ctr.peps.lp, :GPU)
     sol
 end

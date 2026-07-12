@@ -28,25 +28,31 @@ struct PoolOfProjectors{T<:Integer}
     data::Dict{Symbol,Dict{Int,Proj{T}}}
     default_device::Symbol
     sizes::Dict{Int,Int}
+    # Cached projector indicator matrices (see projector_matrix): sparse
+    # CSC/CuSparseCSR matrices previously memoized process-globally behind
+    # pirated SparseArrays.sparse methods. Keys end with the device Symbol.
+    matrices::Dict{Tuple,Any}
     # Merged-projector registry: the rank_reveal + index fusion for a triple of
     # projectors is expensive and was recomputed by every VirtualTensor kernel
     # invocation; results are tiny and depend only on (p1, p2, p3, order, device).
     merged::Dict{NTuple{5,Any},MergedProj{T}}
 
     PoolOfProjectors{T}(data, default_device, sizes) where {T} =
-        new{T}(data, default_device, sizes, Dict{NTuple{5,Any},MergedProj{T}}())
+        new{T}(data, default_device, sizes, Dict{NTuple{5,Any},MergedProj{T}}(), Dict{Tuple,Any}())
 
     PoolOfProjectors(data::Dict{Int,Dict{Int,Vector{T}}}) where {T} = new{T}(
         Dict(:CPU => data),
         :CPU,
         Dict{Int,Int}(k => maximum(v) for (k, v) ∈ data),
         Dict{NTuple{5,Any},MergedProj{T}}(),
+        Dict{Tuple,Any}(),
     )
     PoolOfProjectors{T}() where {T} = new{T}(
         Dict(:CPU => Dict{Int,Proj{T}}()),
         :CPU,
         Dict{Int,Int}(),
         Dict{NTuple{5,Any},MergedProj{T}}(),
+        Dict{Tuple,Any}(),
     )
 end
 
@@ -71,6 +77,7 @@ function Base.empty!(lp::PoolOfProjectors, device::Symbol)
         empty!(lp.data[device])
     end
     filter!(kv -> kv.first[5] != device, lp.merged)
+    filter!(kv -> kv.first[end] != device, lp.matrices)
     lp
 end
 

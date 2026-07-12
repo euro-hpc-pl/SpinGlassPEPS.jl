@@ -7,7 +7,6 @@ using SpinGlassTensors
 using SpinGlassNetworks
 using TensorOperations
 using MetaGraphs
-using Memoization
 using LinearAlgebra, MKL
 using Graphs
 using ProgressMeter

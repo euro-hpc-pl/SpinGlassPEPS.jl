@@ -340,12 +340,12 @@ function contract_tensors43(M::VirtualTensor{R,4}, B::Tensor{R,3}) where {R<:Rea
 
     B = reshape(B, (slb, srb, slcb, srcb))
 
-    pls = sparse(R, M.lp, p_lb, p_l, p_lt, :CPU)
+    pls = projector_matrix(R, M.lp, p_lb, p_l, p_lt, :CPU)
     pls = typeof(B) <: CuArray ? CuArray(pls) : Array(pls)
     pls = reshape(pls, (slcb, slc, slct * slcp))
     pls = permutedims(pls, (3, 1, 2))  # [(slct, slcp), lcb, lc]
 
-    prs = sparse(R, M.lp, p_rb, p_r, p_rt, :CPU)
+    prs = projector_matrix(R, M.lp, p_rb, p_r, p_rt, :CPU)
     prs = typeof(B) <: CuArray ? CuArray(prs) : Array(prs)
     prs = reshape(prs, (srcb, src, srct * srcp))
     prs = permutedims(prs, (3, 1, 2))  # [(rct, rcp), rcb, rc]

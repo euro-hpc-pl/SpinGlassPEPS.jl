@@ -5,7 +5,6 @@ using NNlib
 using LinearAlgebra, MKL
 using TensorOperations
 using LowRankApprox, TSVD
-using Memoization
 using SparseArrays
 using DocStringExtensions
 using Base.Cartesian

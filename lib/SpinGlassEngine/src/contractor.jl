@@ -142,6 +142,60 @@ The `sparsity` function returns the sparsity type used in the construction of a 
 """
 sparsity(net::PEPSNetwork{T,S}) where {T,S} = S
 
+
+"""
+Contractor-owned cache replacing the process-global Memoization dictionaries:
+boundary MPS/MPO per row, dressed MPS, left/right environments keyed by the
+boundary configuration, and per-node precomputed conditionals. Owning the
+cache makes eviction explicit (`empty_row_caches!`, `clear_memoize_cache(ctr,
+row)`), keeps GPU memory attributable to a contractor, and removes the
+thread-unsafe global state that blocked parallel sweeps.
+"""
+struct ContractionCache{S<:Real}
+    mpo::Dict{Tuple{Dict{Site,Sites},Int},QMpo{S}}
+    mps::Dict{Int,QMps{S}}
+    mps_top::Dict{Int,QMps{S}}
+    mps_approx::Dict{Int,QMps{S}}
+    dressed_mps::Dict{Int,QMps{S}}
+    left_env::Dict{Tuple{Int,Vector{Int}},AbstractVector{S}}
+    right_env::Dict{Tuple{Int,Vector{Int}},Matrix{S}}
+    precond::Dict{Any,Any}
+end
+
+ContractionCache{S}() where {S<:Real} = ContractionCache{S}(
+    Dict{Tuple{Dict{Site,Sites},Int},QMpo{S}}(),
+    Dict{Int,QMps{S}}(),
+    Dict{Int,QMps{S}}(),
+    Dict{Int,QMps{S}}(),
+    Dict{Int,QMps{S}}(),
+    Dict{Tuple{Int,Vector{Int}},AbstractVector{S}}(),
+    Dict{Tuple{Int,Vector{Int}},Matrix{S}}(),
+    Dict{Any,Any}(),
+)
+
+function Base.empty!(c::ContractionCache)
+    empty!(c.mpo)
+    empty!(c.mps)
+    empty!(c.mps_top)
+    empty!(c.mps_approx)
+    empty!(c.dressed_mps)
+    empty!(c.left_env)
+    empty!(c.right_env)
+    empty!(c.precond)
+    c
+end
+
+# Row-transition eviction: exactly the four function caches the old
+# clear_memoize_cache_after_row() emptied.
+function empty_row_caches!(ctr)
+    empty!(ctr.cache.left_env)
+    empty!(ctr.cache.right_env)
+    empty!(ctr.cache.mpo)
+    empty!(ctr.cache.dressed_mps)
+    ctr
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -177,6 +231,7 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
     node_search_index::Dict{Node,Int}
     current_node::Node
     onGPU::Bool
+    cache::ContractionCache{S}
 
     function MpsContractor{T,R,S}(
         net,
@@ -202,6 +257,7 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
             enum_ord,
             node,
             onGPU,
+            ContractionCache{S}(),
         )
     end
 end
@@ -271,21 +327,23 @@ Construct and memoize a Matrix Product Operator (MPO) for a given set of layers.
 
 This function constructs an MPO by iterating through the specified layers and assembling the corresponding tensors. The resulting MPO is memoized for efficient reuse.
 """
-@memoize Dict function mpo(
+function mpo(
     ctr::MpsContractor{T,R,S},
     layers::Dict{Site,Sites},
     r::Int,
 ) where {T<:AbstractStrategy,R,S}
-    mpo = Dict{Site,MpoTensor{S}}()
-    for (site, coordinates) ∈ layers
-        lmpo = TensorMap{S}()
-        for dr ∈ coordinates
-            ten = tensor(ctr.peps, PEPSNode(r + dr, site), ctr.beta)
-            push!(lmpo, dr => ten)
+    get!(ctr.cache.mpo, (layers, r)) do
+        mpo = Dict{Site,MpoTensor{S}}()
+        for (site, coordinates) ∈ layers
+            lmpo = TensorMap{S}()
+            for dr ∈ coordinates
+                ten = tensor(ctr.peps, PEPSNode(r + dr, site), ctr.beta)
+                push!(lmpo, dr => ten)
+            end
+            push!(mpo, site => MpoTensor(lmpo))
         end
-        push!(mpo, site => MpoTensor(lmpo))
+        ctr.onGPU ? move_to_CUDA!(QMpo(mpo)) : QMpo(mpo)
     end
-    ctr.onGPU ? move_to_CUDA!(QMpo(mpo)) : QMpo(mpo)
 end
 
 """
@@ -302,7 +360,8 @@ Construct and memoize the top Matrix Product State (MPS) using Singular Value De
 
 This function constructs the top MPS using SVD for a given row in the PEPS network contraction. It recursively builds the MPS row by row, performing canonicalization, truncation, and compression steps as needed based on the specified parameters in `ctr.params`. The resulting MPS is memoized for efficient reuse.
 """
-@memoize Dict function mps_top(ctr::MpsContractor{SVDTruncate,R,S}, i::Int) where {R,S}
+function mps_top(ctr::MpsContractor{SVDTruncate,R,S}, i::Int) where {R,S}
+    get!(ctr.cache.mps_top, i) do
     Dcut = ctr.params.bond_dimension
     tolV = ctr.params.variational_tol
     tolS = ctr.params.tol_SVD
@@ -325,6 +384,7 @@ This function constructs the top MPS using SVD for a given row in the PEPS netwo
     canonise_truncate!(ψ0, :left, Dcut, tolS)
     variational_compress!(ψ0, W, ψ, tolV, max_sweeps)
     ψ0
+    end
 end
 
 """
@@ -341,7 +401,8 @@ Construct and memoize the (bottom) Matrix Product State (MPS) using Singular Val
 
 This function constructs the (bottom) MPS using SVD for a given row in the PEPS network contraction. It recursively builds the MPS row by row, performing canonicalization, truncation, and compression steps as needed based on the specified parameters in `ctr.params`. The resulting MPS is memoized for efficient reuse.
 """
-@memoize Dict function mps(ctr::MpsContractor{SVDTruncate,R,S}, i::Int) where {R,S}
+function mps(ctr::MpsContractor{SVDTruncate,R,S}, i::Int) where {R,S}
+    get!(ctr.cache.mps, i) do
     Dcut = ctr.params.bond_dimension
     tolV = ctr.params.variational_tol
     tolS = ctr.params.tol_SVD
@@ -368,8 +429,8 @@ This function constructs the (bottom) MPS using SVD for a given row in the PEPS 
         variational_sweep!(ψ0, W, ψ, Val(:right))
     end
     canonise_truncate!(ψ0, :left, Dcut, tolS)
-    #variational_compress!(ψ0, W, ψ, tolV, max_sweeps)
     ψ0
+    end
 end
 
 
@@ -387,7 +448,8 @@ Construct and memoize the (bottom) Matrix Product State (MPS) approximation usin
 
 This function constructs the (bottom) MPS approximation using SVD for a given row in the PEPS network contraction. It recursively builds the MPS row by row, performing canonicalization, and truncation steps based on the specified parameters in `ctr.params`. The resulting MPS approximation is memoized for efficient reuse.
 """
-@memoize Dict function mps_approx(ctr::MpsContractor{SVDTruncate,R,S}, i::Int) where {R,S}
+function mps_approx(ctr::MpsContractor{SVDTruncate,R,S}, i::Int) where {R,S}
+    get!(ctr.cache.mps_approx, i) do
     if i > ctr.peps.nrows
         W = mpo(ctr, ctr.layers.main, ctr.peps.nrows)
         return IdentityQMps(S, local_dims(W, :down); onGPU = ctr.onGPU) # F64 for now
@@ -399,6 +461,7 @@ This function constructs the (bottom) MPS approximation using SVD for a given ro
     ψ0 = dot(W, ψ)
     truncate!(ψ0, :left, ctr.params.bond_dimension)
     ψ0
+    end
 end
 
 
@@ -416,7 +479,8 @@ Construct and memoize the top Matrix Product State (MPS) using the Zipper (trunc
 
 This function constructs the top Matrix Product State (MPS) using the Zipper (truncated Singular Value Decomposition) method for a given row in the PEPS network contraction. It recursively builds the MPS row by row, performing canonicalization, and truncation steps based on the specified parameters in `ctr.params`. The resulting MPS is memoized for efficient reuse.
 """
-@memoize Dict function mps_top(ctr::MpsContractor{Zipper,R,S}, i::Int) where {R,S}
+function mps_top(ctr::MpsContractor{Zipper,R,S}, i::Int) where {R,S}
+    get!(ctr.cache.mps_top, i) do
     Dcut = ctr.params.bond_dimension
     tolV = ctr.params.variational_tol
     tolS = ctr.params.tol_SVD
@@ -449,6 +513,7 @@ This function constructs the top Matrix Product State (MPS) using the Zipper (tr
     canonise!(ψ0, :left)
     variational_compress!(ψ0, W, ψ, tolV, max_sweeps)
     ψ0
+    end
 end
 
 """
@@ -465,7 +530,8 @@ Construct and memoize the (bottom) Matrix Product State (MPS) using the Zipper (
 
 This function constructs the (bottom) Matrix Product State (MPS) using the Zipper (truncated Singular Value Decomposition) method for a given row in the PEPS network contraction. It recursively builds the MPS row by row, performing canonicalization, and truncation steps based on the specified parameters in `ctr.params`. The resulting MPS is memoized for efficient reuse.
 """
-@memoize Dict function mps(ctr::MpsContractor{Zipper,R,S}, i::Int) where {R,S}
+function mps(ctr::MpsContractor{Zipper,R,S}, i::Int) where {R,S}
+    get!(ctr.cache.mps, i) do
     Dcut = ctr.params.bond_dimension
     tolV = ctr.params.variational_tol
     tolS = ctr.params.tol_SVD
@@ -495,9 +561,9 @@ This function constructs the (bottom) Matrix Product State (MPS) using the Zippe
             depth = depth,
         )
         canonise!(ψ0, :left)
-        #variational_compress!(ψ0, W, ψ, tolV, max_sweeps)
     end
     ψ0
+    end
 end
 
 """
@@ -516,15 +582,12 @@ This function constructs the dressed Matrix Product State (MPS) for a given row 
 
 Note: The memoization ensures that the dressed MPS is only constructed once for each combination of arguments and is reused when needed.
 """
-@memoize Dict function dressed_mps(
-    ctr::MpsContractor{T},
-    i::Int,
-) where {T<:AbstractStrategy}
-
+function dressed_mps(ctr::MpsContractor{T}, i::Int) where {T<:AbstractStrategy}
+    get!(ctr.cache.dressed_mps, i) do
     ψ = mps(ctr, i + 1)
-
-    caches = Memoization.find_caches(mps)
-    delete!(caches[mps], ((ctr, i + 1), ()))
+    # Take ownership of the cached row: the search loop may have spilled it
+    # to the host, and move_to_CUDA! mutates in place.
+    delete!(ctr.cache.mps, i + 1)
     if ctr.onGPU
         ψ = move_to_CUDA!(ψ)
     end
@@ -532,12 +595,11 @@ Note: The memoization ensures that the dressed MPS is only constructed once for 
     ϕ = dot(W, ψ)
 
     for j ∈ ϕ.sites
-        nrm = maximum(abs.(ϕ[j]))
-        if !iszero(nrm)
-            ϕ[j] ./= nrm
-        end
+        nrm = maximum(abs, ϕ[j])
+        iszero(nrm) || (ϕ[j] ./= nrm)
     end
     ϕ
+    end
 end
 
 """
@@ -557,11 +619,12 @@ This function constructs the right environment tensor for a given node in the PE
 
 Note: The memoization ensures that the right environment tensor is only constructed once for each combination of arguments and is reused when needed.
 """
-@memoize Dict function right_env(
+function right_env(
     ctr::MpsContractor{T,R,S},
     i::Int,
     ∂v::Vector{Int},
 ) where {T<:AbstractStrategy,R,S}
+    get!(ctr.cache.right_env, (i, ∂v)) do
     l = length(∂v)
     if l == 0
         return ctr.onGPU ? CUDA.ones(S, 1, 1) : ones(S, 1, 1)
@@ -593,6 +656,7 @@ Note: The memoization ensures that the right environment tensor is only construc
     # and the measured pool/GC pressure outweighs the PCIe traffic at these
     # sizes. Device-resident envs return with the explicit cache (Phase 4).
     typeof(RR) <: CuArray ? Array(RR) : RR
+    end
 end
 
 
@@ -613,11 +677,12 @@ This function constructs the left environment tensor for a given node in the PEP
 Note: The memoization ensures that the left environment tensor is only constructed once for each combination of arguments and is reused when needed.
 
 """
-@memoize Dict function left_env(
+function left_env(
     ctr::MpsContractor{T,R,S},
     i::Int,
     ∂v::Vector{Int},
 ) where {T,R,S}
+    get!(ctr.cache.left_env, (i, ∂v)) do
     l = length(∂v)
     if l == 0
         return ctr.onGPU ? CUDA.ones(S, 1) : ones(S, 1)
@@ -633,6 +698,7 @@ Note: The memoization ensures that the left environment tensor is only construct
     @tensor L[x] := L̃[α] * view(M, :, :, m)[α, x]
     nmr = maximum(abs, L)
     iszero(nmr) ? L : L ./ nmr
+    end
 end
 
 """
@@ -644,7 +710,10 @@ Memoization is used to optimize the contraction process by avoiding redundant co
 Calling this function removes all cached results, which can be useful when you want to free up memory or ensure that the caches are refreshed with updated data.
 """
 function clear_memoize_cache()
-    Memoization.empty_all_caches!()
+    # Deprecated no-op: caches are owned by each MpsContractor (see
+    # ContractionCache) and are freed with it. Use empty!(ctr.cache) to drop
+    # a live contractor's caches explicitly.
+    nothing
 end
 
 """
@@ -656,7 +725,9 @@ The cleared operations include `left_env`, `right_env`, `mpo`, and `dressed_mps`
 Calling this function allows you to clear the caches for these specific operations, which can be useful when you want to free up memory or ensure that the caches are refreshed with updated data after processing a row in the contraction.
 """
 function clear_memoize_cache_after_row()
-    Memoization.empty_cache!.((left_env, right_env, mpo, dressed_mps))
+    # Deprecated no-op: see clear_memoize_cache. Internally the search loop
+    # uses empty_row_caches!(ctr).
+    nothing
 end
 
 """
@@ -675,18 +746,16 @@ Calling this function allows you to clear the cache for these specific operation
 """
 function clear_memoize_cache(ctr::MpsContractor{T,S}, row::Site) where {T,S}
     for i ∈ row:ctr.peps.nrows
-        delete!(Memoization.caches[mps_top], ((ctr, i), ()))
+        delete!(ctr.cache.mps_top, i)
     end
     for i ∈ 1:row+1
-        delete!(Memoization.caches[mps], ((ctr, i), ()))
+        delete!(ctr.cache.mps, i)
     end
     for i ∈ row:row+2
-        cmpo = Memoization.caches[mpo]
-        delete!(cmpo, ((ctr, ctr.layers.main, i), ()))
-        delete!(cmpo, ((ctr, ctr.layers.dress, i), ()))
-        delete!(cmpo, ((ctr, ctr.layers.right, i), ()))
+        delete!(ctr.cache.mpo, (ctr.layers.main, i))
+        delete!(ctr.cache.mpo, (ctr.layers.dress, i))
+        delete!(ctr.cache.mpo, (ctr.layers.right, i))
     end
-
 end
 
 
