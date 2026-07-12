@@ -587,14 +587,12 @@ Note: The memoization ensures that the right environment tensor is only construc
         RR = update_reduced_env_right(RR, W[ls].ctr)
         ls = left_nbrs_site(ls, W.sites)
     end
-    nmr = maximum(abs.(RR))
-    if ~iszero(nmr)
-        RR ./= nmr
-    end
-    if typeof(RR) <: CuArray
-        RR = Array(RR)
-    end
-    RR
+    nmr = maximum(abs, RR)
+    iszero(nmr) || (RR ./= nmr)
+    # Cached on the host: device-resident cache entries are freed only by GC,
+    # and the measured pool/GC pressure outweighs the PCIe traffic at these
+    # sizes. Device-resident envs return with the explicit cache (Phase 4).
+    typeof(RR) <: CuArray ? Array(RR) : RR
 end
 
 
@@ -633,7 +631,7 @@ Note: The memoization ensures that the left environment tensor is only construct
 
     # @matmul L[x] := sum(α) L̃[α] * M[α, x, $m]
     @tensor L[x] := L̃[α] * view(M, :, :, m)[α, x]
-    nmr = maximum(abs.(L))
+    nmr = maximum(abs, L)
     iszero(nmr) ? L : L ./ nmr
 end
 

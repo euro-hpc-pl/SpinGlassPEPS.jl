@@ -20,18 +20,34 @@ The data is provided as a dictionary that maps site indices to projectors stored
 The `sizes` dictionary is automatically populated based on the maximum projector size for each site.
 - `PoolOfProjectors{T}() where T`: Create an empty `PoolOfProjectors` with no projectors initially stored.
 """
+# Cached result of merging a projector triple (see merge_projectors_inter):
+# (fused-triple projector, fused-pair projector, pair rank).
+const MergedProj{T} = Tuple{Proj{T},Proj{T},Int}
+
 struct PoolOfProjectors{T<:Integer}
     data::Dict{Symbol,Dict{Int,Proj{T}}}
     default_device::Symbol
     sizes::Dict{Int,Int}
+    # Merged-projector registry: the rank_reveal + index fusion for a triple of
+    # projectors is expensive and was recomputed by every VirtualTensor kernel
+    # invocation; results are tiny and depend only on (p1, p2, p3, order, device).
+    merged::Dict{NTuple{5,Any},MergedProj{T}}
 
     PoolOfProjectors{T}(data, default_device, sizes) where {T} =
-        new{T}(data, default_device, sizes) # This was created when hunting the CPU vs GPU bug
+        new{T}(data, default_device, sizes, Dict{NTuple{5,Any},MergedProj{T}}())
 
-    PoolOfProjectors(data::Dict{Int,Dict{Int,Vector{T}}}) where {T} =
-        new{T}(Dict(:CPU => data), :CPU, Dict{Int,Int}(k => maximum(v) for (k, v) ∈ data))
-    PoolOfProjectors{T}() where {T} =
-        new{T}(Dict(:CPU => Dict{Int,Proj{T}}()), :CPU, Dict{Int,Int}())
+    PoolOfProjectors(data::Dict{Int,Dict{Int,Vector{T}}}) where {T} = new{T}(
+        Dict(:CPU => data),
+        :CPU,
+        Dict{Int,Int}(k => maximum(v) for (k, v) ∈ data),
+        Dict{NTuple{5,Any},MergedProj{T}}(),
+    )
+    PoolOfProjectors{T}() where {T} = new{T}(
+        Dict(:CPU => Dict{Int,Proj{T}}()),
+        :CPU,
+        Dict{Int,Int}(),
+        Dict{NTuple{5,Any},MergedProj{T}}(),
+    )
 end
 
 
@@ -54,6 +70,8 @@ function Base.empty!(lp::PoolOfProjectors, device::Symbol)
     if device ∈ keys(lp.data)
         empty!(lp.data[device])
     end
+    filter!(kv -> kv.first[5] != device, lp.merged)
+    lp
 end
 
 Base.length(lp::PoolOfProjectors, index::Int) = length(lp.data[lp.default_device][index])

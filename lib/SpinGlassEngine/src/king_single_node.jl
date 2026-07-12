@@ -14,6 +14,10 @@ and additional diagonal edges forming a cross pattern between neighboring nodes.
 """
 struct KingSingleNode{T<:AbstractTensorsLayout} <: AbstractGeometry end
 
+# Crossover for the batched conditional-probability kernel (GEMM work in
+# elements): below this, launch overhead beats the serial-CPU path.
+const KING_KERNEL_GPU_MIN_WORK = 2^16
+
 """
 $(TYPEDSIGNATURES)
 
@@ -182,7 +186,6 @@ function MpoLayers(::Type{T}, ncols::Int) where {T<:KingSingleNode{EngGaugesEng}
 end
 
 
-# TODO: rewrite this using brodcasting if possible
 function conditional_probability(
     ::Type{T},
     ctr::MpsContractor{S},
@@ -194,6 +197,9 @@ function conditional_probability(
 
     L = left_env(ctr, i, ∂v[1:2*j-2])
     R = right_env(ctr, i, ∂v[(2*j+3):2*ctr.peps.ncols+2])
+    if ctr.onGPU
+        R = CuArray(R)
+    end
 
     ψ = dressed_mps(ctr, i)
 
@@ -208,16 +214,28 @@ function conditional_probability(
     pr = projector(ctr.peps, (i, j), @ntuple 3 k -> (i + 2 - k, j + 1))
     pd = projector(ctr.peps, (i, j), (i + 1, j))
 
-    # @cast lmx2[d, b, c] := LMX[d, (b, c)] (c ∈ 1:maximum(p_rb))
+    # lmx2[d, b, c] := LMX[d, (b, c)] with c ∈ 1:maximum(p_rb)
     c = maximum(p_rb)
     lmx2 = reshape(LMX, size(LMX, 1), size(LMX, 2) ÷ c, c)
-    lmx2, M, R = Array.((lmx2, M, R))  # REWRITE
 
-    for σ ∈ 1:length(probs)   # REWRITE on CUDA + parallelize
-        lmx = @inbounds lmx2[:, ∂v[2*j-1], p_rb[σ]]
-        m = @inbounds M[:, :, pd[σ]]
-        r = @inbounds R[:, pr[σ]]
-        @inbounds probs[σ] *= (lmx'*m*r)[]
+    # Batched GEMM over candidate states when the work is large enough to pay
+    # for kernel launches; tiny nodes (few states, small bonds) are faster on
+    # the CPU with the serial loop, including the three small downloads.
+    if length(probs) * size(M, 1) * size(M, 2) >= KING_KERNEL_GPU_MIN_WORK &&
+       typeof(M) <: CuArray
+        lmx3 = reshape(lmx2[:, ∂v[2*j-1], p_rb], 1, size(lmx2, 1), :)
+        M3 = M[:, :, pd]
+        R3 = reshape(R[:, pr], size(R, 1), 1, :)
+        LR = dropdims(lmx3 ⊠ M3 ⊠ R3, dims = (1, 2))
+        probs .*= Array(LR)
+    else
+        lmx2, M, R = Array.((lmx2, M, R))
+        for σ ∈ 1:length(probs)
+            lmx = @inbounds lmx2[:, ∂v[2*j-1], p_rb[σ]]
+            m = @inbounds M[:, :, pd[σ]]
+            r = @inbounds R[:, pr[σ]]
+            @inbounds probs[σ] *= (lmx' * m * r)[]
+        end
     end
 
     normalize_probability(probs)

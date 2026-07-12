@@ -2,25 +2,27 @@
 alloc_undef(R, onGPU, shape) = onGPU ? CuArray{R}(undef, shape) : Array{R}(undef, shape)
 alloc_zeros(R, onGPU, shape) = onGPU ? CUDA.zeros(R, shape) : zeros(R, shape)
 
-function merge_projectors_inter(lp, p1, p2, p3, onGPU; order = "1_23")
-    s1 = size(lp, p1)
-    s2 = size(lp, p2)
+function merge_projectors_inter(lp, k1, k2, k3, onGPU; order = "1_23")
     device = onGPU ? :GPU : :CPU
-    p1 = get_projector!(lp, p1, device)
-    p2 = get_projector!(lp, p2, :CPU)
-    p3 = get_projector!(lp, p3, :CPU)
+    get!(lp.merged, (k1, k2, k3, order, device)) do
+        s1 = size(lp, k1)
+        s2 = size(lp, k2)
+        p1 = get_projector!(lp, k1, device)
+        p2 = get_projector!(lp, k2, :CPU)
+        p3 = get_projector!(lp, k3, :CPU)
 
-    p23, transitions_matrix = rank_reveal(hcat(p2, p3), :PE)
-    s23 = maximum(p23)
-    (p2, p3) = Tuple(Array(t) for t ∈ eachcol(transitions_matrix))
-    if onGPU
-        p23 = CuArray(p23)
-        p2 = CuArray(p2)
-        p3 = CuArray(p3)
+        p23, transitions_matrix = rank_reveal(hcat(p2, p3), :PE)
+        s23 = maximum(p23)
+        (p2, p3) = Tuple(Array(t) for t ∈ eachcol(transitions_matrix))
+        if onGPU
+            p23 = CuArray(p23)
+            p2 = CuArray(p2)
+            p3 = CuArray(p3)
+        end
+        p2_3 = p2 .+ s2 .* (p3 .- 1)
+        p123 = order == "1_23" ? p1 .+ s1 .* (p23 .- 1) : p23 .+ s23 .* (p1 .- 1)  # else "23_1"
+        p123, p2_3, s23
     end
-    p2_3 = p2 .+ s2 .* (p3 .- 1)
-    p123 = order == "1_23" ? p1 .+ s1 .* (p23 .- 1) : p23 .+ s23 .* (p1 .- 1)  # else "23_1"
-    p123, p2_3, s23
 end
 
 function update_env_left(

@@ -57,6 +57,37 @@ const CASES = Dict(
             3.0,
         ),
     ],
+    "quick+" => [
+        # Sparse variant: exercises the SiteTensor/VirtualTensor kernels and
+        # the merged-projector cache (Dense cases never touch them).
+        Case(
+            "chimera_128_sparse",
+            joinpath(ENGINE_INSTANCES, "chimera_droplets", "128power", "001.txt"),
+            (4, 4, 8),
+            2^8,
+            SquareSingleNode{GaugesEnergy},
+            Zipper,
+            Sparse,
+            3.0,
+            32,
+            500,
+            3.0,
+        ),
+        # King geometry: exercises the batched conditional-probability kernel.
+        Case(
+            "king_cross_2_4",
+            joinpath(ENGINE_INSTANCES, "pathological", "cross_2_4_mdd.txt"),
+            (2, 4, 3),
+            typemax(Int),
+            KingSingleNode{GaugesEnergy},
+            SVDTruncate,
+            Dense,
+            3.0,
+            16,
+            128,
+            Inf,
+        ),
+    ],
     "full" => [
         Case(
             "chimera_droplets_2048power",
@@ -133,7 +164,9 @@ function main()
         startswith(a, "--set=") && (set = split(a, "=")[2])
         startswith(a, "--tag=") && (tag = split(a, "=")[2])
     end
-    cases = set == "full" ? vcat(CASES["quick"], CASES["full"]) : CASES[set]
+    cases =
+        set == "full" ? vcat(CASES["quick"], CASES["quick+"], CASES["full"]) :
+        set == "quick+" ? vcat(CASES["quick"], CASES["quick+"]) : CASES[set]
     onGPU = CUDA.functional()
     commit = strip(read(`git -C $REPO rev-parse --short HEAD`, String))
 

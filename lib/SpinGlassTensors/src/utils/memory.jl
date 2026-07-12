@@ -1,4 +1,18 @@
-export measure_memory, format_bytes
+export measure_memory, format_bytes, kernel_batch_size
+
+"""
+Power-of-two batch size for kernel intermediates of element type `T` costing
+`per_item` elements per batched item. The budget is a quarter of the device's
+total memory on GPU (scales with the actual card) and 4 GiB on CPU (the
+historical constant); previously both were hardcoded byte counts that assumed
+8-byte elements, halving usable batch sizes for Float32 and overflowing small
+GPUs.
+"""
+function kernel_batch_size(::Type{T}, per_item::Integer, onGPU::Bool) where {T}
+    budget = onGPU && CUDA.functional() ? Int(CUDA.total_memory()) ÷ 4 : 2^32
+    bs = max(budget ÷ (sizeof(T) * per_item), 1)
+    Int(2^floor(log2(bs) + 1e-6))
+end
 
 measure_memory(ten::AbstractArray) = [Base.summarysize(ten), 0]  # [CPU_memory, GPU_memory]
 measure_memory(ten::CuArray) = [0, prod(size(ten)) * sizeof(eltype(ten))]

@@ -436,10 +436,9 @@ function conditional_probability(
         from = 1
         total_size = length(pd)
 
-        total_memory = 2^33
         s1, s2, _ = size(M)
-        batch_size = max(Int(floor(total_memory / (8 * (s1 * s2 + s1 + s2 + 1)))), 1)
-        batch_size = Int(2^floor(log2(batch_size) + 1e-6))
+        batch_size =
+            kernel_batch_size(eltype(M), s1 * s2 + s1 + s2 + 1, typeof(M) <: CuArray)
         LR =
             typeof(M) <: CuArray ? CUDA.zeros(eltype(M), total_size) :
             zeros(eltype(M), total_size)
