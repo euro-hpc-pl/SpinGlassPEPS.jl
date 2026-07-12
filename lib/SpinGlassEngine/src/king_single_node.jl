@@ -16,7 +16,8 @@ struct KingSingleNode{T<:AbstractTensorsLayout} <: AbstractGeometry end
 
 # Crossover for the batched conditional-probability kernel (GEMM work in
 # elements): below this, launch overhead beats the serial-CPU path.
-const KING_KERNEL_GPU_MIN_WORK = 2^16
+# A Ref so tests can force either branch.
+const KING_KERNEL_GPU_MIN_WORK = Ref(2^16)
 
 """
 $(TYPEDSIGNATURES)
@@ -221,11 +222,14 @@ function conditional_probability(
     # Batched GEMM over candidate states when the work is large enough to pay
     # for kernel launches; tiny nodes (few states, small bonds) are faster on
     # the CPU with the serial loop, including the three small downloads.
-    if length(probs) * size(M, 1) * size(M, 2) >= KING_KERNEL_GPU_MIN_WORK &&
+    if length(probs) * size(M, 1) * size(M, 2) >= KING_KERNEL_GPU_MIN_WORK[] &&
        typeof(M) <: CuArray
+        # right_env is host-cached until the Phase-4 explicit cache; the
+        # batched path needs R on the device.
+        Rd = typeof(R) <: CuArray ? R : CuArray(R)
         lmx3 = reshape(lmx2[:, ∂v[2*j-1], p_rb], 1, size(lmx2, 1), :)
         M3 = M[:, :, pd]
-        R3 = reshape(R[:, pr], size(R, 1), 1, :)
+        R3 = reshape(Rd[:, pr], size(Rd, 1), 1, :)
         LR = dropdims(lmx3 ⊠ M3 ⊠ R3, dims = (1, 2))
         probs .*= Array(LR)
     else

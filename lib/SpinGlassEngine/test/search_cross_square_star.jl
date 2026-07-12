@@ -53,3 +53,43 @@ GROUND = -14.355045
     end
     @test all(e -> e ≈ first(energies), energies)
 end
+
+if CUDA.functional()
+    @testset "King batched and serial probability kernels agree" begin
+        m, n, t = 2, 4, 3
+        instance = "$(@__DIR__)/instances/pathological/cross_$(m)_$(n)_mdd.txt"
+        potts_h = potts_hamiltonian(
+            ising_graph(instance),
+            spectrum = full_spectrum,
+            cluster_assignment_rule = super_square_lattice((m, n, t)),
+        )
+        params = MpsParameters{Float64}(; bond_dim = 16, var_tol = 1E-8, num_sweeps = 4)
+        search_params = SearchParameters(; max_states = 2^7, cutoff_prob = 0.0)
+
+        energies = map((typemax(Int), 0)) do threshold
+            old = SpinGlassEngine.KING_KERNEL_GPU_MIN_WORK[]
+            SpinGlassEngine.KING_KERNEL_GPU_MIN_WORK[] = threshold
+            try
+                net = PEPSNetwork{KingSingleNode{GaugesEnergy},Dense,Float64}(
+                    m,
+                    n,
+                    potts_h,
+                    rotation(0),
+                )
+                ctr = MpsContractor{SVDTruncate,NoUpdate,Float64}(
+                    net,
+                    params;
+                    onGPU = true,
+                    beta = 1.0,
+                    graduate_truncation = true,
+                )
+                sol, _ = low_energy_spectrum(ctr, search_params)
+                clear_memoize_cache()
+                sol.energies
+            finally
+                SpinGlassEngine.KING_KERNEL_GPU_MIN_WORK[] = old
+            end
+        end
+        @test energies[1] ≈ energies[2]
+    end
+end
