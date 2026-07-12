@@ -11,11 +11,9 @@ export SVDTruncate,
     mpo,
     mps_top,
     mps,
-    mps_top_approx,
     mps_approx,
     update_gauges!,
     sweep_gauges!,
-    update_gauges_with_balancing!,
     boundary_states,
     dressed_mps,
     conditional_probability,
@@ -164,7 +162,7 @@ Keyword arguments:
 - `graduate_truncation::Bool`: A flag indicating whether bond dimensions in the MPS are truncated progressively. When set to true, this truncation method adjusts the bond dimensions gradually during contraction.
 - `onGPU::Bool`: A flag indicating whether the computation should be performed on a GPU (default is true).
 - `depth::Int`: Specifies the depth of variational sweeps during the Zipper algorithm. A value of 0 implies a full variational sweep across all lattice sites.
-The constructor sets up the internal structure of the contractor, including the MPO layers, search order for nodes, and storage for contraction statistics.
+The constructor sets up the internal structure of the contractor, including the MPO layers and the search order for nodes.
 """
 mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
                AbstractContractor
@@ -174,7 +172,6 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
     depth::Int
     params::MpsParameters{S}
     layers::MpoLayers
-    statistics::Any#::Dict{Vector{Int}, <:Real}
     nodes_search_order::Vector{Node}
     node_outside::Node
     node_search_index::Dict{Node,Int}
@@ -190,7 +187,6 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
         depth::Int = 0,
     ) where {T,R,S}
         ml = MpoLayers(layout(net), net.ncols)
-        stat = Dict()
         ord, node_out = nodes_search_order_Mps(net)
         enum_ord = Dict(node => i for (i, node) ∈ enumerate(ord))
         node = ord[begin]
@@ -201,7 +197,6 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
             depth,
             params,
             ml,
-            stat,
             ord,
             node_out,
             enum_ord,
@@ -406,16 +401,6 @@ This function constructs the (bottom) MPS approximation using SVD for a given ro
     ψ0
 end
 
-#=
-function (ctr::MpsContractor)(peps::PEPSNetwork, ...., :mps_top)
-
-for ctr ∈ [ctr_1, ctr_2]
-    mpo_1 = ctr_1(peps, ..., :mpo)
-    mpo_2 = ctr_2(peps, ..., :mpo)
-
-    #@nexprs 2 k k -> mpo_k = ctr_k(peps, ..., :mpo)
-end
-=#
 
 """
 $(TYPEDSIGNATURES)

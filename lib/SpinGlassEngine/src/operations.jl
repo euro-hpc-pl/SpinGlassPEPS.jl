@@ -76,7 +76,7 @@ A `LatticeTransformation` object representing the specified rotation transformat
 """
 function rotation(θ::Int)
     if θ % 90 != 0
-        ArgumentError("Only integral multiplicities of 90° can be passed as θ.")
+        throw(ArgumentError("Only integral multiplicities of 90° can be passed as θ."))
     end
     θ = θ % 360
     if θ == 0
@@ -138,7 +138,7 @@ function vertex_map(vert_permutation::NTuple{4,Int}, nrows, ncols)
     elseif vert_permutation == (3, 2, 1, 4) # :antydiag reflection
         f = (i, j) -> (nrows - j + 1, ncols - i + 1)
     else
-        ArgumentError("$(vert_permutation) does not define square isometry.")
+        throw(ArgumentError("$(vert_permutation) does not define square isometry."))
     end
     vmap(node::NTuple{2,Int}) = f(node[1], node[2])
     vmap(node::NTuple{3,Int}) = (f(node[1], node[2])..., node[3])

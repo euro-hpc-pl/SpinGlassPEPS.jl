@@ -269,7 +269,6 @@ function conditional_probability(
     bnd_exp = dropdims(sum(A; dims = 1); dims = 1)
     probs .*= Array(bnd_exp)
 
-    push!(ctr.statistics, ((i, j), ∂v) => error_measure(probs))
     normalize_probability(probs)
 end
 

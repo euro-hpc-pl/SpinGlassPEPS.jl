@@ -241,7 +241,6 @@ function conditional_probability(
         probs = ele .* Array(LR)
     end
 
-    push!(ctr.statistics, ((i, j, k), ∂v) => error_measure(probs))
     normalize_probability(probs)
 end
 

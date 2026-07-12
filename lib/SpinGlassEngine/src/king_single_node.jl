@@ -220,7 +220,6 @@ function conditional_probability(
         @inbounds probs[σ] *= (lmx'*m*r)[]
     end
 
-    push!(ctr.statistics, ((i, j), ∂v) => error_measure(probs))
     normalize_probability(probs)
 end
 

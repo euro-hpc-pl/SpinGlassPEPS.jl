@@ -492,7 +492,6 @@ function conditional_probability(
         LR = dropdims(LMX3[:, :, plb2] ⊠ M2[:, :, pd2] ⊠ R2[:, :, prf2], dims = (1, 2))
         probs = Array(ele .* LR)
     end
-    push!(ctr.statistics, ((i, j), ∂v) => error_measure(probs))
     normalize_probability(probs)
 end
 
