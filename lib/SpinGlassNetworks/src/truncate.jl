@@ -22,7 +22,7 @@ associated with a single-site cluster. It then truncates the Potts Hamiltonian b
 - `LabelledGraph{S, T}`: A truncated Potts Hamiltonian.
 """
 function truncate_potts_hamiltonian_1site_BP(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     num_states::Int;
     beta = 1.0,
     tol = 1e-10,
@@ -53,7 +53,7 @@ to keep. It computes the energies for all 2-site combinations and selects the st
 - `LabelledGraph{S, T}`: A truncated Potts Hamiltonian.
 """
 function truncate_potts_hamiltonian_2site_energy(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     num_states::Int,
 ) where {S,T}
     # TODO: name to be clean to make it consistent with square2 and squarestar2
@@ -108,7 +108,7 @@ This function computes beliefs for the entire 2-site cluster and selects states 
 - `LabelledGraph{S, T}`: A Potts Hamiltonian with reduced state space, preserving only the most probable states.
 """
 function truncate_potts_hamiltonian_2site_BP(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     beliefs::Dict,
     num_states::Int,
     result_folder::String = "results_folder",

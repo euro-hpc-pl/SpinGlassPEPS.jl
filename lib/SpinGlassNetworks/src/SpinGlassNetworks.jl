@@ -14,6 +14,7 @@ using JLD2
 include("ising.jl")
 include("spectrum.jl")
 include("accessors.jl")
+include("potts_types.jl")
 include("lattice.jl")
 include("potts_hamiltonian.jl")
 include("bp.jl")

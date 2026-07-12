@@ -54,7 +54,7 @@ An instance of PEPSNetwork{T, S, R}.
 """
 mutable struct PEPSNetwork{T<:AbstractGeometry,S<:AbstractSparsity,R<:Real} <:
                AbstractGibbsNetwork{Node,PEPSNode,R}
-    potts_hamiltonian::LabelledGraph
+    potts_hamiltonian::PottsLike
     vertex_map::Function
     lp::PoolOfProjectors
     m::Int
@@ -67,7 +67,7 @@ mutable struct PEPSNetwork{T<:AbstractGeometry,S<:AbstractSparsity,R<:Real} <:
     function PEPSNetwork{T,S,R}(
         m::Int,
         n::Int,
-        potts_hamiltonian::LabelledGraph,
+        potts_hamiltonian::PottsLike,
         transformation::LatticeTransformation,
         gauge_type::Symbol = :id,
     ) where {T<:AbstractGeometry,S<:AbstractSparsity,R<:Real}
@@ -297,7 +297,7 @@ Check if a Potts Hamiltonian is compatible with a given network graph.
 ## Returns
 - `compatibility::Bool`: `true` if the Potts Hamiltonian is compatible with the network graph, `false` otherwise.
 """
-function is_compatible(potts_hamiltonian::LabelledGraph, network_graph::LabelledGraph)
+function is_compatible(potts_hamiltonian::PottsLike, network_graph::LabelledGraph)
     all(has_edge(network_graph, src(edge), dst(edge)) for edge ∈ edges(potts_hamiltonian))
 end
 

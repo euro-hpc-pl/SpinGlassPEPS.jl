@@ -106,17 +106,21 @@ function potts_hamiltonian(
     spectrum::Function = full_spectrum,
     cluster_assignment_rule::Dict{Int,T},
 ) where {T}
-    potts_h = LabelledGraph{MetaDiGraph}(sort(unique(values(cluster_assignment_rule))))
-
+    labels = sort(unique(values(cluster_assignment_rule)))
+    topology = LabelledGraph{SimpleDiGraph}(labels)
     lp = PoolOfProjectors{Int}()
 
-    for (v, cl) ∈ split_into_clusters(ig, cluster_assignment_rule)
-        sp = spectrum(cl, num_states = get(num_states_cl, v, basis_size(cl)))
-        set_props!(potts_h, v, Dict(:cluster => cl, :spectrum => sp))
-    end
+    clusters = Dict(
+        v => cl for (v, cl) ∈ split_into_clusters(ig, cluster_assignment_rule)
+    )
+    spectra = Dict(
+        v => spectrum(cl, num_states = get(num_states_cl, v, basis_size(cl))) for
+        (v, cl) ∈ clusters
+    )
 
-    for (i, v) ∈ enumerate(vertices(potts_h)), w ∈ vertices(potts_h)[i+1:end]
-        cl1, cl2 = cluster_graph(potts_h, v), cluster_graph(potts_h, w)
+    interactions = Dict()
+    for (i, v) ∈ enumerate(labels), w ∈ labels[i+1:end]
+        cl1, cl2 = clusters[v], clusters[w]
         outer_edges, J = inter_cluster_edges(ig, cl1, cl2)
 
         if !isempty(outer_edges)
@@ -126,8 +130,8 @@ function potts_hamiltonian(
             ind2 = reshape(ind2, length(ind2))
             JJ = J[ind1, ind2]
 
-            states_v = cluster_spectrum(potts_h, v).states
-            states_w = cluster_spectrum(potts_h, w).states
+            states_v = spectra[v].states
+            states_w = spectra[w].states
 
             pl, unique_states_v = rank_reveal([s[ind1] for s ∈ states_v], :PE)
             pr, unique_states_w = rank_reveal([s[ind2] for s ∈ states_w], :PE)
@@ -135,17 +139,29 @@ function potts_hamiltonian(
             ipl = add_projector!(lp, pl)
             ipr = add_projector!(lp, pr)
 
-            add_edge!(potts_h, v, w)
-            set_props!(
-                potts_h,
-                v,
-                w,
-                Dict(:outer_edges => outer_edges, :ipl => ipl, :en => en, :ipr => ipr),
-            )
+            add_edge!(topology, v, w)
+            interactions[(v, w)] = ClusterInteraction(en, ipl, ipr, outer_edges)
         end
     end
-    set_props!(potts_h, Dict(:pool_of_projectors => lp))
-    potts_h
+    PottsHamiltonian(
+        topology,
+        clusters,
+        spectra,
+        _narrow_interactions(interactions, eltype(labels), eltype(ig)),
+        lp,
+    )
+end
+
+# Interactions are accumulated in an untyped Dict (the ClusterInteraction
+# parameters are only known once the first edge is built); narrow to concrete
+# key/value types, keeping a well-typed empty Dict for graphs without
+# inter-cluster edges.
+function _narrow_interactions(interactions::Dict, ::Type{L}, ::Type{T}) where {L,T}
+    isempty(interactions) && return Dict{
+        Tuple{L,L},
+        ClusterInteraction{T,Vector{LabelledEdge{Int}}},
+    }()
+    Dict([k => v for (k, v) ∈ interactions])
 end
 
 """
@@ -233,7 +249,7 @@ This function assumes that the state has the same order as the vertices in the P
 It decodes the state consistently based on the cluster assignments and spectra of the Potts Hamiltonian.
 """
 function decode_potts_hamiltonian_state(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     state::Vector{Int},
 ) where {S,T}
     ret = Dict{Int,Int}()
@@ -267,7 +283,7 @@ This function computes the energy by summing the energies associated with indivi
 clusters and the interaction energies between clusters. 
 It takes into account the cluster spectra and projectors stored in the Potts Hamiltonian.
 """
-function energy(potts_h::LabelledGraph{S,T}, σ::Dict{T,Int}) where {S,T}
+function energy(potts_h::PottsLike, σ::Dict)
     en_potts_h = 0.0
     for v ∈ vertices(potts_h)
         en_potts_h += cluster_spectrum(potts_h, v).energies[σ[v]]
@@ -302,7 +318,7 @@ The function checks if there is an interaction edge between the two sites (i, j)
 If such edges exist, it retrieves the interaction energy matrix, projectors, and calculates the interaction energy. 
 If no interaction edge is found, it returns a zero matrix.
 """
-function energy_2site(potts_h::LabelledGraph{S,T}, i::Int, j::Int) where {S,T}
+function energy_2site(potts_h::PottsLike, i::Int, j::Int)
     # matrix of interaction energies between two nodes
     if has_edge(potts_h, (i, j, 1), (i, j, 2))
         en12 = copy(interaction(potts_h, (i, j, 1), (i, j, 2)))
@@ -345,7 +361,7 @@ If such edges exist, it retrieves the bond energy matrix and projectors and calc
 If no bond edge is found, it returns a zero vector.
 """
 function bond_energy(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     potts_h_u::NTuple{N,Int64},
     potts_h_v::NTuple{N,Int64},
     σ::Int,
@@ -387,7 +403,7 @@ This function returns the size (number of states) of a cluster in a Potts Hamilt
 
 The function retrieves the spectrum associated with the specified cluster and returns the length of the energy vector in that spectrum.
 """
-function cluster_size(potts_hamiltonian::LabelledGraph{S,T}, vertex::T) where {S,T}
+function cluster_size(potts_hamiltonian::PottsLike, vertex)
     length(cluster_spectrum(potts_hamiltonian, vertex).energies)
 end
 
@@ -411,7 +427,7 @@ calculates their energies, and computes the probability distribution based on th
 It then calculates the conditional probability of the specified target state by summing the probabilities of states that match the target state.
 """
 function exact_cond_prob(
-    potts_hamiltonian::LabelledGraph{S,T},
+    potts_hamiltonian::PottsLike,
     beta,
     target_state::Dict,
 ) where {S,T}
@@ -425,30 +441,28 @@ function exact_cond_prob(
     sum(prob[findall([all(s[k] == v for (k, v) ∈ target_state) for s ∈ states])])
 end
 
-function truncate_potts_hamiltonian(potts_h::LabelledGraph{S,T}, states::Dict) where {S,T}
+function truncate_potts_hamiltonian(potts_h::PottsLike, states::Dict)
 
-    new_potts_h = LabelledGraph{MetaDiGraph}(vertices(potts_h))
+    topology = LabelledGraph{SimpleDiGraph}(collect(vertices(potts_h)))
     new_lp = PoolOfProjectors{Int}()
 
-    for v ∈ vertices(new_potts_h)
-        cl = cluster_graph(potts_h, v)
-        sp = cluster_spectrum(potts_h, v)
-        if sp.states == Vector{Int64}[]
-            sp = Spectrum(sp.energies[states[v]], sp.states, [1])
-        else
-            sp = Spectrum(sp.energies[states[v]], sp.states[states[v]])
-        end
-        set_props!(new_potts_h, v, Dict(:cluster => cl, :spectrum => sp))
-    end
+    clusters = Dict(v => cluster_graph(potts_h, v) for v ∈ vertices(potts_h))
+    spectra = Dict(
+        v => begin
+            sp = cluster_spectrum(potts_h, v)
+            sp.states == Vector{Int64}[] ?
+            Spectrum(sp.energies[states[v]], sp.states, [1]) :
+            Spectrum(sp.energies[states[v]], sp.states[states[v]])
+        end for v ∈ vertices(potts_h)
+    )
 
+    interactions = Dict()
     for e ∈ edges(potts_h)
         v, w = src(e), dst(e)
-        add_edge!(new_potts_h, v, w)
+        add_edge!(topology, v, w)
         outer_edges = outer_cluster_edges(potts_h, v, w)
-        ipl = left_projector(potts_h, v, w)
-        pl = get_projector!(projector_pool(potts_h), ipl, :CPU)
-        ipr = right_projector(potts_h, v, w)
-        pr = get_projector!(projector_pool(potts_h), ipr, :CPU)
+        pl = get_projector!(projector_pool(potts_h), left_projector(potts_h, v, w), :CPU)
+        pr = get_projector!(projector_pool(potts_h), right_projector(potts_h, v, w), :CPU)
         en = interaction(potts_h, v, w)
         pl = pl[states[v]]
         pr = pr[states[w]]
@@ -457,16 +471,20 @@ function truncate_potts_hamiltonian(potts_h::LabelledGraph{S,T}, states::Dict) w
         en = en[pl_unique, pr_unique]
         ipl = add_projector!(new_lp, pl_transition)
         ipr = add_projector!(new_lp, pr_transition)
-        set_props!(
-            new_potts_h,
-            v,
-            w,
-            Dict(:outer_edges => outer_edges, :ipl => ipl, :en => en, :ipr => ipr),
-        )
+        interactions[(v, w)] = ClusterInteraction(Matrix(en), ipl, ipr, outer_edges)
     end
-    set_props!(new_potts_h, Dict(:pool_of_projectors => new_lp))
 
-    new_potts_h
+    PottsHamiltonian(
+        topology,
+        clusters,
+        spectra,
+        _narrow_interactions(
+            interactions,
+            eltype(vertices(potts_h)),
+            eltype(first(values(spectra)).energies),
+        ),
+        new_lp,
+    )
 end
 
 """

@@ -29,7 +29,7 @@ The algorithm continues until convergence or until the specified maximum number 
 The beliefs are computed based on the inverse temperature parameter `beta`, which controls the influence of energy values on the beliefs.
 """
 function belief_propagation(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     beta::Real;
     tol = 1e-6,
     iter = 1,
@@ -117,7 +117,7 @@ This function retrieves the neighbors of a given vertex in a Potts Hamiltonian g
 It iterates through the edges of the graph and identifies edges connected to the specified vertex. 
 For each neighboring edge, it extracts and returns the neighboring vertex, the associated projector, and the energy.
 """
-function get_neighbors(potts_h::LabelledGraph{S,T}, vertex::NTuple) where {S,T}
+function get_neighbors(potts_h::PottsLike, vertex::NTuple)
     neighbors = []
     for edge in edges(potts_h)
         src_node, dst_node = src(edge), dst(edge)
@@ -275,7 +275,7 @@ In these geometries, clusters in the original Potts Hamiltonian are subdivided i
   - Edges: Capture interactions between these clusters, including energy values and associated projectors.
 
 """
-function potts_hamiltonian_2site(potts_h::LabelledGraph{S,T}, beta::Real) where {S,T}
+function potts_hamiltonian_2site(potts_h::PottsLike, beta::Real)
 
     unified_vertices = unique([vertex[1:2] for vertex in vertices(potts_h)])
     new_potts_h = LabelledGraph{MetaDiGraph}(unified_vertices)
@@ -344,7 +344,7 @@ The merged energy values, left projector `pl`, and right projector `pr` are comp
 between the original vertices and their respective projectors.
 """
 function merge_vertices_potts_h(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     β::Real,
     node1::NTuple{3,Int64},
     node2::NTuple{3,Int64},
@@ -401,7 +401,7 @@ If the vertex exists in the graph and has associated energy values, it returns t
 
 The local energy values are typically obtained from the spectrum associated with the vertex.
 """
-function local_energy(potts_h::LabelledGraph{S,T}, v::NTuple{3,Int64}) where {S,T}
+function local_energy(potts_h::PottsLike, v::NTuple{3,Int64})
     has_vertex(potts_h, v) ? cluster_spectrum(potts_h, v).energies : zeros(1)
 end
 
@@ -425,7 +425,7 @@ otherwise, it returns a matrix of zeros.
 The interaction energy values represent the energy associated with the interaction or connection between the two vertices.
 """
 function interaction_energy(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     v::NTuple{3,Int64},
     w::NTuple{3,Int64},
 ) where {S,T}
@@ -458,7 +458,7 @@ if there is a directed edge from `v` to `w`, it returns the index of left projec
 If no edge exists between the vertices, it returns a vector of ones.
 """
 function projector(
-    potts_h::LabelledGraph{S,T},
+    potts_h::PottsLike,
     v::NTuple{N,Int64},
     w::NTuple{N,Int64},
 ) where {S,T,N}
