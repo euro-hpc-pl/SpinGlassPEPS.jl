@@ -218,9 +218,9 @@ Keyword arguments:
 - `depth::Int`: Specifies the depth of variational sweeps during the Zipper algorithm. A value of 0 implies a full variational sweep across all lattice sites.
 The constructor sets up the internal structure of the contractor, including the MPO layers and the search order for nodes.
 """
-mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
+mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real,N<:PEPSNetwork} <:
                AbstractContractor
-    peps::PEPSNetwork{T} where {T}
+    peps::N
     beta::S
     graduate_truncation::Bool
     depth::Int
@@ -233,19 +233,19 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
     onGPU::Bool
     cache::ContractionCache{S}
 
-    function MpsContractor{T,R,S}(
-        net,
+    function MpsContractor{T,R,S,N}(
+        net::N,
         params;
         beta::S,
         graduate_truncation::Bool,
         onGPU = true,
         depth::Int = 0,
-    ) where {T,R,S}
+    ) where {T,R,S,N}
         ml = MpoLayers(layout(net), net.ncols)
         ord, node_out = nodes_search_order_Mps(net)
         enum_ord = Dict(node => i for (i, node) ∈ enumerate(ord))
         node = ord[begin]
-        new(
+        new{T,R,S,N}(
             net,
             beta,
             graduate_truncation,
@@ -261,6 +261,11 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real} <:
         )
     end
 end
+
+# The published API constructs contractors with three explicit parameters;
+# the network type parameter is inferred.
+MpsContractor{T,R,S}(net, params; kwargs...) where {T,R,S} =
+    MpsContractor{T,R,S,typeof(net)}(net, params; kwargs...)
 
 function MpsContractor(
     ::Type{T},

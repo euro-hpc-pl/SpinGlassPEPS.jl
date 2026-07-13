@@ -120,30 +120,39 @@ Create a vertex mapping function for a lattice transformation.
 # Returns
 A vertex mapping function `vmap` that takes a tuple of vertex coordinates and returns their new coordinates after applying the specified lattice transformation.    
 """
-function vertex_map(vert_permutation::NTuple{4,Int}, nrows, ncols)
-    if vert_permutation == (1, 2, 3, 4) #
-        f = (i, j) -> (i, j)
-    elseif vert_permutation == (4, 1, 2, 3) # 90 deg rotation
-        f = (i, j) -> (nrows - j + 1, i)
-    elseif vert_permutation == (3, 4, 1, 2) # 180 deg rotation
-        f = (i, j) -> (nrows - i + 1, ncols - j + 1)
-    elseif vert_permutation == (2, 3, 4, 1) # 270 deg rotation
-        f = (i, j) -> (j, ncols - i + 1)
-    elseif vert_permutation == (2, 1, 4, 3) # :y reflection
-        f = (i, j) -> (i, ncols - j + 1)
-    elseif vert_permutation == (4, 3, 2, 1) # :x reflection
-        f = (i, j) -> (nrows - i + 1, j)
-    elseif vert_permutation == (1, 4, 3, 2) # :diag reflection
-        f = (i, j) -> (j, i)
-    elseif vert_permutation == (3, 2, 1, 4) # :antydiag reflection
-        f = (i, j) -> (nrows - j + 1, ncols - i + 1)
-    else
-        throw(ArgumentError("$(vert_permutation) does not define square isometry."))
+# A concrete callable replacing the per-transformation closures: the network
+# stores one concrete type instead of an abstract Function field, so vertex
+# mapping in the hot path is a predictable 8-way branch, not dynamic dispatch.
+struct VertexMap
+    permutation::NTuple{4,Int}
+    nrows::Int
+    ncols::Int
+
+    function VertexMap(permutation::NTuple{4,Int}, nrows::Int, ncols::Int)
+        permutation ∈
+        ((1, 2, 3, 4), (4, 1, 2, 3), (3, 4, 1, 2), (2, 3, 4, 1), (2, 1, 4, 3), (4, 3, 2, 1), (1, 4, 3, 2), (3, 2, 1, 4)) ||
+            throw(ArgumentError("$(permutation) does not define square isometry."))
+        new(permutation, nrows, ncols)
     end
-    vmap(node::NTuple{2,Int}) = f(node[1], node[2])
-    vmap(node::NTuple{3,Int}) = (f(node[1], node[2])..., node[3])
-    vmap
 end
+
+function _map_ij(vm::VertexMap, i::Int, j::Int)
+    p, nrows, ncols = vm.permutation, vm.nrows, vm.ncols
+    p == (1, 2, 3, 4) && return (i, j)
+    p == (4, 1, 2, 3) && return (nrows - j + 1, i)          # 90 deg rotation
+    p == (3, 4, 1, 2) && return (nrows - i + 1, ncols - j + 1) # 180 deg rotation
+    p == (2, 3, 4, 1) && return (j, ncols - i + 1)          # 270 deg rotation
+    p == (2, 1, 4, 3) && return (i, ncols - j + 1)          # :y reflection
+    p == (4, 3, 2, 1) && return (nrows - i + 1, j)          # :x reflection
+    p == (1, 4, 3, 2) && return (j, i)                      # :diag reflection
+    (nrows - j + 1, ncols - i + 1)                          # :antydiag reflection
+end
+
+(vm::VertexMap)(node::NTuple{2,Int}) = _map_ij(vm, node[1], node[2])
+(vm::VertexMap)(node::NTuple{3,Int}) = (_map_ij(vm, node[1], node[2])..., node[3])
+
+vertex_map(vert_permutation::NTuple{4,Int}, nrows, ncols) =
+    VertexMap(vert_permutation, nrows, ncols)
 
 """
 $(TYPEDSIGNATURES)

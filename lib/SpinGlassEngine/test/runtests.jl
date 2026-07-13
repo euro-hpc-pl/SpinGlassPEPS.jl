@@ -38,8 +38,6 @@ push!(
     "search_chimera_smallest_droplets.jl",
     "search_chimera_pathological_droplets.jl",
     "search_chimera_pathological_hamming.jl",
-    "search_chimera_droplets.jl",
-    "search_pegasus_droplets.jl",
     "search_chimera_pathological_Z2.jl",
     # time consuming tests:
     #    "search_chimera_full.jl",
@@ -66,7 +64,15 @@ function my_brute_force(ig::IsingGraph; num_states::Int)
 end
 
 @time begin
-    for my_test ∈ my_tests
+    # The droplet searches peak around 10 GiB inside a single solve (plus pool
+# reservation): they OOM 3080-class cards and need a quiet >= 12 GiB device.
+if !onGPU || CUDA.total_memory() >= 12 * 2^30
+    push!(my_tests, "search_chimera_droplets.jl", "search_pegasus_droplets.jl")
+else
+    @warn "Skipping droplet search tests: GPU has $(Base.format_bytes(CUDA.total_memory())), needs >= 12 GiB"
+end
+
+for my_test ∈ my_tests
         include(my_test)
     end
 end

@@ -52,27 +52,33 @@ Construct a Projected Entangled Pair States (PEPS) network.
 # Returns
 An instance of PEPSNetwork{T, S, R}.
 """
-mutable struct PEPSNetwork{T<:AbstractGeometry,S<:AbstractSparsity,R<:Real} <:
+mutable struct PEPSNetwork{T<:AbstractGeometry,S<:AbstractSparsity,R<:Real,PH<:PottsLike} <:
                AbstractGibbsNetwork{Node,PEPSNode,R}
-    potts_hamiltonian::PottsLike
-    vertex_map::Function
-    lp::PoolOfProjectors
+    potts_hamiltonian::PH
+    vertex_map::VertexMap
+    lp::PoolOfProjectors{Int}
     m::Int
     n::Int
     nrows::Int
     ncols::Int
     tensors_map::Dict{PEPSNode,Symbol}
-    gauges::Gauges{T}
+    gauges::Gauges{T,R}
 
     function PEPSNetwork{T,S,R}(
         m::Int,
         n::Int,
-        potts_hamiltonian::PottsLike,
+        potts_hamiltonian::PH,
         transformation::LatticeTransformation,
         gauge_type::Symbol = :id,
-    ) where {T<:AbstractGeometry,S<:AbstractSparsity,R<:Real}
+    ) where {T<:AbstractGeometry,S<:AbstractSparsity,R<:Real,PH<:PottsLike}
         lp = projector_pool(potts_hamiltonian)
-        net = new(potts_hamiltonian, vertex_map(transformation, m, n), lp, m, n)
+        net = new{T,S,R,PH}(
+            potts_hamiltonian,
+            vertex_map(transformation, m, n),
+            lp,
+            m,
+            n,
+        )
         net.nrows, net.ncols = transformation.flips_dimensions ? (n, m) : (m, n)
 
         if !is_compatible(net.potts_hamiltonian, T.name.wrapper(m, n))
