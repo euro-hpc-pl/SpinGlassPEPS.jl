@@ -27,6 +27,29 @@ struct GaugesEnergy{T} <: AbstractTensorsLayout end
 struct EnergyGauges{T} <: AbstractTensorsLayout end
 struct EngGaugesEng{T} <: AbstractTensorsLayout end
 
+# ---------------------------------------------------------------------------
+# The geometry protocol.
+#
+# A lattice geometry (a subtype of AbstractGeometry, e.g. SquareSingleNode)
+# must implement, for every tensor layout it supports:
+#
+#   GEOMETRY(m, n)                         -> LabelledGraph  (network graph)
+#   tensor_map(GEOMETRY, SPARSITY, nrows, ncols) -> Dict{PEPSNode,Symbol}
+#   gauges_list(GEOMETRY{LAYOUT}, nrows, ncols)  -> Vector{GaugeInfo}
+#   MpoLayers(GEOMETRY{LAYOUT}, ncols)           -> MpoLayers
+#   conditional_probability(GEOMETRY, ctr, boundary_config) -> probabilities
+#   projectors_site_tensor(net, vertex)          -> projector tuple
+#   nodes_search_order_Mps(net)                  -> (search order, outside node)
+#   boundary(GEOMETRY, ctr, node)                -> boundary recipe
+#   update_energy(GEOMETRY, ctr, config, node)   -> energy updates
+#   Base.size / tensor methods for each tensor species it registers in
+#   tensor_map (dispatched via Val(species)).
+#
+# test/geometry_protocol.jl asserts conformance for every geometry x layout
+# combination the solver supports; extend the table there when adding a
+# geometry.
+# ---------------------------------------------------------------------------
+
 const Node = NTuple{N,Int} where {N}
 
 # """
