@@ -45,12 +45,12 @@ end
 if CUDA.functional()
     @testset "Device-native QR/RQ above the size threshold" begin
         for T in (Float64, Float32)
-            M = CUDA.rand(T, 512, 128)  # 65536 elements >= 2^15
-            @test length(M) >= SpinGlassTensors.QR_GPU_MIN_ELEMENTS
+            M = CUDA.rand(T, 4096, 64)  # GPU-profitable per the measured surface
+            @test SpinGlassTensors.qr_on_gpu(M)
             Q, R = qr_fact(M)
             @test Q isa CuMatrix{T} && R isa CuMatrix{T}
             @test isapprox(Array(Q * R), Array(M); rtol = sqrt(eps(T)))
-            @test isapprox(Array(Q' * Q), I(128); atol = 100 * sqrt(eps(T)))
+            @test isapprox(Array(Q' * Q), I(64); atol = 100 * sqrt(eps(T)))
             # agreement with the CPU path (both sign-fixed, so comparable)
             Qc, Rc = qr_fact(Array(M); toGPU = false)
             @test isapprox(Array(Q), Qc; rtol = 100 * sqrt(eps(T)))
@@ -59,8 +59,8 @@ if CUDA.functional()
             Rr, Qr = rq_fact(M)
             @test isapprox(Array(Rr * Qr), Array(M); rtol = sqrt(eps(T)))
             # truncated GPU branch (hits svd_fact on device)
-            Qt, Rt = qr_fact(M, 64, T(1e-12))
-            @test size(Qt, 2) == 64 && size(Rt, 1) == 64
+            Qt, Rt = qr_fact(M, 32, T(1e-12))
+            @test size(Qt, 2) == 32 && size(Rt, 1) == 32
         end
     end
 end

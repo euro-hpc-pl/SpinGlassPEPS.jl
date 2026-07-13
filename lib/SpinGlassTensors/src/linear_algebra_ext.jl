@@ -64,7 +64,15 @@ end
 # threshold the CUSOLVER launch + Q-materialization overhead loses to LAPACK
 # plus the PCIe round trip (measured on RTX 5080: crossover between 8K and
 # 32K elements), so small matrices keep the CPU path.
-const QR_GPU_MIN_ELEMENTS = 2^15
+# Whether CUSOLVER beats download-LAPACK-upload for this shape. Fitted to a
+# measured 30-cell (rows x cols) crossover surface on RTX 5080 (see
+# REFACTOR.md): very tall matrices win on the GPU regardless of width
+# (the download dominates the CPU path), otherwise both a minimum size and a
+# non-degenerate minor dimension are needed.
+function qr_on_gpu(M::AbstractMatrix)
+    lo, hi = extrema(size(M))
+    hi >= 2^15 || (length(M) >= 2^16 && lo >= 16 && hi >= 2048)
+end
 
 function qr_fact(
     M::CuMatrix{T},
@@ -73,7 +81,7 @@ function qr_fact(
     toGPU::Bool = true,
     kwargs...,
 ) where {T<:Real}
-    if length(M) < QR_GPU_MIN_ELEMENTS
+    if !qr_on_gpu(M)
         return qr_fact(Array(M), Dcut, tol; toGPU = toGPU, kwargs...)
     end
     F = qr(M)
@@ -94,7 +102,7 @@ function rq_fact(
     toGPU::Bool = true,
     kwargs...,
 ) where {T<:Real}
-    if length(M) < QR_GPU_MIN_ELEMENTS
+    if !qr_on_gpu(M)
         return rq_fact(Array(M), Dcut, tol; toGPU = toGPU, kwargs...)
     end
     q, r = qr_fact(CuMatrix(M'), Dcut, tol; toGPU = true, kwargs...)
