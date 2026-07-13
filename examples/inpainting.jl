@@ -1,19 +1,7 @@
 using SpinGlassPEPS
 using CUDA
-using Pkg
 using Logging
-
-# for visualisation of results, we need following packages
-try
-    using Colors, Images
-catch e
-    if isa(e, ArgumentError) || isa(e, LoadError)
-        Pkg.add("Colors")
-        Pkg.add("Images")
-    else
-        rethrow(e)
-    end
-end
+using Colors, Images
 
 disable_logging(LogLevel(1))
 
@@ -82,4 +70,3 @@ end
 
 sol = bench_inpaining(Float64, 6, 64, 4)
 visualize_result(sol)
-

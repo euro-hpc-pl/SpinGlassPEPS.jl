@@ -10,19 +10,23 @@ env:
   JULIA_NUM_THREADS: 2
 jobs:
   test-cpu:
-    # CPU leg on public runners: CUDA.jl loads without a GPU; tests must gate GPU
-    # paths on CUDA.functional(). SpinGlassExhaustive is GPU-only, so it is excluded.
-    name: CPU ${{ matrix.package }} - Julia ${{ matrix.version }}
+    # CUDA.jl loads on public runners without a device; GPU-only assertions gate
+    # themselves on CUDA.functional(). Every group uses the root package project.
+    name: CPU ${{ matrix.group }} - Julia ${{ matrix.version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         version:
           - '1.11'
-        package:
-          - SpinGlassTensors
-          - SpinGlassNetworks
-          - SpinGlassEngine
+        group:
+          - tensors
+          - networks
+          - exhaustive
+          - engine
+          - umbrella
+    env:
+      SPINGLASS_TEST_GROUP: ${{ matrix.group }}
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -31,23 +35,26 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@latest
         with:
-          project: lib/${{ matrix.package }}
+          project: .
       - uses: julia-actions/julia-runtest@latest
         with:
-          project: lib/${{ matrix.package }}
+          project: .
   test-gpu:
-    name: GPU ${{ matrix.package }} - Julia ${{ matrix.version }}
+    name: GPU ${{ matrix.group }} - Julia ${{ matrix.version }}
     runs-on: [self-hosted, titan, gpu]
     strategy:
       fail-fast: false
       matrix:
         version:
           - '1.11'
-        package:
-          - SpinGlassTensors
-          - SpinGlassNetworks
-          - SpinGlassEngine
-          - SpinGlassExhaustive
+        group:
+          - tensors
+          - networks
+          - exhaustive
+          - engine
+          - umbrella
+    env:
+      SPINGLASS_TEST_GROUP: ${{ matrix.group }}
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -56,34 +63,19 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@latest
         with:
-          project: lib/${{ matrix.package }}
+          project: .
       - uses: julia-actions/julia-runtest@latest
         with:
-          project: lib/${{ matrix.package }}
+          project: .
       - uses: julia-actions/julia-processcoverage@v1
         with:
-          directories: lib/${{ matrix.package }}/src
+          directories: src
       - uses: codecov/codecov-action@v4
         with:
           file: lcov.info
+          flags: gpu-${{ matrix.group }}
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
-  test-umbrella:
-    name: Umbrella - Julia ${{ matrix.version }}
-    runs-on: [self-hosted, titan, gpu]
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - '1.11'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: ${{ matrix.version }}
-      - uses: julia-actions/cache@v2
-      - uses: julia-actions/julia-buildpkg@latest
-      - uses: julia-actions/julia-runtest@latest
   docs:
     name: Documentation
     runs-on: ubuntu-latest

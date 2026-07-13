@@ -4,6 +4,12 @@ Audit date: 2026-07-11. Scope: SpinGlassTensors, SpinGlassNetworks, SpinGlassEng
 SpinGlassExhaustive, SpinGlassPEPS (umbrella), LabelledGraphs (~11k LOC of Julia), checked
 against the published description (arXiv:2502.02317, SoftwareX 31, 102257 (2025)).
 
+Architecture update (2026-07-13): the four SpinGlass implementation packages have
+been consolidated into one installable `SpinGlassPEPS` package. Their module
+boundaries remain under `src/tensors`, `src/networks`, `src/exhaustive`, and
+`src/engine`; historical package and `lib/` paths below describe the pre-consolidation
+state unless a phase explicitly says otherwise.
+
 ## Verdict
 
 A fundamental refactor is justified. It will improve performance — but the wins come from a
@@ -41,7 +47,7 @@ the 8-lattice-transform sweep — the cheapest large end-to-end speedup availabl
   between files. Types are heavy where they don't pay (API combinatorics, compile time) and
   absent where they would (hot struct fields).
 
-### Disease 3 — six repos in version lockstep
+### Disease 3 — six repos in version lockstep (resolved)
 
 Engine's compat holds Networks/Tensors at current minors, so every release is a hand-cascaded
 train of "Update Project.toml" commits. The umbrella is 6 lines of `@reexport`; its test
@@ -100,11 +106,10 @@ from shrinking the parametric explosion — hypothesis, not measurement.
 
 ## Target architecture
 
-One monorepo (this repository, assembled by `git subtree` — histories preserved) with the
-four packages as `lib/` registered subpackages (the Makie/Plots pattern; General registry,
-Registrator and TagBot support subdirectory packages). `pkg> add SpinGlassPEPS` and
-per-layer installs keep working. At the 2.0 release, converge to a single registered package
-with four internal modules and two package extensions:
+One registered package containing four internal modules. `pkg> add SpinGlassPEPS`
+installs the complete stack, while the internal module boundaries preserve the existing
+Tensors, Networks, Exhaustive, and Engine namespaces. The consolidation is complete;
+the longer-term target still includes two package extensions:
 
 - **Core** — `PoolOfProjectors` (+ merged-projector registry), `rank_reveal`, device traits
   over `Adapt.adapt`. Fixes the inverted layering (Networks currently imports the entire
@@ -131,8 +136,8 @@ and SpinGlassDynamics are archived.
 
 ## Migration plan (tests green at the end of every phase)
 
-- [x] **Phase 0 — mechanics, zero code change.** Monorepo via `git subtree`; path `[sources]`
-  wiring so master is always stack-consistent at HEAD; CI on push+PR with a GitHub-hosted CPU
+- [x] **Phase 0 — mechanics, zero code change.** Consolidated package with one root
+  `Project.toml`; CI on push+PR with a GitHub-hosted CPU
   leg (`onGPU = CUDA.functional()`) plus the self-hosted GPU leg; benchmark harness
   (`benchmark/`) over reference instances recording wall time by phase, peak memory,
   allocations, TTFX, energy-vs-oracle correctness. Record baselines before any code change.
@@ -207,15 +212,14 @@ and SpinGlassDynamics are archived.
   export lists (~240 → ~35, needs maintainer sign-off on the public surface), one
   Documenter build replacing the regex-scrape aggregation, version bumps and registered
   releases. Curated exports, `deprecations.jl` covering the paper listings,
-  one Documenter build replacing the regex-scrape aggregation, register SpinGlassPEPS 2.0
-  (majors move in lockstep across subpackages; minors/patches release independently; breaking
-  changes only at majors, preceded by one deprecation minor).
+  one Documenter build replacing the regex-scrape aggregation, and release SpinGlassPEPS 2.0
+  (breaking changes only at majors, preceded by one deprecation minor).
 
 ## Notes
 
 - The audit's per-package reports (with full file:line evidence) were produced by a
   multi-agent read of every source file; the headline claims in this document were
   re-verified by hand against the working tree on 2026-07-11.
-- Untracked scratch at the old repo roots (`SpinGlassEngine.jl/mwe*.jl`) documents known
+- Historical scratch from the former Engine repository documented known
   probability-vs-Boltzmann mismatches across the config matrix — convert to
   `@test_broken` sets in Phase 2 rather than losing that information.

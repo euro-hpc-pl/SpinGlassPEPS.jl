@@ -12,7 +12,7 @@ using SpinGlassPEPS
 using CUDA
 
 const REPO = dirname(@__DIR__)
-const ENGINE_INSTANCES = joinpath(REPO, "lib", "SpinGlassEngine", "test", "instances")
+const ENGINE_INSTANCES = joinpath(REPO, "test", "engine", "instances")
 
 struct Case
     name::String
@@ -166,7 +166,8 @@ function main()
     end
     cases =
         set == "full" ? vcat(CASES["quick"], CASES["quick+"], CASES["full"]) :
-        set == "quick+" ? vcat(CASES["quick"], CASES["quick+"]) : CASES[set]
+        set == "quick+" ? vcat(CASES["quick"], CASES["quick+"]) :
+        set == "big" ? CASES["full"] : CASES[set]
     onGPU = CUDA.functional()
     commit = strip(read(`git -C $REPO rev-parse --short HEAD`, String))
 

@@ -17,7 +17,7 @@ We focus on the systems with quasi-2D interaction graphs, in particular those of
     More information on lattice geometries you can find in section [Lattice Geometries](sgn/lattice.md).
 
 ```@raw html
-<img src="../images/lattice.png" width="200%" class="center"/>
+<img src="images/lattice.png" width="200%" class="center"/>
 ```
 In order to adress graph geometries with large unit cells using tensor networks, we represent the problem as a Potts Hamiltonian. To that end we group together sets of binary variables into clusters with a reduced number of variables of larger dimensions. In this framework Ising problem translates to:
 ```math
@@ -27,7 +27,7 @@ where $\mathcal{F}$ forms a 2D graph, in which we indicate nearest-neighbour int
 In this example, $x_n$ takes $d$ values with  $d=2^4$ for square diagonal, $d=2^{24}$ for Pegasus and $2^{16}$ for Zephyr geometry (in the maximal case when all qubits are operational). 
 $E_{x_n}$ is an intra-node energy of the corresponding binary-variables configuration, and $E_{x_n x_m}$ is inter-node energy.
 ```@raw html
-<img src="../images/clustering.png" width="200%" class="center"/>
+<img src="images/clustering.png" width="200%" class="center"/>
 ```
 ## Calculating conditional probabilities
 We assume that finding low energy states is equivalent to finding most probable states.
@@ -45,7 +45,7 @@ Subsequently, we select only the configurations with the highest marginal probab
 By employing branch and bound search strategy iteratively row after row, we address the solution of Hamiltonian in the terms of conditional probabilities. This approach enables the identification of most probable (low-energy) spin configurations within the problem space. 
 
 ```@raw html
-<img src="../images/bb.png" width="200%" class="center"/>
+<img src="images/bb.png" width="200%" class="center"/>
 ```
 ## Tensor network contractions for optimization problems
 Branch and bound search relies on the calculation of conditional probabilities. To that end, we use tensor network techniques. Conditional probabilities are obtained by contracting a PEPS tensor network, which, although an NP-hard problem, can be computed approximately. The approach utilized in `SpinGlassPEPS.jl` is boundary matrix product state (MPS) illustrated in the figure below. Tensors in the pink box are approximated by matrix product state with truncated bond dimension. In each step, a product of boundary MPS from the previous row and the matrix product operator (MPO) formed by the next row of tensors, is approximated by a new boundary MPS of limited bond dimension. 
@@ -54,10 +54,10 @@ Branch and bound search relies on the calculation of conditional probabilities. 
     In `SpinGlassPEPS.jl` one can use two types of approximating boundary MPS. More information you can find in the section [Search parameters](sge/params.md).
 
 ```@raw html
-<img src="../images/prob.png" width="150%" class="center"/>
+<img src="images/prob.png" width="150%" class="center"/>
 ```
 ```@raw html
-<img src="../images/explain.png" width="75%" class="center"/>
+<img src="images/explain.png" width="75%" class="center"/>
 ```
 
 ## References & Related works

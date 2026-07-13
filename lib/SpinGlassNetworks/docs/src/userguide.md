@@ -1,5 +1,0 @@
-# Introduction
-
-A [Julia](http://julialang.org) package for generating an Ising graphs and clustering binary variables to create effective Potts Hamiltonians. Part of [SpinGlassPEPS](https://github.com/euro-hpc-pl/SpinGlassPEPS.jl) package.
-
-The contents of `SpinGlassNetworks.jl` package is illustrated through comprehensive examples, showcasing the practical utilization of key functions. Specifically, the `ising_graph` function is highlighted, demonstrating its capacity to generate Ising graphs from a given instance using a set of standard inputs (e.g., instances compatible with the Ocean environment provided by D-Wave). Additionally, the `potts_hamiltonian` function is presented as a tool for grouping binary variables into clusters with a reduced number of variables of larger dimensions, creating effective Potts Hamiltonians. The package delves into various lattice geometries, providing reindexing of linear Ising coordinates into `super_square_lattice`, `pegasus_lattice`, and `zephyr_lattice`. Moreover, the documentation outlines methods for local dimensional reduction of cluster degrees of freedom.

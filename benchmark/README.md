@@ -11,7 +11,9 @@ julia benchmark/compare.jl benchmark/results/<old>.json benchmark/results/<new>.
 ```
 
 - `--set=quick` — pathological chimera (3,4,3) + chimera_droplets 128power. Minutes.
+- `--set=quick+` — quick cases plus sparse and King-geometry coverage.
 - `--set=full` — adds chimera_droplets 2048power (Sparse, Zipper). Much longer.
+- `--set=big` — runs only the largest 2048power case.
 
 Each case runs twice in-process: the *cold* numbers include compilation (a TTFX
 proxy), the *warm* numbers are the measurement. Uses the GPU when

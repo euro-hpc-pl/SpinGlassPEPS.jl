@@ -1,7 +1,3 @@
-```@meta
-Author = "Tomasz Śmierzchalski, Anna M. Dziubyna, Konrad Jałowiecki, Zakaria Mzaouali, Łukasz Pawela, Bartłomiej Gardas and Marek M. Rams"
-```
-
 # Welcome to SpinGlassPEPS.jl documentation!
 
 Welcome to `SpinGlassPEPS.jl`, a open-source Julia package designed for heuristically solving Ising-type optimization problems defined on quasi-2D lattices.
@@ -13,15 +9,16 @@ Welcome to `SpinGlassPEPS.jl`, a open-source Julia package designed for heuristi
 ## Overview
 In this section we will provide a condensed overview of the package.
 
-`SpinGlassPEPS.jl` is a collection of Julia packages bundled together under a single package `SpinGlassPEPS.jl`. It can be installed using the Julia package manager for Julia v1.10. Inside the Julia REPL, type ] to enter the Pkg REPL mode and then run
+`SpinGlassPEPS.jl` is one Julia package containing the complete solver stack. It supports
+Julia 1.11 and can be installed from the package prompt with
 ```julia
 using Pkg; 
 Pkg.add("SpinGlassPEPS")
 ```
-The package `SpinGlassPEPS.jl` includes three independent sub-packages:
-* `SpinGlassEngine.jl` -  serves as the core package, consisting of routines for executing the branch-and-bound method (with the ability to leverage the problem's locality) for a given Potts instance. It also includes capabilities for reconstructing the low-energy spectrum from identified localized excitations and provides a tensor network constructor. 
-* `SpinGlassNetworks.jl` - facilitates the generation of an Ising graph from a given instance using a set of standard inputs (e.g., instances compatible with the Ocean environment provided by D-Wave) and supports clustering to create effective Potts Hamiltonians.
-* `SpinGlassTensors.jl` - offers essential tools for creating and manipulating tensors that constitute the PEPS network, with support for both CPU and GPU utilization. It manages core operations on tensor networks, including contraction, using the boundary Matrix Product State approach. This package primarily functions as a backend, and users generally do not interact with it directly.
+`SpinGlassPEPS.jl` is distributed as one package. Internally, its source is organized into
+four modules: model and lattice construction, tensor operations, the PEPS solver, and
+exhaustive-search routines. All public functionality is available after a single
+`using SpinGlassPEPS`; the components do not need to be installed or loaded separately.
 
 ```@raw html
 <img src="images/algorithm.png" width="200%" class="center"/>
@@ -70,4 +67,3 @@ Contributions are always welcome:
 
 !!! info "Report the bug" 
     Filling an issue to report a bug, counterintuitive behavior, or even to request a feature is extremely valuable in helping us prioritize what to work on, so don't hestitate.
-
