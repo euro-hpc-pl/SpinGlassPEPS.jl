@@ -48,6 +48,14 @@ struct SingleLayerDroplets
     ) = new(max_energy, min_size, metric, mode)
 end
 
+# The SoftwareX paper's listings construct SingleLayerDroplets positionally.
+SingleLayerDroplets(
+    max_energy::Real,
+    min_size::Int = 1,
+    metric::Symbol = :no_metric;
+    mode::Symbol = :Ising,
+) = SingleLayerDroplets(; max_energy, min_size, metric, mode)
+
 """
 A data structure representing a set of flips or changes in states for nodes in the SpinGlassPEPS package.
 

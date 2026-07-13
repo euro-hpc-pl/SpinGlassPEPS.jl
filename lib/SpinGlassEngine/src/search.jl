@@ -310,7 +310,25 @@ function merge_branches(
     ctr::MpsContractor{T};
     merge_prob::Symbol = :none,
     droplets_encoding = NoDroplets(),
+    # deprecated names from the published API (SoftwareX 31, 102257); they
+    # shipped in 1.x listings and must keep working until 2.0
+    merge_type::Union{Symbol,Nothing} = nothing,
+    update_droplets = nothing,
 ) where {T}
+    if merge_type !== nothing
+        Base.depwarn(
+            "merge_branches(...; merge_type=...) is deprecated, use merge_prob",
+            :merge_branches,
+        )
+        merge_prob = merge_type
+    end
+    if update_droplets !== nothing
+        Base.depwarn(
+            "merge_branches(...; update_droplets=...) is deprecated, use droplets_encoding",
+            :merge_branches,
+        )
+        droplets_encoding = update_droplets
+    end
     function _merge(psol::Solution)
         node = get(ctr.nodes_search_order, length(psol.states[1]) + 1, ctr.node_outside)
         boundaries = boundary_states(ctr, psol.states, node)
