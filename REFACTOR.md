@@ -188,11 +188,25 @@ and SpinGlassDynamics are archived.
   neutral-to-positive (sparse −5.7%, allocations down across cases). `PottsHamiltonian{T}` with accessors mirroring today's
   `get_prop` call sites; migrate Networks internals, then Engine call sites; drop MetaGraphs;
   edge-driven belief propagation rewrite.
-- [ ] **Phase 6 — Engine type system.** Concrete fields, standardized parameter order,
+- [x] **Phase 6 (core) — Engine type system.** Concrete hot-struct fields landed:
+  `VertexMap` callable replaces the `Function` field, `PEPSNetwork{T,S,R,PH}` and
+  `MpsContractor{T,R,S,N}` carry concrete Hamiltonian/network types (3-param public
+  constructors preserved), concrete pool/gauges fields; geometry protocol documented in
+  `geometry.jl` and enforced by a 110-assertion conformance testset; droplet tests
+  memory-gated (skip < 12 GiB with a warning — the suite OOMs 3080-class cards).
+  Benchmark (this slice alone): −4.5% to −10% time, allocations to −10.7%.
+  Still open: merging the four `conditional_probability` bodies over a shared skeleton,
+  and replacing the per-build `Val(Symbol)` tensor-species dispatch with a typed spec
+  table — both want a dedicated session. Concrete fields, standardized parameter order,
   geometry protocol + shared `conditional_probability` skeleton (one geometry at a time,
   `SquareSingleNode` first), tensor species resolved at network construction instead of
   `Val(Symbol)` per build.
-- [ ] **Phase 7 — API 2.0.** Curated exports, `deprecations.jl` covering the paper listings,
+- [~] **Phase 7 (compat slice) — API 2.0.** The published SoftwareX listings run again:
+  `merge_branches(...; merge_type=..., update_droplets=...)` deprecation shims and the
+  positional `SingleLayerDroplets` constructor. Still open for the 2.0 release: curated
+  export lists (~240 → ~35, needs maintainer sign-off on the public surface), one
+  Documenter build replacing the regex-scrape aggregation, version bumps and registered
+  releases. Curated exports, `deprecations.jl` covering the paper listings,
   one Documenter build replacing the regex-scrape aggregation, register SpinGlassPEPS 2.0
   (majors move in lockstep across subpackages; minors/patches release independently; breaking
   changes only at majors, preceded by one deprecation minor).
