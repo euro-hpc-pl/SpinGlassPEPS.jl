@@ -7,7 +7,6 @@ using ..SpinGlassTensors
 import ..SpinGlassTensors: CentralTensor
 using ..SpinGlassNetworks
 using TensorOperations
-using MetaGraphs
 using LinearAlgebra, MKL
 using Graphs
 using ProgressMeter

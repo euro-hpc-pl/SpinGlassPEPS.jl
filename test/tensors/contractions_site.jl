@@ -199,24 +199,11 @@ function test_site_kernels(::Type{T}; Dl, Dt, Dr, Db, K, seed) where {T<:Real}
     @testset "CPU corner_matrix" begin
         # dense-family kernel on the materialized tensor matches the reference
         @test isapprox(corner_matrix(C_m, Md, B_m), ref_m; rtol)
-        # KNOWN DEFECT (as of writing): the SiteTensor method computes
-        # `ip12 * outp'` (src/contractions/site.jl:193) where `outp` is still
-        # the 3-D batched array -- the flattened 2-D matrix was assigned to
-        # `Bp` on line 189 -- so `adjoint` throws for every input. Once fixed
-        # (`ip12 * Bp'`), the result must equal ref_m below.
-        res = nothing
-        threw = false
-        try
-            res = corner_matrix(C_m, M, B_m)
-        catch
-            threw = true
-        end
-        if threw
-            @test_broken !threw
-        else
-            @test size(res) == (ll, Dl, tt, Dt)
-            @test isapprox(Array(res), ref_m; rtol)
-        end
+        # SiteTensor method must match the dense reference (the historical
+        # `ip12 * outp'` adjoint-of-3D-array bug is fixed in site.jl).
+        res = corner_matrix(C_m, M, B_m)
+        @test size(res) == (ll, Dl, tt, Dt)
+        @test isapprox(Array(res), ref_m; rtol)
     end
 
     # ---- GPU kernels: same fixtures moved with the package's own tools --------
@@ -272,20 +259,9 @@ function test_site_kernels(::Type{T}; Dl, Dt, Dr, Db, K, seed) where {T<:Real}
         end
 
         @testset "GPU corner_matrix" begin
-            # same defect as on CPU: `outp'` on a 3-D CuArray throws
-            res = nothing
-            threw = false
-            try
-                res = corner_matrix(CuArray(C_m), M, CuArray(B_m))
-            catch
-                threw = true
-            end
-            if threw
-                @test_broken !threw
-            else
-                @test size(res) == (ll, Dl, tt, Dt)
-                @test isapprox(Array(res), ref_m; rtol)
-            end
+            res = corner_matrix(CuArray(C_m), M, CuArray(B_m))
+            @test size(res) == (ll, Dl, tt, Dt)
+            @test isapprox(Array(res), ref_m; rtol)
         end
     end
     nothing
