@@ -1,3 +1,7 @@
+# load_openGM lives in the HDF5-triggered package extension; `using HDF5`
+# activates it (see SpinGlassPEPSOpenGMExt).
+using HDF5
+
 @testset "Example image is correcly loaded and computed" begin
     instance_dir = "$(@__DIR__)/instances/rmf/n4/penguin-small.h5"
     onGPU = true
