@@ -9,3 +9,7 @@ jobs:
       - uses: JuliaRegistries/TagBot@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Push the tag over SSH so it triggers the docs workflow (a tag pushed
+          # with GITHUB_TOKEN does not fire other workflows). Requires the
+          # DOCUMENTER_KEY deploy key to be set in the repository secrets.
+          ssh: ${{ secrets.DOCUMENTER_KEY }}

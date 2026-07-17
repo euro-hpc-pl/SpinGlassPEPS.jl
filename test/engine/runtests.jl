@@ -69,11 +69,15 @@ end
 
 @time begin
     # The droplet searches peak around 10 GiB inside a single solve (plus pool
-# reservation): they OOM 3080-class cards and need a quiet >= 12 GiB device.
-if !onGPU || CUDA.total_memory() >= 12 * 2^30
+# reservation): run them only on a GPU with enough memory. On the CPU test leg
+# (onGPU == false) they are skipped outright -- the 2048-spin Sparse/Zipper
+# solve would OOM or time out a device-less CI runner.
+if onGPU && CUDA.total_memory() >= 12 * 2^30
     push!(my_tests, "search_chimera_droplets.jl", "search_pegasus_droplets.jl")
-else
+elseif onGPU
     @warn "Skipping droplet search tests: GPU has $(Base.format_bytes(CUDA.total_memory())), needs >= 12 GiB"
+else
+    @info "Skipping droplet search tests on the CPU test leg"
 end
 
 for my_test ∈ my_tests
