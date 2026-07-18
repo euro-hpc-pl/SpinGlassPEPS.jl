@@ -64,28 +64,32 @@ function zipper(
         if i > ϕ.sites[1]
             CM = CornerTensor(C, ψ[i], out[i])
 
-            Urs, Srs, Vrs = [], [], []
-            for i = 1:iters_rand
-                Utemp, Stemp, Vtemp =
-                    svd_corner_matrix(CM, method, Dtemp, tol; toGPU = false, kwargs...)
-                push!(Urs, Utemp)
-                push!(Srs, Stemp)
-                push!(Vrs, Vtemp)
-            end
+            # --- P2.3 (Design B): on-device matrix-free randomized range-finder ---
+            # Replaces the host LowRankApprox psvd block generator. Sketch the right
+            # singular subspace of CM with one power iteration of CM'CM, reusing the
+            # already-GPU matvecs (update_env_right = CM*x, project_ket_on_bra = CM'*x),
+            # so nothing leaves the device and there are no per-matvec downloads. The
+            # random sketch is drawn from the (caller-seeded) global RNG. iters_rand is
+            # reused as the oversampling multiplier (sketch width = iters_rand*Dtemp).
+            m_rows = size(CM.B, 1) * size(CM.M, 1)
+            n_cols = size(CM.C, 2) * size(CM.M, 2)
+            ell = min(_saturating_mul(iters_rand, Dtemp), n_cols)
+            Om = onGPU ? CUDA.randn(R, n_cols, ell) : randn(R, n_cols, ell)
 
-            Ur = hcat(Urs...)
-            Vr = hcat(Vrs...)
-            Sr = vcat(Srs...) ./ iters_rand
-            Drand = _saturating_mul(Dtemp, iters_rand)
-            QU, RU = qr_fact(Ur, Drand, zero(R); toGPU = false, kwargs...)
-            QV, RV = qr_fact(Vr, Drand, zero(R); toGPU = false, kwargs...)
-            Ur, Sr, Vr = svd_fact(RU * Diagonal(Sr) * RV', Dtemp, tol; kwargs...)
-            # Ur = QU * Ur
-            Vr = QV * Vr
+            # Y = CM * Om
+            x = reshape(Om, size(CM.C, 2), size(CM.M, 2), :)
+            x = permutedims(x, (3, 1, 2))
+            x = update_env_right(CM.C, x, CM.M, CM.B)
+            Y = reshape(permutedims(x, (1, 3, 2)), m_rows, :)
 
-            if onGPU
-                Vr = CuArray(Vr)
-            end
+            # Z = CM' * Y  (= (CM'CM) * Om)
+            x = reshape(Y, size(CM.B, 1), size(CM.M, 1), :)
+            x = permutedims(x, (1, 3, 2))
+            yp = project_ket_on_bra(x, CM.B, CM.M, CM.C)
+            Z = reshape(permutedims(yp, (2, 3, 1)), n_cols, :)
+
+            # orthonormal basis of the approx right subspace, truncated to Dtemp
+            Vr, _ = qr_fact(Z, Dtemp, zero(R); toGPU = ψ.onGPU, kwargs...)
 
             for _ = 1:iters_svd
                 # CM * Vr
