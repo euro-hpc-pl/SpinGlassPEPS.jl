@@ -24,6 +24,12 @@ The data is provided as a dictionary that maps site indices to projectors stored
 The `sizes` dictionary is automatically populated based on the maximum projector size for each site.
 - `PoolOfProjectors{T}() where T`: Create an empty `PoolOfProjectors` with no projectors initially stored.
 """
+# Content -> key reverse index over the default-device projector definitions,
+# so add_projector! deduplicates in O(1) instead of scanning the whole pool on
+# every edge (which made Hamiltonian construction O(edges * pool_size)).
+_reverse_index(devdata, ::Type{T}) where {T} =
+    Dict{Vector{T},Int}((v isa Vector ? v : Array{T}(v)) => k for (k, v) ∈ devdata)
+
 struct PoolOfProjectors{T<:Integer}
     data::Dict{Symbol,Dict{Int,Proj{T}}}
     default_device::Symbol
@@ -36,9 +42,18 @@ struct PoolOfProjectors{T<:Integer}
     # projectors is expensive and was recomputed by every VirtualTensor kernel
     # invocation; results are tiny and depend only on (p1, p2, p3, order, device).
     merged::Dict{NTuple{5,Any},MergedProj{T}}
+    # Reverse index (default-device projector content -> key) for O(1) dedup.
+    index::Dict{Vector{T},Int}
 
-    PoolOfProjectors{T}(data, default_device, sizes) where {T} =
-        new{T}(data, default_device, sizes, Dict{Tuple,Any}(), Dict{NTuple{5,Any},MergedProj{T}}())
+    PoolOfProjectors{T}(data, default_device, sizes) where {T} = new{T}(
+        data,
+        default_device,
+        sizes,
+        Dict{Tuple,Any}(),
+        Dict{NTuple{5,Any},MergedProj{T}}(),
+        haskey(data, default_device) ? _reverse_index(data[default_device], T) :
+        Dict{Vector{T},Int}(),
+    )
 
     PoolOfProjectors(data::Dict{Int,Dict{Int,Vector{T}}}) where {T} = new{T}(
         Dict(:CPU => data),
@@ -46,6 +61,7 @@ struct PoolOfProjectors{T<:Integer}
         Dict{Int,Int}(k => maximum(v) for (k, v) ∈ data),
         Dict{Tuple,Any}(),
         Dict{NTuple{5,Any},MergedProj{T}}(),
+        _reverse_index(data, T),
     )
     PoolOfProjectors{T}() where {T} = new{T}(
         Dict(:CPU => Dict{Int,Proj{T}}()),
@@ -53,6 +69,7 @@ struct PoolOfProjectors{T<:Integer}
         Dict{Int,Int}(),
         Dict{Tuple,Any}(),
         Dict{NTuple{5,Any},MergedProj{T}}(),
+        Dict{Vector{T},Int}(),
     )
 end
 
@@ -93,6 +110,7 @@ function Base.empty!(lp::PoolOfProjectors, device::Symbol)
     if device ∈ keys(lp.data)
         empty!(lp.data[device])
     end
+    device == lp.default_device && empty!(lp.index)  # index tracks default-device defs
     filter!(kv -> kv.first[5] != device, lp.merged)
     filter!(kv -> kv.first[end] != device, lp.matrices)
     lp
@@ -168,18 +186,13 @@ function add_projector!(lp::PoolOfProjectors{T}, p::Proj) where {T<:Integer}
     else
         throw(ArgumentError("default_device should be :CPU or :GPU"))
     end
-    if p in values(lp.data[lp.default_device])
-        key = -1
-        for guess in keys(lp.data[lp.default_device])
-            if lp.data[lp.default_device][guess] == p
-                key = guess
-                break
-            end
-        end
-    else
+    lookup = p isa Vector ? p : Array{T}(p)  # CPU content key for dedup
+    key = get(lp.index, lookup, 0)
+    if key == 0
         key = length(lp.data[lp.default_device]) + 1
         push!(lp.data[lp.default_device], key => p)
         push!(lp.sizes, key => maximum(p))
+        lp.index[lookup] = key
     end
     key
 end

@@ -12,7 +12,16 @@ export SearchParameters,
     branch_probability,
     discard_probabilities!,
     branch_energies,
-    branch_states
+    branch_states,
+    verify_solution_energies!
+
+# When true (default), low_energy_spectrum / gibbs_sampling verify at the end
+# that every returned state decodes to its reported energy — a cheap-but-not-free
+# self-check (O(num_states) energy re-evaluations, once per solve). Set
+# `SpinGlassPEPS.verify_solution_energies!(false)` to skip it in throughput-
+# bound production batch runs.
+const VERIFY_SOLUTION_ENERGIES = Ref(true)
+verify_solution_energies!(x::Bool) = (VERIFY_SOLUTION_ENERGIES[] = x)
 
 """
 $(TYPEDSIGNATURES)
@@ -701,8 +710,8 @@ function low_energy_spectrum(
         # sol.pool_of_flips # TODO
     )
 
-    # Final check if states correspond energies
-    @assert sol.energies ≈
+    # Final check if states correspond energies (opt-out via VERIFY_SOLUTION_ENERGIES)
+    VERIFY_SOLUTION_ENERGIES[] && @assert sol.energies ≈
             energy.(
         Ref(ctr.peps.potts_hamiltonian),
         decode_state.(Ref(ctr.peps), sol.states),
@@ -787,8 +796,8 @@ function gibbs_sampling(
         sol.spins[outer_perm],
     )
 
-    # Final check if states correspond energies
-    @assert sol.energies ≈
+    # Final check if states correspond energies (opt-out via VERIFY_SOLUTION_ENERGIES)
+    VERIFY_SOLUTION_ENERGIES[] && @assert sol.energies ≈
             energy.(
         Ref(ctr.peps.potts_hamiltonian),
         decode_state.(Ref(ctr.peps), sol.states),
