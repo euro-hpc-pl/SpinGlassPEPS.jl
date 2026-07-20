@@ -6,6 +6,12 @@ const Proj{T} = Union{Vector{T},CuArray{T,1}}
 # (fused-triple projector, fused-pair projector, pair rank).
 const MergedProj{T} = Tuple{Proj{T},Proj{T},Int}
 
+# Content -> key reverse index over the default-device projector definitions,
+# so add_projector! deduplicates in O(1) instead of scanning the whole pool on
+# every edge (which made Hamiltonian construction O(edges * pool_size)).
+_reverse_index(devdata, ::Type{T}) where {T} =
+    Dict{Vector{T},Int}((v isa Vector ? v : Array{T}(v)) => k for (k, v) ∈ devdata)
+
 """
 $(TYPEDSIGNATURES)
 
@@ -24,12 +30,6 @@ The data is provided as a dictionary that maps site indices to projectors stored
 The `sizes` dictionary is automatically populated based on the maximum projector size for each site.
 - `PoolOfProjectors{T}() where T`: Create an empty `PoolOfProjectors` with no projectors initially stored.
 """
-# Content -> key reverse index over the default-device projector definitions,
-# so add_projector! deduplicates in O(1) instead of scanning the whole pool on
-# every edge (which made Hamiltonian construction O(edges * pool_size)).
-_reverse_index(devdata, ::Type{T}) where {T} =
-    Dict{Vector{T},Int}((v isa Vector ? v : Array{T}(v)) => k for (k, v) ∈ devdata)
-
 struct PoolOfProjectors{T<:Integer}
     data::Dict{Symbol,Dict{Int,Proj{T}}}
     default_device::Symbol
