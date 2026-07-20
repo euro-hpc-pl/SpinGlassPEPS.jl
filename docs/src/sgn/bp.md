@@ -1,3 +1,7 @@
+```@meta
+CurrentModule = SpinGlassPEPS.SpinGlassNetworks
+```
+
 ## Local dimensional reduction of cluster degrees of freedom
 The `SpinGlassPEPS.jl` package addresses the computational challenges posed by large unit cells, which result in a high number of degrees of freedom per cluster. Contracting tensor networks generated from such Hamiltonians can become numerically expensive. To mitigate this, the package provides an optional local dimensional reduction feature, which reduces the problem's complexity by focusing on the most probable states within each cluster.
 

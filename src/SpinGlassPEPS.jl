@@ -7,10 +7,48 @@ include("networks/SpinGlassNetworks.jl")
 include("exhaustive/SpinGlassExhaustive.jl")
 include("engine/SpinGlassEngine.jl")
 
-@reexport using .SpinGlassTensors
-@reexport using .SpinGlassNetworks
-@reexport using .SpinGlassExhaustive
-@reexport using .SpinGlassEngine
+# Bring every submodule's exports into scope (for the module body, the docs
+# @docs blocks, and cross-submodule use) but re-export only the curated public
+# 2.0 API listed below. Power users can still reach the full internal surface
+# via `using SpinGlassPEPS.SpinGlass<Tensors|Networks|Exhaustive|Engine>`.
+using .SpinGlassTensors
+using .SpinGlassNetworks
+using .SpinGlassExhaustive
+using .SpinGlassEngine
+
+export
+    # submodules — direct access to the full internal API for advanced use
+    SpinGlassTensors, SpinGlassNetworks, SpinGlassExhaustive, SpinGlassEngine,
+    # Ising / Potts model construction
+    ising_graph, IsingGraph, potts_hamiltonian, PottsHamiltonian,
+    decode_potts_hamiltonian_state,
+    # lattice cluster-assignment geometries
+    super_square_lattice, pegasus_lattice, zephyr_lattice,
+    # spectra & exhaustive solvers
+    full_spectrum, brute_force, Spectrum, exhaustive_search, exhaustive_search_bucket,
+    # QUBO / random-graph helpers
+    generate_random_graph, graph_to_dict, graph_to_qubo, energy_qubo, kernel, kernel_qubo,
+    # tensor-network node geometries, sparsity, layout, gauge strategy
+    SquareSingleNode, SquareDoubleNode, SquareCrossDoubleNode, KingSingleNode,
+    Dense, Sparse, GaugesEnergy, EnergyGauges, EngGaugesEng, NoUpdate,
+    # network, contractor and their parameters
+    PEPSNetwork, MpsContractor, MpsParameters, SearchParameters,
+    # boundary-MPS contraction strategies
+    SVDTruncate, Zipper,
+    # lattice transformations
+    LatticeTransformation, rotation, reflection, all_lattice_transformations,
+    # branch-and-bound low-energy search
+    low_energy_spectrum, Solution, merge_branches, gibbs_sampling,
+    # droplets (low-energy excitations)
+    SingleLayerDroplets, NoDroplets, Droplet, Droplets, Flip, unpack_droplets,
+    # belief-propagation dimensional reduction
+    belief_propagation, potts_hamiltonian_2site, truncate_potts_hamiltonian,
+    # Hamiltonian inspection accessors
+    cluster_spectrum, biases, couplings,
+    # documented core types
+    MpoTensor, QMps, QMpo, PoolOfProjectors,
+    # deprecated no-op compatibility shims (kept one release cycle)
+    clear_memoize_cache, clear_memoize_cache_after_row
 
 using PrecompileTools: @setup_workload, @compile_workload
 

@@ -1,3 +1,7 @@
+```@meta
+CurrentModule = SpinGlassPEPS.SpinGlassEngine
+```
+
 # Branch and bound search
 Here you find the main function of the package, which is an actual solver.
 

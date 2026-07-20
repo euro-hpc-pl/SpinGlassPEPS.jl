@@ -13,9 +13,18 @@ are now internal modules of a single installable `SpinGlassPEPS` package.
 
 - **Single package.** `pkg> add SpinGlassPEPS` installs the entire solver stack.
   The former sub-packages live as internal modules under `src/{tensors,networks,
-  exhaustive,engine}` and are `@reexport`ed, so ordinary use is unchanged:
-  `using SpinGlassPEPS`. Advanced users can still qualify a module explicitly,
-  e.g. `SpinGlassPEPS.SpinGlassNetworks`. The stand-alone `SpinGlassTensors`,
+  exhaustive,engine}`, so ordinary use is unchanged: `using SpinGlassPEPS`.
+  Advanced users can still qualify a module explicitly, e.g.
+  `SpinGlassPEPS.SpinGlassNetworks`.
+- **Curated public API.** `using SpinGlassPEPS` now brings a curated public
+  surface (~65 symbols: model construction, geometries/sparsity/layouts,
+  `PEPSNetwork`/`MpsContractor`/parameters, strategies, transformations, the
+  search + droplet API, exhaustive + QUBO helpers, belief-propagation reduction,
+  the documented core types, and the compatibility shims) instead of
+  re-exporting all ~240 symbols of the internal stack. Low-level kernels,
+  accessors, abstract types, and helpers are now internal — still fully usable
+  via the submodules (`using SpinGlassPEPS.SpinGlassEngine`, …), just no longer
+  part of the top-level contract. The stand-alone `SpinGlassTensors`,
   `SpinGlassNetworks`, `SpinGlassExhaustive`, and `SpinGlassEngine` packages are
   no longer used or released.
 - **Potts Hamiltonian is a concrete type.** The clustered Hamiltonian consumed by
