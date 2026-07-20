@@ -33,7 +33,7 @@ SpinGlassPEPSOpenGMExt = "HDF5"
 
 [compat]
 Bits = "0.2"
-CSV = "0.8"
+CSV = "0.10"
 CUDA = "5.5"
 DocStringExtensions = "0.9.3"
 Graphs = "1.9"
