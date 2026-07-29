@@ -47,7 +47,7 @@ jobs:
   test-gpu:
     if: github.ref_type != 'tag'
     name: GPU ${{ matrix.group }} - Julia ${{ matrix.version }}
-    runs-on: [self-hosted, titan, gpu]
+    runs-on: [self-hosted, gpu]
     strategy:
       fail-fast: false
       matrix:
