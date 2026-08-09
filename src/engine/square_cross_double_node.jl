@@ -697,7 +697,7 @@ The function is specialized for the `SquareCrossDoubleNode` tensor network type 
 function update_energy(
     ::Type{T},
     ctr::MpsContractor{S},
-    σ::Vector{Int},
+    σ::AbstractVector{Int},
 ) where {T<:SquareCrossDoubleNode,S}
     net = ctr.peps
     i, j, k = ctr.current_node

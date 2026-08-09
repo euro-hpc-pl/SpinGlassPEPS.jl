@@ -39,6 +39,14 @@ export
     LatticeTransformation, rotation, reflection, all_lattice_transformations,
     # branch-and-bound low-energy search
     low_energy_spectrum, Solution, merge_branches, gibbs_sampling,
+    # concurrent sweep over lattice transformations + device-memory governor
+    sweep_transformations, SweepSolution, SweepReport, TransformReport,
+    best_solution, DeviceBudget,
+    # inverse-temperature ladder with warm-started boundary MPS
+    beta_ladder, set_beta!, BetaLadderSolution, BetaStepReport, selected_solution,
+    # contraction error control
+    TruncationLog, TruncationStats, truncation_stats, TRUNCATION_LOG,
+    DEVICE_MEMORY_BUDGET,
     # droplets (low-energy excitations)
     SingleLayerDroplets, NoDroplets, Droplet, Droplets, Flip, unpack_droplets,
     # belief-propagation dimensional reduction
@@ -73,7 +81,11 @@ using PrecompileTools: @setup_workload, @compile_workload
             MpsParameters{Float64}(; bond_dim = 8, num_sweeps = 1);
             onGPU = false, beta = 1.0, graduate_truncation = true,
         )
-        low_energy_spectrum(ctr, SearchParameters(; max_states = 8, cutoff_prob = 0.0))
+        low_energy_spectrum(
+            ctr,
+            SearchParameters(; max_states = 8, cutoff_prob = 0.0);
+            show_progress = false,
+        )
     end
 end
 

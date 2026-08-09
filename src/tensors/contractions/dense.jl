@@ -28,13 +28,25 @@ end
       |    |
         -- B --
 """
+# Temporaries for the multi-tensor contractions below are the largest single source
+# of host allocation in a CPU solve (`project_ket_on_bra` and `update_env_right`
+# alone accounted for ~60% of allocated bytes on a profiled 2048-spin run, where
+# garbage collection was 33% of wall time). `ManualAllocator` takes them off the GC
+# heap via `Libc.malloc`/`free`; the contraction *output* still uses the default
+# allocator, so returning it is safe.
+#
+# Device arrays must keep the default allocator: `ManualAllocator` hands back host
+# memory. Selected per call, since these kernels are generic over both.
+@inline temp_allocator(::CuArray) = TensorOperations.DefaultAllocator()
+@inline temp_allocator(::AbstractArray) = TensorOperations.ManualAllocator()
+
 function update_env_left(
     LE::S,
     A::S,
     M::T,
     B::S,
 ) where {S<:Tensor{R,3},T<:Tensor{R,4}} where {R<:Real}
-    @tensor order = (ot, α, oc, β, ob) LE[nb, nt, nc] :=
+    @tensor allocator = temp_allocator(LE) order = (ot, α, oc, β, ob) LE[nb, nt, nc] :=
         LE[ob, ot, oc] * A[ot, nt, α] * M[oc, α, nc, β] * B[ob, nb, β] # TODO: split the line
 end
 
@@ -50,7 +62,8 @@ function update_env_left(
     A::S,
     B::S,
 ) where {S<:Tensor{R,3},T<:Tensor{R,2}} where {R<:Real}
-    @tensor order = (ot, α, ob) LE[nb, nt] := LE[ob, ot] * A[ot, nt, α] * B[ob, nb, α]
+    @tensor allocator = temp_allocator(LE) order = (ot, α, ob) LE[nb, nt] :=
+        LE[ob, ot] * A[ot, nt, α] * B[ob, nb, α]
 end
 
 """
@@ -77,7 +90,7 @@ function update_env_right(
     M::T,
     B::S,
 ) where {T<:Tensor{R,4},S<:Tensor{R,3}} where {R<:Real}
-    @tensor order = (ot, α, oc, β, ob) RE[nb, nt, nc] :=
+    @tensor allocator = temp_allocator(RE) order = (ot, α, oc, β, ob) RE[nb, nt, nc] :=
         RE[ob, ot, oc] * A[nt, ot, α] * M[nc, α, oc, β] * B[nb, ob, β]
 end
 
@@ -93,7 +106,8 @@ function update_env_right(
     A::S,
     B::S,
 ) where {T<:Tensor{R,2},S<:Tensor{R,3}} where {R<:Real}
-    @tensor order = (ot, α, ob) RE[nb, nt] := RE[ob, ot] * A[nt, ot, α] * B[nb, ob, α]
+    @tensor allocator = temp_allocator(RE) order = (ot, α, ob) RE[nb, nt] :=
+        RE[ob, ot] * A[nt, ot, α] * B[nb, ob, α]
 end
 
 """
@@ -119,7 +133,7 @@ function project_ket_on_bra(
     M::T,
     RE::S,
 ) where {T<:Tensor{R,4},S<:Tensor{R,3}} where {R<:Real}
-    @tensor order = (ol, lc, oc, or, rc) A[nl, nr, nc] :=
+    @tensor allocator = temp_allocator(LE) order = (ol, lc, oc, or, rc) A[nl, nr, nc] :=
         LE[ol, nl, lc] * B[ol, or, oc] * M[lc, nc, rc, oc] * RE[or, nr, rc]
 end
 
@@ -133,7 +147,8 @@ function project_ket_on_bra(
     B::S,
     RE::T,
 ) where {T<:Tensor{R,2},S<:Tensor{R,3}} where {R<:Real}
-    @tensor order = (ol, or) A[nl, nr, nc] := LE[ol, nl] * B[ol, or, nc] * RE[or, nr]
+    @tensor allocator = temp_allocator(LE) order = (ol, or) A[nl, nr, nc] :=
+        LE[ol, nl] * B[ol, or, nc] * RE[or, nr]
 end
 
 """
@@ -183,7 +198,8 @@ function update_reduced_env_right(
     M::Tensor{R,4},
     B::Tensor{R,3},
 ) where {R<:Real}
-    @tensor order = (d, β, γ, α) RE[x, y] := K[d] * M[y, d, β, γ] * B[x, α, γ] * RE[α, β]
+    @tensor allocator = temp_allocator(RE) order = (d, β, γ, α) RE[x, y] :=
+        K[d] * M[y, d, β, γ] * B[x, α, γ] * RE[α, β]
 end
 
 function update_reduced_env_right(RR::S, M0::S) where {S<:Tensor{<:Real,2}}

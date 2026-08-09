@@ -115,7 +115,7 @@ It delegates the calculation to the `update_energy` function with a specified te
 This function is a convenience wrapper that allows users to update the energy without explicitly specifying the tensor layout.
 
 """
-function update_energy(ctr::MpsContractor{S}, w::Vector{Int}) where {S}
+function update_energy(ctr::MpsContractor{S}, w::AbstractVector{Int}) where {S}
     update_energy(layout(ctr.peps), ctr, w)
 end
 

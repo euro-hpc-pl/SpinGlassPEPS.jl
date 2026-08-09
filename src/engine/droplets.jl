@@ -135,9 +135,9 @@ The `NoDroplets` strategy represents a scenario in which no droplets are present
     ::MpsContractor,
     ::Int,
     ::Vector{<:Real},
-    ::Vector{Vector{Int}},
+    ::AbstractVector{<:AbstractVector{Int}},
     ::Vector{Droplets},
-    ::Vector{Vector{Int}},
+    ::AbstractVector{<:AbstractVector{Int}},
 ) = NoDroplets()
 
 # """
@@ -162,9 +162,9 @@ function (method::SingleLayerDroplets)(
     ::MpsContractor,
     best_idx::Int,
     energies::Vector{<:Real},
-    states::Vector{Vector{Int}},
+    states::AbstractVector{<:AbstractVector{Int}},
     droplets::Vector{Droplets},
-    spins::Vector{Vector{Int}},
+    spins::AbstractVector{<:AbstractVector{Int}},
 )
     ndroplets = copy(droplets[best_idx])
     bstate = states[best_idx]
@@ -467,7 +467,7 @@ Apply a flip operation to a state.
 ## Returns
 - `new_state::Vector{Int}`: The modified state after applying the flip operation.
 """
-function flip_state(state::Vector{Int}, flip::Flip)
+function flip_state(state::AbstractVector{Int}, flip::Flip)
     new_state = copy(state)
     new_state[flip.support] .= flip.state
     new_state

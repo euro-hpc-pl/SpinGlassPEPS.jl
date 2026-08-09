@@ -232,6 +232,12 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real,N<:PEP
     current_node::Node
     onGPU::Bool
     cache::ContractionCache{S}
+    # Boundary MPS carried over from a previous inverse temperature, keyed by
+    # row, used as the starting point for variational compression instead of
+    # building `W * ψ` exactly and truncating it. Populated by `set_beta!`;
+    # deliberately not part of `cache`, since it does not describe the current
+    # β and must survive the cache eviction that a β step performs.
+    guess::Dict{Int,QMps{S}}
 
     function MpsContractor{T,R,S,N}(
         net::N,
@@ -258,6 +264,7 @@ mutable struct MpsContractor{T<:AbstractStrategy,R<:AbstractGauge,S<:Real,N<:PEP
             node,
             onGPU,
             ContractionCache{S}(),
+            Dict{Int,QMps{S}}(),
         )
     end
 end
@@ -354,6 +361,42 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Claim the warm-start guess for the bottom boundary MPS of row `i`, if one is
+available and usable.
+
+Returns a left-normalized `QMps` on the contractor's device, ready to be handed
+to `variational_compress!` as the bra, or `nothing` when there is no guess or it
+does not fit the current network. Guesses are consumed: a row is warm-started at
+most once per β step, so a rejected or used guess never lingers.
+
+Only the bottom boundary (`mps`) is warm-started, not `mps_top`. That is the
+sequence the preprocessing phase builds row by row and the search then consumes,
+so it is where the cost sits; keying guesses by row alone is then unambiguous.
+
+Compatibility is checked against the physical dimensions the compressed MPS must
+have. `W` contracts its `:down` legs with the ket (the row below), leaving its
+`:up` legs as the physical legs of the result — so `:up` is the side a guess has
+to match, not `:down`. Those dimensions depend on the network's geometry and
+clustering, not on β, so a guess carried over from a neighbouring inverse
+temperature normally fits; the check exists so that a mismatch degrades to a cold
+build rather than throwing from inside the environment contraction.
+"""
+function take_guess!(ctr::MpsContractor{T,R,S}, i::Int, W::QMpo{S}) where {T,R,S}
+    haskey(ctr.guess, i) || return nothing
+    ψ = pop!(ctr.guess, i)
+    dims = local_dims(W, :up)
+    if sort(ψ.sites) != sort(collect(keys(dims))) ||
+       any(s -> size(ψ[s], 3) != dims[s], ψ.sites)
+        return nothing
+    end
+    ctr.onGPU ? move_to_CUDA!(ψ) : move_to_CPU!(ψ)
+    canonise!(ψ, :left)
+    ψ
+end
+
+"""
+$(TYPEDSIGNATURES)
+
 Construct and memoize the top Matrix Product State (MPS) using Singular Value Decomposition (SVD) for a given row.
 
 # Arguments
@@ -422,6 +465,15 @@ function mps(ctr::MpsContractor{SVDTruncate,R,S}, i::Int) where {R,S}
 
 
     W = mpo(ctr, ctr.layers.main, i)
+
+    # Warm start: optimize the previous β's MPS towards W * ψ directly, skipping
+    # the exact `dot(W, ψ)` and the truncation sweeps that follow it. See
+    # `take_guess!`.
+    ψg = take_guess!(ctr, i, W)
+    if ψg !== nothing
+        variational_compress!(ψg, W, ψ, tolV, max_sweeps)
+        return ψg
+    end
 
     ψ0 = dot(W, ψ)
 
@@ -554,6 +606,13 @@ function mps(ctr::MpsContractor{Zipper,R,S}, i::Int) where {R,S}
         ψ = mps(ctr, i + 1)
         W = mpo(ctr, ctr.layers.main, i)
         canonise!(ψ, :left)
+        # Warm start: skip the zipper entirely and variationally optimize the
+        # previous β's MPS towards W * ψ. See `take_guess!`.
+        ψg = take_guess!(ctr, i, W)
+        if ψg !== nothing
+            variational_compress!(ψg, W, ψ, tolV, max_sweeps)
+            return ψg
+        end
         ψ0 = zipper(
             W,
             ψ;
@@ -657,9 +716,17 @@ function right_env(
     end
     nmr = maximum(abs, RR)
     iszero(nmr) || (RR ./= nmr)
-    # Cached on the host: device-resident cache entries are freed only by GC,
-    # and the measured pool/GC pressure outweighs the PCIe traffic at these
-    # sizes. Device-resident envs return with the explicit cache (Phase 4).
+    # Cached on the host. Phase 3 measured device-resident entries as a loss
+    # (pool/GC pressure beat the PCIe traffic) and deferred them to the explicit
+    # cache; that precondition now exists, so this was **re-tested** with the
+    # contractor-owned cache and per-row eviction in place, and it still does not
+    # pay. Keeping entries device-resident removed ~20% of host-to-device copies
+    # (159k -> 128k on a 2048-spin bond-32 solve) for no measurable time
+    # (24.64 s -> 24.71 s) and possibly slightly worse peak VRAM. The reason is
+    # that transfers are not the bottleneck: the same solve issues ~326k kernel
+    # launches, and the copies are async and largely latency-hidden. Reducing
+    # launch count — e.g. evaluating `conditional_probability` for all of a node's
+    # candidate states in one batched call — is the lever that would matter.
     typeof(RR) <: CuArray ? Array(RR) : RR
     end
 end
@@ -844,7 +911,7 @@ end
 
 function boundary_states(
     ctr::MpsContractor{T},
-    states::Vector{Vector{Int}},
+    states::AbstractVector{<:AbstractVector{Int}},
     node::S,
 ) where {T,S}
     boundary_recipe = boundary(ctr, node)
@@ -861,7 +928,11 @@ function boundary(ctr::MpsContractor{T}, node::Node) where {T}
 end
 
 
-function local_state_for_node(ctr::MpsContractor{T}, σ::Vector{Int}, w::S) where {T,S}
+function local_state_for_node(
+    ctr::MpsContractor{T},
+    σ::AbstractVector{Int},
+    w::S,
+) where {T,S}
     k = get(ctr.node_search_index, w, 0)
     0 < k <= length(σ) ? σ[k] : 1
 end
@@ -870,7 +941,7 @@ end
 function boundary_indices(
     ctr::MpsContractor{T},
     nodes::Union{NTuple{2,S},Tuple{S,NTuple{N,S}}},
-    states::Vector{Vector{Int}},
+    states::AbstractVector{<:AbstractVector{Int}},
 ) where {T,S,N}
     v, w = nodes
     if ctr.peps.vertex_map(v) ∈ vertices(ctr.peps.potts_hamiltonian)
@@ -888,7 +959,7 @@ boundary index formed from outer product of two projectors
 function boundary_indices(
     ctr::MpsContractor{T},
     nodes::Union{NTuple{4,S},Tuple{S,NTuple{2,S},S,NTuple{2,S}}},
-    states::Vector{Vector{Int}},
+    states::AbstractVector{<:AbstractVector{Int}},
 ) where {S,T}
     v, w, k, l = nodes
     pv = projector(ctr.peps, v, w)
@@ -900,7 +971,7 @@ end
 function boundary_indices(
     ctr::MpsContractor{T},
     nodes::Tuple{S,NTuple{2,S},S,NTuple{2,S},S,NTuple{2,S},S,NTuple{2,S}},
-    states::Vector{Vector{Int}},
+    states::AbstractVector{<:AbstractVector{Int}},
 ) where {S,T}
     v1, v2, v3, v4, v5, v6, v7, v8 = nodes
     pv1 = projector(ctr.peps, v1, v2)

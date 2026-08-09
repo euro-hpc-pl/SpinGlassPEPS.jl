@@ -305,7 +305,7 @@ end
 function update_energy(
     ::Type{T},
     ctr::MpsContractor{S},
-    σ::Vector{Int},
+    σ::AbstractVector{Int},
 ) where {T<:SquareSingleNode,S}
     net = ctr.peps
     i, j = ctr.current_node

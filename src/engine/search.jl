@@ -81,12 +81,12 @@ Users can access this information to analyze and interpret the search results.
 """
 struct Solution
     energies::Vector{<:Real}
-    states::Vector{Vector{Int}}
+    states::Vector{<:AbstractVector{Int}}
     probabilities::Vector{<:Real}
     degeneracy::Vector{Int}
     largest_discarded_probability::Real
     droplets::Vector{Droplets}
-    spins::Vector{Vector{Int}}
+    spins::Vector{<:AbstractVector{Int}}
 end
 
 """
@@ -103,12 +103,17 @@ An empty `Solution` object with default field values, ready to store search resu
 """
 @inline empty_solution(::Type{T}, n::Int = 1) where {T} = Solution(
     zeros(T, n),
-    fill(Vector{Int}[], n),
+    # `n` distinct empty configurations. This used to read `fill(Vector{Int}[], n)`,
+    # which produced a `Vector{Vector{Vector{Int}}}` and only type-checked because
+    # converting an *empty* `Vector{Vector{Int}}` to `Vector{Int}` happens to
+    # succeed elementwise. Spelled out now that the field accepts any
+    # `AbstractVector{Int}` element and no such conversion is available.
+    [Int[] for _ = 1:n],
     zeros(T, n),
     ones(Int, n),
     T(-Inf),
     repeat([NoDroplets()], n),
-    fill(Vector{Int}[], n),
+    [Int[] for _ = 1:n],
 )
 
 """
@@ -164,7 +169,7 @@ The branch energy, which is the sum of the base energy and the energy contributi
 """
 @inline function branch_energy(
     ctr::MpsContractor{T},
-    eσ::Tuple{<:Real,Vector{Int}},
+    eσ::Tuple{<:Real,<:AbstractVector{Int}},
 ) where {T}
     eσ[begin] .+ update_energy(ctr, eσ[end])
 end
@@ -205,14 +210,54 @@ This function constructs branch states by combining a local basis with vectorize
 The local basis provides the unique states for each branch, and the vectorized states represent the state configuration for each branch.
 The resulting vector contains the constructed branch states.
 """
-function branch_states(local_basis::Vector{Int}, vec_states::Vector{Vector{Int}})
-    states = reduce(hcat, vec_states)
+branch_states(local_basis::Vector{Int}, vec_states::AbstractVector{<:AbstractVector{Int}}) =
+    [collect(σ) for σ ∈ branch_states_view(local_basis, vec_states)]
+
+"""
+$(TYPEDSIGNATURES)
+
+Expansion used on the search's hot path: the same configurations
+[`branch_states`](@ref) produces, but backed by one matrix and returned as column
+views instead of independent vectors.
+
+This is the hottest allocation site in a solve — 71% of host-allocated bytes on a
+profiled 2048-spin bond-32 GPU run, previously one heap object per branched state
+and so tens of thousands per call. The byte count is dominated by the payload
+either way, but garbage-collection cost scales with the *number* of objects, and
+GC was 18% of that solve's wall time; consolidating measured 1.16x end to end on
+that case, with GC down 36%.
+
+`branch_states` itself keeps returning `Vector{Vector{Int}}`, since it is part of
+the published API and callers may rely on that element type.
+
+Ordering is load-bearing: callers pair the result index-for-index with
+`branch_energies` and `branch_probability`, so the local basis must vary fastest
+within each parent configuration.
+"""
+function branch_states_view(
+    local_basis::Vector{Int},
+    vec_states::AbstractVector{<:AbstractVector{Int}},
+)
+    if isempty(vec_states)
+        # Nothing to expand. Return an empty collection of the same element type
+        # the non-degenerate branch produces, not a zero-column matrix view.
+        empty = Matrix{Int}(undef, 0, 0)
+        return [view(empty, :, c) for c = 1:0]
+    end
     num_states = length(local_basis)
-    lstate, nstates = size(states)
-    ns = Array{Int}(undef, lstate + 1, num_states, nstates)
-    ns[1:lstate, :, :] .= reshape(states, lstate, 1, nstates)
-    ns[lstate+1, :, :] .= reshape(local_basis, num_states, 1, 1)
-    collect.(eachcol(reshape(ns, lstate + 1, nstates * num_states)))
+    nstates = length(vec_states)
+    lstate = length(first(vec_states))
+    M = Matrix{Int}(undef, lstate + 1, num_states * nstates)
+    k = 0
+    @inbounds for j = 1:nstates
+        src = vec_states[j]
+        for i = 1:num_states
+            k += 1
+            copyto!(view(M, 1:lstate, k), src)
+            M[lstate+1, k] = local_basis[i]
+        end
+    end
+    [view(M, :, c) for c = 1:size(M, 2)]
 end
 
 """
@@ -306,12 +351,12 @@ function branch_solution(psol::Solution, ctr::T) where {T<:AbstractContractor}
     boundaries = boundary_states(ctr, psol.states, ctr.current_node)
     Solution(
         branch_energies(ctr, psol),
-        branch_states(basis_states, psol.states),
+        branch_states_view(basis_states, psol.states),
         reduce(vcat, branch_probability.(Ref(ctr), zip(psol.probabilities, boundaries))),
         repeat(psol.degeneracy, inner = num_states),
         psol.largest_discarded_probability,
         repeat(psol.droplets, inner = num_states),#,
-        branch_states(basis_spins, psol.spins),
+        branch_states_view(basis_spins, psol.spins),
     )
 end
 
@@ -614,11 +659,27 @@ Probabilities are kept as log. Results are stored in Solution structure.
 - `merge_strategy=no_merge`: (Optional) Merge strategy for branches. Defaults to `no_merge`.
 - `symmetry::Symbol=:noZ2`: (Optional) Symmetry constraint. Defaults to `:noZ2`. If Z2 symmetry is present in your system, use `:Z2`.
 - `no_cache=false`: (Optional) If `true`, disables caching. Defaults to `false`.
+- `show_progress=true`: (Optional) Display the preprocessing and search progress
+  bars. Set to `false` when solving concurrently — see
+  [`sweep_transformations`](@ref) — since interleaved bars are unreadable.
+- `schmidt_spectrum=false`: (Optional) Compute the per-row Schmidt spectra
+  returned as the second value. Off by default: it costs an untruncated CPU SVD
+  per site per row and callers overwhelmingly discard the result. Note this is a
+  change from 1.x, where the spectra were always computed.
+- `retain_mps=false`: (Optional) Snapshot each row's bottom boundary MPS (on the
+  host) into the contractor's warm-start slot as it is built, so that a following
+  [`set_beta!`](@ref) can variationally compress from it rather than rebuilding
+  from scratch. See [`beta_ladder`](@ref).
+
+To record how much weight the boundary-MPS truncations discarded during the
+solve, install a [`TruncationLog`](@ref) in the calling task's scope; see
+[`sweep_transformations`](@ref), which does this per transformation.
 
 ## Returns
 A tuple `(sol, s)` containing:
 - `sol::Solution`: A `Solution` object representing the computed low-energy spectrum.
-- `s::Dict`: A dictionary containing Schmidt spectra for each row of the PEPS network.
+- `s::Dict`: A dictionary containing Schmidt spectra for each row of the PEPS
+  network, empty unless `schmidt_spectrum=true`.
 """
 function low_energy_spectrum(
     ctr::MpsContractor{T,R,S},
@@ -626,21 +687,43 @@ function low_energy_spectrum(
     merge_strategy = no_merge,
     symmetry::Symbol = :noZ2;
     no_cache = false,
+    show_progress::Bool = true,
+    schmidt_spectrum::Bool = false,
+    retain_mps::Bool = false,
 ) where {T,R,S}
     # Build all boundary mps
     CUDA.allowscalar(false)
 
     schmidts = Dict()
-    @showprogress "Preprocessing: " for i ∈ ctr.peps.nrows+1:-1:2
+    prep = Progress(
+        ctr.peps.nrows;
+        desc = "Preprocessing: ",
+        enabled = show_progress,
+    )
+    for i ∈ ctr.peps.nrows+1:-1:2
         ψ0 = mps(ctr, i)
-        push!(schmidts, i => measure_spectrum(ψ0))
+        # An untruncated CPU SVD per site per row. Informative, but it is pure
+        # overhead for the (overwhelmingly common) caller that discards the
+        # second return value, so it is opt-in.
+        schmidt_spectrum && push!(schmidts, i => measure_spectrum(ψ0))
+        # Snapshot this row for a later β step, here rather than at the end of
+        # the solve: `dressed_mps` takes ownership of each row's MPS as the
+        # search absorbs it (`delete!(ctr.cache.mps, i + 1)`), so none of them
+        # survive to the end. An independent host-side copy — sharing the object
+        # would hand the next β a state the search has since moved to the device
+        # and mutated. `mps` has already consumed any guess for this row, so
+        # writing it back now cannot clobber one that is still needed.
+        retain_mps && (ctr.guess[i] = move_to_CPU!(copy(ψ0)))
+        probe_device_peak!()
         empty_row_caches!(ctr)
         empty!(ctr.peps.lp, :GPU)
         if i <= ctr.peps.nrows
             ψ0 = mps(ctr, i + 1)
             move_to_CPU!(ψ0)
         end
+        next!(prep)
     end
+    finish!(prep)
 
     s = Dict()
     for k in keys(schmidts)
@@ -659,11 +742,17 @@ function low_energy_spectrum(
     # Start branch and bound search
     sol = empty_solution(S)
     old_row = ctr.nodes_search_order[1][1]
-    @showprogress "Search: " for node ∈ ctr.nodes_search_order
+    search = Progress(
+        length(ctr.nodes_search_order);
+        desc = "Search: ",
+        enabled = show_progress,
+    )
+    for node ∈ ctr.nodes_search_order
         ctr.current_node = node
         current_row = node[1]
         if current_row > old_row
             old_row = current_row
+            probe_device_peak!()
             empty_row_caches!(ctr)
             empty!(ctr.peps.lp, :GPU)
         end
@@ -684,7 +773,10 @@ function low_energy_spectrum(
         if no_cache
             empty!(ctr.cache)
         end
+        next!(search)
     end
+    finish!(search)
+    probe_device_peak!()
     empty_row_caches!(ctr)
     empty!(ctr.peps.lp, :GPU)
 
@@ -736,6 +828,9 @@ This function performs Gibbs sampling on a spin glass PEPS (Projected Entangled 
 - `sparams::SearchParameters`: Parameters for controlling the search, including the maximum number of states and a cutoff probability.
 - `merge_strategy=no_merge`: (Optional) Merge strategy for branches. Defaults to `no_merge`.
 - `no_cache=false`: (Optional) If `true`, disables caching. Defaults to `false`.
+- `show_progress=true`: (Optional) Display the preprocessing and search progress
+  bars. Set to `false` when sampling concurrently, since interleaved bars are
+  unreadable.
 
 ## Returns
 
@@ -746,23 +841,35 @@ function gibbs_sampling(
     sparams::SearchParameters,
     merge_strategy = no_merge;
     no_cache = false,
+    show_progress::Bool = true,
 ) where {T,R,S}
     # Build all boundary mps
     CUDA.allowscalar(false)
 
-    @showprogress "Preprocessing: " for i ∈ ctr.peps.nrows:-1:1
+    prep =
+        Progress(ctr.peps.nrows; desc = "Preprocessing: ", enabled = show_progress)
+    for i ∈ ctr.peps.nrows:-1:1
         dressed_mps(ctr, i)
+        probe_device_peak!()
         empty_row_caches!(ctr)
+        next!(prep)
     end
+    finish!(prep)
 
     # Start branch and bound search
     sol = empty_solution(S, sparams.max_states)
     old_row = ctr.nodes_search_order[1][1]
-    @showprogress "Search: " for node ∈ ctr.nodes_search_order
+    search = Progress(
+        length(ctr.nodes_search_order);
+        desc = "Search: ",
+        enabled = show_progress,
+    )
+    for node ∈ ctr.nodes_search_order
         ctr.current_node = node
         current_row = node[1]
         if current_row > old_row
             old_row = current_row
+            probe_device_peak!()
             empty_row_caches!(ctr)
         end
         sol = branch_solution(sol, ctr)
@@ -772,7 +879,10 @@ function gibbs_sampling(
         if no_cache
             empty!(ctr.cache)
         end
+        next!(search)
     end
+    finish!(search)
+    probe_device_peak!()
     empty_row_caches!(ctr)
 
     # Translate variable order (network --> factor graph)

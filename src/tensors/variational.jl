@@ -29,7 +29,10 @@ function variational_compress!(
             env.bra[last(env.bra.sites)] .*= -1
         end
         Δ = abs(overlap_0 - overlap)
-        @info "Convergence" Δ
+        # Per-sweep convergence trace: debug, not info. It fires once per
+        # variational sweep per row, so at info level it buries anything else the
+        # caller prints (and a warm-started β ladder runs it on every row).
+        @debug "Convergence" Δ
         if Δ < tol
             return overlap, env
         else

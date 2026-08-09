@@ -2,15 +2,27 @@ export measure_memory, format_bytes, kernel_batch_size
 
 """
 Power-of-two batch size for kernel intermediates of element type `T` costing
-`per_item` elements per batched item. On GPU the budget is a quarter of the
-*currently free* device memory (so it shrinks when other allocations are live,
-rather than overcommitting against total capacity), floored at a sixteenth of
-total memory so a busy pool can't collapse the batch to a pathologically small
-value; on CPU it is 4 GiB. Scales with `sizeof(T)`, so Float32 gets twice the
-batch of Float64.
+`per_item` elements per batched item. Scales with `sizeof(T)`, so Float32 gets
+twice the batch of Float64.
+
+The byte budget for intermediates is a quarter of the memory this task is
+entitled to:
+
+  * if a [`DEVICE_MEMORY_BUDGET`](@ref) is in scope (set per task by the parallel
+    sweep driver), a quarter of that reservation. This is what makes concurrent
+    solves safe: without it, every concurrently running solve measures the same
+    shared free pool and they all size their batches as if they owned it.
+  * otherwise a quarter of the *currently free* device memory (so it shrinks
+    when other allocations are live, rather than overcommitting against total
+    capacity), floored at a sixteenth of total memory so a busy pool can't
+    collapse the batch to a pathologically small value.
+
+On CPU the budget is 4 GiB.
 """
 function kernel_batch_size(::Type{T}, per_item::Integer, onGPU::Bool) where {T}
     budget = if onGPU && CUDA.functional()
+        reserved = device_memory_budget()
+        reserved > 0 ? reserved ÷ 4 :
         max(Int(CUDA.available_memory()) ÷ 4, Int(CUDA.total_memory()) ÷ 16)
     else
         2^32

@@ -15,6 +15,7 @@ CUDA.allowscalar(false)
 
 ArrayorCuArray(A::AbstractArray, onGPU) = onGPU ? CuArray(A) : A
 
+include("utils/scoping.jl")
 include("projectors.jl")
 include("base.jl")
 include("linear_algebra_ext.jl")

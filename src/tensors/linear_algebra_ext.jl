@@ -16,7 +16,21 @@ function svd_fact(
 ) where {T<:Real}
     U, Σ, V = svd(A; kwargs...)
     # maximum(Σ) == Σ[1] (sorted), but works on the GPU without scalar indexing
-    δ = min(Dcut, sum(Σ .> maximum(Σ) * max(eps(), tol)))
+    tol_rank = sum(Σ .> maximum(Σ) * max(eps(), tol))
+    δ = min(Dcut, tol_rank)
+    # Relative discarded weight, measured before the retained spectrum is
+    # renormalized below. Only computed when a truncation log is installed in
+    # this task's scope: it costs two device reductions per factorization.
+    if TRUNCATION_LOG[] !== nothing
+        total = sum(abs2, Σ)
+        kept = δ == length(Σ) ? total : sum(abs2, @view Σ[1:δ])
+        record_truncation!(
+            total > 0 ? (total - kept) / total : 0.0,
+            δ,
+            length(Σ),
+            δ < tol_rank,  # bond dimension, not the tolerance, was binding
+        )
+    end
     U, Σ, V = U[:, 1:δ], Σ[1:δ], V[:, 1:δ]
     Σ ./= sqrt(sum(Σ .^ 2))
     ϕ = reshape(phase(diag(U); atol = tol), 1, :)
