@@ -51,6 +51,50 @@ Their public APIs are re-exported by `SpinGlassPEPS`, so normal usage needs only
 `using SpinGlassPEPS`. Advanced users can still qualify implementation details,
 for example as `SpinGlassPEPS.SpinGlassNetworks`.
 
+## Running the standard protocol concurrently
+
+The solver is normally run once per lattice transformation, keeping the best
+result. `sweep_transformations` replaces that hand-written loop with one call,
+adds deterministic per-transformation seeding, reports how much weight the
+contraction discarded and whether the independent contraction orders agreed, and —
+when you ask for concurrency — rations device memory against a measured
+per-solve reservation instead of assuming a fixed fan-out.
+
+Concurrency pays on CPU — up to **1.76×** over the serial loop, and it is on by
+default there — but **not on a single GPU**, where fanning the solves out measures
+slower than sequencing them (0.88–0.92×) because the CUDA API and allocator
+serialize this solver's many small kernels. It is therefore off by default on a
+GPU. See the documentation for the measurements, including the observation that the
+instances measured run faster on CPU than on the GPU at all.
+
+```julia
+sweep = sweep_transformations(
+    transform -> MpsContractor(
+        SVDTruncate,
+        PEPSNetwork{KingSingleNode{GaugesEnergy},Dense,Float64}(m, n, potts_h, transform),
+        params; onGPU = true, beta = 2.0, graduate_truncation = true,
+    ),
+    SearchParameters(; max_states = 2^8, cutoff_prob = 1e-4),
+)
+
+sol = best_solution(sweep)
+sweep.report.consensus      # how many transformations reached the best energy
+sweep.report.energy_spread  # ... and how far apart the rest were
+```
+
+The documentation page "Concurrent sweeps and error control" also covers
+`beta_ladder`, which walks an inverse-temperature schedule with warm-started
+boundary MPS. It selects on **energy**; the truncation-error budget only excludes
+rungs whose contraction is untrustworthy, and is not a ranking of solution quality.
+
+Three runnable examples:
+
+| file | scale | shows |
+| --- | --- | --- |
+| `examples/beta_ladder.jl` | 18 spins, seconds | error control and the β ladder, annotated |
+| `examples/concurrent_sweep.jl` | 128 spins | the transformation sweep and its VRAM governor |
+| `examples/square_50x50.jl` | 2500 spins | all three, at the scale used by the article figures |
+
 # Code Example
 
 A breakdown of this example can be found in the documentation. To run provided examples, activate and instantiate `Project.toml` file in "examples" folder.

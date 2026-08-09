@@ -10,6 +10,16 @@ julia --project=benchmark benchmark/run.jl --set=quick --tag=my-change
 julia benchmark/compare.jl benchmark/results/<old>.json benchmark/results/<new>.json
 ```
 
+Add `--sweep` to also time the whole eight-transformation protocol — the serial
+loop the published examples spell out, versus the governed concurrent sweep — and
+record what the device-memory governor decided (calibrated peak, reservation,
+admission limit, waits). Requires `julia -t auto` to measure anything: with one
+thread the sweep runs serially.
+
+```sh
+julia --project=benchmark -t auto benchmark/run.jl --set=quick --sweep --tag=sweep
+```
+
 - `--set=quick` — pathological chimera (3,4,3) + chimera_droplets 128power. Minutes.
 - `--set=quick+` — quick cases plus sparse and King-geometry coverage.
 - `--set=full` — adds chimera_droplets 2048power (Sparse, Zipper). Much longer.

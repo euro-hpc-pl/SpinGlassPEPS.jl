@@ -30,3 +30,20 @@ add_projector!
 Base.empty!(::PoolOfProjectors, ::Symbol)
 Base.copy(::PoolOfProjectors)
 ```
+
+## Task-scoped execution context
+
+Internals backing the device-memory governor and the truncation-error reporting
+described under [Concurrent sweeps and error control](@ref). Both quantities are
+dynamically scoped per task so that concurrently running solves see their own
+values without threading them through every kernel signature.
+
+```@docs
+device_memory_budget
+record_truncation!
+Base.empty!(::TruncationLog)
+DevicePeak
+DEVICE_PEAK_PROBE
+device_peak_bytes
+probe_device_peak!
+```

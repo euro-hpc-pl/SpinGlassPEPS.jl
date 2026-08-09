@@ -49,6 +49,7 @@ const pages = [
         "PEPS construction" => "sge/peps.md",
         "Search parameters" => "sge/params.md",
         "Low-energy search" => "sge/search.md",
+        "Concurrent sweeps and error control" => "sge/sweep.md",
         "API reference" => "sge/api.md",
     ],
     "Tensor backend" => [

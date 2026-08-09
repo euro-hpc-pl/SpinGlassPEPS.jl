@@ -18,6 +18,7 @@ MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
@@ -47,6 +48,7 @@ MetaGraphs = "0.7"
 NNlib = "0.9.14"
 PrecompileTools = "1"
 ProgressMeter = "1.10"
+Random = "1.11"
 Reexport = "1"
 SparseArrays = "1.9"
 Statistics = "1.7"
@@ -58,8 +60,7 @@ julia = "1.11"
 [extras]
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["HDF5", "Logging", "Random", "Test"]
+test = ["HDF5", "Logging", "Test"]

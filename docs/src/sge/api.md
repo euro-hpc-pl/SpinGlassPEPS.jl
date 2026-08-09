@@ -99,4 +99,6 @@ local_spins
 tensor
 branch_states
 precompute_conditional
+take_guess!
+branch_states_view
 ```

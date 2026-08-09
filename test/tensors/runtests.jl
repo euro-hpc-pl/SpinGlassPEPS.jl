@@ -11,6 +11,7 @@ disable_logging(LogLevel(1))
 using Test
 
 my_tests = [
+    "scoping.jl",
     "canonise.jl",
     "gauges.jl",
     "mps_utils.jl",
