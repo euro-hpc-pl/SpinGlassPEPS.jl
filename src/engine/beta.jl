@@ -75,8 +75,8 @@ One rung of a [`beta_ladder`](@ref).
 - `warm_started::Bool`: whether this step started from the previous step's
   boundary MPS.
 - `trusted::Bool`: whether the accumulated discarded weight stayed within the
-  guard (`max_discarded`). An untrusted step's energy is reported but is not
-  eligible to be selected.
+  guard (`max_discarded`). Selection prefers trusted steps; an untrusted step is
+  eligible only as a fallback, when no rung stayed within the guard.
 - `error`: the exception if the step failed, otherwise `nothing`.
 """
 struct BetaStepReport
@@ -97,8 +97,9 @@ Result of a [`beta_ladder`](@ref).
 # Fields
 - `betas::Vector{Float64}`: the schedule, in the order solved.
 - `solutions::Vector{Union{Nothing,Solution}}`: aligned with `betas`.
-- `selected_index::Int`: the rung chosen — lowest energy among the rungs whose
-  contraction was trusted, or `0` if none produced a solution.
+- `selected_index::Int`: the rung chosen — the lowest-energy trusted rung, or, if
+  no rung was trusted, the lowest-energy rung overall as a fallback; `0` only if
+  no rung produced a solution.
 - `steps::Vector{BetaStepReport}`
 """
 struct BetaLadderSolution
