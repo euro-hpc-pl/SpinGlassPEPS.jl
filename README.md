@@ -56,7 +56,7 @@ for example as `SpinGlassPEPS.SpinGlassNetworks`.
 The solver is normally run once per lattice transformation, keeping the best
 result. `sweep_transformations` replaces that hand-written loop with one call,
 adds deterministic per-transformation seeding, reports how much weight the
-contraction discarded and whether the independent contraction orders agreed, and —
+contraction discarded and whether the distinct contraction orders agreed, and —
 when you ask for concurrency — rations device memory against a measured
 per-solve reservation instead of assuming a fixed fan-out.
 
@@ -64,8 +64,8 @@ Concurrency pays on CPU — up to **1.76×** over the serial loop, and it is on 
 default there — but **not on a single GPU**, where fanning the solves out measures
 slower than sequencing them (0.88–0.92×) because the CUDA API and allocator
 serialize this solver's many small kernels. It is therefore off by default on a
-GPU. See the documentation for the measurements, including the observation that the
-instances measured run faster on CPU than on the GPU at all.
+GPU. See the documentation for the measurements, including where the CPU/GPU crossover lies: the CPU leads across the tested range except at
+the largest case (2048 spins, bond 32), where the GPU wins.
 
 ```julia
 sweep = sweep_transformations(

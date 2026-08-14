@@ -135,11 +135,13 @@ $(TYPEDSIGNATURES)
 
 Solve one instance across an increasing schedule of inverse temperatures,
 reusing each step's boundary MPS to warm-start the next, and select the
-lowest-energy result among the steps that stayed within the error guard.
+lowest-energy trusted result, falling back to the lowest-energy step overall if no
+step stayed within the error guard.
 
-Selection is on **energy**. The guard only excludes rungs whose contraction
-discarded more than `max_discarded`; it is not a quality ranking, and by default
-(`Inf`) it excludes nothing.
+Selection is on **energy**. The guard prefers rungs whose contraction discarded no
+more than `max_discarded` but does not hard-exclude the others: if none qualify, the
+lowest-energy untrusted rung is returned (flagged via `steps`). It is not a quality
+ranking, and by default (`Inf`) it excludes nothing.
 
 The contractor is mutated in place (its β is changed and its caches evicted at
 every step), so pass a contractor this call may own.
@@ -156,8 +158,9 @@ every step), so pass a contractor this call may own.
 - `symmetry::Symbol = :noZ2`
 - `warm_start::Bool = true`: reuse the previous rung's boundary MPS.
 - `max_discarded = Inf`: guard on accumulated discarded weight
-  (`TruncationStats.discarded_sum`). A rung exceeding it is marked untrusted and
-  excluded from selection; with the default no rung is ever excluded.
+  (`TruncationStats.discarded_sum`). A rung exceeding it is marked untrusted and is
+  chosen only as a fallback, when no rung is trusted; with the default no rung is
+  ever untrusted.
 
   !!! warning
       This guard is only meaningful with `warm_start = false`. A cold build forms
