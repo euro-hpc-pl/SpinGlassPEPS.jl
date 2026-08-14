@@ -62,9 +62,9 @@ Branch and bound search relies on the calculation of conditional probabilities. 
 
 ## References & Related works
 
-1. "Limitations of tensor network approaches for optimization and sampling: A comparison against quantum and classical Ising machines" A.M. Dziubyna, T. Śmierzchalski, B. Gardas, M.M. Rams, M. Mohseni [arXiv:2411.16431] (https://arxiv.org/abs/2411.16431)
+1. "Limitations of tensor network approaches for optimization and sampling: A comparison against quantum and classical Ising machines" A.M. Dziubyna, T. Śmierzchalski, B. Gardas, M.M. Rams, M. Mohseni [Phys. Rev. Applied 23, 054049 (2025)](https://doi.org/10.1103/PhysRevApplied.23.054049)
 
-2. "SpinGlassPEPS.jl: low-energy solutions for near-term quantum annealers" T. Śmierzchalski, A.M. Dziubyna, K. Jałowiecki, Z. Mzaouali, Ł. Pawela, B. Gardas, M.M. Rams []
+2. "SpinGlassPEPS.jl: Tensor-network package for Ising-like optimization on quasi-two-dimensional graphs" T. Śmierzchalski, A.M. Dziubyna, K. Jałowiecki, Z. Mzaouali, Ł. Pawela, B. Gardas, M.M. Rams [SoftwareX 31, 102257 (2025)](https://doi.org/10.1016/j.softx.2025.102257)
 
 3. "Approximate optimization, sampling, and spin-glass droplet discovery with tensor networks" Marek M. Rams, Masoud Mohseni, Daniel Eppens, Konrad Jałowiecki, Bartłomiej Gardas [Phys. Rev. E 104, 025308 (2021)](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.104.025308) or arXiv version [arXiv:1811.06518](https://arxiv.org/abs/1811.06518)
 

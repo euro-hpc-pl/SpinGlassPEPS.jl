@@ -39,22 +39,25 @@ If you use `SpinGlassPEPS.jl` for academic research and wish to cite it, please 
 @article{SpinGlassPEPS.jl,
     author = {Tomasz \'{S}mierzchalski and Anna Maria Dziubyna and Konrad Ja\l{}owiecki and Zakaria
     Mzaouali and {\L}ukasz Pawela and Bart\l{}omiej Gardas and Marek M. Rams},
-    title = {{SpinGlassPEPS.jl}: low-energy solutions for near-term quantum annealers},
-    journal = {},
-    year = {},
+    title = {{SpinGlassPEPS.jl}: Tensor-network package for {Ising}-like optimization on quasi-two-dimensional graphs},
+    journal = {SoftwareX},
+    volume = {31},
+    pages = {102257},
+    year = {2025},
+    doi = {10.1016/j.softx.2025.102257},
 }
 ```
 
 * Article describing in details used algorithms and containing extensive benchmarks.
 ```
-@misc{SpinGlassPEPS, 
+@article{SpinGlassPEPS, 
     author = {Anna Maria Dziubyna and Tomasz \'{S}mierzchalski and Bart\l{}omiej Gardas and Marek M. Rams and Masoud Mohseni},
     title = {Limitations of tensor network approaches for optimization and sampling: A comparison against quantum and classical {Ising} machines},
-    year = {2024},
-    eprint={2411.16431},
-    archivePrefix={arXiv},
-    primaryClass={cond-mat.dis-nn},
-    doi = {10.48550/arXiv.2411.16431} 
+    journal = {Physical Review Applied},
+    volume = {23},
+    pages = {054049},
+    year = {2025},
+    doi = {10.1103/PhysRevApplied.23.054049},
 }
 ```
 
