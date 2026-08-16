@@ -332,39 +332,33 @@ _energy_of(sol::Solution) = isempty(sol.energies) ? NaN : Float64(first(sol.ener
 
 # Default admission limit for `concurrency = :auto`.
 #
-# On a GPU: one. Fanning the transformations out over a single device does not pay.
-# Measured on an RTX 5080 (20 cores, BLAS on 12 threads) over 8 transformations,
-# 7 interleaved A/B rounds with a full GC + `CUDA.reclaim()` before every timed
-# section, reported as the median of the per-round paired ratios:
-#
-#   case                          serial median   sweep/serial (c=2)   (c=4)
-#   chimera 3x4x3, D=16, SVD          3.97 s          0.92x            0.80x
-#   chimera 128power, D=32, Zipper   14.30 s          0.88x            0.89x
-#
-# The solves do overlap — 5.4x at 8-way — but per-solve time degrades at the same
-# rate, so total work is conserved and no concurrency level beats the serial loop.
-# GPU utilization sits near 10% throughout and holding concurrency at 8 while
-# varying only the BLAS thread policy moves the total by <10%, so neither device
-# compute nor BLAS oversubscription is the limit: it is serialization in the CUDA
-# API and allocator, which this solver provokes because its kernels are small and
-# numerous. Recovering that idle device would need batching across
-# transformations inside the kernels, not more tasks.
+# On a GPU: one, conservatively. Whether fanning the transformations out over a
+# single device pays depends on the card. On a consumer GPU it does not — measured
+# on an RTX 5080 over 8 transformations (7 interleaved A/B rounds, full GC +
+# `CUDA.reclaim()` before every timed section, median of per-round paired ratios),
+# the concurrent sweep ran at 0.92x/0.80x (c=2/c=4) on the 3x4x3 case and
+# 0.88x/0.89x on 128power: the solves overlap but per-solve time degrades at the
+# same rate (utilization ~10%, the limit being serialization in the CUDA
+# API/allocator with this solver's many small kernels). A datacenter GPU has the
+# headroom to overlap them — on an H100 the same sweeps reach 1.69x/1.44x and
+# 1.22x/1.43x (c=2/c=4). Because the common case is the smaller card, `:auto` stays
+# at 1 on any GPU; set `concurrency = 2`–`4` explicitly on a large device.
 #
 # (Interleaving and reclaiming matter more than the effect being measured: a
 # naive protocol that timed the serial arm right after a concurrent warm-up
-# reported 1.68x and 1.06x for these same cases, purely from leftover pool state
+# reported a spurious speed-up on the 5080, purely from leftover pool state
 # inflating the baseline by up to 2.7x.)
 #
-# On CPU there is no such shared bottleneck and concurrency does pay, monotonically
-# (20 cores, BLAS on 12 threads, 5 rounds, same protocol):
+# On CPU there is no such shared bottleneck and concurrency pays, monotonically
+# (Xeon Platinum 8462Y+, 5 rounds, same protocol):
 #
 #   case                            serial   c=1    c=2    c=4    c=8
-#   chimera 3x4x3, D=16, SVD         0.07 s  0.52x  0.87x  1.32x  1.76x
-#   chimera 128power, D=32, Zipper   4.16 s  0.97x  1.15x  1.37x  1.39x
+#   chimera 3x4x3, D=16, SVD         0.04 s  0.88x  1.41x  2.14x  3.09x
+#   chimera 128power, D=32, Zipper  16.0 s   0.89x  1.11x  1.31x  1.64x
 #
 # so use the thread count there and let BLAS threads be divided among the admitted
 # solves. (`c=1` is below 1.0 because the driver's fixed overhead is not amortized
-# when nothing overlaps — most visible on the 70 ms case.)
+# when nothing overlaps.)
 function _auto_concurrency(n::Int)
     CUDA.functional() ? 1 : min(n, Threads.nthreads())
 end
@@ -397,11 +391,12 @@ governor is denominated in bytes.
   merge strategies close over the contractor (`merge_branches(ctr; ...)`).
 - `symmetry::Symbol = :noZ2`: forwarded to [`low_energy_spectrum`](@ref).
 - `concurrency = :auto`: cap on simultaneously running solves. `:auto` is **1 on a
-  GPU** — fanning these solves out over a single device measures slower than the
-  serial loop at every level tried, see `_auto_concurrency` — and
-  `min(length(transformations), Threads.nthreads())` on CPU. Raise it explicitly
-  for a CPU-only run, several devices, or an instance you have measured. The byte
-  budget may admit fewer.
+  GPU** — a conservative default: on a consumer GPU (e.g. RTX 5080) fanning these
+  solves out over one device does not beat the serial loop, but a datacenter GPU
+  (e.g. H100) does benefit, so set `concurrency = 2`–`4` explicitly there. On CPU it
+  is `min(length(transformations), Threads.nthreads())`. Raise it explicitly for a
+  CPU-only run, several devices, or an instance you have measured. The byte budget
+  may admit fewer.
 - `reservation = :calibrate`: bytes to reserve per solve. `:calibrate` measures
   it from a solo run; pass an integer to skip calibration (useful when you
   already know the figure and want all transformations to start at once), or

@@ -41,7 +41,7 @@ run it*, so each solve gets its own network, projector workspace, and contractio
 cache. Julia must be started with more than one thread (`julia -t auto`) for the
 solves to overlap; with a single thread the sweep runs serially and says so.
 
-## How much does concurrency actually buy? On CPU, up to ~1.8×; on one GPU, nothing
+## How much does concurrency actually buy? Up to ~3× on CPU, up to ~1.7× on a datacenter GPU
 
 The answer depends entirely on the device, so both halves are given below. Same
 protocol throughout: all eight transformations, interleaved A/B rounds with a full
@@ -50,40 +50,44 @@ as the median of the per-round paired ratios against the serial loop.
 
 ### On CPU it scales
 
-20 cores, BLAS on 12 threads, `CUDA_VISIBLE_DEVICES=""`, 5 rounds:
+Xeon Platinum 8462Y+, `CUDA_VISIBLE_DEVICES=""`, 5 rounds:
 
 | case | serial | c=1 | c=2 | c=4 | c=8 |
 |---|---|---|---|---|---|
-| chimera 3×4×3, D=16, `SVDTruncate` | 0.07 s | 0.52× | 0.87× | 1.32× | **1.76×** |
-| chimera 128power, D=32, `Zipper` | 4.16 s | 0.97× | 1.37× | 1.37× | **1.39×** |
+| chimera 3×4×3, D=16, `SVDTruncate` | 0.04 s | 0.88× | 1.41× | 2.14× | **3.09×** |
+| chimera 128power, D=32, `Zipper` | 16.0 s | 0.89× | 1.11× | 1.31× | **1.64×** |
 
 Monotonic in concurrency, so `:auto` uses `min(n, Threads.nthreads())` here. `c=1`
 is below 1.0 because the driver's fixed overhead (calibration, bookkeeping) is not
 amortized when there is nothing to overlap — it costs most on the 70 ms case.
 
-### On one GPU it does not
+### On a GPU it depends on the card
 
-RTX 5080, 7 rounds:
+On a consumer card fanning out does not pay — RTX 5080, 7 rounds:
 
 | case | serial (median) | sweep, c=2 | sweep, c=4 |
 |---|---|---|---|
 | chimera 3×4×3, D=16, `SVDTruncate` | 3.97 s | 0.92× | 0.80× |
 | chimera 128power, D=32, `Zipper` | 14.30 s | 0.88× | 0.89× |
 
-No concurrency level beats the serial loop. The solves *do* overlap — 5.4× at
-eight-way — but per-solve time degrades at the same rate, so total work is
-conserved and the driver's own overhead makes it a net loss.
+the solves overlap but per-solve time degrades at the same rate, so no level beats
+the serial loop. The device is not the constraint: utilization stays near 10%, and
+what saturates is serialization inside the CUDA API and allocator, which this solver
+provokes because its kernels are small and numerous. A datacenter card has the
+headroom to overlap them — one H100, 7 rounds:
 
-The device is not the constraint: GPU utilization stays near 10% throughout, and
-holding concurrency at 8 while varying only the BLAS thread policy moves the total
-by under 10%. What saturates is serialization inside the CUDA API and allocator,
-which this solver provokes because its kernels are small and numerous. Recovering
-that idle device would mean batching across transformations *inside* the kernels
-so it sees one large operation instead of eight sets of small ones — not more
-tasks. This function does not attempt that.
+| case | serial (median) | sweep, c=2 | sweep, c=4 |
+|---|---|---|---|
+| chimera 3×4×3, D=16, `SVDTruncate` | 1.38 s | 1.69× | 1.44× |
+| chimera 128power, D=32, `Zipper` | 18.18 s | 1.22× | 1.43× |
 
-`concurrency = :auto` is therefore **1 on a GPU**. Raise it explicitly for a
-CPU-only run, for several devices, or for an instance you have measured yourself.
+The gain begins at `c=2`; `c=1` is a slight net loss because the driver's fixed
+overhead is not amortized when nothing overlaps.
+
+Because the common case is the smaller card, `concurrency = :auto` stays at **1 on
+any GPU** as a conservative default. Set `concurrency = 2`–`4` explicitly on a large
+device, for a CPU-only run, for several devices, or for an instance you have
+measured yourself.
 
 !!! note "Measuring this is harder than it looks"
     A naive protocol — warm up, time the serial arm, then time the concurrent one —
@@ -94,29 +98,31 @@ CPU-only run, for several devices, or for an instance you have measured yourself
     ratios rather than a min over separate batches.
 
 !!! warning "Below ~2000 spins, this solver is faster on the CPU"
-    Compare the serial columns above: 0.07 s versus 3.97 s, and 4.16 s versus
-    14.30 s. Solving identical configurations on each device across three instance
+    Compare the serial columns above: 0.04 s versus 1.38 s, and 16.0 s versus
+    18.18 s. Solving identical configurations on each device across three instance
     sizes and four bond dimensions puts the crossover well up the size range
     (CPU/GPU wall-clock ratio; below 1 means the host is faster):
 
     | spins | D=8 | D=16 | D=32 | D=64 |
     |---|---|---|---|---|
     | 36 (dense) | 0.02 | 0.02 | 0.02 | 0.02 |
-    | 128 (dense) | 0.15 | 0.38 | 0.48 | 0.56 |
-    | 2048 (dense) | 0.43 | 0.68 | **1.03** | — |
-    | 2048 (sparse) | — | 0.71 | **1.17** | — |
+    | 128 (dense) | 0.14 | 0.21 | 0.36 | 0.46 |
+    | 2048 (dense) | 0.50 | 0.64 | 0.90 | — |
+    | 2048 (sparse) | — | 0.78 | **1.45** | — |
 
-    The device wins only once both the instance and the bond dimension are large.
+    The device wins only in the largest sparse case (2048 spins, bond 32).
     `MpsContractor` defaults to `onGPU = true`, which suits the D-Wave-scale sparse
     regime the package targets and is the wrong default for exploratory work —
     measure before assuming. Energies agree in every cell.
 
-So: on CPU the sweep is a real speed-up and worth turning up; on one GPU it is
-not, and its value there is everything other than throughput — one call instead of
-a hand-written loop, a device-memory budget that keeps concurrency from exhausting
-the card where concurrency does pay, deterministic per-transformation seeding (a
-`Zipper` sweep was not reproducible under concurrency before), failure isolation,
-and the cross-transformation agreement diagnostics below.
+So: the sweep is a real speed-up on both devices and worth turning up — up to ~3×
+on CPU and 1.2–1.7× on a datacenter GPU; on a consumer GPU the throughput gain is
+marginal, which is why `:auto` stays at a conservative 1 on any GPU. Its other
+values hold regardless of device — one call instead of a hand-written loop, a
+device-memory budget that keeps concurrency from exhausting the card, deterministic
+per-transformation seeding (a `Zipper` sweep was not reproducible under concurrency
+before), failure isolation, and the cross-transformation agreement diagnostics
+below.
 
 ## Why the governor counts bytes
 

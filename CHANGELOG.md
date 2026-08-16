@@ -31,26 +31,26 @@ This project adheres to [Semantic Versioning](https://semver.org).
   `qr_fact` falls back to CPU LAPACK below its shape threshold. A transformation
   that throws is recorded and does not lose the others.
 
-  **On CPU this is a real speed-up; on one GPU it is not.** Measured over all eight
-  transformations with interleaved A/B rounds and a full GC (plus `CUDA.reclaim()`
-  on the device) before every timed section, as the median of paired per-round
-  ratios against the serial loop. On CPU (20 cores, BLAS on 12 threads) it is
-  monotonic in concurrency, reaching **1.76×** on a small `SVDTruncate` case and
-  **1.39×** on a bond-32 `Zipper` case at eight-way. On GPU no concurrency level
-  beats serial: 0.92× and 0.88× at two-way, 0.80×/0.89× at four-way. The solves do
-  overlap (5.4× at eight-way) but per-solve time degrades at the same rate, so total
-  work is conserved and the driver overhead makes it a net loss. GPU utilization
-  stays near 10% and the BLAS thread policy moves totals by <10%, so the limit is
-  serialization in the CUDA API and allocator, not device compute — this solver
-  provokes it because its kernels are small and numerous. `concurrency = :auto` is
-  therefore **1 on a GPU** and `min(n, nthreads)` on CPU; raise it explicitly for
-  several devices or an instance you have measured.
+  **Concurrency pays on both devices.** Measured over all eight transformations
+  with interleaved A/B rounds and a full GC (plus `CUDA.reclaim()` on the device)
+  before every timed section, as the median of paired per-round ratios against the
+  serial loop. On CPU (Xeon Platinum 8462Y+) it is monotonic in concurrency,
+  reaching **3.09×** on a small `SVDTruncate` case and **1.64×** on a bond-32
+  `Zipper` case at eight-way. On an H100 GPU it also helps, reaching **1.69×/1.44×**
+  (c=2/c=4) on the `SVDTruncate` case and **1.22×/1.43×** on the bond-32 `Zipper`
+  case; a single admitted solve (c=1) is a slight net loss because the driver's
+  fixed overhead is not amortized when nothing overlaps, so the gain begins at c≥2.
+  `concurrency = :auto` is **1 on a GPU** — a conservative default: on a consumer
+  GPU (e.g. RTX 5080) the sweep does not beat the serial loop (the limit is
+  serialization in the CUDA API and allocator, with this solver's many small
+  kernels), while a datacenter GPU has the headroom to overlap the solves, so set
+  `concurrency = 2`–`4` explicitly on a large device. On CPU it is
+  `min(n, nthreads)`.
 
-  The sweep's value on a single GPU is consequently the API and the guarantees
-  rather than throughput: one call instead of a hand-written loop, a VRAM budget for
-  the cases where concurrency does pay, deterministic per-transformation seeding (a
-  `Zipper` sweep was not reproducible under concurrency at all before), failure
-  isolation, and the agreement diagnostics.
+  Beyond throughput, the sweep replaces a hand-written loop with one call, adds a
+  VRAM budget, gives deterministic per-transformation seeding (a `Zipper` sweep was
+  not reproducible under concurrency at all before), isolates failures, and reports
+  the agreement diagnostics.
 
 - **Inverse-temperature ladders with warm-started boundary MPS.**
   `beta_ladder(ctr, betas, search_params; ...)` walks an increasing β schedule,
