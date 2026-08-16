@@ -30,8 +30,8 @@ end
 """
 # Temporaries for the multi-tensor contractions below are the largest single source
 # of host allocation in a CPU solve (`project_ket_on_bra` and `update_env_right`
-# alone accounted for ~60% of allocated bytes on a profiled 2048-spin run, where
-# garbage collection was 33% of wall time). `ManualAllocator` takes them off the GC
+# alone accounted for ~60% of allocated bytes on a profiled 2048-spin run).
+# `ManualAllocator` takes them off the GC
 # heap via `Libc.malloc`/`free`; the contraction *output* still uses the default
 # allocator, so returning it is safe.
 #

@@ -220,12 +220,11 @@ Expansion used on the search's hot path: the same configurations
 [`branch_states`](@ref) produces, but backed by one matrix and returned as column
 views instead of independent vectors.
 
-This is the hottest allocation site in a solve — 71% of host-allocated bytes on a
-profiled 2048-spin bond-32 GPU run, previously one heap object per branched state
-and so tens of thousands per call. The byte count is dominated by the payload
-either way, but garbage-collection cost scales with the *number* of objects, and
-GC was 18% of that solve's wall time; consolidating measured 1.16x end to end on
-that case, with GC down 36%.
+This is the largest single source of host-allocated bytes in a solve, previously
+one heap object per branched state and so tens of thousands per call. The byte count
+is dominated by the payload either way, but garbage-collection cost scales with the
+*number* of objects, so consolidating the expansion into one matrix cuts the live
+object count sharply for a modest change in bytes.
 
 `branch_states` itself keeps returning `Vector{Vector{Int}}`, since it is part of
 the published API and callers may rely on that element type.

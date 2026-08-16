@@ -155,18 +155,19 @@ This project adheres to [Semantic Versioning](https://semver.org).
   targets and wrong for exploratory work; measure before assuming.
 
 - **The solver is host-bound at every size measured**, which is the finding behind
-  the two allocation changes below. GPU utilization is 5.9% on a 128-spin solve and
-  12.8% at 2048 spins, while host-side CUDA API calls account for only 21–25% of
-  wall time; two thirds is host-side Julia work, of which garbage collection alone
-  is 18% (GPU) to 33% (CPU). Batching kernels — the intuitive response to an idle
-  device — was therefore not pursued: eliminating the entire CUDA API share caps at
-  ≈1.3×, well below what reducing allocation returned.
+  the two allocation changes below. On the RTX 5080 dev machine GPU utilization was
+  5.9% on a 128-spin solve and 12.8% at 2048 spins, while host-side CUDA API calls
+  accounted for only 21–25% of wall time; the majority is host-side Julia work.
+  Batching kernels — the intuitive response to an idle device — was therefore not
+  pursued: eliminating the entire CUDA API share caps at ≈1.3×, well below what
+  reducing allocation returned.
 
 - **Contraction temporaries no longer go on the collected heap.** The seven
   multi-tensor contractions in `contractions/dense.jl` now use TensorOperations'
   `ManualAllocator`, selected per call so device arrays keep the default (it returns
-  host memory). On a 2048-spin bond-32 CPU solve: **1.25×** (24.2 → 19.4 s), with
-  allocated bytes down 65% (90.9 → 32.0 GiB) and GC from 7.7 s to 4.2 s. Neutral on
+  host memory). On a 2048-spin bond-32 CPU solve, allocated bytes fall 65% (90.9 → 32.0 GiB) —
+  hardware-independent, and reproduced on the H100; the wall-time effect on the
+  RTX 5080 dev machine was **1.25×** (24.2 → 19.4 s, GC 7.7 → 4.2 s). Neutral on
   GPU by construction. In isolation the allocator is ~7% *slower* per call, so the
   gain is entirely the collection it avoids — it had to be measured in a full solve.
 
@@ -179,20 +180,21 @@ This project adheres to [Semantic Versioning](https://semver.org).
   allocation source in a solve — larger than anything in the tensor kernels.
 
   Measured with alternating separate-process paired runs: allocations −22.4% on GPU
-  (0.735 → 0.570 GiB per solve) and −12.0% on CPU (1.356 → 1.194 GiB), for a wall
-  time gain of ~1.13× on CPU (consistent across pairs) and ~1.05–1.09× on GPU
-  (noisier). Energies are unchanged, and `test/engine/branch_states.jl` pins the
+  (0.735 → 0.570 GiB per solve) and −12.0% on CPU (1.356 → 1.194 GiB). On the RTX 5080
+  dev machine the wall-time gain was ~1.13× on CPU (consistent across pairs) and
+  ~1.05–1.09× on GPU (noisier). Energies are unchanged, and `test/engine/branch_states.jl` pins the
   expansion contract — in particular the ordering, which callers rely on to pair
   states index-for-index with energies and probabilities.
 
 - **The branched state set is now backed by one matrix instead of one vector per
   state.** A second pass at the same site: `branch_states_view` (new, internal)
   writes the expansion into a single `Matrix{Int}` and returns column views, which
-  `branch_solution` uses on the hot path. At 2048 spins / bond 32 this is
-  **1.157× on GPU** (26.6 → 23.0 s) and 1.063× on CPU, with GC down **36%**
-  (4.97 → 3.16 s) — while allocated *bytes* fall only 4%. That gap is the point:
-  garbage-collection cost tracks the number of objects, not their volume, and the
-  old form created tens of thousands of small vectors per call.
+  `branch_solution` uses on the hot path. At 2048 spins / bond 32 the allocated *bytes* fall only 4%, but the live-object
+  count falls far more — that gap is the point: garbage-collection cost tracks the
+  number of objects, not their volume, and the old form created tens of thousands of
+  small vectors per call. On the RTX 5080 dev machine the wall-time effect was
+  **1.157× on GPU** (26.6 → 23.0 s) and 1.063× on CPU, with GC down 36%
+  (4.97 → 3.16 s).
 
   `Solution.states`/`spins` and the ~11 dispatch points that consume a state were
   widened to `AbstractVector{Int}` accordingly. `boundary_states` still returns
