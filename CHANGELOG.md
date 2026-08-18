@@ -240,7 +240,7 @@ are now internal modules of a single installable `SpinGlassPEPS` package.
   Advanced users can still qualify a module explicitly, e.g.
   `SpinGlassPEPS.SpinGlassNetworks`.
 - **Curated public API.** `using SpinGlassPEPS` now brings a curated public
-  surface (~65 symbols: model construction, geometries/sparsity/layouts,
+  surface (~80 symbols: model construction, geometries/sparsity/layouts,
   `PEPSNetwork`/`MpsContractor`/parameters, strategies, transformations, the
   search + droplet API, exhaustive + QUBO helpers, belief-propagation reduction,
   the documented core types, and the compatibility shims) instead of
