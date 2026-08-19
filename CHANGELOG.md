@@ -80,7 +80,8 @@ This project adheres to [Semantic Versioning](https://semver.org).
   can say how much of the distribution its contraction threw away instead of
   offering only `largest_discarded_probability`. `TruncationStats` records Σε, max
   ε, how many truncations were bond-dimension-limited rather than
-  tolerance-limited, and retained-vs-offered dimensions; snapshots subtract, so a
+  tolerance-limited (counting only non-negligible discards, `NEGLIGIBLE_DISCARD`),
+  and retained-vs-offered dimensions; snapshots subtract, so a
   caller can attribute error to a phase. Recording is opt-in (two device
   reductions per factorization) and costs nothing when no log is installed.
   `beta_ladder` uses it as an error guard (`max_discarded`), and

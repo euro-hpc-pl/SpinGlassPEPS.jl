@@ -24,11 +24,14 @@ function svd_fact(
     if TRUNCATION_LOG[] !== nothing
         total = sum(abs2, Σ)
         kept = δ == length(Σ) ? total : sum(abs2, @view Σ[1:δ])
+        ε = total > 0 ? (total - kept) / total : 0.0
         record_truncation!(
-            total > 0 ? (total - kept) / total : 0.0,
+            ε,
             δ,
             length(Σ),
-            δ < tol_rank,  # bond dimension, not the tolerance, was binding
+            # bond dimension, not the tolerance, was binding — and the cut
+            # discarded more than numerically negligible weight
+            δ < tol_rank && ε > NEGLIGIBLE_DISCARD,
         )
     end
     U, Σ, V = U[:, 1:δ], Σ[1:δ], V[:, 1:δ]

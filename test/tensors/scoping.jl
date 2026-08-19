@@ -88,6 +88,20 @@ end
     @test e.saturated == 0
     @test e.dims_kept == e.dims_offered == 4
 
+    # A bond cap that drops only numerically negligible weight is not counted
+    # as saturated: raising the bond dimension could not change the result.
+    negligible = TruncationLog()
+    with(TRUNCATION_LOG => negligible) do
+        # σ₂ = 1e-7 discards relative weight 1e-14: representable in the Float64
+        # total (unlike 1e-16) yet below NEGLIGIBLE_DISCARD.
+        svd_fact(Matrix(Diagonal([1.0, 1e-7])), 1, 0.0)
+    end
+    n = truncation_stats(negligible)
+    @test n.count == 1
+    @test n.dims_kept == 1
+    @test 0 < n.discarded_max < SpinGlassTensors.NEGLIGIBLE_DISCARD
+    @test n.saturated == 0
+
     # A tolerance that rejects the small singular values truncates without the
     # bond dimension being the binding constraint.
     tolerated = TruncationLog()

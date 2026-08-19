@@ -108,6 +108,16 @@ peak usage is not being measured (the default).
 const DEVICE_PEAK_PROBE = ScopedValue{Union{Nothing,DevicePeak}}(nothing)
 
 """
+Relative discarded weight (‖Σ_dropped‖² / ‖Σ‖²) below which a bond-capped
+truncation is not counted as `saturated`: the dropped singular values are
+numerically negligible, so raising the bond dimension could not change the
+result beyond noise. Sits above the ~1e-14 weights an effectively exact
+contraction discards and below the smallest weight a genuinely bond-limited
+truncation has been observed to drop (~1e-10 on the shipped 128-spin fixture).
+"""
+const NEGLIGIBLE_DISCARD = 1e-12
+
+"""
 Running tally of the weight discarded by truncating factorizations.
 
 Every truncating `svd_fact` (and therefore every `qr_fact`/`rq_fact`/
@@ -132,8 +142,9 @@ installed in the current task's scope via [`TRUNCATION_LOG`](@ref).
 - `discarded_max::Float64`: maxᵢ εᵢ — flags a single pathological truncation
   that a sum over many benign ones would hide.
 - `saturated::Int`: how many factorizations hit the bond-dimension bound (rather
-  than dropping only numerically negligible singular values). If this is zero,
-  the bond dimension was never the binding constraint.
+  than dropping only numerically negligible singular values, per
+  [`NEGLIGIBLE_DISCARD`](@ref)). If this is zero, the bond dimension was never
+  the binding constraint.
 - `dims_kept::Int`, `dims_offered::Int`: retained vs. available singular values,
   summed over all recorded factorizations.
 
@@ -230,7 +241,8 @@ $(TYPEDSIGNATURES)
 Record one truncating factorization that kept `kept` of `offered` singular
 values, discarding relative weight `discarded` (‖Σ_dropped‖²/‖Σ‖²). `saturated`
 marks a truncation forced by the bond-dimension bound rather than by the
-singular-value tolerance.
+singular-value tolerance, and that discarded more than numerically negligible
+weight (callers combine the bond-bound test with [`NEGLIGIBLE_DISCARD`](@ref)).
 
 A no-op when no [`TRUNCATION_LOG`](@ref) is installed in the current task.
 """

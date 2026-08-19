@@ -40,6 +40,7 @@ values without threading them through every kernel signature.
 
 ```@docs
 device_memory_budget
+NEGLIGIBLE_DISCARD
 record_truncation!
 Base.empty!(::TruncationLog)
 DevicePeak

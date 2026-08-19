@@ -155,7 +155,7 @@ Per-transformation record produced by [`sweep_transformations`](@ref).
 - `truncation::TruncationStats`: weight discarded by the boundary-MPS
   truncations of this solve. `discarded_sum` is the leading-order accumulated
   fidelity loss and `saturated` counts how often the bond dimension (rather than
-  the singular-value tolerance) forced the truncation — together these say
+  the singular-value tolerance) forced a non-negligible discard — together these say
   whether the contraction, as opposed to the search, limited the result.
 - `largest_discarded_probability::Float64`: the search-side bound already
   reported by [`Solution`](@ref).

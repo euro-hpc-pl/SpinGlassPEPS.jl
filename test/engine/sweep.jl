@@ -224,6 +224,9 @@ end
     @test tstat.discarded_sum > lstat.discarded_sum
     @test tstat.saturated > 0
     @test lstat.discarded_sum < 1e-8   # D=32 contracts this instance essentially exactly
+    # ... and its bond-capped cuts drop only negligible weight, so none counts
+    # as bond-limited: raising D past 32 cannot change the answer.
+    @test lstat.saturated == 0
 
     # This instance is large enough to move the driver's free-memory figure, so
     # calibration must produce a real measurement and size the reservation from
