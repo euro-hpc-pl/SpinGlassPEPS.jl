@@ -41,7 +41,7 @@ run it*, so each solve gets its own network, projector workspace, and contractio
 cache. Julia must be started with more than one thread (`julia -t auto`) for the
 solves to overlap; with a single thread the sweep runs serially and says so.
 
-## How much does concurrency actually buy? Up to ~3× on CPU, up to ~1.7× on a datacenter GPU
+## How much did concurrency buy on the tested systems? Up to ~3× on CPU, up to ~1.7× on H100
 
 The answer depends entirely on the device, so both halves are given below. Same
 protocol throughout: all eight transformations, interleaved A/B rounds with a full
@@ -63,7 +63,7 @@ amortized when there is nothing to overlap — it costs most on the 70 ms case.
 
 ### On a GPU it depends on the card
 
-On a consumer card fanning out does not pay — RTX 5080, 7 rounds:
+On the tested RTX 5080 fanning out did not pay (7 rounds):
 
 | case | serial (median) | sweep, c=2 | sweep, c=4 |
 |---|---|---|---|
@@ -73,8 +73,8 @@ On a consumer card fanning out does not pay — RTX 5080, 7 rounds:
 the solves overlap but per-solve time degrades at the same rate, so no level beats
 the serial loop. The device is not the constraint: utilization stays near 10%, and
 what saturates is serialization inside the CUDA API and allocator, which this solver
-provokes because its kernels are small and numerous. A datacenter card has the
-headroom to overlap them — one H100, 7 rounds:
+provokes because its kernels are small and numerous. The tested H100 did have
+headroom to overlap them (7 rounds):
 
 | case | serial (median) | sweep, c=2 | sweep, c=4 |
 |---|---|---|---|
@@ -110,14 +110,15 @@ measured yourself.
     | 2048 (dense) | 0.50 | 0.64 | 0.90 | — |
     | 2048 (sparse) | — | 0.78 | **1.45** | — |
 
-    The device wins only in the largest sparse case (2048 spins, bond 32).
-    `MpsContractor` defaults to `onGPU = true`, which suits the D-Wave-scale sparse
-    regime the package targets and is the wrong default for exploratory work —
-    measure before assuming. Energies agree in every cell.
+    The device wins only in the largest sparse case (2048 spins, bond 32). On the
+    tested Xeon/H100 system, the CPU is preferable for exploratory work in the
+    smaller or dense configurations. `MpsContractor` defaults to `onGPU = true`,
+    which suits the D-Wave-scale sparse regime the package targets; measure the
+    intended system before assuming. Energies agree in every cell.
 
-So: the sweep is a real speed-up on both devices and worth turning up — up to ~3×
-on CPU and 1.2–1.7× on a datacenter GPU; on a consumer GPU the throughput gain is
-marginal, which is why `:auto` stays at a conservative 1 on any GPU. Its other
+So: the sweep was a real speed-up on both tested devices — up to ~3× on CPU and
+1.2–1.7× on the H100; on the tested RTX 5080 the throughput gain was marginal,
+which is why `:auto` stays at a conservative 1 on any GPU. Its other
 values hold regardless of device — one call instead of a hand-written loop, a
 device-memory budget that keeps concurrency from exhausting the card, deterministic
 per-transformation seeding (a `Zipper` sweep was not reproducible under concurrency
@@ -218,9 +219,11 @@ sweep.report.energy_spread   # best-to-worst energy across transformations
 sweep.report.consensus       # how many transformations reached the best energy
 ```
 
-Eight independent contraction orders that agree is meaningful evidence; a spread
-that is a sizeable fraction of the energy scale means they do not, and the result
-should not be believed regardless of how good the best energy looks.
+Eight distinct transformed contraction orders that agree provide a useful
+consistency check; a spread that is a sizeable fraction of the energy scale means
+they do not agree and flags transformation-order-sensitive outcomes, which may
+reflect contraction or search error. Agreement does not by itself establish overall
+solver convergence or solution quality.
 
 To record truncation error for a single solve, install a log yourself:
 

@@ -60,7 +60,8 @@ function error_control(potts_h)
                 s.dims_kept, s.dims_offered)
     end
     println("  A bond-limited count well below the total means D was rarely the")
-    println("  binding constraint; at zero, raising it cannot change the answer.")
+    println("  binding constraint; at zero, no change from raising D is expected")
+    println("  at the reported precision (discard threshold 1e-12).")
     println("  Note Σε is a *sum* over truncations: values approaching or exceeding 1")
     println("  mean the linearised 'accumulated fidelity loss' reading no longer holds,")
     println("  and the contraction should simply be treated as untrustworthy.")
@@ -102,8 +103,9 @@ function transformation_sweep(potts_h)
     @printf("  energy spread : %.3e\n", r.energy_spread)
     @printf("  admitted      : %d concurrently (%.1fs total)\n",
             r.max_concurrency, r.wall_time)
-    println("  Independent contraction orders agreeing is oracle-free evidence;")
-    println("  a large spread says the result should not be believed.")
+    println("  Distinct transformed contraction orders agreeing is a consistency check;")
+    println("  a large spread flags order-sensitive outcomes that may reflect contraction")
+    println("  or search error; agreement does not establish overall solver convergence.")
 end
 
 function main()

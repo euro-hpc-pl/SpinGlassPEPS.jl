@@ -61,10 +61,10 @@ when you ask for concurrency — rations device memory against a measured
 per-solve reservation instead of assuming a fixed fan-out.
 
 Concurrency pays on CPU — up to **3.1×** over the serial loop, and it is on by
-default there. On a GPU the `:auto` default is a conservative **1**: on a consumer
-card (e.g. RTX 5080) fanning the solves out does not beat the serial loop, but a
-datacenter card (e.g. H100) does benefit — the same sweeps reach **1.69×/1.44×**
-(c=2/c=4) — so set `concurrency = 2`–`4` explicitly there. See the documentation
+default there. On a GPU the `:auto` default is a conservative **1**: on the tested
+RTX 5080 fanning the solves out did not beat the serial loop, while the tested H100
+did benefit — the same sweeps reached **1.69×/1.44×** (c=2/c=4). Measure before
+setting `concurrency = 2`–`4` explicitly on another device. See the documentation
 for the measurements, including where the CPU/GPU crossover lies: the CPU leads
 across the tested range except at the largest sparse case (2048 spins, bond 32),
 where the GPU wins.

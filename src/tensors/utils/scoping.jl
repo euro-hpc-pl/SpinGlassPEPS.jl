@@ -110,9 +110,9 @@ const DEVICE_PEAK_PROBE = ScopedValue{Union{Nothing,DevicePeak}}(nothing)
 """
 Relative discarded weight (‖Σ_dropped‖² / ‖Σ‖²) below which a bond-capped
 truncation is not counted as `saturated`: the dropped singular values are
-numerically negligible, so raising the bond dimension could not change the
-result beyond noise. Sits above the ~1e-14 weights an effectively exact
-contraction discards and below the smallest weight a genuinely bond-limited
+deliberately ignored, so no change from raising the bond dimension is expected
+at the reported precision. Sits above the ~1e-14 weights observed in a reference
+contraction and below the smallest weight a genuinely bond-limited
 truncation has been observed to drop (~1e-10 on the shipped 128-spin fixture).
 """
 const NEGLIGIBLE_DISCARD = 1e-12

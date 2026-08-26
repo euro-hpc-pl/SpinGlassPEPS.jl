@@ -31,7 +31,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
   `qr_fact` falls back to CPU LAPACK below its shape threshold. A transformation
   that throws is recorded and does not lose the others.
 
-  **Concurrency pays on both devices.** Measured over all eight transformations
+  **Concurrency pays on both tested devices.** Measured over all eight transformations
   with interleaved A/B rounds and a full GC (plus `CUDA.reclaim()` on the device)
   before every timed section, as the median of paired per-round ratios against the
   serial loop. On CPU (Xeon Platinum 8462Y+) it is monotonic in concurrency,
@@ -40,11 +40,11 @@ This project adheres to [Semantic Versioning](https://semver.org).
   (c=2/c=4) on the `SVDTruncate` case and **1.22×/1.43×** on the bond-32 `Zipper`
   case; a single admitted solve (c=1) is a slight net loss because the driver's
   fixed overhead is not amortized when nothing overlaps, so the gain begins at c≥2.
-  `concurrency = :auto` is **1 on a GPU** — a conservative default: on a consumer
-  GPU (e.g. RTX 5080) the sweep does not beat the serial loop (the limit is
+  `concurrency = :auto` is **1 on a GPU** — a conservative default: on the tested
+  RTX 5080 the sweep does not beat the serial loop (the limit is
   serialization in the CUDA API and allocator, with this solver's many small
-  kernels), while a datacenter GPU has the headroom to overlap the solves, so set
-  `concurrency = 2`–`4` explicitly on a large device. On CPU it is
+  kernels), while the tested H100 does benefit, so measure before setting
+  `concurrency = 2`–`4` explicitly on another device. On CPU it is
   `min(n, nthreads)`.
 
   Beyond throughput, the sweep replaces a hand-written loop with one call, adds a
@@ -63,10 +63,12 @@ This project adheres to [Semantic Versioning](https://semver.org).
   under both `SVDTruncate` and `Zipper`.
 
   Measured on the 2048power instance (β = 1.5, 2.25, 3.0, bond 16, `Zipper`,
-  `Sparse`), where boundary-MPS construction dominates: **~15% faster per warmed
-  rung** (48.2 s → 41.7 s, 49.3 s → 41.2 s), 9.6% over the whole ladder, identical
-  energies. On a search-dominated instance the gain is only 4–6%, so the benefit
-  tracks how much of the solve is spent building boundary MPS.
+  `Sparse`), where boundary-MPS construction dominates: **~25% faster per warmed
+  rung** (median paired cold/warm ratios 1.32/1.34 over five interleaved rounds
+  on a Xeon Platinum 8462Y+; the rung that is cold in both arms medians 1.01,
+  validating the protocol), ~16% over the whole ladder, identical energies. The
+  benefit tracks how much of the solve is spent building boundary MPS and
+  shrinks where the search dominates.
 
   **`max_discarded` requires `warm_start = false`.** A cold build truncates an
   exact `W * ψ`, so its discarded weight is recorded; a warm start optimizes within
@@ -86,8 +88,10 @@ This project adheres to [Semantic Versioning](https://semver.org).
   reductions per factorization) and costs nothing when no log is installed.
   `beta_ladder` uses it as an error guard (`max_discarded`), and
   `sweep_transformations` reports per-transformation error plus `energy_spread`
-  and `consensus` — an oracle-free indication of whether the eight contraction
-  orders agree.
+  and `consensus` — an oracle-free consistency check across the eight transformed
+  contraction orders. It flags transformation-order-sensitive disagreement, which
+  may reflect contraction or search error, but does not establish overall solver
+  convergence or solution quality.
 
   **Σε does not rank solution quality, and `beta_ladder` selects on energy.** The
   guard only excludes rungs whose contraction is untrustworthy. Measured over ten
@@ -148,17 +152,19 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 - **The CPU/GPU crossover is now established.** Solving identical configurations on
   each device across three instance sizes, four bond dimensions and both sparsity
-  modes (14 cells, energies agreeing everywhere): the host path is ~45× faster at 36
-  spins, 1.5× faster at 2048 spins and bond 16, and loses only once both the
-  instance and the bond dimension are large — 2048 spins at bond 32, where the
-  device wins by 3% (`Dense`) and 17% (`Sparse`). `MpsContractor` still defaults to
-  `onGPU = true`, which is right for the D-Wave-scale sparse regime the package
-  targets and wrong for exploratory work; measure before assuming.
+  modes on the tested Xeon Platinum 8462Y+/H100 system (14 cells, energies agreeing
+  everywhere): the host path is ~45× faster at 36 spins and, at 2048 spins and bond
+  16, ~1.6× faster for `Dense` and ~1.3× for `Sparse`. The device wins only for the
+  largest sparse cell — 2048 spins at bond 32, by ~1.45× — while the dense cell at
+  that size still favours the host by ~11%. `MpsContractor` still defaults to
+  `onGPU = true`, which suits the large sparse regime the package targets; measure
+  the intended system and configuration rather than assuming a universal crossover.
 
-- **The solver is host-bound at every size measured**, which is the finding behind
-  the two allocation changes below. On the RTX 5080 dev machine GPU utilization was
-  5.9% on a 128-spin solve and 12.8% at 2048 spins, while host-side CUDA API calls
-  accounted for only 21–25% of wall time; the majority is host-side Julia work.
+- **The profiled RTX 5080 configurations were host-bound**, which is the finding
+  behind the two allocation changes below. On that development machine GPU
+  utilization was 5.9% on a 128-spin solve and 12.8% at 2048 spins, while host-side
+  CUDA API calls accounted for only 21–25% of wall time; the majority was host-side
+  Julia work.
   Batching kernels — the intuitive response to an idle device — was therefore not
   pursued: eliminating the entire CUDA API share caps at ≈1.3×, well below what
   reducing allocation returned.
@@ -166,9 +172,10 @@ This project adheres to [Semantic Versioning](https://semver.org).
 - **Contraction temporaries no longer go on the collected heap.** The seven
   multi-tensor contractions in `contractions/dense.jl` now use TensorOperations'
   `ManualAllocator`, selected per call so device arrays keep the default (it returns
-  host memory). On a 2048-spin bond-32 CPU solve, allocated bytes fall 65% (90.9 → 32.0 GiB) —
-  hardware-independent, and reproduced on the H100; the wall-time effect on the
-  RTX 5080 dev machine was **1.25×** (24.2 → 19.4 s, GC 7.7 → 4.2 s). Neutral on
+  host memory). On a 2048-spin bond-32 CPU solve, allocated bytes fall 65% (90.9 →
+  32.0 GiB), with the post-change total reproduced on both tested systems; the
+  wall-time effect on the RTX 5080 dev machine was **1.25×** (24.2 → 19.4 s, GC
+  7.7 → 4.2 s). Neutral on
   GPU by construction. In isolation the allocator is ~7% *slower* per call, so the
   gain is entirely the collection it avoids — it had to be measured in a full solve.
 

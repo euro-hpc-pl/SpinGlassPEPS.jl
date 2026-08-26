@@ -51,10 +51,11 @@ function error_control(potts_h)
                 D, first(sol.energies), s.discarded_sum, s.saturated, s.count)
     end
     println("""
-      `saturated` counts truncations where the bond dimension was the binding
-      constraint. At zero, raising D cannot change the answer. Σε is a sum over
-      truncations, so it is only readable as an accumulated fidelity loss while
-      it stays well below 1; above that it means "do not trust this contraction".
+      `saturated` counts bond-capped truncations whose discarded weight exceeds
+      1e-12. At zero, no change from raising D is expected at the reported
+      precision. Σε is a sum over truncations, so it is only readable as an
+      accumulated fidelity loss while it stays well below 1; above that it means
+      "do not trust this contraction".
 
       Note what the two rows above show: D=2 truncated at every opportunity and
       discarded a few percent of the weight, yet recovered the same energy as the

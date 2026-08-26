@@ -196,9 +196,10 @@ Sweep-level diagnostics produced by [`sweep_transformations`](@ref).
 - `wall_time::Float64`: total sweep wall time.
 - `calibration_time::Float64`: of which, the solo run.
 - `energy_spread::Float64`: best-to-worst energy range across transformations —
-  a cheap, oracle-free indicator of whether the contraction is trustworthy. A
-  spread that is a sizeable fraction of the energy scale means the eight solves
-  disagree and the result should not be believed.
+  a cheap consistency diagnostic. A spread that is a sizeable fraction of the
+  energy scale flags transformation-order-sensitive outcomes, which may reflect
+  contraction or search error. A small spread does not establish overall solver
+  convergence or solution quality.
 - `consensus::Int`: how many transformations reached (within tolerance) the best
   energy found.
 - `failures::Int`: how many transformations threw.
@@ -333,16 +334,16 @@ _energy_of(sol::Solution) = isempty(sol.energies) ? NaN : Float64(first(sol.ener
 # Default admission limit for `concurrency = :auto`.
 #
 # On a GPU: one, conservatively. Whether fanning the transformations out over a
-# single device pays depends on the card. On a consumer GPU it does not — measured
-# on an RTX 5080 over 8 transformations (7 interleaved A/B rounds, full GC +
+# single device pays depends on the card. On the tested RTX 5080 it did not — over
+# 8 transformations (7 interleaved A/B rounds, full GC +
 # `CUDA.reclaim()` before every timed section, median of per-round paired ratios),
 # the concurrent sweep ran at 0.92x/0.80x (c=2/c=4) on the 3x4x3 case and
 # 0.88x/0.89x on 128power: the solves overlap but per-solve time degrades at the
 # same rate (utilization ~10%, the limit being serialization in the CUDA
-# API/allocator with this solver's many small kernels). A datacenter GPU has the
-# headroom to overlap them — on an H100 the same sweeps reach 1.69x/1.44x and
-# 1.22x/1.43x (c=2/c=4). Because the common case is the smaller card, `:auto` stays
-# at 1 on any GPU; set `concurrency = 2`–`4` explicitly on a large device.
+# API/allocator with this solver's many small kernels). The tested H100 had the
+# headroom to overlap them: the same sweeps reach 1.69x/1.44x and 1.22x/1.43x
+# (c=2/c=4). Because this does not establish behaviour on another card, `:auto`
+# stays at 1 on any GPU; set `concurrency = 2`–`4` explicitly after measuring.
 #
 # (Interleaving and reclaiming matter more than the effect being measured: a
 # naive protocol that timed the serial arm right after a concurrent warm-up
@@ -391,9 +392,9 @@ governor is denominated in bytes.
   merge strategies close over the contractor (`merge_branches(ctr; ...)`).
 - `symmetry::Symbol = :noZ2`: forwarded to [`low_energy_spectrum`](@ref).
 - `concurrency = :auto`: cap on simultaneously running solves. `:auto` is **1 on a
-  GPU** — a conservative default: on a consumer GPU (e.g. RTX 5080) fanning these
-  solves out over one device does not beat the serial loop, but a datacenter GPU
-  (e.g. H100) does benefit, so set `concurrency = 2`–`4` explicitly there. On CPU it
+  GPU** — a conservative default: on the tested RTX 5080 fanning these solves out
+  over one device did not beat the serial loop, while the tested H100 did benefit.
+  Measure before setting `concurrency = 2`–`4` explicitly on another GPU. On CPU it
   is `min(length(transformations), Threads.nthreads())`. Raise it explicitly for a
   CPU-only run, several devices, or an instance you have measured. The byte budget
   may admit fewer.
@@ -649,8 +650,8 @@ function sweep_transformations(
         end
         spread = maximum(energies) - best_e
         # Count transformations that agree with the best energy to within a
-        # relative tolerance; how many independent contraction orders found the
-        # same minimum is the sweep's oracle-free confidence signal.
+        # relative tolerance; how many distinct transformed contraction orders
+        # found the same minimum is the sweep's consistency signal.
         scale = max(abs(best_e), eps())
         consensus = count(e -> abs(e - best_e) <= 1e-8 * scale, energies)
     end

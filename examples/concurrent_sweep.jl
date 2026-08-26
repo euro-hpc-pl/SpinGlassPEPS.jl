@@ -78,10 +78,14 @@ function run_sweep(::Type{T}; topology::NTuple{3,Int}) where {T}
         )
     end
 
-    # `saturated == 0` on every transformation means the bond dimension was never
-    # the binding constraint, so raising it would not change the answer.
+    # `saturated == 0` on every transformation means that no bond-capped discard
+    # exceeded 1e-12, so no change from raising D is expected at the reported
+    # precision.
     if all(tr -> tr.truncation.saturated == 0, r.per_transform)
-        println("\nBond dimension was never binding: this contraction was effectively exact.")
+        println(
+            "\nNo bond-capped discard exceeded 1e-12: ",
+            "no change from raising D is expected at the reported precision.",
+        )
     end
 
     sol

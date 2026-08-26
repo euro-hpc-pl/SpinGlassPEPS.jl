@@ -88,8 +88,8 @@ end
     @test e.saturated == 0
     @test e.dims_kept == e.dims_offered == 4
 
-    # A bond cap that drops only numerically negligible weight is not counted
-    # as saturated: raising the bond dimension could not change the result.
+    # A bond cap that drops only deliberately ignored weight is not counted as
+    # saturated: no change from raising D is expected at the reported precision.
     negligible = TruncationLog()
     with(TRUNCATION_LOG => negligible) do
         # σ₂ = 1e-7 discards relative weight 1e-14: representable in the Float64
