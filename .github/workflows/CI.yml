@@ -50,6 +50,12 @@ jobs:
       SPINGLASS_TEST_GROUP: ${{ matrix.group }}
     steps:
       - uses: actions/checkout@v4
+      # Every job on a self-hosted runner re-downloads Julia -- the tool cache
+      # does not survive between jobs -- and the runners all start within a
+      # second of each other, so the pulls hit julialang-s3 as one burst from a
+      # single egress IP and come back 503. Jitter the start to spread them out.
+      - name: Stagger the Julia download
+        run: sleep $((RANDOM % 11))
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
@@ -84,6 +90,12 @@ jobs:
       SPINGLASS_TEST_GROUP: ${{ matrix.group }}
     steps:
       - uses: actions/checkout@v4
+      # Every job on a self-hosted runner re-downloads Julia -- the tool cache
+      # does not survive between jobs -- and the runners all start within a
+      # second of each other, so the pulls hit julialang-s3 as one burst from a
+      # single egress IP and come back 503. Jitter the start to spread them out.
+      - name: Stagger the Julia download
+        run: sleep $((RANDOM % 11))
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
