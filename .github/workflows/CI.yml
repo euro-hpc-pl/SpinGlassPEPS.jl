@@ -3,11 +3,22 @@ on:
   push:
     branches:
       - master
-      - lp/**
     tags:
       - '*'
   pull_request:
   workflow_dispatch:
+# A branch with an open PR fired two runs per commit -- one for the push (the
+# branch list used to include lp/**) and one for the pull_request. The
+# pull_request event already covers every commit on such a branch, so push is
+# now narrowed to master and release tags. Branches without a PR can still be
+# built on demand via workflow_dispatch.
+#
+# cancel-in-progress only for pull_request: a new commit supersedes its own PR
+# run instead of queueing behind it. Pushes to master and tag pushes are never
+# cancelled -- a tag gates the versioned docs deploy and must finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 env:
   JULIA_NUM_THREADS: 2
 jobs:
@@ -19,6 +30,11 @@ jobs:
     if: github.ref_type != 'tag'
     name: CPU ${{ matrix.group }} - Julia ${{ matrix.version }}
     runs-on: [self-hosted, cpu]
+    # Bounds a wedged job (e.g. a stalled setup-julia download) to 90 min instead
+    # of the 6 h default, which on a self-hosted runner blocks every queued job
+    # behind it. 90 leaves headroom over the longest run that has ever passed
+    # here (GPU networks, 54m05s).
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -48,6 +64,11 @@ jobs:
     if: github.ref_type != 'tag'
     name: GPU ${{ matrix.group }} - Julia ${{ matrix.version }}
     runs-on: [self-hosted, gpu]
+    # Bounds a wedged job (e.g. a stalled setup-julia download) to 90 min instead
+    # of the 6 h default, which on a self-hosted runner blocks every queued job
+    # behind it. 90 leaves headroom over the longest run that has ever passed
+    # here (GPU networks, 54m05s).
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
