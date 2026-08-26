@@ -56,7 +56,14 @@ jobs:
       # single egress IP and come back 503. Jitter the start to spread them out.
       - name: Stagger the Julia download
         run: sleep $((RANDOM % 11))
+      # julialang-s3.julialang.org is dual-stack Fastly (AAAA 2a04:4e42:8d::561);
+      # every github.com endpoint this workflow touches is IPv4-only. GitHub
+      # transfers succeed on these runners while the Julia tarball stalls with
+      # no data and then 503s, which is what a degraded IPv6 path looks like.
+      # setup-julia is a Node action, so pin its resolver to IPv4.
       - uses: julia-actions/setup-julia@v2
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
@@ -96,7 +103,14 @@ jobs:
       # single egress IP and come back 503. Jitter the start to spread them out.
       - name: Stagger the Julia download
         run: sleep $((RANDOM % 11))
+      # julialang-s3.julialang.org is dual-stack Fastly (AAAA 2a04:4e42:8d::561);
+      # every github.com endpoint this workflow touches is IPv4-only. GitHub
+      # transfers succeed on these runners while the Julia tarball stalls with
+      # no data and then 503s, which is what a degraded IPv6 path looks like.
+      # setup-julia is a Node action, so pin its resolver to IPv4.
       - uses: julia-actions/setup-julia@v2
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
