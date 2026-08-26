@@ -12,13 +12,13 @@ env:
   JULIA_NUM_THREADS: 2
 jobs:
   test-cpu:
-    # CUDA.jl loads on public runners without a device; GPU-only assertions gate
+    # CUDA.jl loads on a device-less runner; GPU-only assertions gate
     # themselves on CUDA.functional(). Every group uses the root package project.
     # Skipped on release tags: the tagged commit already ran on master, and a tag
     # push only needs the docs job (versioned deploy).
     if: github.ref_type != 'tag'
     name: CPU ${{ matrix.group }} - Julia ${{ matrix.version }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cpu]
     strategy:
       fail-fast: false
       matrix:
