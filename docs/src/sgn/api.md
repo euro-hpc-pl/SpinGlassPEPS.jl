@@ -1,7 +1,7 @@
 # Library
 
 ```@meta
-CurrentModule = SpinGlassNetworks
+CurrentModule = SpinGlassPEPS.SpinGlassNetworks
 ```
 
 ## Ising Graphs
@@ -14,14 +14,13 @@ couplings
 ## Potts Hamiltonian
 ```@docs
 split_into_clusters
-decode_potts_hamiltonian_state
 rank_reveal
 energy
 energy_2site
 cluster_size
 bond_energy
 exact_cond_prob
-truncate_potts_hamiltonian
+decode_potts_hamiltonian_state
 ```
 
 ## Belief propagation
@@ -34,14 +33,6 @@ update_message
 merge_vertices_potts_h
 projector
 SparseCSC
-```
-
-## Projectors
-```@docs
-PoolOfProjectors
-get_projector!
-add_projector!
-empty!
 ```
 
 ## Spectrum

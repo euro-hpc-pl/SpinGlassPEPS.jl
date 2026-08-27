@@ -1,0 +1,78 @@
+export measure_memory, format_bytes, kernel_batch_size
+
+"""
+Power-of-two batch size for kernel intermediates of element type `T` costing
+`per_item` elements per batched item. Scales with `sizeof(T)`, so Float32 gets
+twice the batch of Float64.
+
+The byte budget for intermediates is a quarter of the memory this task is
+entitled to:
+
+  * if a [`DEVICE_MEMORY_BUDGET`](@ref) is in scope (set per task by the parallel
+    sweep driver), a quarter of that reservation. This is what makes concurrent
+    solves safe: without it, every concurrently running solve measures the same
+    shared free pool and they all size their batches as if they owned it.
+  * otherwise a quarter of the *currently free* device memory (so it shrinks
+    when other allocations are live, rather than overcommitting against total
+    capacity), floored at a sixteenth of total memory so a busy pool can't
+    collapse the batch to a pathologically small value.
+
+On CPU the budget is 4 GiB.
+"""
+function kernel_batch_size(::Type{T}, per_item::Integer, onGPU::Bool) where {T}
+    budget = if onGPU && CUDA.functional()
+        reserved = device_memory_budget()
+        reserved > 0 ? reserved ÷ 4 :
+        max(Int(CUDA.available_memory()) ÷ 4, Int(CUDA.total_memory()) ÷ 16)
+    else
+        2^32
+    end
+    bs = max(budget ÷ (sizeof(T) * per_item), 1)
+    Int(2^floor(log2(bs) + 1e-6))
+end
+
+measure_memory(ten::AbstractArray) = [Base.summarysize(ten), 0]  # [CPU_memory, GPU_memory]
+measure_memory(ten::CuArray) = [0, prod(size(ten)) * sizeof(eltype(ten))]
+measure_memory(ten::SparseMatrixCSC) =
+    sum(measure_memory.([ten.colptr, ten.rowval, ten.nzval]))
+measure_memory(ten::CuSparseMatrixCSC) =
+    sum(measure_memory.([ten.colPtr, ten.rowVal, ten.nzVal]))
+measure_memory(ten::CuSparseMatrixCSR) =
+    sum(measure_memory.([ten.rowPtr, ten.colVal, ten.nzVal]))
+measure_memory(ten::Diagonal) = measure_memory(diag(ten))
+measure_memory(ten::SiteTensor) = sum(measure_memory.([ten.loc_exp]))  # ten.projs...]))
+measure_memory(ten::CentralTensor) =
+    sum(measure_memory.([ten.e11, ten.e12, ten.e21, ten.e22]))
+measure_memory(ten::DiagonalTensor) = sum(measure_memory.([ten.e1, ten.e2]))
+measure_memory(ten::VirtualTensor) = sum(measure_memory.([ten.con]))  # ten.projs...]))
+measure_memory(ten::MpoTensor) = sum(measure_memory.([ten.top..., ten.ctr, ten.bot...]))
+measure_memory(ten::Union{QMps,QMpo}) = sum(measure_memory.(values(ten.tensors)))
+measure_memory(env::Environment) = sum(measure_memory.(values(env.env)))
+measure_memory(env::EnvironmentMixed) = sum(measure_memory.(values(env.env)))
+measure_memory(lp::PoolOfProjectors) = sum([measure_memory(da) for da ∈ values(lp.data)])
+measure_memory(dict::Dict) = isempty(dict) ? [0, 0] : sum(measure_memory.(values(dict)))
+measure_memory(tuple::Tuple) = sum(measure_memory.(tuple))
+measure_memory(ten::Int) = [sizeof(ten), 0]
+measure_memory(::Nothing) = [0, 0]
+
+
+function format_bytes(bytes, decimals::Int = 2, k::Int = 1024)
+    bytes == 0 && return "0 Bytes"
+    dm = decimals < 0 ? 0 : decimals
+    sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+    i = convert(Int, floor(log(bytes) / log(k)))
+    string(round((bytes / ^(k, i)), digits = dm)) * " " * sizes[i+1]
+end
+
+function measure_memory(caches::IdDict{Any,Any}, bytes::Bool = true)
+    memoization_memory = bytes ? Dict{Any,Vector{String}}() : Dict{Any,Vector{Int64}}()
+    for key in keys(caches)
+        push!(
+            memoization_memory,
+            key =>
+                bytes ? format_bytes.(measure_memory(caches[key])) :
+                measure_memory(caches[key]),
+        )
+    end
+    memoization_memory
+end

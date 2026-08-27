@@ -34,7 +34,7 @@ sol = bench_inpaining(Float64, 6, 64, 4)
 * The function `low_energy_spectrum` searches for low-energy configurations with branch merging and droplet search.
 
 !!! info "Data visualisation"
-    To fully interpret the results, the data might be visualized. This example generates raw data, but a full visualization guide is available on [GitHub](https://github.com/euro-hpc-pl/SpinGlassPEPS.jl/blob/master/examples/inpaining.jl)
+    To fully interpret the results, the data might be visualized. This example generates raw data, but a full visualization guide is available on [GitHub](https://github.com/euro-hpc-pl/SpinGlassPEPS.jl/blob/master/examples/inpainting.jl)
 
 ## D-Wave Pegasus
 This example demonstrates how to perform an optimization on the Pegasus lattice with 216 spins using `SpinGlassPEPS.jl`. It is a computationally demanding example that involves truncating cluster states from 2^24 to the 2^16  most probable states. The example requires GPU support for efficient computation and may take several minutes to complete.

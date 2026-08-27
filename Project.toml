@@ -1,28 +1,66 @@
 name = "SpinGlassPEPS"
 uuid = "2c514f87-1261-494e-8566-326879aaf4fe"
-version = "1.5.0"
+version = "2.0.0"
+authors = ["Anna Maria Dziubyna <annamariadziubyna@gmail.com>", "Tomasz Śmierzchalski <smierzchalski.tomek@gmail.com>", "Bartłomiej Gardas <bartek.gardas@gmail.com>", "Dariusz Kurzyk <dkurzyk@iitis.pl>", "Konrad Jałowiecki <dexter2206@gmail.com>", "Łukasz Pawela <lukasz.pawela@gmail.com>", "Marek M. Rams <marekrams@gmail.com>"]
 
 [deps]
-Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-DocumenterTools = "35a29f4d-8980-5a13-9543-d66fff28ecb8"
+Bits = "1654ce90-6ed3-553a-957f-9452c3a40996"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+LabelledGraphs = "605abd48-4d17-4660-b914-d4df33194460"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LowRankApprox = "898213cb-b102-5a47-900c-97e73b919f73"
+MKL = "33e6dc65-8f57-5167-99aa-e5a354878fb2"
+MetaGraphs = "626554b9-1ddb-594c-aa3c-2596fe9399a5"
+NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-SpinGlassEngine = "0563570f-ea1b-4080-8a64-041ac6565a4e"
-SpinGlassExhaustive = "a894d7c4-7f54-4100-9d77-d00d924adeb3"
-SpinGlassNetworks = "b7f6bd3e-55dc-4da6-96a9-ef9dbec6ac19"
-SpinGlassTensors = "7584fc6a-5a23-4eeb-8277-827aab0146ea"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+TSVD = "9449cd9e-2762-5aa3-a617-5413e99d722e"
+TensorOperations = "6aa20fa7-93e2-5fca-9bc0-fbd0db3c71a2"
+cuTENSOR = "011b41b2-24ef-40a8-b3eb-fa098493e9e1"
+
+[weakdeps]
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+
+[extensions]
+SpinGlassPEPSOpenGMExt = "HDF5"
 
 [compat]
-Documenter = "1.8.0"
-DocumenterTools = "0.1.20"
-Reexport = "1.0"
-SpinGlassEngine = "1.6.0"
-SpinGlassExhaustive = "1.1.0"
-SpinGlassNetworks = "1.4.0"
-SpinGlassTensors = "1.3.0"
+Bits = "0.2"
+CSV = "0.10"
+CUDA = "5.5"
+DocStringExtensions = "0.9.3"
+Graphs = "1.9"
+HDF5 = "0.17"
+JLD2 = "0.4"
+LabelledGraphs = "0.4.4"
+LinearAlgebra = "1.11"
+LowRankApprox = "0.5.5"
+MKL = "0.4.3"
+MetaGraphs = "0.7"
+NNlib = "0.9.14"
+PrecompileTools = "1"
+ProgressMeter = "1.10"
+Random = "1.11"
+Reexport = "1"
+SparseArrays = "1.9"
+Statistics = "1.7"
+TSVD = "0.4.4"
+TensorOperations = "5.1.3"
+cuTENSOR = "2"
 julia = "1.11"
 
 [extras]
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Pkg"]
+test = ["HDF5", "Logging", "Test"]

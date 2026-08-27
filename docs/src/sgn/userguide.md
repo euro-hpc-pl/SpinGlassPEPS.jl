@@ -1,5 +1,5 @@
 # Introduction
 
-A [Julia](http://julialang.org) package for building and interacting with Ising spin glass models in context of tensor networks. Part of [SpinGlassPEPS](https://github.com/euro-hpc-pl/SpinGlassPEPS.jl) package.
+A component of `SpinGlassPEPS.jl` for generating Ising graphs and clustering binary variables into effective Potts Hamiltonians.
 
-The contents of our package are illustrated through comprehensive examples, showcasing the practical utilization of key functions. Specifically, the `ising_graph` function is highlighted, demonstrating its capacity to generate Ising model graphs — a fundamental step in modeling spin systems. Additionally, the `potts_hamiltonian` function is presented as a tool for converting Ising graphs into Potts Hamiltonians. The package delves into various lattice geometries, providing insights into constructing diverse structures such as the `super_square_lattice`, `pegasus_lattice`, and `zephyr_lattice`. Moreover, the documentation outlines methods for local dimensional reduction, shedding light on techniques to streamline computations and enhance the efficiency of spin system simulations.
+The examples highlight `ising_graph`, which constructs an Ising graph from standard instance formats, and `potts_hamiltonian`, which groups binary variables into fewer, higher-dimensional variables. This section also covers `super_square_lattice`, `pegasus_lattice`, `zephyr_lattice`, and local dimensional reduction.

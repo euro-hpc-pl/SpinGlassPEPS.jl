@@ -5,12 +5,20 @@
 *.npz
 *.npy
 *.pdf
-results
 docs/build
 **/.DS_Store
 Manifest.toml
 sysimage.so
-docs/build
-docs/src/sge
-docs/src/sgn
-docs/src/sgt
+
+# Benchmark output: scratch runs are ignored; the curated baselines committed
+# as performance references are re-included explicitly.
+benchmark/results/*
+!benchmark/results/1783820462-bf54ded-baseline.json
+!benchmark/results/1783857208-c8abd4d-baseline-min3.json
+!benchmark/results/1783857332-c8abd4d-p3-qr-min3.json
+!benchmark/results/1783862321-4b9c4a1-aba-B1.json
+!benchmark/results/1783862425-4b9c4a1-aba-M.json
+!benchmark/results/1783893265-a8e9fd6-p4-cache.json
+!benchmark/results/1783900209-722afdc-p4-cache.json
+!benchmark/results/1783900340-722afdc-p5-adjudicate.json
+!benchmark/results/1783904372-8453212-p4-cache.json

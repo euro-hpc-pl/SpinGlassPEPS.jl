@@ -2,6 +2,10 @@
 
 ---
 
+```@meta
+CurrentModule = SpinGlassPEPS.SpinGlassEngine
+```
+
 ## Search
 ```@docs
 empty_solution
@@ -26,6 +30,7 @@ SuperPEPSNode
 
 ## Contractor
 ```@docs
+ContractionCache
 MpoLayers
 layout
 sparsity
@@ -66,13 +71,9 @@ flip_state
 
 ## PEPS
 ```@docs
-SpinGlassEngine.local_energy
-SpinGlassEngine.interaction_energy
 normalize_probability
 initialize_gauges!
 decode_state
-SpinGlassEngine.bond_energy
-SpinGlassEngine.projector
 spectrum
 is_compatible
 ones_like
@@ -98,4 +99,6 @@ local_spins
 tensor
 branch_states
 precompute_conditional
+take_guess!
+branch_states_view
 ```

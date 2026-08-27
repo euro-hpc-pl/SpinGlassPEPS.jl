@@ -15,9 +15,11 @@ ising_graph
 In this simple example below we show how to create Ising graph of a instance given as txt file in a format (i, j, Jij). The resulting graph has vertices corresponding to positions of spins in the system and edges defining coupling strength between spins. Each vertex contains information about local field.
 
 ```@example
-using SpinGlassNetworks
+using SpinGlassPEPS
 # Create Ising instance
-instance = "$(@__DIR__)/../../src/instances/square_diagonal/5x5/diagonal.txt"
+instance = joinpath(
+    pkgdir(SpinGlassPEPS), "docs", "src", "instances", "square_diagonal", "5x5", "diagonal.txt",
+)
 ig = ising_graph(instance)
 
 # View graph properties

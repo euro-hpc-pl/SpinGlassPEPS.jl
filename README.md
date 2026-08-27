@@ -1,4 +1,4 @@
-# SpinGlassPEPS.jl 
+# SpinGlassPEPS.jl
 
 | **Documentation** | **Digital Object Identifier** |
 |:-----------------:|:-----------------------------:|
@@ -10,34 +10,103 @@ Welcome to `SpinGlassPEPS.jl`, an open-source Julia package designed for heurist
 </div>
 
 
-## Package Description
+## Installation
+
+SpinGlassPEPS is distributed as one Julia package. From the Julia package prompt:
+
+```julia
+pkg> add SpinGlassPEPS
+```
+
+Then load the complete solver stack with:
+
+```julia
+using SpinGlassPEPS
+```
+
+## Package description
 
 <div align="justify">
 This package combines advanced heuristics to address optimization challenges and employs tensor network contractions to compute conditional probabilities to identify the most probable states according to the Gibbs distribution. `SpinGlassPEPS.jl` is a tool for reconstructing the low-energy spectrum of Ising spin glass Hamiltonians and RMF Hamiltonians. Beyond energy computations, the package offers insights into spin configurations, associated probabilities, and retains the largest discarded probability during the branch and bound optimization procedure. Notably, `SpinGlassPEPS.jl` goes beyond ground states, introducing a unique feature for identifying and analyzing spin glass droplets — collective excitations crucial for understanding system dynamics beyond the fundamental ground state configurations.
 </div>
 
 ## Package architecture
-The package `SpinGlassPEPS.jl` includes:
+
+The complete implementation now lives in this repository and is installed as a
+single package. Its four implementation layers remain as internal modules so
+their responsibilities and namespaces stay clear:
 
 <div align="justify">
 
-* `SpinGlassTensors.jl` - Package containing  essential tools for creating and manipulating tensors that constitute the PEPS network, with support for both CPU and GPU utilization. It manages core operations on tensor networks, including contraction, using the boundary Matrix Product State approach. This package primarily functions as a backend, and users generally do not interact with it directly.
+* `SpinGlassTensors` provides the tensor and boundary-MPS machinery, including CPU and GPU contractions.
 
-* `SpinGlassNetworks.jl` - Package  facilitating the generation of an Ising graph from a given instance using a set of standard inputs (e.g., instances compatible with the Ocean environment provided by D-Wave) and suports clustering to create effective Potts Hamiltonians.
+* `SpinGlassNetworks` constructs Ising graphs, clustered Potts Hamiltonians, and supported lattice mappings.
 
-* `SpinGlassEngine.jl` - The main package, consisting of routines for executing the branch-and-bound method (with the ability to leverage the problem’s locality) for a given Potts instance. It also includes capabilities for reconstructing the low-energy spectrum from identified localized excitations and provides a tensor network constructor.
+* `SpinGlassExhaustive` contains CPU/GPU exhaustive solvers used for small problems and validation.
+
+* `SpinGlassEngine` builds PEPS networks and runs branch-and-bound searches, sampling, and droplet reconstruction.
 </div>
+
+Their public APIs are re-exported by `SpinGlassPEPS`, so normal usage needs only
+`using SpinGlassPEPS`. Advanced users can still qualify implementation details,
+for example as `SpinGlassPEPS.SpinGlassNetworks`.
+
+## Running the standard protocol concurrently
+
+The solver is normally run once per lattice transformation, keeping the best
+result. `sweep_transformations` replaces that hand-written loop with one call,
+adds deterministic per-transformation seeding, reports how much weight the
+contraction discarded and whether the distinct contraction orders agreed, and —
+when you ask for concurrency — rations device memory against a measured
+per-solve reservation instead of assuming a fixed fan-out.
+
+Concurrency pays on CPU — up to **3.1×** over the serial loop, and it is on by
+default there. On a GPU the `:auto` default is a conservative **1**: on the tested
+RTX 5080 fanning the solves out did not beat the serial loop, while the tested H100
+did benefit — the same sweeps reached **1.69×/1.44×** (c=2/c=4). Measure before
+setting `concurrency = 2`–`4` explicitly on another device. See the documentation
+for the measurements, including where the CPU/GPU crossover lies: the CPU leads
+across the tested range except at the largest sparse case (2048 spins, bond 32),
+where the GPU wins.
+
+```julia
+sweep = sweep_transformations(
+    transform -> MpsContractor(
+        SVDTruncate,
+        PEPSNetwork{KingSingleNode{GaugesEnergy},Dense,Float64}(m, n, potts_h, transform),
+        params; onGPU = true, beta = 2.0, graduate_truncation = true,
+    ),
+    SearchParameters(; max_states = 2^8, cutoff_prob = 1e-4),
+)
+
+sol = best_solution(sweep)
+sweep.report.consensus      # how many transformations reached the best energy
+sweep.report.energy_spread  # ... and how far apart the rest were
+```
+
+The documentation page "Concurrent sweeps and error control" also covers
+`beta_ladder`, which walks an inverse-temperature schedule with warm-started
+boundary MPS. It selects on **energy**; the truncation-error budget only excludes
+rungs whose contraction is untrustworthy, and is not a ranking of solution quality.
+
+Three runnable examples:
+
+| file | scale | shows |
+| --- | --- | --- |
+| `examples/beta_ladder.jl` | 18 spins, seconds | error control and the β ladder, annotated |
+| `examples/concurrent_sweep.jl` | 128 spins | the transformation sweep and its VRAM governor |
+| `examples/square_50x50.jl` | 2500 spins | all three, at the scale used by the article figures |
 
 # Code Example
 
 A breakdown of this example can be found in the documentation. To run provided examples, activate and instantiate `Project.toml` file in "examples" folder.
 
-```@julia
+```julia
 using SpinGlassPEPS
 
 function get_instance(topology::NTuple{3, Int})
     m, n, t = topology
-    "$(@__DIR__)/instances/square_diagonal/$(m)x$(n)x$(t).txt"
+    joinpath(pkgdir(SpinGlassPEPS), "examples", "instances", "$(m)x$(n)x$(t).txt")
 end
 
 function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
@@ -57,7 +126,7 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
     )
 
     params = MpsParameters{T}(; bond_dim = 16, num_sweeps = 1)
-    search_params = SearchParameters(; max_states = 2^8, cut_off_prob = 1E-4)
+    search_params = SearchParameters(; max_states = 2^8, cutoff_prob = 1E-4)
 
     for transform ∈ all_lattice_transformations
         net = PEPSNetwork{KingSingleNode{GaugesEnergy}, Dense, T}(
@@ -68,9 +137,11 @@ function run_square_diag_bench(::Type{T}; topology::NTuple{3, Int}) where {T}
             onGPU = false, beta = T(2), graduate_truncation = true,
         )
 
-        single = SingleLayerDroplets(eng, hamming_dist, :hamming)
+        single = SingleLayerDroplets(;
+            max_energy = eng, min_size = hamming_dist, metric = :hamming,
+        )
         merge_strategy = merge_branches(
-            ctr; merge_type = :nofit, update_droplets = single,
+            ctr; merge_prob = :none, droplets_encoding = single,
         )
 
         sol, _ = low_energy_spectrum(ctr, search_params, merge_strategy)
@@ -97,22 +168,25 @@ Article describing this package and code.
 @article{SpinGlassPEPS.jl,
     author = {Tomasz \'{S}mierzchalski and Anna Maria Dziubyna and Konrad Ja\l{}owiecki and Zakaria
     Mzaouali and {\L}ukasz Pawela and Bart\l{}omiej Gardas and Marek M. Rams},
-    title = {{SpinGlassPEPS.jl}: low-energy solutions for near-term quantum annealers},
-    journal = {},
-    year = {},
+    title = {{SpinGlassPEPS.jl}: Tensor-network package for {Ising}-like optimization on quasi-two-dimensional graphs},
+    journal = {SoftwareX},
+    volume = {31},
+    pages = {102257},
+    year = {2025},
+    doi = {10.1016/j.softx.2025.102257},
 }
 ```
 
 Article describing in detail used algorithms and containing extensive benchmarks.
 ```
-@misc{SpinGlassPEPS, 
+@article{SpinGlassPEPS, 
     author = {Anna Maria Dziubyna and Tomasz \'{S}mierzchalski and Bart\l{}omiej Gardas and Marek M. Rams and Masoud Mohseni},
     title = {Limitations of tensor network approaches for optimization and sampling: A comparison against quantum and classical {Ising} machines},
-    year = {2024},
-    eprint={2411.16431},
-    archivePrefix={arXiv},
-    primaryClass={cond-mat.dis-nn},
-    doi = {10.48550/arXiv.2411.16431} 
+    journal = {Physical Review Applied},
+    volume = {23},
+    pages = {054049},
+    year = {2025},
+    doi = {10.1103/PhysRevApplied.23.054049},
 }
 ```
 
@@ -123,4 +197,3 @@ This project was supported by:
 
 * The National Science Center (NCN), Poland, under Projects: Sonata Bis 10, No. 2020/38/E/ST3/00269 (T.S., Z.M.) and 2020/38/E/ST3/00150 (A.D., M.R.)
 * Foundation for Polish Science (grant no POIR.04.04.00-00-14DE/18-00 carried out within the Team-Net program co-financed by the European Union under the European Regional Development Fund) (B.G., Ł.P.).
-

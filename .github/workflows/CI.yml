@@ -3,44 +3,132 @@ on:
   push:
     branches:
       - master
+    tags:
+      - '*'
   pull_request:
   workflow_dispatch:
+# A branch with an open PR fired two runs per commit -- one for the push (the
+# branch list used to include lp/**) and one for the pull_request. The
+# pull_request event already covers every commit on such a branch, so push is
+# now narrowed to master and release tags. Branches without a PR can still be
+# built on demand via workflow_dispatch.
+#
+# cancel-in-progress only for pull_request: a new commit supersedes its own PR
+# run instead of queueing behind it. Pushes to master and tag pushes are never
+# cancelled -- a tag gates the versioned docs deploy and must finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 env:
   JULIA_NUM_THREADS: 2
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
-    runs-on: [self-hosted,titan,gpu]
+  test-cpu:
+    # CUDA.jl loads on a device-less runner; GPU-only assertions gate
+    # themselves on CUDA.functional(). Every group uses the root package project.
+    # Skipped on release tags: the tagged commit already ran on master, and a tag
+    # push only needs the docs job (versioned deploy).
+    if: github.ref_type != 'tag'
+    name: CPU ${{ matrix.group }} - Julia ${{ matrix.version }}
+    runs-on: [self-hosted, cpu]
+    # Bounds a wedged job (e.g. a stalled setup-julia download) to 90 min instead
+    # of the 6 h default, which on a self-hosted runner blocks every queued job
+    # behind it. 90 leaves headroom over the longest run that has ever passed
+    # here (GPU networks, 54m05s).
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         version:
-          - 1.11
-        os:
-          - ubuntu-latest
+          - '1.12'
+        group:
+          - tensors
+          - networks
+          - exhaustive
+          - engine
+          - umbrella
+    env:
+      SPINGLASS_TEST_GROUP: ${{ matrix.group }}
     steps:
       - uses: actions/checkout@v4
+      # Every job on a self-hosted runner re-downloads Julia -- the tool cache
+      # does not survive between jobs -- and the runners all start within a
+      # second of each other, so the pulls hit julialang-s3 as one burst from a
+      # single egress IP and come back 503. Jitter the start to spread them out.
+      - name: Stagger the Julia download
+        run: sleep $((RANDOM % 11))
+      # julialang-s3.julialang.org is dual-stack Fastly (AAAA 2a04:4e42:8d::561);
+      # every github.com endpoint this workflow touches is IPv4-only. GitHub
+      # transfers succeed on these runners while the Julia tarball stalls with
+      # no data and then 503s, which is what a degraded IPv6 path looks like.
+      # setup-julia is a Node action, so pin its resolver to IPv4.
       - uses: julia-actions/setup-julia@v2
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
         with:
           version: ${{ matrix.version }}
-      - uses: actions/cache@v3
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@latest
+        with:
+          project: .
       - uses: julia-actions/julia-runtest@latest
+        with:
+          project: .
+  test-gpu:
+    if: github.ref_type != 'tag'
+    name: GPU ${{ matrix.group }} - Julia ${{ matrix.version }}
+    runs-on: [self-hosted, gpu]
+    # Bounds a wedged job (e.g. a stalled setup-julia download) to 90 min instead
+    # of the 6 h default, which on a self-hosted runner blocks every queued job
+    # behind it. 90 leaves headroom over the longest run that has ever passed
+    # here (GPU networks, 54m05s).
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.12'
+        group:
+          - tensors
+          - networks
+          - exhaustive
+          - engine
+          - umbrella
+    env:
+      SPINGLASS_TEST_GROUP: ${{ matrix.group }}
+    steps:
+      - uses: actions/checkout@v4
+      # Every job on a self-hosted runner re-downloads Julia -- the tool cache
+      # does not survive between jobs -- and the runners all start within a
+      # second of each other, so the pulls hit julialang-s3 as one burst from a
+      # single egress IP and come back 503. Jitter the start to spread them out.
+      - name: Stagger the Julia download
+        run: sleep $((RANDOM % 11))
+      # julialang-s3.julialang.org is dual-stack Fastly (AAAA 2a04:4e42:8d::561);
+      # every github.com endpoint this workflow touches is IPv4-only. GitHub
+      # transfers succeed on these runners while the Julia tarball stalls with
+      # no data and then 503s, which is what a degraded IPv6 path looks like.
+      # setup-julia is a Node action, so pin its resolver to IPv4.
+      - uses: julia-actions/setup-julia@v2
+        env:
+          NODE_OPTIONS: --dns-result-order=ipv4first
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@latest
+        with:
+          project: .
+      - uses: julia-actions/julia-runtest@latest
+        with:
+          project: .
       - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: src
       - uses: codecov/codecov-action@v4
-        with: 
+        with:
           file: lcov.info
+          flags: gpu-${{ matrix.group }}
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false  # or true if you want CI to fail when Codecov fails
+          fail_ci_if_error: false
   docs:
     name: Documentation
     runs-on: ubuntu-latest
@@ -48,11 +136,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1.11'
+          version: '1.12'
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
         run: julia --project=docs/ docs/make.jl
