@@ -19,10 +19,10 @@
 # Σε rises while the distribution is sharpening — there is more structure for the
 # boundary MPS to carry — and falls again once it concentrates enough to be close
 # to a product state, which truncates easily. Solution quality, meanwhile, keeps
-# improving. So on that family the *best* βs have among the *lowest* discarded
-# weight, and a guard on Σε alone would have rejected the good rungs and kept the
-# bad ones. Σε bounds how much of the distribution the contraction threw away; it
-# is not a proxy for whether the search then found a good state.
+# improving. On that family the *best* βs have among the *lowest* discarded
+# weight. Treating the first guard failure as final would stop at β = 4 and miss
+# the better later rungs. Σε bounds how much of the distribution the contraction
+# threw away. It is not a proxy for whether the search found a good state.
 #
 # Two pieces address the β problem here:
 #
@@ -76,7 +76,7 @@ One rung of a [`beta_ladder`](@ref).
   boundary MPS.
 - `trusted::Bool`: whether the accumulated discarded weight stayed within the
   guard (`max_discarded`). Selection prefers trusted steps; an untrusted step is
-  eligible only as a fallback, when no rung stayed within the guard.
+  eligible only as a fallback, when no trusted rung has a valid energy.
 - `error`: the exception if the step failed, otherwise `nothing`.
 """
 struct BetaStepReport
@@ -95,12 +95,14 @@ $(TYPEDSIGNATURES)
 Result of a [`beta_ladder`](@ref).
 
 # Fields
-- `betas::Vector{Float64}`: the schedule, in the order solved.
-- `solutions::Vector{Union{Nothing,Solution}}`: aligned with `betas`.
+- `betas::Vector{Float64}`: the full requested schedule, in request order.
+- `solutions::Vector{Union{Nothing,Solution}}`: aligned with `betas`. Failed and
+  unattempted rungs contain `nothing`.
 - `selected_index::Int`: the rung chosen — the lowest-energy trusted rung, or, if
-  no rung was trusted, the lowest-energy rung overall as a fallback; `0` only if
-  no rung produced a solution.
-- `steps::Vector{BetaStepReport}`
+  none has a valid energy, the lowest-energy successful rung as an untrusted
+  fallback; `0` only if no rung produced a selectable energy.
+- `steps::Vector{BetaStepReport}`: one report per attempted rung, in request
+  order. With early stopping this is a prefix of `betas`.
 """
 struct BetaLadderSolution
     betas::Vector{Float64}

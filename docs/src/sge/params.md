@@ -16,7 +16,7 @@ In the boundary MPS-MPO approach we apply Matrix Product Operator (MPO) to appro
 Our package offers users the flexibility to choose between three distinct methods for optimizing the boundary MPS used in contracting the tensor network: 
 * `Zipper`
 * `SVDTruncate`.
-`Zipper` method combines a zipper scheme of [Ref.](https://arxiv.org/abs/2310.08533). with the standard variational optimization of the resulting MPS [(see Ref.)](https://arxiv.org/abs/0907.2796)
+The `Zipper` method combines the zipper scheme described in [Phys. Rev. Applied 23, 054049 (2025)](https://doi.org/10.1103/PhysRevApplied.23.054049) with standard variational optimization of the resulting MPS [(see Ref.)](https://arxiv.org/abs/0907.2796).
 ```@raw html
 <img src="../images/zipper_final.png" width="200%" class="center"/>
 ```

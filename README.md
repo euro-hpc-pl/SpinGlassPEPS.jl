@@ -2,7 +2,7 @@
 
 | **Documentation** | **Digital Object Identifier** |
 |:-----------------:|:-----------------------------:|
-|[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://euro-hpc-pl.github.io/SpinGlassPEPS.jl/dev/)| [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3245496.svg)](https://doi.org/10.5281/zenodo.14627393)|
+|[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://euro-hpc-pl.github.io/SpinGlassPEPS.jl/dev/)| [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14627392.svg)](https://doi.org/10.5281/zenodo.14627392)|
 
 
 <div align="justify">
@@ -27,7 +27,7 @@ using SpinGlassPEPS
 ## Package description
 
 <div align="justify">
-This package combines advanced heuristics to address optimization challenges and employs tensor network contractions to compute conditional probabilities to identify the most probable states according to the Gibbs distribution. `SpinGlassPEPS.jl` is a tool for reconstructing the low-energy spectrum of Ising spin glass Hamiltonians and RMF Hamiltonians. Beyond energy computations, the package offers insights into spin configurations, associated probabilities, and retains the largest discarded probability during the branch and bound optimization procedure. Notably, `SpinGlassPEPS.jl` goes beyond ground states, introducing a unique feature for identifying and analyzing spin glass droplets — collective excitations crucial for understanding system dynamics beyond the fundamental ground state configurations.
+This package uses tensor-network contractions to estimate the conditional probabilities required by a branch-and-bound search. `SpinGlassPEPS.jl` reconstructs low-energy spectra of Ising spin-glass and random Markov field Hamiltonians. It reports configurations, probabilities, and contraction diagnostics, including accumulated and maximum discarded weight. It also identifies spin-glass droplets, which are localized excitations above low-energy configurations.
 </div>
 
 ## Package architecture
@@ -86,8 +86,11 @@ sweep.report.energy_spread  # ... and how far apart the rest were
 
 The documentation page "Concurrent sweeps and error control" also covers
 `beta_ladder`, which walks an inverse-temperature schedule with warm-started
-boundary MPS. It selects on **energy**; the truncation-error budget only excludes
-rungs whose contraction is untrustworthy, and is not a ranking of solution quality.
+boundary MPS. A rung is trusted when `truncation.discarded_sum <= max_discarded`.
+The ladder minimizes energy over trusted rungs. If none has a valid energy, it
+returns the minimum-energy successful rung as an untrusted fallback. With the
+default `Inf`, selection is simply by minimum energy. The discarded-weight guard
+describes contraction reliability, not solution quality.
 
 Three runnable examples:
 
@@ -163,7 +166,7 @@ T = Float64
 
 # Citing
 
-Article describing this package and code.
+Article describing the package and its implementation.
 ```
 @article{SpinGlassPEPS.jl,
     author = {Tomasz \'{S}mierzchalski and Anna Maria Dziubyna and Konrad Ja\l{}owiecki and Zakaria
@@ -177,11 +180,11 @@ Article describing this package and code.
 }
 ```
 
-Article describing in detail used algorithms and containing extensive benchmarks.
+Article describing the algorithms and their benchmark evaluation.
 ```
 @article{SpinGlassPEPS, 
     author = {Anna Maria Dziubyna and Tomasz \'{S}mierzchalski and Bart\l{}omiej Gardas and Marek M. Rams and Masoud Mohseni},
-    title = {Limitations of tensor network approaches for optimization and sampling: A comparison against quantum and classical {Ising} machines},
+    title = {Limitations of tensor-network approaches for optimization and sampling: A comparison to quantum and classical {Ising} machines},
     journal = {Physical Review Applied},
     volume = {23},
     pages = {054049},

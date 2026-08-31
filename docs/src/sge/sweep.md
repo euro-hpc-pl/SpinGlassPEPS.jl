@@ -258,7 +258,11 @@ sol = selected_solution(ladder)
 [(s.beta, s.energy, s.truncation.discarded_sum) for s ∈ ladder.steps]
 ```
 
-Selection is on energy. Each rung also reports its discarded weight, so a scan
+With a finite `max_discarded`, the ladder minimizes energy over successful rungs
+whose `truncation.discarded_sum` does not exceed the threshold. If none qualifies,
+it returns the minimum-energy successful rung as an untrusted fallback. The flag
+is available as `steps[selected_index].trusted`. With the default `Inf`, selection
+is simply by minimum energy. Each rung reports its discarded weight, so a scan
 yields evidence about both the answer and the contraction behind it.
 
 !!! warning "Discarded weight does not select β"
@@ -275,8 +279,8 @@ yields evidence about both the answer and the contraction behind it.
     sharpening — more structure for the boundary MPS to carry — then falls once
     the distribution concentrates enough to sit close to a product state, which
     truncates easily. Solution quality keeps improving throughout, so here the
-    best βs carry among the *lowest* discarded weight and a Σε guard would have
-    rejected the good rungs.
+    best βs carry among the *lowest* discarded weight. Stopping at the first rung
+    above the threshold could miss those later rungs.
 
     Σε answers "how much of the distribution did the contraction throw away?".
     That is worth knowing, and a large value is a real warning. It is not a proxy
@@ -304,8 +308,8 @@ reports `Σε = [3.2e-3, 1.7e-4, 1.9e-5]` while the warm one reports
 `[3.2e-3, 0, 0]` for identical energies — the zeros are an artifact of where the
 truncation happens, not better accuracy. Setting both warns for this reason.
 
-So: warm start to go faster (~15% per warmed rung on that instance, where
-boundary-MPS construction dominates), cold to audit the contraction.
+On this instance, warm starting reduced the warmed-rung times by 24% to 25% and the
+complete ladder time by about 16%. Use a cold ladder to audit the contraction.
 
 ## Examples
 
