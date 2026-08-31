@@ -1,6 +1,6 @@
 name = "SpinGlassPEPS"
 uuid = "2c514f87-1261-494e-8566-326879aaf4fe"
-version = "2.0.0"
+version = "2.0.1"
 authors = ["Anna Maria Dziubyna <annamariadziubyna@gmail.com>", "Tomasz Śmierzchalski <smierzchalski.tomek@gmail.com>", "Bartłomiej Gardas <bartek.gardas@gmail.com>", "Dariusz Kurzyk <dkurzyk@iitis.pl>", "Konrad Jałowiecki <dexter2206@gmail.com>", "Łukasz Pawela <lukasz.pawela@gmail.com>", "Marek M. Rams <marekrams@gmail.com>"]
 
 [deps]

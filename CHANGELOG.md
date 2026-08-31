@@ -93,15 +93,17 @@ This project adheres to [Semantic Versioning](https://semver.org).
   may reflect contraction or search error, but does not establish overall solver
   convergence or solution quality.
 
-  **Σε does not rank solution quality, and `beta_ladder` selects on energy.** The
-  guard only excludes rungs whose contraction is untrustworthy. Measured over ten
+  **Σε does not rank solution quality.** `beta_ladder` minimizes energy over
+  rungs whose `discarded_sum` satisfies `max_discarded`. If no successful rung
+  satisfies the guard, it returns the minimum-energy successful rung as an
+  untrusted fallback. Measured over ten
   2500-spin instances, energy error falls monotonically with β — reaching the best
   energy found in 9 of 10 instances at β = 6 — while Σε *peaks* at β = 4 (3.4e-3)
   and then falls (7.3e-4 at β = 6, 1.4e-4 at β = 8), because a sharply peaked
   Boltzmann distribution carries less entanglement and truncates more easily. The
-  best β values therefore carried among the *lowest* discarded weight, and a guard
-  on Σε alone would have rejected them. Σε also being a sum, it is readable as an
-  accumulated fidelity loss only while it stays well below 1: a bond-4 solve of a
+  best β values therefore carried among the *lowest* discarded weight. An early
+  stop at the β = 4 peak would have missed them. Σε also being a sum, it is
+  readable as an accumulated fidelity loss only while it stays well below 1: a bond-4 solve of a
   2500-spin instance reaches Σε ≈ 1.3 over 2162 truncations, yet returns a *better*
   energy than a bond-32 solve at Σε ≈ 1.7e-11. It bounds what the contraction
   discarded, not whether the search found a good state.

@@ -1,17 +1,27 @@
-@testset "Compare ising kernel with naive approach" begin
-    N = 8
-    graph = generate_random_graph(N)
-    cu_graph = graph |> cu 
-    
-    ig = ising_graph(graph_to_dict(cu_graph))    
-    
-    res_naive = SpinGlassNetworks.brute_force(ig)
-    res_ising_bucket = exhaustive_search(ig)
+@testset "GPU exhaustive search returns the complete 10-spin spectrum" begin
+    N = 10
+    graph = zeros(Float32, N, N)
+    for i in 1:N
+        graph[i, i] = Float32(mod(3i, 7) - 3) / 4
+        for j in i+1:N
+            graph[i, j] = Float32(mod(5i + 3j, 11) - 5) / 8
+        end
+    end
 
-    # GPU kernels accumulate in Float32; compare at Float32 precision.
-    @test CUDA.@allowscalar isapprox(res_ising_bucket.energies[1], minimum(res_naive.energies); rtol = 1e-6)
+    ig = ising_graph(graph_to_dict(graph))
+    cpu = SpinGlassNetworks.brute_force(ig; num_states = 2^N)
+    gpu = exhaustive_search(ig)
 
-end 
+    gpu_states = Array(gpu.states)
+    gpu_energies = Array(gpu.energies)
+    cpu_energy_by_state = Dict(zip(cpu.states_int, cpu.energies))
+
+    @test sort(gpu_states) == collect(0:2^N-1)
+    @test all(
+        isapprox(energy, cpu_energy_by_state[state]; rtol = 1f-6, atol = 1f-6) for
+        (energy, state) in zip(gpu_energies, gpu_states)
+    )
+end
 
 @testset "Exhaustive searches preserve zero-based state codes" begin
     ig = ising_graph(
