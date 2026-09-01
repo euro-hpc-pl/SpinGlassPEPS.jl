@@ -54,7 +54,7 @@ SparseArrays = "1.9"
 Statistics = "1.7"
 TSVD = "0.4.4"
 TensorOperations = "5.1.3"
-cuTENSOR = "2"
+cuTENSOR = "2, 6"
 julia = "1.11"
 
 [extras]
